@@ -142,8 +142,11 @@ don't need it unless Spike S9 shows a delete veto requires it (see Hooks).
   60 min from the first hold). The cron `sweep-holds` runs every 5 min and processes a
   cursor-driven batch of ≤ N bookings per invocation (subrequest budget).
 - **Waivers:** with `signature.mode = "each_attendee"` (default), every attendee gets their own
-  envelope. A guardian signs for attendees marked under 18. The booking confirms only when every
-  attendee holds a valid receipt. With `mode = "buyer"`, the buyer signs once for the whole booking.
+  envelope. The buyer signs inline during checkout, for themselves and as guardian for attendees
+  marked under 18, and the booking confirms once those receipts are in. Nobody signs for another
+  adult: other adult attendees get a signing email, their attendee record shows `waiver: pending`,
+  and check-in is refused until they sign (staff can open the signing page at the door). This keeps
+  seat holds short. With `mode = "buyer"`, the buyer signs once for the whole booking.
 - `accessToken` = 32 random bytes, emailed as a link. Only its SHA-256 is stored. It gates the
   public booking status, ICS, cancel and ticket views. The email link points at the site's
   booking page (`/booking?t=…`), because SSR can't read URL fragments. That page sends
@@ -494,7 +497,7 @@ any re-planning after the spikes.
 | R2 | Late Stripe payment → re-reserve, or auto-refund if sold out | Otherwise money is taken for seats that were released |
 | R3 | One `reserved` counter per counted document; compensate on partial failure; the sweeper repairs drift | `updateIf` guards compare literals only; no multi-document transactions |
 | R4 | Every e-sign public route is listed in the v1 contract | Adding a public route later forces re-consent |
-| R5 | Waivers: per-event `signature.mode`, default `each_attendee`, guardian signs for minors | Event waivers normally bind each participant |
+| R5 | Waivers: per-event `signature.mode`, default `each_attendee`; buyer signs inline for self and minors; other adults sign by email, and check-in is blocked until they do | Event waivers bind each participant; nobody can sign for another adult; holds can't wait days |
 | R6 | Signed PDF built once at completion; `pdfSha256` verified against the stored bytes | On-demand PDFs aren't byte-identical, so verification would fail |
 | R7 | Audit chain hashes salted commitments of personal data; separate retention for signed records | Lets the retention purge run without breaking the evidence |
 | R8 | `payments` collection keyed by `<provider>:<sessionId>`; no unique index on an optional field | Unique-index behaviour for missing values is undocumented |
