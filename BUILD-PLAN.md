@@ -390,7 +390,7 @@ playground demo and green CI.
 | **4. Payments** | Stripe Checkout, webhook, refunds, promo codes, fees/tax display | M | Stripe test-mode E2E incl. expired session releasing holds; webhook replay is idempotent |
 | **5. Events advanced** | Custom questions, waitlist + offers, check-in UI + MCP tools, reminders, cancellation broadcasts, recurring events (rrule-lite), reports widget/charts, retention | L | Feature checklist §3.1 complete; MCP tools pass consent/permission tests |
 | **6. E-sign advanced** | Multi-signer + sequential routing, OTP, reminders/expiry, decline/void, public self-serve templates (PT block), PDF templates (stamping per S5), bulk send | L | Multi-party contract E2E; PDF template E2E |
-| **7. Hardening & 1.0** | Security review (public routes, token entropy, rate limits, CSRF assumptions), a11y + i18n of UI kits (RTL), docs sections, screenshots, registry listings, automated releases | M | `emdash-plugin validate` clean; delegated release publishes both cores; npm packages published |
+| **7. Hardening & 1.0** | Legal review of consent wording and retention defaults (D4), security review (public routes, token entropy, rate limits, CSRF assumptions), a11y + i18n of UI kits (RTL), docs sections, screenshots, registry listings, automated releases | M | `emdash-plugin validate` clean; delegated release publishes both cores; npm packages published |
 
 MVP worth showing early is Phases 1–3 (free events with waivers). Phases 4–6 can run in parallel
 after Phase 3.
@@ -475,8 +475,9 @@ any re-planning after the spikes.
 
 ## 11. Immediate next steps
 
-1. Create the GitHub repo, pnpm workspace, CI, and Changesets. Register the Atmosphere publisher
-   account and record its DID.
+1. Secure the `semics` names: the npm scope `@semics`, the GitHub org and the Atmosphere publisher
+   handle (record its DID). Then create the public repo, pnpm workspace, CI and Changesets.
+   Set up the Cloudflare Workers Paid staging account.
 2. Scaffold `packages/events` and `packages/esign` with `pnpm dlx @emdash-cms/plugin-cli init`.
    Scaffold `apps/playground` from an EmDash Node template with the workerd sandbox runner.
 3. Run spikes S1, S2 and S5 first; they decide the shape of checkout and PDF generation.
@@ -504,11 +505,11 @@ any re-planning after the spikes.
 | R13 | Event delete protection: veto only if S9 allows it, otherwise orphan + banner; no `content-policy` capability | Keeps the trust contract minimal |
 | R14 | Prefixed slugs `semics-events` / `semics-esign` | Irreversible after the first publish; avoids collisions |
 
-### Open: needs the project owner
+### Owner decisions (2026-10-09)
 
-| # | Question | Default if unanswered |
+| # | Question | Answer |
 |---|---|---|
-| D1 | Publisher identity: Atmosphere handle/DID, npm scope (`@semics`?), GitHub org and repo name | `@semics`, slug prefix `semics-` |
-| D2 | Cloudflare Workers Paid account for staging (needed to test the CPU and subrequest limits that matter most) | Spikes S1 and S5 are blocked without it |
-| D3 | Is there a deadline or a real event driving this, and does it need payments or waivers first? | Phases in the order in §6 |
-| D4 | Target jurisdictions for e-sign, and whether counsel will review the consent wording before 1.0 | US (ESIGN/UETA) + UK/EU (eIDAS SES); booking data retained 12 months after the event, signed records 7 years; both configurable |
+| D1 | Publisher identity | **semics**: npm scope `@semics`, slugs `semics-events` / `semics-esign`. Secure the npm scope, the GitHub org and the Atmosphere handle before the first publish |
+| D2 | Cloudflare staging | **Yes**: a Workers Paid account for the staging site; spikes S1 and S5 run there |
+| D3 | Deadline / priority | **None**: build in the order in §6 (e-sign, free events, waivers, then payments) |
+| D4 | E-sign legal scope | **US (ESIGN/UETA) + UK/EU (eIDAS SES), reviewed by a lawyer before 1.0.** Defaults: booking data kept 12 months after the event, signed records 7 years, both configurable |
