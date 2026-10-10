@@ -1,0 +1,9 @@
+packages:
+  - packages/*
+  - apps/*
+
+strictDepBuilds: true
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+  - sharp

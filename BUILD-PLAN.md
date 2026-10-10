@@ -67,10 +67,14 @@ the native `forms` plugin adds `./astro`, `./client` and `./styles`. Spike S10 c
 **Install (one package per product, two config lines):**
 
 ```js
-import { events } from "@semics-tech/emdash-events";
+import events from "@semics-tech/emdash-events"; // generated sandboxed descriptor (an object)
 import { eventsUi } from "@semics-tech/emdash-events/ui";
 
-emdash({ sandboxed: [events()], plugins: [eventsUi()] });
+emdash({
+  sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox", // Node; Cloudflare uses Worker Loader
+  sandboxed: [events],
+  plugins: [eventsUi()],
+});
 ```
 
 Registry-only installs get the back end, admin and public JSON API. The setup banner tells
@@ -443,6 +447,18 @@ any re-planning after the spikes.
 | S10 | (a) Does `emdash-plugin build`/`bundle` accept native entry points (`./ui`, `./astro`) in the same package? (b) Does storage survive swapping the Free install for a Pro build with the same slug and publisher? | Scaffold + playground | (a) separate `-ui` packages again; (b) an export/import migration route |
 | S11 | Is Ed25519 available in WebCrypto in the Dynamic Worker and in the Node runner, and how does a plugin learn the site's hostname? | Probe plugin | ECDSA P-256 keys; hostname from a required setting checked against `getPublicUrl()` |
 
+**Resolved locally (2026-10-10, Phase 0):**
+- **S10a confirmed.** One package can carry both halves. `emdash-plugin build`, `validate` and
+  `bundle` accept extra `./ui` and `./astro` exports, and the registry bundle still contains only
+  `backend.js`, `manifest.json` and the README. A playground site (Node, workerd runner) logs
+  `Loaded sandboxed plugin semics-events:0.1.0`, mounts its routes, and compiles the UI entry's
+  Astro component. The UI half is built with `tsc -p tsconfig.ui.json` after `emdash-plugin build`;
+  Astro components ship as source under `src/astro`.
+- **S11 confirmed.** Ed25519 sign and verify work through WebCrypto inside the sandbox (Worker
+  Loader test host); a tampered message fails. `ctx.site.url` is always available for the hostname
+  check. 200 SHA-256 digests of 1 KiB took about 1 ms.
+- S10b (storage survives a Free to Pro swap) waits for the Pro build in Phase 4.
+
 **Resolved from docs (2026-10-09):**
 - `updateIf` guard fields don't need declared indexes, and guards compare against literal values
   only. Hence the single `reserved` counter.
@@ -544,6 +560,8 @@ any re-planning after the spikes.
 | R17 | Offline Ed25519 licence keys bound to site hostnames, with a perpetual fallback for builds before `updatesUntil` | No licence-server host in the trust contract; works on Node and Cloudflare (2026-10-10) |
 | R18 | Free/Pro split per §13: paid tickets, promo codes, questions, waivers, QR check-in, reminders, reports, MCP and multi-party/high-volume signing are Pro; security, privacy, legal evidence and export are always free | Free must beat Dateline and Eventual; Pro covers what earns money or saves staff time (2026-10-10) |
 | R19 | Free Events manifest drops `api.stripe.com`; Pro adds it | Keeps the Free trust contract minimal (2026-10-10) |
+| R20 | Toolchain: Node 24.21.0 pinned per project (`.nvmrc`, pnpm `use-node-version`), pnpm 10.23, EmDash 1.2.0, plugin CLI 0.13.3 | `@emdash-cms/registry-verification` needs Node 24.15 or newer (2026-10-10) |
+| R21 | Publisher is the domain handle `semics.dev`; manifests carry the placeholder `did:plc:semicsdevplaceholder2222` until that handle resolves | `emdash-plugin init` resolves handles online; the real DID replaces the placeholder before the first publish (2026-10-10) |
 
 ### Operating model (2026-10-10)
 
