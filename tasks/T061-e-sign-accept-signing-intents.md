@@ -1,0 +1,47 @@
+---
+id: T061
+title: "E-sign: accept signing intents"
+phase: 3
+package: esign
+edition: free
+status: backlog
+model: opus-5.5
+size: M
+depends_on: [T060]
+spec: [ES-FR-13, SX-NFR-02, SX-NFR-03]
+---
+
+# T061 · E-sign: accept signing intents
+
+## Definition
+
+`public/envelopes/from-intent`: verify HMAC, expiry, single-use nonce, return-URL allowlist and template; idempotent per `(cid, ref)`.
+
+## Model
+
+**Opus 5.5**: Protocol security path.
+
+## Tests first (red)
+
+Write these tests before any implementation and confirm they fail for the right reason.
+
+- [ ] All intent vectors behave as specified
+- [ ] Replayed nonce rejected
+- [ ] Off-allowlist return URL rejected
+- [ ] Same `(cid, ref)` returns the same envelope
+- [ ] Within budget
+
+## Implementation (green, then refactor)
+
+- `src/routes/from-intent.ts`
+
+## Acceptance criteria
+
+- [ ] Nonces expire via sweep
+- [ ] Meets the Definition of Done in `tasks/README.md`
+
+## Verify
+
+```sh
+pnpm --filter @semics-tech/emdash-esign verify
+```

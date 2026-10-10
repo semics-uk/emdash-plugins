@@ -1,0 +1,2296 @@
+{
+	"tasks": {
+		"T000": {
+			"file": "T000-scaffold-monorepo-both-cores-and-the-playground.md",
+			"id": "T000",
+			"title": "Scaffold monorepo, both cores and the playground",
+			"phase": 0,
+			"package": "repo",
+			"edition": "free",
+			"status": "done",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [
+				"BUILD-PLAN §2",
+				"Spikes S10a",
+				"S11"
+			],
+			"unblocks": [
+				"T001",
+				"T004",
+				"T005",
+				"T008",
+				"T009"
+			],
+			"column": "done"
+		},
+		"T001": {
+			"file": "T001-repo-quality-gates-lint-format-verify-script-ci-workflow.md",
+			"id": "T001",
+			"title": "Repo quality gates: lint, format, verify script, CI workflow",
+			"phase": 0,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T000"
+			],
+			"spec": [
+				"Management plan: Release gates"
+			],
+			"unblocks": [
+				"T002",
+				"T003",
+				"T009"
+			],
+			"column": "ready"
+		},
+		"T002": {
+			"file": "T002-changesets-and-versioning-conventions.md",
+			"id": "T002",
+			"title": "Changesets and versioning conventions",
+			"phase": 0,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T001"
+			],
+			"spec": [
+				"BUILD-PLAN §9",
+				"Management plan: Versioning"
+			],
+			"unblocks": [
+				"T104"
+			],
+			"column": "backlog"
+		},
+		"T003": {
+			"file": "T003-shared-library-package-and-bundling-into-the-sandbox.md",
+			"id": "T003",
+			"title": "Shared library package and bundling into the sandbox",
+			"phase": 0,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T001"
+			],
+			"spec": [
+				"BUILD-PLAN §4"
+			],
+			"unblocks": [
+				"T007",
+				"T010",
+				"T011",
+				"T013",
+				"T014",
+				"T015",
+				"T016",
+				"T017",
+				"T018",
+				"T020",
+				"T040"
+			],
+			"column": "backlog"
+		},
+		"T004": {
+			"file": "T004-spike-s2-in-process-calls-from-ssr-to-sandboxed-public-route.md",
+			"id": "T004",
+			"title": "Spike S2: in-process calls from SSR to sandboxed public routes",
+			"phase": 0,
+			"package": "playground",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T000"
+			],
+			"spec": [
+				"Spike S2",
+				"RESEARCH §4",
+				"EU-FR-02"
+			],
+			"unblocks": [
+				"T006",
+				"T029",
+				"T053"
+			],
+			"column": "ready"
+		},
+		"T005": {
+			"file": "T005-platform-probes-one-shot-cron-document-size-dynamic-secrets.md",
+			"id": "T005",
+			"title": "Platform probes: one-shot cron, document size, dynamic secrets, delete veto, slug collisions",
+			"phase": 0,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T000"
+			],
+			"spec": [
+				"Spikes S3",
+				"S4",
+				"S7",
+				"S8",
+				"S9"
+			],
+			"unblocks": [
+				"T045",
+				"T051"
+			],
+			"column": "ready"
+		},
+		"T006": {
+			"file": "T006-spike-s6-portable-text-blocks-served-by-a-sandboxed-core.md",
+			"id": "T006",
+			"title": "Spike S6: Portable Text blocks served by a sandboxed core",
+			"phase": 0,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T004"
+			],
+			"spec": [
+				"Spike S6",
+				"EU-FR-01"
+			],
+			"unblocks": [
+				"T029",
+				"T053"
+			],
+			"column": "backlog"
+		},
+		"T007": {
+			"file": "T007-budget-harness-bridge-call-counter-and-cpu-timer-for-every-r.md",
+			"id": "T007",
+			"title": "Budget harness: bridge-call counter and CPU timer for every route test",
+			"phase": 0,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T003"
+			],
+			"spec": [
+				"EV-NFR-01",
+				"EV-NFR-02",
+				"ES-NFR-01",
+				"Spike S1 (local proxy)"
+			],
+			"unblocks": [
+				"T013",
+				"T015",
+				"T016",
+				"T044"
+			],
+			"column": "backlog"
+		},
+		"T008": {
+			"file": "T008-protocol-spec-esign-intent-1-with-test-vectors.md",
+			"id": "T008",
+			"title": "Protocol spec esign-intent/1 with test vectors",
+			"phase": 0,
+			"package": "docs",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T000"
+			],
+			"spec": [
+				"BUILD-PLAN §5",
+				"SX-NFR-01..06"
+			],
+			"unblocks": [
+				"T012"
+			],
+			"column": "ready"
+		},
+		"T009": {
+			"file": "T009-playground-seed-and-end-to-end-harness.md",
+			"id": "T009",
+			"title": "Playground seed and end-to-end harness",
+			"phase": 0,
+			"package": "playground",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T000",
+				"T001"
+			],
+			"spec": [
+				"BUILD-PLAN §8",
+				"Events PRD: content model"
+			],
+			"unblocks": [
+				"T033",
+				"T056",
+				"T110"
+			],
+			"column": "backlog"
+		},
+		"T010": {
+			"file": "T010-shared-result-type-stable-error-codes-route-error-mapping.md",
+			"id": "T010",
+			"title": "Shared: result type, stable error codes, route error mapping",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003"
+			],
+			"spec": [
+				"BUILD-PLAN §4 result.ts"
+			],
+			"unblocks": [
+				"T020",
+				"T040"
+			],
+			"column": "backlog"
+		},
+		"T011": {
+			"file": "T011-shared-opaque-tokens-and-hashing.md",
+			"id": "T011",
+			"title": "Shared: opaque tokens and hashing",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003"
+			],
+			"spec": [
+				"EV-FR-07",
+				"ES-NFR-02"
+			],
+			"unblocks": [
+				"T012",
+				"T022",
+				"T070"
+			],
+			"column": "backlog"
+		},
+		"T012": {
+			"file": "T012-shared-hmac-compact-tokens-for-esign-intent-1.md",
+			"id": "T012",
+			"title": "Shared: HMAC compact tokens for esign-intent/1",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T008",
+				"T011"
+			],
+			"spec": [
+				"BUILD-PLAN §5",
+				"SX-NFR-01..03"
+			],
+			"unblocks": [
+				"T060",
+				"T063"
+			],
+			"column": "backlog"
+		},
+		"T013": {
+			"file": "T013-shared-rate-limiting-and-turnstile-verification.md",
+			"id": "T013",
+			"title": "Shared: rate limiting and Turnstile verification",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003",
+				"T007"
+			],
+			"spec": [
+				"EV-NFR-04"
+			],
+			"unblocks": [
+				"T024",
+				"T047"
+			],
+			"column": "backlog"
+		},
+		"T014": {
+			"file": "T014-shared-typed-block-kit-builders.md",
+			"id": "T014",
+			"title": "Shared: typed Block Kit builders",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003"
+			],
+			"spec": [
+				"RESEARCH §3.8"
+			],
+			"unblocks": [
+				"T021",
+				"T028",
+				"T043",
+				"T052"
+			],
+			"column": "backlog"
+		},
+		"T015": {
+			"file": "T015-shared-email-outbox-with-retries.md",
+			"id": "T015",
+			"title": "Shared: email outbox with retries",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003",
+				"T007"
+			],
+			"spec": [
+				"EV-FR-08",
+				"ES-FR-10"
+			],
+			"unblocks": [
+				"T027",
+				"T050"
+			],
+			"column": "backlog"
+		},
+		"T016": {
+			"file": "T016-shared-dependency-free-deterministic-pdf-writer.md",
+			"id": "T016",
+			"title": "Shared: dependency-free deterministic PDF writer",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T003",
+				"T007"
+			],
+			"spec": [
+				"ES-FR-07",
+				"Spike S5 (local proxy)",
+				"ES-NFR-01"
+			],
+			"unblocks": [
+				"T025"
+			],
+			"column": "backlog"
+		},
+		"T017": {
+			"file": "T017-shared-template-rendering-and-canonical-snapshots.md",
+			"id": "T017",
+			"title": "Shared: template rendering and canonical snapshots",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003"
+			],
+			"spec": [
+				"ES-FR-01",
+				"ES-FR-03"
+			],
+			"unblocks": [
+				"T021"
+			],
+			"column": "backlog"
+		},
+		"T018": {
+			"file": "T018-shared-money-time-zones-and-calendar-files.md",
+			"id": "T018",
+			"title": "Shared: money, time zones and calendar files",
+			"phase": 2,
+			"package": "shared",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003"
+			],
+			"spec": [
+				"EV-NFR-08",
+				"EV-FR-09"
+			],
+			"unblocks": [
+				"T042",
+				"T050",
+				"T084"
+			],
+			"column": "backlog"
+		},
+		"T020": {
+			"file": "T020-e-sign-manifest-storage-and-settings-schema.md",
+			"id": "T020",
+			"title": "E-sign: manifest, storage and settings schema",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003",
+				"T010"
+			],
+			"spec": [
+				"ES manifest",
+				"BUILD-PLAN §3.2"
+			],
+			"unblocks": [
+				"T021"
+			],
+			"column": "backlog"
+		},
+		"T021": {
+			"file": "T021-e-sign-templates-domain-and-admin-routes.md",
+			"id": "T021",
+			"title": "E-sign: templates domain and admin routes",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T020",
+				"T017",
+				"T014"
+			],
+			"spec": [
+				"ES-FR-01",
+				"ES-US-1"
+			],
+			"unblocks": [
+				"T022",
+				"T028"
+			],
+			"column": "backlog"
+		},
+		"T022": {
+			"file": "T022-e-sign-envelopes-snapshots-and-status-machine.md",
+			"id": "T022",
+			"title": "E-sign: envelopes, snapshots and status machine",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T021",
+				"T011"
+			],
+			"spec": [
+				"ES-FR-02",
+				"ES-FR-03"
+			],
+			"unblocks": [
+				"T023",
+				"T028"
+			],
+			"column": "backlog"
+		},
+		"T023": {
+			"file": "T023-e-sign-hash-chained-audit-trail-with-salted-commitments.md",
+			"id": "T023",
+			"title": "E-sign: hash-chained audit trail with salted commitments",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T022"
+			],
+			"spec": [
+				"ES-FR-05",
+				"ES-FR-06",
+				"ES-NFR-06"
+			],
+			"unblocks": [
+				"T024"
+			],
+			"column": "backlog"
+		},
+		"T024": {
+			"file": "T024-e-sign-signing-ceremony-public-routes.md",
+			"id": "T024",
+			"title": "E-sign: signing ceremony public routes",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T023",
+				"T013"
+			],
+			"spec": [
+				"ES-FR-04",
+				"ES-US-2"
+			],
+			"unblocks": [
+				"T025",
+				"T027",
+				"T030"
+			],
+			"column": "backlog"
+		},
+		"T025": {
+			"file": "T025-e-sign-signed-pdf-at-completion-and-download-link.md",
+			"id": "T025",
+			"title": "E-sign: signed PDF at completion and download link",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T024",
+				"T016"
+			],
+			"spec": [
+				"ES-FR-07",
+				"ES-FR-08"
+			],
+			"unblocks": [
+				"T026",
+				"T033"
+			],
+			"column": "backlog"
+		},
+		"T026": {
+			"file": "T026-e-sign-hash-verification-route.md",
+			"id": "T026",
+			"title": "E-sign: hash verification route",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T025"
+			],
+			"spec": [
+				"ES-FR-09",
+				"ES-US-6"
+			],
+			"unblocks": [
+				"T032",
+				"T033"
+			],
+			"column": "backlog"
+		},
+		"T027": {
+			"file": "T027-e-sign-invitation-and-completion-emails.md",
+			"id": "T027",
+			"title": "E-sign: invitation and completion emails",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T024",
+				"T015"
+			],
+			"spec": [
+				"ES-FR-10"
+			],
+			"unblocks": [
+				"T033"
+			],
+			"column": "backlog"
+		},
+		"T028": {
+			"file": "T028-e-sign-block-kit-admin-envelopes-templates-settings.md",
+			"id": "T028",
+			"title": "E-sign: Block Kit admin (envelopes, templates, settings)",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T021",
+				"T022",
+				"T014"
+			],
+			"spec": [
+				"ES-FR-11",
+				"ES-US-4"
+			],
+			"unblocks": [
+				"T033"
+			],
+			"column": "backlog"
+		},
+		"T029": {
+			"file": "T029-e-sign-ui-descriptor-and-injected-pages.md",
+			"id": "T029",
+			"title": "E-sign UI: descriptor and injected pages",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T004",
+				"T006"
+			],
+			"spec": [
+				"SU-FR-01",
+				"SU-FR-02"
+			],
+			"unblocks": [
+				"T030",
+				"T031",
+				"T032"
+			],
+			"column": "backlog"
+		},
+		"T030": {
+			"file": "T030-e-sign-ui-ceremony-component-with-sanitised-rendering.md",
+			"id": "T030",
+			"title": "E-sign UI: ceremony component with sanitised rendering",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T029",
+				"T024"
+			],
+			"spec": [
+				"SU-FR-03..08",
+				"SU-NFR-01..03"
+			],
+			"unblocks": [
+				"T033",
+				"T065"
+			],
+			"column": "backlog"
+		},
+		"T031": {
+			"file": "T031-e-sign-ui-signature-pad.md",
+			"id": "T031",
+			"title": "E-sign UI: signature pad",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T029"
+			],
+			"spec": [
+				"SU-FR-05",
+				"SU-NFR-04"
+			],
+			"unblocks": [
+				"T033"
+			],
+			"column": "backlog"
+		},
+		"T032": {
+			"file": "T032-e-sign-ui-verify-page.md",
+			"id": "T032",
+			"title": "E-sign UI: verify page",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T029",
+				"T026"
+			],
+			"spec": [
+				"SU-FR-10",
+				"ES-US-6"
+			],
+			"unblocks": [
+				"T033"
+			],
+			"column": "backlog"
+		},
+		"T033": {
+			"file": "T033-e-sign-end-to-end-send-sign-download-verify.md",
+			"id": "T033",
+			"title": "E-sign: end-to-end send, sign, download, verify",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T025",
+				"T026",
+				"T027",
+				"T028",
+				"T030",
+				"T031",
+				"T032",
+				"T009"
+			],
+			"spec": [
+				"Phase 1 exit criteria"
+			],
+			"unblocks": [
+				"T034"
+			],
+			"column": "backlog"
+		},
+		"T034": {
+			"file": "T034-phase-1-gate-review-and-budgets.md",
+			"id": "T034",
+			"title": "Phase 1 gate: review and budgets",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T033"
+			],
+			"spec": [
+				"Phase 1 exit",
+				"ES-NFR-*"
+			],
+			"unblocks": [
+				"T060",
+				"T071"
+			],
+			"column": "backlog"
+		},
+		"T040": {
+			"file": "T040-events-manifest-storage-and-settings-schema.md",
+			"id": "T040",
+			"title": "Events: manifest, storage and settings schema",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T003",
+				"T010"
+			],
+			"spec": [
+				"Events manifest",
+				"BUILD-PLAN §3.1"
+			],
+			"unblocks": [
+				"T041"
+			],
+			"column": "backlog"
+		},
+		"T041": {
+			"file": "T041-events-collection-mapping-and-schema-validation.md",
+			"id": "T041",
+			"title": "Events: collection mapping and schema validation",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T040"
+			],
+			"spec": [
+				"EV-FR-01",
+				"EV-US-1"
+			],
+			"unblocks": [
+				"T042"
+			],
+			"column": "backlog"
+		},
+		"T042": {
+			"file": "T042-events-booking-configs-ticket-types-and-occurrences.md",
+			"id": "T042",
+			"title": "Events: booking configs, ticket types and occurrences",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T041",
+				"T018"
+			],
+			"spec": [
+				"EV-FR-02",
+				"EV-FR-03"
+			],
+			"unblocks": [
+				"T043",
+				"T044",
+				"T046",
+				"T051"
+			],
+			"column": "backlog"
+		},
+		"T043": {
+			"file": "T043-events-editor-panel-tickets-booking.md",
+			"id": "T043",
+			"title": "Events: editor panel \"Tickets & booking\"",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T042",
+				"T014"
+			],
+			"spec": [
+				"EV-US-1",
+				"BUILD-PLAN §3.1 Admin"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T044": {
+			"file": "T044-events-inventory-reservation-engine.md",
+			"id": "T044",
+			"title": "Events: inventory reservation engine",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T042",
+				"T007"
+			],
+			"spec": [
+				"EV-FR-04",
+				"EV-NFR-03",
+				"R3"
+			],
+			"unblocks": [
+				"T045",
+				"T047"
+			],
+			"column": "backlog"
+		},
+		"T045": {
+			"file": "T045-events-holds-extensions-and-sweeper.md",
+			"id": "T045",
+			"title": "Events: holds, extensions and sweeper",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T044",
+				"T005"
+			],
+			"spec": [
+				"EV-FR-06",
+				"EV-US-2",
+				"R1"
+			],
+			"unblocks": [
+				"T047"
+			],
+			"column": "backlog"
+		},
+		"T046": {
+			"file": "T046-events-public-event-listing-routes.md",
+			"id": "T046",
+			"title": "Events: public event listing routes",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T042"
+			],
+			"spec": [
+				"EV-FR-03",
+				"Events public routes"
+			],
+			"unblocks": [
+				"T054"
+			],
+			"column": "backlog"
+		},
+		"T047": {
+			"file": "T047-events-checkout-reserve-route.md",
+			"id": "T047",
+			"title": "Events: checkout reserve route",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T044",
+				"T045",
+				"T013"
+			],
+			"spec": [
+				"EV-FR-05",
+				"R9"
+			],
+			"unblocks": [
+				"T048",
+				"T055"
+			],
+			"column": "backlog"
+		},
+		"T048": {
+			"file": "T048-events-checkout-continue-route.md",
+			"id": "T048",
+			"title": "Events: checkout continue route",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T047"
+			],
+			"spec": [
+				"EV-FR-05",
+				"EV-FR-07"
+			],
+			"unblocks": [
+				"T049",
+				"T050",
+				"T052",
+				"T055",
+				"T073"
+			],
+			"column": "backlog"
+		},
+		"T049": {
+			"file": "T049-events-booking-status-and-self-service-cancel.md",
+			"id": "T049",
+			"title": "Events: booking status and self-service cancel",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T048"
+			],
+			"spec": [
+				"EV-US-4",
+				"Events public routes"
+			],
+			"unblocks": [
+				"T055"
+			],
+			"column": "backlog"
+		},
+		"T050": {
+			"file": "T050-events-confirmation-email-and-calendar-routes.md",
+			"id": "T050",
+			"title": "Events: confirmation email and calendar routes",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T048",
+				"T015",
+				"T018"
+			],
+			"spec": [
+				"EV-US-3",
+				"EV-FR-08",
+				"EV-FR-09"
+			],
+			"unblocks": [
+				"T056"
+			],
+			"column": "backlog"
+		},
+		"T051": {
+			"file": "T051-events-json-ld-and-content-hooks.md",
+			"id": "T051",
+			"title": "Events: JSON-LD and content hooks",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T042",
+				"T005"
+			],
+			"spec": [
+				"EV-FR-10",
+				"Events hooks"
+			],
+			"unblocks": [
+				"T056"
+			],
+			"column": "backlog"
+		},
+		"T052": {
+			"file": "T052-events-block-kit-admin-pages-csv-export-dashboard-widget.md",
+			"id": "T052",
+			"title": "Events: Block Kit admin pages, CSV export, dashboard widget",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T048",
+				"T014"
+			],
+			"spec": [
+				"EV-FR-11",
+				"EV-US-5",
+				"EV-US-7"
+			],
+			"unblocks": [
+				"T056"
+			],
+			"column": "backlog"
+		},
+		"T053": {
+			"file": "T053-events-ui-integration-call-helper-and-booking-page-route.md",
+			"id": "T053",
+			"title": "Events UI: integration, call helper and booking page route",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T004",
+				"T006"
+			],
+			"spec": [
+				"EU-FR-01",
+				"EU-FR-05",
+				"EU-FR-06"
+			],
+			"unblocks": [
+				"T054",
+				"T055"
+			],
+			"column": "backlog"
+		},
+		"T054": {
+			"file": "T054-events-ui-event-list-card-and-block.md",
+			"id": "T054",
+			"title": "Events UI: event list, card and block",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T053",
+				"T046"
+			],
+			"spec": [
+				"EU-FR-03",
+				"EU-US-4"
+			],
+			"unblocks": [
+				"T056"
+			],
+			"column": "backlog"
+		},
+		"T055": {
+			"file": "T055-events-ui-booking-widget-status-pass-and-calendar.md",
+			"id": "T055",
+			"title": "Events UI: booking widget, status, pass and calendar",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T053",
+				"T047",
+				"T048",
+				"T049"
+			],
+			"spec": [
+				"EU-FR-04",
+				"EU-FR-06..08",
+				"EU-NFR-01..07"
+			],
+			"unblocks": [
+				"T056",
+				"T065",
+				"T077"
+			],
+			"column": "backlog"
+		},
+		"T056": {
+			"file": "T056-events-end-to-end-and-concurrency-proof.md",
+			"id": "T056",
+			"title": "Events: end-to-end and concurrency proof",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T050",
+				"T051",
+				"T052",
+				"T054",
+				"T055",
+				"T009"
+			],
+			"spec": [
+				"Phase 2 exit criteria"
+			],
+			"unblocks": [
+				"T057"
+			],
+			"column": "backlog"
+		},
+		"T057": {
+			"file": "T057-phase-2-gate-review-and-budgets.md",
+			"id": "T057",
+			"title": "Phase 2 gate: review and budgets",
+			"phase": 2,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T056"
+			],
+			"spec": [
+				"Phase 2 exit",
+				"EV-NFR-*"
+			],
+			"unblocks": [
+				"T063",
+				"T071",
+				"T080",
+				"T081",
+				"T082",
+				"T083",
+				"T084",
+				"T085",
+				"T086",
+				"T087"
+			],
+			"column": "backlog"
+		},
+		"T060": {
+			"file": "T060-e-sign-integration-clients-and-pairing-strings.md",
+			"id": "T060",
+			"title": "E-sign: integration clients and pairing strings",
+			"phase": 3,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T034",
+				"T012"
+			],
+			"spec": [
+				"ES-FR-12"
+			],
+			"unblocks": [
+				"T061"
+			],
+			"column": "backlog"
+		},
+		"T061": {
+			"file": "T061-e-sign-accept-signing-intents.md",
+			"id": "T061",
+			"title": "E-sign: accept signing intents",
+			"phase": 3,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T060"
+			],
+			"spec": [
+				"ES-FR-13",
+				"SX-NFR-02",
+				"SX-NFR-03"
+			],
+			"unblocks": [
+				"T062"
+			],
+			"column": "backlog"
+		},
+		"T062": {
+			"file": "T062-e-sign-receipts-receipt-lookup-and-template-catalogue.md",
+			"id": "T062",
+			"title": "E-sign: receipts, receipt lookup and template catalogue",
+			"phase": 3,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T061"
+			],
+			"spec": [
+				"ES-FR-14"
+			],
+			"unblocks": [
+				"T065"
+			],
+			"column": "backlog"
+		},
+		"T063": {
+			"file": "T063-events-pairing-setting-and-intent-issuing.md",
+			"id": "T063",
+			"title": "Events: pairing setting and intent issuing",
+			"phase": 3,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T057",
+				"T012"
+			],
+			"spec": [
+				"EV-FR-12",
+				"R5"
+			],
+			"unblocks": [
+				"T064"
+			],
+			"column": "backlog"
+		},
+		"T064": {
+			"file": "T064-events-receipt-route-and-waiver-gated-check-in.md",
+			"id": "T064",
+			"title": "Events: receipt route and waiver-gated check-in",
+			"phase": 3,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T063"
+			],
+			"spec": [
+				"EV-FR-12",
+				"SX-FR-04"
+			],
+			"unblocks": [
+				"T065"
+			],
+			"column": "backlog"
+		},
+		"T065": {
+			"file": "T065-suite-package-and-bookingwithwaiver-flow.md",
+			"id": "T065",
+			"title": "Suite: package and BookingWithWaiver flow",
+			"phase": 3,
+			"package": "suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T062",
+				"T064",
+				"T055",
+				"T030"
+			],
+			"spec": [
+				"SX-FR-01",
+				"SX-FR-02",
+				"SX-FR-03"
+			],
+			"unblocks": [
+				"T066"
+			],
+			"column": "backlog"
+		},
+		"T066": {
+			"file": "T066-suite-reconciliation-and-catalogue-refresh.md",
+			"id": "T066",
+			"title": "Suite: reconciliation and catalogue refresh",
+			"phase": 3,
+			"package": "suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T065"
+			],
+			"spec": [
+				"SX-FR-05",
+				"SX-FR-07"
+			],
+			"unblocks": [
+				"T067"
+			],
+			"column": "backlog"
+		},
+		"T067": {
+			"file": "T067-phase-3-gate-integration-security-and-e2e.md",
+			"id": "T067",
+			"title": "Phase 3 gate: integration security and E2E",
+			"phase": 3,
+			"package": "suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T066"
+			],
+			"spec": [
+				"Phase 3 exit",
+				"SX-NFR-*"
+			],
+			"unblocks": [
+				"T090",
+				"T091",
+				"T092",
+				"T093",
+				"T094",
+				"T096",
+				"T097"
+			],
+			"column": "backlog"
+		},
+		"T070": {
+			"file": "T070-licence-verification-and-pro-gating.md",
+			"id": "T070",
+			"title": "Licence verification and Pro gating",
+			"phase": 4,
+			"package": "shared",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T011"
+			],
+			"spec": [
+				"BUILD-PLAN §13",
+				"R17"
+			],
+			"unblocks": [
+				"T071",
+				"T072"
+			],
+			"column": "backlog"
+		},
+		"T071": {
+			"file": "T071-pro-build-pipeline-and-free-pro-data-continuity.md",
+			"id": "T071",
+			"title": "Pro build pipeline and Free→Pro data continuity",
+			"phase": 4,
+			"package": "repo",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T070",
+				"T057",
+				"T034"
+			],
+			"spec": [
+				"BUILD-PLAN §13",
+				"Spike S10b"
+			],
+			"unblocks": [
+				"T073",
+				"T104"
+			],
+			"column": "backlog"
+		},
+		"T072": {
+			"file": "T072-licence-issuing-worker.md",
+			"id": "T072",
+			"title": "Licence issuing Worker",
+			"phase": 4,
+			"package": "licence-worker",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T070"
+			],
+			"spec": [
+				"Management plan: How a sale works"
+			],
+			"unblocks": [
+				"T078"
+			],
+			"column": "backlog"
+		},
+		"T073": {
+			"file": "T073-events-pro-stripe-provider-and-checkout-session.md",
+			"id": "T073",
+			"title": "Events Pro: Stripe provider and checkout session",
+			"phase": 4,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T071",
+				"T048"
+			],
+			"spec": [
+				"EV-FR-13",
+				"R1"
+			],
+			"unblocks": [
+				"T074",
+				"T076",
+				"T077"
+			],
+			"column": "backlog"
+		},
+		"T074": {
+			"file": "T074-events-pro-stripe-webhook-and-late-payments.md",
+			"id": "T074",
+			"title": "Events Pro: Stripe webhook and late payments",
+			"phase": 4,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T073"
+			],
+			"spec": [
+				"EV-FR-13",
+				"EV-NFR-05",
+				"R2"
+			],
+			"unblocks": [
+				"T075",
+				"T078"
+			],
+			"column": "backlog"
+		},
+		"T075": {
+			"file": "T075-events-pro-refunds.md",
+			"id": "T075",
+			"title": "Events Pro: refunds",
+			"phase": 4,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T074"
+			],
+			"spec": [
+				"EV-US-4"
+			],
+			"unblocks": [
+				"T078"
+			],
+			"column": "backlog"
+		},
+		"T076": {
+			"file": "T076-events-pro-promo-codes-and-hidden-tickets.md",
+			"id": "T076",
+			"title": "Events Pro: promo codes and hidden tickets",
+			"phase": 4,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T073"
+			],
+			"spec": [
+				"EV-FR-14"
+			],
+			"unblocks": [
+				"T078"
+			],
+			"column": "backlog"
+		},
+		"T077": {
+			"file": "T077-events-ui-payment-redirect-and-return-pages.md",
+			"id": "T077",
+			"title": "Events UI: payment redirect and return pages",
+			"phase": 4,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T073",
+				"T055"
+			],
+			"spec": [
+				"EU-FR-09"
+			],
+			"unblocks": [
+				"T078"
+			],
+			"column": "backlog"
+		},
+		"T078": {
+			"file": "T078-phase-4-gate-payments-e2e.md",
+			"id": "T078",
+			"title": "Phase 4 gate: payments E2E",
+			"phase": 4,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T074",
+				"T075",
+				"T076",
+				"T077",
+				"T072"
+			],
+			"spec": [
+				"Phase 4 exit"
+			],
+			"unblocks": [
+				"T100",
+				"T101",
+				"T102",
+				"T103"
+			],
+			"column": "backlog"
+		},
+		"T080": {
+			"file": "T080-events-pro-custom-attendee-questions.md",
+			"id": "T080",
+			"title": "Events Pro: custom attendee questions",
+			"phase": 5,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"EV-FR-15",
+				"EU-FR-10"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T081": {
+			"file": "T081-events-waitlist-with-timed-offers.md",
+			"id": "T081",
+			"title": "Events: waitlist with timed offers",
+			"phase": 5,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"EV-FR-16",
+				"EV-US-6"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T082": {
+			"file": "T082-events-pro-qr-passes-and-mobile-check-in-screen.md",
+			"id": "T082",
+			"title": "Events Pro: QR passes and mobile check-in screen",
+			"phase": 5,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"Free and Pro table"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T083": {
+			"file": "T083-events-pro-reminders-and-broadcasts.md",
+			"id": "T083",
+			"title": "Events Pro: reminders and broadcasts",
+			"phase": 5,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"EV-FR-08"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T084": {
+			"file": "T084-events-recurring-events.md",
+			"id": "T084",
+			"title": "Events: recurring events",
+			"phase": 5,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T057",
+				"T018"
+			],
+			"spec": [
+				"EV-FR-17"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T085": {
+			"file": "T085-events-pro-sales-reports.md",
+			"id": "T085",
+			"title": "Events Pro: sales reports",
+			"phase": 5,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"EV-FR-19"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T086": {
+			"file": "T086-events-pro-mcp-tools.md",
+			"id": "T086",
+			"title": "Events Pro: MCP tools",
+			"phase": 5,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"EV-FR-18"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T087": {
+			"file": "T087-events-retention-job.md",
+			"id": "T087",
+			"title": "Events: retention job",
+			"phase": 5,
+			"package": "events",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T057"
+			],
+			"spec": [
+				"EV-FR-20"
+			],
+			"unblocks": [
+				"T100"
+			],
+			"column": "backlog"
+		},
+		"T090": {
+			"file": "T090-e-sign-pro-several-signers-and-routing.md",
+			"id": "T090",
+			"title": "E-sign Pro: several signers and routing",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"ES-FR-15"
+			],
+			"unblocks": [
+				"T095"
+			],
+			"column": "backlog"
+		},
+		"T091": {
+			"file": "T091-e-sign-pro-email-otp.md",
+			"id": "T091",
+			"title": "E-sign Pro: email OTP",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"ES-FR-16",
+				"Decision: OTP default"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T092": {
+			"file": "T092-e-sign-decline-void-reminders-and-expiry.md",
+			"id": "T092",
+			"title": "E-sign: decline, void, reminders and expiry",
+			"phase": 6,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"ES-FR-17"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T093": {
+			"file": "T093-e-sign-pro-public-self-serve-templates-and-block.md",
+			"id": "T093",
+			"title": "E-sign Pro: public self-serve templates and block",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"ES-FR-18",
+				"SU-FR-12"
+			],
+			"unblocks": [
+				"T101",
+				"T102"
+			],
+			"column": "backlog"
+		},
+		"T094": {
+			"file": "T094-e-sign-pro-uploaded-pdf-templates.md",
+			"id": "T094",
+			"title": "E-sign Pro: uploaded PDF templates",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T067",
+				"T110"
+			],
+			"spec": [
+				"ES-FR-19",
+				"Spike S5"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T095": {
+			"file": "T095-e-sign-pro-bulk-send.md",
+			"id": "T095",
+			"title": "E-sign Pro: bulk send",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T090"
+			],
+			"spec": [
+				"ES-FR-20"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T096": {
+			"file": "T096-e-sign-pro-mcp-tools.md",
+			"id": "T096",
+			"title": "E-sign Pro: MCP tools",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"ES-FR-21"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T097": {
+			"file": "T097-e-sign-retention-job.md",
+			"id": "T097",
+			"title": "E-sign: retention job",
+			"phase": 6,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"ES-FR-22",
+				"ES-NFR-06"
+			],
+			"unblocks": [
+				"T100",
+				"T103",
+				"T105"
+			],
+			"column": "backlog"
+		},
+		"T100": {
+			"file": "T100-security-review-of-both-products.md",
+			"id": "T100",
+			"title": "Security review of both products",
+			"phase": 7,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T078",
+				"T087",
+				"T097"
+			],
+			"spec": [
+				"Phase 7",
+				"Management plan: Security"
+			],
+			"unblocks": [
+				"T106"
+			],
+			"column": "backlog"
+		},
+		"T101": {
+			"file": "T101-accessibility-audit-and-fixes.md",
+			"id": "T101",
+			"title": "Accessibility audit and fixes",
+			"phase": 7,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T078",
+				"T093"
+			],
+			"spec": [
+				"EU-NFR-01",
+				"SU-NFR-03"
+			],
+			"unblocks": [
+				"T106"
+			],
+			"column": "backlog"
+		},
+		"T102": {
+			"file": "T102-translations-and-right-to-left-layouts.md",
+			"id": "T102",
+			"title": "Translations and right-to-left layouts",
+			"phase": 7,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T078",
+				"T093"
+			],
+			"spec": [
+				"EU-NFR-04",
+				"SU-NFR-06"
+			],
+			"unblocks": [
+				"T106"
+			],
+			"column": "backlog"
+		},
+		"T103": {
+			"file": "T103-docs-site-operator-guides-and-registry-listings.md",
+			"id": "T103",
+			"title": "Docs site, operator guides and registry listings",
+			"phase": 7,
+			"package": "docs",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T078",
+				"T097"
+			],
+			"spec": [
+				"Management plan: Marketing"
+			],
+			"unblocks": [
+				"T106"
+			],
+			"column": "backlog"
+		},
+		"T104": {
+			"file": "T104-release-automation.md",
+			"id": "T104",
+			"title": "Release automation",
+			"phase": 7,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T002",
+				"T071"
+			],
+			"spec": [
+				"BUILD-PLAN §9"
+			],
+			"unblocks": [
+				"T106"
+			],
+			"column": "backlog"
+		},
+		"T105": {
+			"file": "T105-legal-brief-for-the-consent-and-retention-review.md",
+			"id": "T105",
+			"title": "Legal brief for the consent and retention review",
+			"phase": 7,
+			"package": "docs",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T097"
+			],
+			"spec": [
+				"D4"
+			],
+			"unblocks": [
+				"T106"
+			],
+			"column": "backlog"
+		},
+		"T106": {
+			"file": "T106-1-0-release-readiness-and-trust-contract-freeze.md",
+			"id": "T106",
+			"title": "1.0 release readiness and trust-contract freeze",
+			"phase": 7,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T100",
+				"T101",
+				"T102",
+				"T103",
+				"T104",
+				"T105"
+			],
+			"spec": [
+				"Phase 7 exit"
+			],
+			"unblocks": [],
+			"column": "backlog"
+		},
+		"T110": {
+			"file": "T110-cloudflare-staging-and-platform-limit-measurements.md",
+			"id": "T110",
+			"title": "Cloudflare staging and platform-limit measurements",
+			"phase": 0,
+			"package": "repo",
+			"edition": "free",
+			"status": "blocked",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T009"
+			],
+			"spec": [
+				"Spikes S1",
+				"S5",
+				"EV-NFR-01",
+				"EV-NFR-02"
+			],
+			"unblocks": [
+				"T094"
+			],
+			"column": "blocked"
+		}
+	},
+	"columns": {
+		"backlog": [
+			"T002",
+			"T003",
+			"T006",
+			"T007",
+			"T009",
+			"T010",
+			"T011",
+			"T012",
+			"T013",
+			"T014",
+			"T015",
+			"T016",
+			"T017",
+			"T018",
+			"T020",
+			"T021",
+			"T022",
+			"T023",
+			"T024",
+			"T025",
+			"T026",
+			"T027",
+			"T028",
+			"T029",
+			"T030",
+			"T031",
+			"T032",
+			"T033",
+			"T034",
+			"T040",
+			"T041",
+			"T042",
+			"T043",
+			"T044",
+			"T045",
+			"T046",
+			"T047",
+			"T048",
+			"T049",
+			"T050",
+			"T051",
+			"T052",
+			"T053",
+			"T054",
+			"T055",
+			"T056",
+			"T057",
+			"T060",
+			"T061",
+			"T062",
+			"T063",
+			"T064",
+			"T065",
+			"T066",
+			"T067",
+			"T070",
+			"T071",
+			"T072",
+			"T073",
+			"T074",
+			"T075",
+			"T076",
+			"T077",
+			"T078",
+			"T080",
+			"T081",
+			"T082",
+			"T083",
+			"T084",
+			"T085",
+			"T086",
+			"T087",
+			"T090",
+			"T091",
+			"T092",
+			"T093",
+			"T094",
+			"T095",
+			"T096",
+			"T097",
+			"T100",
+			"T101",
+			"T102",
+			"T103",
+			"T104",
+			"T105",
+			"T106"
+		],
+		"ready": [
+			"T001",
+			"T004",
+			"T005",
+			"T008"
+		],
+		"in-progress": [],
+		"review": [],
+		"done": [
+			"T000"
+		],
+		"blocked": [
+			"T110"
+		]
+	},
+	"criticalPath": [
+		"T001",
+		"T003",
+		"T010",
+		"T040",
+		"T041",
+		"T042",
+		"T044",
+		"T045",
+		"T047",
+		"T048",
+		"T049",
+		"T055",
+		"T056",
+		"T057",
+		"T063",
+		"T064",
+		"T065",
+		"T066",
+		"T067",
+		"T097",
+		"T100",
+		"T106"
+	],
+	"criticalWeight": 35
+}

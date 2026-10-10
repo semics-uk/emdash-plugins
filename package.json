@@ -13,7 +13,10 @@
     "test": "pnpm -r --filter ./packages/** test",
     "validate": "pnpm -r --filter ./packages/** validate",
     "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --filter playground dev"
+    "dev": "pnpm --filter playground dev",
+    "tasks": "node scripts/tasks.mjs",
+    "tasks:check": "node scripts/tasks.mjs --check",
+    "test:scripts": "node --test scripts/"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -21,5 +24,8 @@
       "workerd",
       "sharp"
     ]
+  },
+  "devDependencies": {
+    "marked": "12.0.2"
   }
 }

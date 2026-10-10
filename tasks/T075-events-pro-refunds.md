@@ -1,0 +1,44 @@
+---
+id: T075
+title: "Events Pro: refunds"
+phase: 4
+package: events
+edition: pro
+status: backlog
+model: sonnet-5.5
+size: S
+depends_on: [T074]
+spec: [EV-US-4]
+---
+
+# T075 · Events Pro: refunds
+
+## Definition
+
+Admin refund action and buyer cancel refunds through Stripe; inventory released; refund email.
+
+## Model
+
+**Sonnet 5.5**: Builds on T074.
+
+## Tests first (red)
+
+Write these tests before any implementation and confirm they fail for the right reason.
+
+- [ ] Refund calls Stripe once and marks refunded
+- [ ] Partial failures leave a retryable state
+
+## Implementation (green, then refactor)
+
+- `src/payments/refunds.ts`
+
+## Acceptance criteria
+
+- [ ] Within budget
+- [ ] Meets the Definition of Done in `tasks/README.md`
+
+## Verify
+
+```sh
+pnpm --filter @semics-tech/emdash-events verify
+```
