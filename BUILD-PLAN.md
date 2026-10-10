@@ -508,6 +508,8 @@ any re-planning after the spikes.
 
 ## 11. Immediate next steps
 
+0. The owner completes the one-time checklist in the management plan (accounts, payment and
+   legal steps). Everything below is done by the management agent.
 1. Secure the `semics` names: the npm scope `@semics`, the GitHub org and the Atmosphere publisher
    handle (record its DID). Then create the public repo, pnpm workspace, CI and Changesets.
    Set up the Cloudflare Workers Paid staging account.
@@ -543,6 +545,13 @@ any re-planning after the spikes.
 | R18 | Free/Pro split per §13: paid tickets, promo codes, questions, waivers, QR check-in, reminders, reports, MCP and multi-party/high-volume signing are Pro; security, privacy, legal evidence and export are always free | Free must beat Dateline and Eventual; Pro covers what earns money or saves staff time (2026-10-10) |
 | R19 | Free Events manifest drops `api.stripe.com`; Pro adds it | Keeps the Free trust contract minimal (2026-10-10) |
 
+### Operating model (2026-10-10)
+
+From 2026-10-10 the management agent makes every remaining decision and records it here; the owner
+gives feedback only. The operating plan (issues, releases, pricing, marketing, routines and the
+one-time owner checklist) is the management plan:
+https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
+
 ### Owner decisions (2026-10-09)
 
 | # | Question | Answer |
@@ -551,8 +560,8 @@ any re-planning after the spikes.
 | D2 | Cloudflare staging | **Yes**: a Workers Paid account for the staging site; spikes S1 and S5 run there |
 | D3 | Deadline / priority | **None**: build in the order in §6 (e-sign, free events, waivers, then payments) |
 | D4 | E-sign legal scope | **US (ESIGN/UETA) + UK/EU (eIDAS SES), reviewed by a lawyer before 1.0.** Defaults: booking data kept 12 months after the event, signed records 7 years, both configurable |
-| D5 | Pro pricing and billing (per site per year? bundle price for both products?) | Open |
-| D6 | Pro licence terms (commercial EULA, refund policy, number of sites per key) | Open |
+| D5 | Pro pricing and billing | **Decided by the management agent (2026-10-10):** per site per year. Events Pro $79, E-sign Pro $79, Suite Pro $129, agency (10 sites) $349; 40% off the first year for the first 100 customers; Paddle as merchant of record |
+| D6 | Pro licence terms | **Decided by the management agent (2026-10-10):** one key per production hostname (local and preview hosts free), a year of updates and support, perpetual use of versions released in the term, 30-day refund, commercial licence (modify for own use, no redistribution), data never locked |
 
 ## 13. Editions and licensing
 
