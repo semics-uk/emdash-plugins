@@ -16,7 +16,7 @@
     "dev": "pnpm --filter playground dev",
     "tasks": "node scripts/tasks.mjs",
     "tasks:check": "node scripts/tasks.mjs --check",
-    "test:scripts": "node --test scripts/"
+    "test:scripts": "node --test \"scripts/*.test.mjs\""
   },
   "pnpm": {
     "onlyBuiltDependencies": [
