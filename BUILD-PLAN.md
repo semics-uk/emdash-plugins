@@ -597,6 +597,7 @@ running large events with staff, and multi-party or high-volume signing.
 | Consent capture, hash-chained audit trail, signed PDF with certificate | Yes | Yes |
 | Hash verification page | Yes | Yes |
 | Retention settings and personal-data deletion | Yes | Yes |
+| Signer can decline; sender can void | Yes | Yes |
 | Signing-intent protocol and integration clients (`esign-intent/1`) | Yes | Yes |
 | **Several signers, parallel or sequential** | | Yes |
 | **Email OTP identity check** | | Yes |
