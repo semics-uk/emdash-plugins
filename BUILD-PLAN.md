@@ -34,7 +34,7 @@ Portable Text blocks are build-time code, which only native plugins can provide 
 ```
                 ┌──────────────────────── site (Astro + emdash) ────────────────────────┐
                 │                                                                       │
-                │  @semics/emdash-events                  @semics/emdash-esign          │
+                │  @semics-tech/emdash-events                  @semics-tech/emdash-esign          │
                 │  ┌────────────────────────────┐         ┌────────────────────────────┐│
  native entry → │  │ /ui  /astro  /client       │         │ /ui  /astro  /client       ││
  (no caps)      │  │ <BookingWidget> <EventList>│         │ <SigningCeremony> <Verify> ││
@@ -45,7 +45,7 @@ Portable Text blocks are build-time code, which only native plugins can provide 
  entry (also    │  │ storage, admin, cron, email│ intent/ │ templates, envelopes,      ││
  on registry)   │  │ Stripe*, MCP, JSON-LD      │ receipt │ audit chain, cert, MCP     ││
                 │  └────────────────────────────┘         └────────────────────────────┘│
-                │  @semics/emdash-events-suite: eventsSuite(), <BookingWithWaiver>,     │
+                │  @semics-tech/emdash-events-suite: eventsSuite(), <BookingWithWaiver>,     │
                 │   pairing and reconciliation glue                                     │
                 └───────────────────────────────────────────────────────────────────────┘
                  * Pro edition only
@@ -53,9 +53,9 @@ Portable Text blocks are build-time code, which only native plugins can provide 
 
 | # | Package | Entry points | Registry slug | Depends on |
 |---|---|---|---|---|
-| 1 | `packages/events` → `@semics/emdash-events` | `.` (sandboxed descriptor `events()`), `./sandbox` (core bundle), `./ui` (native descriptor `eventsUi()`), `./astro`, `./client`, `./styles`, `./integration` | `semics-events` → `@<handle>/semics-events` | none |
-| 2 | `packages/esign` → `@semics/emdash-esign` | same shape: `esign()`, `./sandbox`, `./ui` (`esignUi()`), `./astro`, `./client`, `./styles`, `./integration` | `semics-esign` → `@<handle>/semics-esign` | none |
-| 3 | `packages/events-suite` → `@semics/emdash-events-suite` | `eventsSuite()`, `./astro` (`<BookingWithWaiver>`) | none (npm only) | 1, 2 |
+| 1 | `packages/events` → `@semics-tech/emdash-events` | `.` (sandboxed descriptor `events()`), `./sandbox` (core bundle), `./ui` (native descriptor `eventsUi()`), `./astro`, `./client`, `./styles`, `./integration` | `semics-events` → `@<handle>/semics-events` | none |
+| 2 | `packages/esign` → `@semics-tech/emdash-esign` | same shape: `esign()`, `./sandbox`, `./ui` (`esignUi()`), `./astro`, `./client`, `./styles`, `./integration` | `semics-esign` → `@<handle>/semics-esign` | none |
+| 3 | `packages/events-suite` → `@semics-tech/emdash-events-suite` | `eventsSuite()`, `./astro` (`<BookingWithWaiver>`) | none (npm only) | 1, 2 |
 | — | `packages/events-pro`, `packages/esign-pro` | Pro builds of the cores: `.` + `./sandbox` only, same plugin slug (§13) | none until the registry supports paid plugins | 1, 2 |
 | — | `packages/shared` | internal lib, bundled into each core | — | — |
 | — | `apps/playground` | Astro site for dev/E2E (Node + workerd runner) | — | all |
@@ -67,8 +67,8 @@ the native `forms` plugin adds `./astro`, `./client` and `./styles`. Spike S10 c
 **Install (one package per product, two config lines):**
 
 ```js
-import { events } from "@semics/emdash-events";
-import { eventsUi } from "@semics/emdash-events/ui";
+import { events } from "@semics-tech/emdash-events";
+import { eventsUi } from "@semics-tech/emdash-events/ui";
 
 emdash({ sandboxed: [events()], plugins: [eventsUi()] });
 ```
@@ -108,7 +108,7 @@ so the public repo stays wholly MIT. The tree above shows them for completeness.
 
 ## 3. Package specs
 
-### 3.1 `semics-events` (sandboxed core of `@semics/emdash-events`)
+### 3.1 `semics-events` (sandboxed core of `@semics-tech/emdash-events`)
 
 **Content model.** Events are ordinary EmDash content in a site-defined collection (default slug
 `events`, configurable in settings). The plugin **cannot create collections** (§3.4), so we ship:
@@ -245,7 +245,7 @@ a banner and leave mail queued.
   `refunded_unavailable`, and email the buyer.
 - Refunds: admin action → Stripe Refunds API → status `refunded`, inventory released.
 
-### 3.2 `semics-esign` (sandboxed core of `@semics/emdash-esign`)
+### 3.2 `semics-esign` (sandboxed core of `@semics-tech/emdash-esign`)
 
 **Manifest (v1)**
 ```jsonc
@@ -329,7 +329,7 @@ cadence, expiry days, retention, Turnstile).
 **MCP tools:** `listTemplates`, `sendForSignature`, `getEnvelopeStatus`, `remindSigners`,
 `voidEnvelope` (`destructive`).
 
-### 3.3 Events UI (the `./ui` and `./astro` entries of `@semics/emdash-events`)
+### 3.3 Events UI (the `./ui` and `./astro` entries of `@semics-tech/emdash-events`)
 
 - Descriptor `eventsUi()`: `componentsEntry`, `portableTextBlocks` (`events-booking`,
   `events-list`), **no capabilities, no storage, no routes**.
@@ -342,7 +342,7 @@ cadence, expiry days, retention, Turnstile).
 - Post-1.0 (optional): native React admin page "Scan tickets" with camera QR scanning, calling the
   private `attendees.checkin` route.
 
-### 3.4 E-sign UI (the `./ui` and `./astro` entries of `@semics/emdash-esign`)
+### 3.4 E-sign UI (the `./ui` and `./astro` entries of `@semics-tech/emdash-esign`)
 
 - Descriptor `esignUi()`: `componentsEntry`, PT block `esign-request` (embed a **public
   self-serve template**, e.g. a consent form on a page).
@@ -477,8 +477,8 @@ any re-planning after the spikes.
 
 ## 9. Release & open-source process
 
-- Pro builds: a private repo and a `pro-release.yml` workflow publish `@semics/emdash-events-pro`
-  and `@semics/emdash-esign-pro` to a private npm registry, versioned in lockstep with Free (§13).
+- Pro builds: a private repo and a `pro-release.yml` workflow publish `@semics-tech/emdash-events-pro`
+  and `@semics-tech/emdash-esign-pro` to a private npm registry, versioned in lockstep with Free (§13).
 - Public GitHub repo (required for delegated releases), MIT license, `SECURITY.md` with a contact
   (also required in each manifest), CONTRIBUTING, issue templates.
 - **Changesets** for versioning. `emdash-plugin release setup` generates `emdash-release.yml`,
@@ -539,7 +539,7 @@ any re-planning after the spikes.
 | R12 | Route names use slashes only | Dots aren't documented as valid |
 | R13 | Event delete protection: veto only if S9 allows it, otherwise orphan + banner; no `content-policy` capability | Keeps the trust contract minimal |
 | R14 | Prefixed slugs `semics-events` / `semics-esign` | Irreversible after the first publish; avoids collisions |
-| R15 | Three packages: `@semics/emdash-events` and `@semics/emdash-esign` each carry core + UI through separate entry points; the suite stays separate | One install per product; the registry can't deliver UI anyway (2026-10-10) |
+| R15 | Three packages: `@semics-tech/emdash-events` and `@semics-tech/emdash-esign` each carry core + UI through separate entry points; the suite stays separate | One install per product; the registry can't deliver UI anyway (2026-10-10) |
 | R16 | Open core: Free edition MIT on the registry; Pro edition as a superset build of the same slug, delivered by private npm | Plugins can't share storage, so Pro can't be a separate add-on plugin (2026-10-10) |
 | R17 | Offline Ed25519 licence keys bound to site hostnames, with a perpetual fallback for builds before `updatesUntil` | No licence-server host in the trust contract; works on Node and Cloudflare (2026-10-10) |
 | R18 | Free/Pro split per §13: paid tickets, promo codes, questions, waivers, QR check-in, reminders, reports, MCP and multi-party/high-volume signing are Pro; security, privacy, legal evidence and export are always free | Free must beat Dateline and Eventual; Pro covers what earns money or saves staff time (2026-10-10) |
@@ -556,7 +556,7 @@ https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
 
 | # | Question | Answer |
 |---|---|---|
-| D1 | Publisher identity | **semics**: npm scope `@semics`, slugs `semics-events` / `semics-esign`. Secure the npm scope, the GitHub org and the Atmosphere handle before the first publish |
+| D1 | Publisher identity | **semics**: GitHub organisation `semics-uk`, npm scope `@semics-tech` (both confirmed by the owner 2026-10-10), slugs `semics-events` / `semics-esign`. The Atmosphere handle is still to be created |
 | D2 | Cloudflare staging | **Yes**: a Workers Paid account for the staging site; spikes S1 and S5 run there |
 | D3 | Deadline / priority | **None**: build in the order in §6 (e-sign, free events, waivers, then payments) |
 | D4 | E-sign legal scope | **US (ESIGN/UETA) + UK/EU (eIDAS SES), reviewed by a lawyer before 1.0.** Defaults: booking data kept 12 months after the event, signed records 7 years, both configurable |
@@ -625,7 +625,7 @@ while the e-sign side of the protocol stays free, so any other system can integr
   (research §3.3), so Pro is a superset build of the same core with the **same slug and
   publisher**. Moving from Free to Pro, or back, keeps all data (Spike S10 confirms storage
   survives the swap). Downgrading switches Pro features off; it never deletes data.
-- **Distribution:** private npm packages `@semics/emdash-events-pro` and `@semics/emdash-esign-pro`,
+- **Distribution:** private npm packages `@semics-tech/emdash-events-pro` and `@semics-tech/emdash-esign-pro`,
   installed with an access token and `sandboxed: [eventsPro()]` in place of `events()`. Move them
   to the registry when it supports paid plugins.
 - **Licence key:** `semics1.<payload>.<signature>`. The payload is
