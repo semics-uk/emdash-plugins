@@ -4,7 +4,7 @@ title: "Repo quality gates: lint, format, verify script, CI workflow"
 phase: 0
 package: repo
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T000]
