@@ -4,7 +4,7 @@ title: "Repo quality gates: lint, format, verify script, CI workflow"
 phase: 0
 package: repo
 edition: free
-status: backlog
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T000]
@@ -25,9 +25,9 @@ One command, `pnpm verify`, runs every gate locally: Biome lint and format check
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] `scripts/verify.test.mjs`: running `pnpm verify` on a deliberately broken fixture exits non-zero
-- [ ] Biome config rejects an unused import in a fixture file
-- [ ] Coverage thresholds fail the run when a fixture module is below 90% lines
+- [x] `scripts/verify.test.mjs`: running `pnpm verify` on a deliberately broken fixture exits non-zero
+- [x] Biome config rejects an unused import in a fixture file
+- [x] Coverage thresholds fail the run when a fixture module is below 90% lines
 
 ## Implementation (green, then refactor)
 
@@ -38,10 +38,10 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] `pnpm verify` passes on a clean checkout
-- [ ] Each package exposes a `verify` script
-- [ ] CI workflow lints with `actionlint`
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] `pnpm verify` passes on a clean checkout
+- [x] Each package exposes a `verify` script
+- [x] CI workflow lints with `actionlint`
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
@@ -49,3 +49,12 @@ Write these tests before any implementation and confirm they fail for the right 
 pnpm verify
 npx actionlint .github/workflows/ci.yml
 ```
+
+## Notes
+
+- `pnpm verify` is `node scripts/verify.mjs`: Biome `ci`, `tasks:check`, `test:scripts`, each package's `verify` (validate, typecheck, `vitest run --coverage`, build), then the playground typecheck. It stops at the first failure and accepts `--root <dir>` so the test can point it at a broken fixture.
+- Coverage: `vitest.coverage.mjs` (with `.d.mts` types) gives per-glob 90% line thresholds on `src/domain/**`; `coverageConfig({ allSource: true })` is for `packages/shared`. Empty globs do not fail (tested). Coverage fixtures are generated at test time under `scripts/.gate-fixture-*` (gitignored, removed afterwards).
+- `actionlint` is not installed offline, so it was not run. The workflow has an `actionlint` job (docker action) that lints it in CI; locally the YAML was only parsed with the `yaml` package (0 errors). Run `npx actionlint .github/workflows/ci.yml` once online.
+- The Playwright job is skipped unless a `playwright.config.*` exists (no Playwright dependency yet).
+- Biome scope excludes `apps/playground` (another task is editing it; its `emdash-env.d.ts` is generated) and `*.astro`/`*.md`. Existing code was reformatted by Biome (formatting only, including `tsconfig*.json`, `packages/*/tests`, `scripts/*`). Bring the playground into scope in a follow-up.
+- Definition of Done items not applicable here: no changeset (no published package changed), no route budgets; automated code review left to the orchestrator.
