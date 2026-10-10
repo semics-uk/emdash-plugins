@@ -67,11 +67,7 @@ test("validate refuses work started before its dependencies are done", () => {
 });
 
 test("buildBoard puts backlog tasks with finished dependencies in Ready", () => {
-	const board = buildBoard([
-		task("T1", [], { status: "done" }),
-		task("T2", ["T1"]),
-		task("T3", ["T2"]),
-	]);
+	const board = buildBoard([task("T1", [], { status: "done" }), task("T2", ["T1"]), task("T3", ["T2"])]);
 	assert.deepEqual(board.columns.ready, ["T2"]);
 	assert.deepEqual(board.columns.backlog, ["T3"]);
 	assert.deepEqual(board.columns.done, ["T1"]);

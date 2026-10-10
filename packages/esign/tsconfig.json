@@ -9,12 +9,6 @@
 		"skipLibCheck": true,
 		"types": []
 	},
-	"include": [
-		"src/**/*",
-		"tests/**/*",
-		"vitest.config.ts"
-	],
-	"exclude": [
-		"node_modules"
-	]
+	"include": ["src/**/*", "tests/**/*", "vitest.config.ts"],
+	"exclude": ["node_modules"]
 }

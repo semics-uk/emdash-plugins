@@ -1,31 +1,38 @@
 {
-  "name": "emdash-plugins",
-  "private": true,
-  "description": "semics Events bookings and E-sign plugins for EmDash",
-  "license": "MIT",
-  "type": "module",
-  "packageManager": "pnpm@10.23.0",
-  "engines": {
-    "node": ">=24.15.0"
-  },
-  "scripts": {
-    "build": "pnpm -r --filter ./packages/** build",
-    "test": "pnpm -r --filter ./packages/** test",
-    "validate": "pnpm -r --filter ./packages/** validate",
-    "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --filter playground dev",
-    "tasks": "node scripts/tasks.mjs",
-    "tasks:check": "node scripts/tasks.mjs --check",
-    "test:scripts": "node --test \"scripts/*.test.mjs\""
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "workerd",
-      "sharp"
-    ]
-  },
-  "devDependencies": {
-    "marked": "12.0.2"
-  }
+	"name": "emdash-plugins",
+	"private": true,
+	"description": "semics Events bookings and E-sign plugins for EmDash",
+	"license": "MIT",
+	"type": "module",
+	"packageManager": "pnpm@10.23.0",
+	"engines": {
+		"node": ">=24.15.0"
+	},
+	"scripts": {
+		"build": "pnpm -r --filter ./packages/** build",
+		"test": "pnpm -r --filter ./packages/** test",
+		"validate": "pnpm -r --filter ./packages/** validate",
+		"typecheck": "pnpm -r typecheck",
+		"dev": "pnpm --filter playground dev",
+		"tasks": "node scripts/tasks.mjs",
+		"tasks:check": "node scripts/tasks.mjs --check",
+		"test:scripts": "node --test \"scripts/*.test.mjs\"",
+		"lint": "biome lint .",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"check": "biome check --write .",
+		"ci": "biome ci .",
+		"verify": "node scripts/verify.mjs"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"workerd",
+			"sharp"
+		]
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.5.15",
+		"marked": "12.0.2"
+	}
 }

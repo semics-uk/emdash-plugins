@@ -109,7 +109,10 @@ export function buildBoard(tasks) {
 		let best = { weight: own, path: [id] };
 		for (const d of t.depends_on) {
 			const sub = longest(d);
-			if (sub.weight + own > best.weight || (sub.weight + own === best.weight && sub.path.length + 1 > best.path.length)) {
+			if (
+				sub.weight + own > best.weight ||
+				(sub.weight + own === best.weight && sub.path.length + 1 > best.path.length)
+			) {
 				best = { weight: sub.weight + own, path: [...sub.path, id] };
 			}
 		}
@@ -126,7 +129,14 @@ export function buildBoard(tasks) {
 }
 
 function renderBoard(board) {
-	const label = { backlog: "Backlog", ready: "Ready", "in-progress": "In progress", review: "Review", done: "Done", blocked: "Blocked" };
+	const label = {
+		backlog: "Backlog",
+		ready: "Ready",
+		"in-progress": "In progress",
+		review: "Review",
+		done: "Done",
+		blocked: "Blocked",
+	};
 	const order = ["ready", "in-progress", "review", "blocked", "backlog", "done"];
 	const lines = [
 		"# Task board",
@@ -155,7 +165,9 @@ function renderBoard(board) {
 
 function main() {
 	const dir = join(dirname(fileURLToPath(import.meta.url)), "..", "tasks");
-	const files = readdirSync(dir).filter((f) => /^T\d+.*\.md$/.test(f)).sort();
+	const files = readdirSync(dir)
+		.filter((f) => /^T\d+.*\.md$/.test(f))
+		.sort();
 	const tasks = files.map((f) => parseTask(readFileSync(join(dir, f), "utf8"), f));
 	const errors = validate(tasks);
 	if (errors.length) {

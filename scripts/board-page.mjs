@@ -16,8 +16,18 @@ for (const f of readdirSync(dir).filter((f) => /^T\d+.*\.md$/.test(f))) {
 }
 
 const tasks = Object.values(board.tasks).map((t) => ({
-	id: t.id, title: t.title, phase: t.phase, pkg: t.package, edition: t.edition, model: t.model,
-	size: t.size, deps: t.depends_on, unblocks: t.unblocks, spec: t.spec, column: t.column, file: t.file,
+	id: t.id,
+	title: t.title,
+	phase: t.phase,
+	pkg: t.package,
+	edition: t.edition,
+	model: t.model,
+	size: t.size,
+	deps: t.depends_on,
+	unblocks: t.unblocks,
+	spec: t.spec,
+	column: t.column,
+	file: t.file,
 	html: bodies[t.id],
 }));
 

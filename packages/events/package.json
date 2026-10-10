@@ -26,6 +26,8 @@
 		"build": "emdash-plugin build && tsc -p tsconfig.ui.json",
 		"dev": "emdash-plugin dev",
 		"typecheck": "tsc --noEmit",
+		"test:coverage": "vitest run --coverage",
+		"verify": "pnpm run validate && pnpm run typecheck && pnpm run test:coverage && pnpm run build",
 		"test": "emdash-plugin validate && vitest run",
 		"bundle": "emdash-plugin bundle",
 		"login": "emdash-plugin login",
@@ -38,6 +40,7 @@
 	"devDependencies": {
 		"@emdash-cms/plugin-cli": "0.13.3",
 		"@emdash-cms/plugin-test": "0.2.8",
+		"@vitest/coverage-v8": "4.1.11",
 		"emdash": "1.2.0",
 		"typescript": "^5.9.0",
 		"vitest": "^4.1.0"

@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
-
 import { createPluginTestHost, type PluginTestHost } from "@emdash-cms/plugin-test";
+import { afterEach, describe, expect, it } from "vitest";
 
 let host: PluginTestHost | undefined;
 
