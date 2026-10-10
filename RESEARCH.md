@@ -412,6 +412,36 @@ Benchmarks: The Events Calendar + Event Tickets (WP), Eventbrite, Tito, Pretix, 
 7. Slug uniqueness across publishers on one site: is `events` safe, or should we namespace
    (`semics-events`)?
 
+## 11. Competitive landscape (checked 2026-10-10)
+
+The registry listed 65 plugins on 2026-10-10. None sells tickets, takes bookings, or collects
+e-signatures, waivers or contracts. npm, GitHub and the community "awesome-emdash" lists showed
+the same.
+
+| Plugin | Distribution | What it does | What it lacks |
+|---|---|---|---|
+| [Eventual](https://github.com/Vermeulen-Solutions/eventual-emdash-sandbox) (Vermeulen Solutions, 2 stars) | Registry, sandboxed, MIT | Events as native content, recurrence, venues, JSON and iCal feeds, JSON-LD, MCP tools; front end is example Astro views | Tickets, bookings, RSVP, payments, check-in |
+| [Dateline](https://github.com/foreztgump/dateline-events-plugin) (1 star, v0.3.0) | npm: 3 sandboxed plugins (`core`, `rsvp`, `importer`) + native `@dateline/views` | Events, venues, organisers, feeds, importer (incl. The Events Calendar), **free RSVP with capacity, waitlist and confirmation email** | Paid tickets (planned via the author's Tender payments plugins), check-in, waivers |
+| [DashCommerce](https://github.com/emdashCommerce/dashcommerce) and other commerce plugins | npm | General shops: products, inventory, checkout | Capacity holds, attendees, check-in |
+| Payments (HandyPlugins) | Registry | One-off payments | Event-specific features |
+
+**Paid plugins.** The registry is free-only. Cloudflare's 1.0 post (2026-09-28) says paid plugins
+are a goal under the same decentralised model, with no timeline. Two registry plugins already
+advertise Pro tiers (Auto Unpublish Posts, Discord Notifier). Stranger Studios, the makers of Paid
+Memberships Pro for WordPress, publishes on EmDash.
+
+**Ecosystem size.** The `emdash-cms/emdash` repo has 13.5k stars and 1.3k forks. Cloudflare reports
+175+ contributors and 800+ Discord members. Small, but early.
+
+**Platform note.** [Issue #4004](https://github.com/emdash-cms/emdash/issues/4004) (opened
+2026-10-08 by Eventual's developer) treats content and KV bridge calls as counting toward the
+10-subrequest limit, from local probes. That supports the two-call checkout design; Spike S1
+still needs a deployed measurement.
+
+**Packaging precedent.** First-party sandboxed plugins publish to npm with `.` and `./sandbox`
+exports; the native `forms` plugin adds `./astro`, `./client` and `./styles`. Dateline uses the
+same core-plus-native-views split as this plan.
+
 ## Sources
 
 - EmDash repo: https://github.com/emdash-cms/emdash
