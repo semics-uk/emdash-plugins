@@ -4,7 +4,7 @@ title: "Protocol spec esign-intent/1 with test vectors"
 phase: 0
 package: docs
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T000]
