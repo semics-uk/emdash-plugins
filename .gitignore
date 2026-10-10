@@ -11,3 +11,4 @@ apps/playground/data/
 coverage/
 apps/playground/data.db*
 apps/playground/uploads/
+scripts/.gate-fixture-*/
