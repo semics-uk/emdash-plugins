@@ -4,7 +4,7 @@ title: "Spike S6: Portable Text blocks served by a sandboxed core"
 phase: 0
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T004]
