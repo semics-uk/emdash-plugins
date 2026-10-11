@@ -127,3 +127,10 @@ describe("Result", () => {
 		else expectTypeOf(good.error).toBeString();
 	});
 });
+
+describe("booking token errors (T049)", () => {
+	it("a wrong booking token looks like a missing booking, so it never confirms a booking exists", () => {
+		expect(ERROR_CODES.BOOKING_TOKEN_INVALID.status).toBe(404);
+		expect(ERROR_CODES.BOOKING_TOKEN_INVALID.message).toBe(ERROR_CODES.NOT_FOUND.message);
+	});
+});
