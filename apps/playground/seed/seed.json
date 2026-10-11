@@ -252,6 +252,34 @@
 						}
 					]
 				}
+			},
+			{
+				"id": "whats-on",
+				"slug": "whats-on",
+				"status": "published",
+				"data": {
+					"title": "What's on",
+					"content": [
+						{
+							"_type": "block",
+							"style": "normal",
+							"_key": "w0",
+							"children": [
+								{
+									"_type": "span",
+									"_key": "w1",
+									"text": "Our upcoming events."
+								}
+							]
+						},
+						{
+							"_type": "events-list",
+							"_key": "w2",
+							"heading": "Upcoming events",
+							"limit": 3
+						}
+					]
+				}
 			}
 		],
 		"posts": [
