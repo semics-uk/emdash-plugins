@@ -4,7 +4,7 @@ title: "Shared library package and bundling into the sandbox"
 phase: 0
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T001]

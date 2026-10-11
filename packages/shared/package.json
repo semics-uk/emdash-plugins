@@ -1,0 +1,22 @@
+{
+	"name": "@semics-tech/shared",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "Pure helpers shared by the semics EmDash plugins. Source-only: the plugin bundler inlines it.",
+	"license": "MIT",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"verify": "pnpm run typecheck && pnpm run test:coverage"
+	},
+	"devDependencies": {
+		"@vitest/coverage-v8": "4.1.11",
+		"typescript": "^5.9.0",
+		"vitest": "^4.1.0"
+	}
+}
