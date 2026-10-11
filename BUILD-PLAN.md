@@ -116,7 +116,7 @@ so the public repo stays wholly MIT. The tree above shows them for completeness.
 
 **Content model.** Events are ordinary EmDash content in a site-defined collection (default slug
 `events`, configurable in settings). The plugin **cannot create collections** (§3.4), so we ship:
-- a seed/schema snippet for the collection (`title`, `slug`, `body` PT, `startsAt`, `endsAt`,
+- a seed/schema snippet for the collection (`title`, `slug`, `body` PT, `starts_at`, `ends_at`,
   `timezone`, `venue`, `image`, `summary`) in `docs/` and in the playground;
 - a settings field mapping (which field holds start/end/timezone/venue) validated via `schema:read`,
   with a Block Kit banner if the mapping is broken.

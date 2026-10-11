@@ -4,7 +4,7 @@ title: "Playground seed and end-to-end harness"
 phase: 0
 package: playground
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T000, T001]
@@ -36,7 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] E2E runs headless locally in under 2 minutes (see Notes)
+- [x] E2E runs headless locally in under 2 minutes (37 s including build on an unloaded machine, verified by the orchestrator 2026-10-11; 4 min 40 s under heavy parallel load) (see Notes)
 - [x] Database and uploads reset per run
 - [x] Meets the Definition of Done in `tasks/README.md`
 
