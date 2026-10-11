@@ -4,7 +4,7 @@ title: "Platform probes: one-shot cron, document size, dynamic secrets, delete v
 phase: 0
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T000]
