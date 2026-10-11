@@ -53,9 +53,22 @@ export async function callPublicRoute<T = unknown>(
 	const method = call.method ?? "GET";
 	const path = call.path.replace(/^\/+/, "");
 	const pluginId = call.pluginId ?? EVENTS_PLUGIN_ID;
+	const handler = getPublicPluginApiRouteHandler(ctx.locals);
+	const via = handler ? "in-process" : "fetch";
+
+	const unsafeKey = method === "GET" ? tokenLikeKey(call.body) : undefined;
+	if (unsafeKey !== undefined) {
+		return {
+			ok: false,
+			error: {
+				code: "TOKEN_IN_QUERY",
+				message: `"${unsafeKey}" looks like a token; send it with POST, never in a URL`,
+			},
+			via,
+		};
+	}
 	const request = buildRequest(ctx.url.origin, pluginId, method, path, call.body);
 
-	const handler = getPublicPluginApiRouteHandler(ctx.locals);
 	if (handler) {
 		try {
 			return toResult<T>(await handler(pluginId, method, path, request), "in-process");
@@ -78,6 +91,14 @@ export async function callPublicRoute<T = unknown>(
 	} catch (error) {
 		return failure(error, "fetch");
 	}
+}
+
+/** Tokens must never travel in URLs (BUILD-PLAN R10), so GET bodies may not carry token-like keys. */
+const TOKEN_LIKE = /^(t|.*token.*|.*receipt.*|.*secret.*|.*otp.*)$/i;
+
+function tokenLikeKey(body: unknown): string | undefined {
+	if (!body || typeof body !== "object") return undefined;
+	return Object.keys(body).find((key) => TOKEN_LIKE.test(key));
 }
 
 function buildRequest(origin: string, pluginId: string, method: string, path: string, body: unknown): Request {
