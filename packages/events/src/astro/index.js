@@ -5,7 +5,6 @@ export const blockComponents = {
 	"events-list": EventList,
 };
 
-export { EventList };
-
 // The only way UI code calls the core (in-process public routes, fetch fallback).
 export { callPublicRoute, EVENTS_PLUGIN_ID } from "./lib/call.ts";
+export { EventList };

@@ -6,6 +6,12 @@ const url = new URL("https://site.example/events?x=1");
 
 type Handler = (pluginId: string, method: string, path: string, request: Request) => Promise<unknown>;
 
+function firstCall<T>(calls: T[]): T {
+	const call = calls[0];
+	if (call === undefined) throw new Error("expected at least one call");
+	return call;
+}
+
 function localsWith(handler: Handler) {
 	return { emdash: { handlePublicPluginApiRoute: handler } } as never;
 }
@@ -23,7 +29,7 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 		expect(result).toEqual({ ok: true, data: { ok: 1 }, via: "in-process" });
 		expect(fetchFn).not.toHaveBeenCalled();
 		expect(handler).toHaveBeenCalledTimes(1);
-		const [pluginId, method, path, request] = handler.mock.calls[0]!;
+		const [pluginId, method, path, request] = firstCall(handler.mock.calls);
 		expect(pluginId).toBe(EVENTS_PLUGIN_ID);
 		expect(method).toBe("POST");
 		expect(path).toBe("public/probe");
@@ -41,7 +47,7 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 			{ method: "GET", path: "public/probe", body: { slug: "spring-fair", tag: ["a", "b"] } },
 		);
 
-		const [, method, path, request] = handler.mock.calls[0]!;
+		const [, method, path, request] = firstCall(handler.mock.calls);
 		expect(method).toBe("GET");
 		expect(path).toBe("public/probe");
 		const sent = new URL(request.url);
@@ -58,7 +64,7 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 
 		const result = await callPublicRoute({ locals: localsWith(handler), url }, { path: "public/probe" });
 
-		expect(handler.mock.calls[0]![1]).toBe("GET");
+		expect(firstCall(handler.mock.calls)[1]).toBe("GET");
 		expect(result).toEqual({
 			ok: false,
 			error: { code: "NOT_FOUND", message: "Plugin route not found" },
@@ -81,9 +87,7 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 	});
 
 	it("falls back to fetch(Astro.url.origin + route) when no in-process handler is available", async () => {
-		const fetchFn = vi.fn<typeof fetch>(async () =>
-			Response.json({ success: true, data: { echoed: true } }),
-		);
+		const fetchFn = vi.fn<typeof fetch>(async () => Response.json({ success: true, data: { echoed: true } }));
 
 		const result = await callPublicRoute(
 			{ locals: {}, url, fetch: fetchFn },
@@ -91,7 +95,7 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 		);
 
 		expect(result).toEqual({ ok: true, data: { echoed: true }, via: "fetch" });
-		const [input, init] = fetchFn.mock.calls[0]!;
+		const [input, init] = firstCall(fetchFn.mock.calls);
 		const request = new Request(input, init);
 		expect(request.url).toBe("https://site.example/_emdash/api/plugins/semics-events/public/probe");
 		expect(request.method).toBe("POST");
