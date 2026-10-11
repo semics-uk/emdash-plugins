@@ -465,6 +465,32 @@ any re-planning after the spikes.
 - **S11 confirmed.** Ed25519 sign and verify work through WebCrypto inside the sandbox (Worker
   Loader test host); a tampered message fails. `ctx.site.url` is always available for the hostname
   check. 200 SHA-256 digests of 1 KiB took about 1 ms.
+- **S2 confirmed: direct in-process works; no fallback needed on the Node workerd runner (T004).**
+  `getPublicPluginApiRouteHandler(Astro.locals)` dispatches to sandboxed plugins. The handler is
+  `createPublicPluginApiRouteHandler(runtime)`, which `emdash/astro` middleware puts on
+  `locals.emdash` for every page request, anonymous visitors included. It reads
+  `runtime.getPluginRouteMeta()`, which covers build-time sandboxed entries through the manifest
+  route cache, and returns `NOT_FOUND` unless the route is declared `public: true`. It then calls
+  `runtime.handlePluginApiRoute()`. That runs the same method check (405) and declared-body
+  parsing as the HTTP route, then goes to `handleSandboxedRoute` for sandboxed plugins. Evidence:
+  playground on `@emdash-cms/sandbox-workerd` (`Loaded sandboxed plugin semics-events:0.1.0`).
+  A temporary probe route `public/probe` was declared `{ public: true, methods: ["POST"],
+  request: { body: "json" } }`. A page called it via `callPublicRoute(Astro, { method: "POST",
+  path: "public/probe", body: { ping: "s2" } })` and server-rendered `{ pluginId:
+  "semics-events", method: "POST", echo: { ping: "s2" } }`, marked `via: "in-process"`. That is
+  about 140–250 ms cold and 2–7 ms warm per page. Playwright passes with JavaScript disabled. The
+  same page gives a defined error state (`NOT_FOUND`), not a crash, in four cases: an unknown
+  plugin ID; the private `hello` route (the public handler refuses it); an undeclared route; and
+  the plugin truly disabled (`_plugin_state.status = 'inactive'`, then a server restart). Over
+  HTTP the probe returns 200 for POST and 405 for GET, `hello` returns 401 unauthenticated, and
+  every route returns 404 once the plugin is disabled. Decision: UI code calls the core only
+  through `packages/events/src/astro/lib/call.ts` `callPublicRoute()`. It returns `{ ok, data |
+  error, via }` and never throws. It falls back to `fetch(Astro.url.origin + "/_emdash/api/plugins/…")`
+  only when the handler is missing from `locals`, which happens when runtime init failed or the
+  middleware didn't run. Cloudflare (Worker Loader) uses the same code path; T110 confirms it on
+  staging. The probe route has been removed. Note for e2e: the workerd runner binds fixed ports
+  from 18788. A leftover `workerd` process holding them makes the next server fail with
+  `bind(): Address already in use`, so two playground servers can't run at once.
 - S10b (storage survives a Free to Pro swap) waits for the Pro build in Phase 4.
 
 **Resolved from docs (2026-10-09):**

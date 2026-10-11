@@ -1,5 +1,6 @@
 ---
-// Spike S2 (T004) probe page: server-renders the sandboxed core's public/probe route.
+// Spike S2 (T004) probe page: server-renders the sandboxed core's public/probe route. The route
+// was removed after the spike, so this page now always shows the defined error state; T009 owns it.
 // `?plugin=` targets another plugin ID so the not-enabled error state can be exercised.
 import { callPublicRoute, EVENTS_PLUGIN_ID } from "@semics-tech/emdash-events/astro";
 
