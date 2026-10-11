@@ -4,7 +4,7 @@ title: "Spike S2: in-process calls from SSR to sandboxed public routes"
 phase: 0
 package: playground
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T000]

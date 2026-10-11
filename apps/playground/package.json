@@ -12,20 +12,22 @@
     "build": "astro build",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
-    "typecheck": "astro check"
+    "typecheck": "astro check",
+    "e2e": "astro build && playwright test"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",
     "@astrojs/react": "^6.0.5",
+    "@emdash-cms/sandbox-workerd": "0.9.3",
+    "@semics-tech/emdash-esign": "workspace:*",
+    "@semics-tech/emdash-events": "workspace:*",
     "astro": "^7.3.2",
     "emdash": "1.2.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "@emdash-cms/sandbox-workerd": "0.9.3",
-    "@semics-tech/emdash-events": "workspace:*",
-    "@semics-tech/emdash-esign": "workspace:*"
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.10"
+    "@astrojs/check": "^0.9.10",
+    "@playwright/test": "1.56.1"
   }
 }
