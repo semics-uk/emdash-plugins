@@ -4,7 +4,7 @@ title: "Playground seed and end-to-end harness"
 phase: 0
 package: playground
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: M
 depends_on: [T000, T001]
