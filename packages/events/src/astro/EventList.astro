@@ -1,7 +1,26 @@
 ---
-// Placeholder for Spike S10: proves a native component ships beside the sandboxed core.
-const { heading = "Upcoming events" } = Astro.props;
+// Spike S6: the `events-list` Portable Text block. The data is static until the public events
+// route exists (T046). Portable Text passes the block as `node`; manual template use passes props.
+interface Props {
+	node?: { heading?: string; limit?: number };
+	heading?: string;
+	limit?: number;
+}
+
+const props = Astro.props as Props;
+const heading = props.node?.heading ?? props.heading ?? "Upcoming events";
+const limit = props.node?.limit ?? props.limit ?? 3;
+
+const events = [
+	{ title: "London Community Meetup", when: "First Thursday, 7pm" },
+	{ title: "Summer Workshop", when: "Saturdays in July" },
+	{ title: "Autumn Open Day", when: "12 October" },
+	{ title: "Winter Social", when: "14 December" },
+].slice(0, Math.max(0, limit));
 ---
-<section class="semics-events-list">
+<section class="semics-events-list" data-testid="events-list">
 	<h2>{heading}</h2>
+	<ul>
+		{events.map((event) => <li>{event.title} <small>{event.when}</small></li>)}
+	</ul>
 </section>

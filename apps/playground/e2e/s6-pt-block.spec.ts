@@ -43,4 +43,9 @@ test("EU-FR-01 the events-list editor configuration validates as Block Kit", asy
 	]);
 	expect(result.errors).toEqual([]);
 	expect(result.valid).toBe(true);
+	// The validator is not vacuous: an unknown element type is rejected.
+	const bad = validateBlocks([
+		{ type: "form", fields: [{ type: "nope", action_id: "x", label: "X" }], submit: { label: "Insert", action_id: "insert" } },
+	]);
+	expect(bad.valid).toBe(false);
 });

@@ -547,6 +547,21 @@ any re-planning after the spikes.
     Decision: no slug prefix is needed. Code must never hard-code `semics-events` as a plugin id: read
     it from `ctx.plugin.id` or the route URL (affects T004's UI call path, the suite wiring and
     the e-sign pairing).
+- **S6 confirmed (T006): a native UI-only plugin registers a Portable Text block that the site renders; no fallback needed.**
+  `createPlugin()` in `packages/events/src/ui/index.ts` calls `definePlugin({ admin: { portableTextBlocks:
+  [{ type: "events-list", label, fields: [text_input heading, number_input limit] }] } })`, the same
+  shape the first-party forms plugin uses. `blockComponents["events-list"]` in `src/astro/index.js`
+  is auto-merged into `<PortableText>`, so a seeded page whose body holds `{ "_type": "events-list" }`
+  renders `EventList.astro` (given the block as `Astro.props.node`) with no change to the page
+  template. Playwright with JavaScript disabled passes (`apps/playground/e2e/s6-pt-block.spec.ts`,
+  `/whats-on`). The editor configuration passes `validateBlocks` from `@emdash-cms/blocks/server`
+  (the validator emdash uses for Block Kit) as a form block, and a bad element type is rejected.
+  `createPluginRuntimeTestHost()` cannot be used for this: it takes only site and i18n options and
+  loads the built sandboxed plugin, never a native descriptor. Block data is static for now; the
+  core serves it from T046's public events route. `emdash-plugin build` is unaffected because the
+  blocks live only in the UI entry (the registry bundle's manifest still has no
+  `portableTextBlocks`). The block data is not served by the core yet, so the "data from the
+  sandboxed core" half is covered by S2 (`callPublicRoute`) plus T046; the PRDs keep the blocks.
 
 **Resolved from docs (2026-10-09):**
 - `updateIf` guard fields don't need declared indexes, and guards compare against literal values

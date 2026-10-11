@@ -14,9 +14,27 @@ export function eventsUi(): PluginDescriptor {
 	};
 }
 
-/** Runtime entry: the UI plugin has no capabilities, storage, hooks or routes. */
+/** Runtime entry: no capabilities, storage, hooks or routes; it registers editor blocks only. */
 export function createPlugin(): ResolvedPlugin {
-	return definePlugin({ id: ID, version: VERSION });
+	return definePlugin({
+		id: ID,
+		version: VERSION,
+		admin: {
+			portableTextBlocks: [
+				{
+					type: "events-list",
+					label: "Events list",
+					icon: "code",
+					description: "A list of upcoming events",
+					category: "Events",
+					fields: [
+						{ type: "text_input", action_id: "heading", label: "Heading", initial_value: "Upcoming events" },
+						{ type: "number_input", action_id: "limit", label: "Number of events", initial_value: 3, min: 1, max: 20 },
+					],
+				},
+			],
+		},
+	});
 }
 
 export default createPlugin;

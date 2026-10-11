@@ -4,7 +4,7 @@ title: "Spike S6: Portable Text blocks served by a sandboxed core"
 phase: 0
 package: events
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T004]
@@ -25,8 +25,8 @@ Prove that the native UI entry can register an `events-list` Portable Text block
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Playwright: an entry whose body contains an `events-list` block renders the block's component
-- [ ] Runtime host: the block's editor configuration validates as Block Kit
+- [x] Playwright: an entry whose body contains an `events-list` block renders the block's component
+- [x] Runtime host: the block's editor configuration validates as Block Kit
 
 ## Implementation (green, then refactor)
 
@@ -34,8 +34,8 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Finding recorded in BUILD-PLAN §7; if negative, PRDs drop the blocks and keep components only
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Finding recorded in BUILD-PLAN §7; if negative, PRDs drop the blocks and keep components only
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
@@ -43,3 +43,14 @@ Write these tests before any implementation and confirm they fail for the right 
 pnpm --filter @semics-tech/emdash-events verify
 pnpm --filter playground e2e
 ```
+
+## Notes
+
+- Second test: `createPluginRuntimeTestHost()` only accepts site and i18n options and loads the built
+  sandboxed plugin, so it cannot load the native UI descriptor. The block's `fields` are instead
+  validated with `validateBlocks` from `@emdash-cms/blocks/server` (resolved through `emdash`), as a
+  form block, with a negative case. Both tests live in `apps/playground/e2e/s6-pt-block.spec.ts`
+  (the second needs no browser) because `packages/events/tests` belongs to another task.
+- Block data is static in `EventList.astro` until T046 adds the public events route.
+- Seed gained a `whats-on` page containing an `events-list` block.
+- Finding recorded in BUILD-PLAN §7 (positive; the PRDs keep the blocks).
