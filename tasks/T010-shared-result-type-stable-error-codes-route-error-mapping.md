@@ -4,7 +4,7 @@ title: "Shared: result type, stable error codes, route error mapping"
 phase: 1
 package: shared
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T003]
@@ -25,9 +25,9 @@ A typed `Result` and a registry of stable error codes (`HOLD_EXPIRED`, `SOLD_OUT
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Each error code maps to exactly one status and message
-- [ ] Unknown errors map to 500 without leaking the message
-- [ ] Codes are unique (test enumerates the registry)
+- [x] Each error code maps to exactly one status and message
+- [x] Unknown errors map to 500 without leaking the message
+- [x] Codes are unique (test enumerates the registry)
 
 ## Implementation (green, then refactor)
 
@@ -35,11 +35,17 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Used by both cores' route handlers
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [ ] Used by both cores' route handlers (deferred: cores intentionally untouched here; adopt in the route tasks)
+- [x] Meets the Definition of Done in `tasks/README.md` (changeset n/a: shared is private)
 
 ## Verify
 
 ```sh
 pnpm --filter @semics-tech/shared verify
 ```
+
+## Notes
+
+- Registry is `ERROR_CODES` in `packages/shared/src/result.ts` (frozen; code -> `{ status, message }`), grouped by area. All protocol §9 codes plus `TEMPLATE_NOT_FOUND`, `REF_UNKNOWN`, `RATE_LIMITED` are included; a test parses the spec so they cannot drift.
+- Booking-token codes are prefixed (`BOOKING_TOKEN_INVALID`, `BOOKING_TOKEN_EXPIRED`) to avoid clashing with the protocol's `TOKEN_*`; the e-sign signer link uses `SIGNING_TOKEN_*`. E-sign and payment statuses/messages (`ENVELOPE_*`, `PAYMENT_FAILED` 402) are my choices; later tasks may add codes.
+- `toRouteError` accepts a code string, `{ code }` or an Error with `code`; anything else is 500 `INTERNAL`.
