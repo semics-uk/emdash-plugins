@@ -79,19 +79,10 @@ function decodePayload(payloadB64) {
 }
 
 async function hmacVerifies(secretB64, prefix, payloadB64, sigB64) {
-	const key = await crypto.subtle.importKey(
-		"raw",
-		b64urlDecode(secretB64),
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["verify"],
-	);
-	return crypto.subtle.verify(
-		"HMAC",
-		key,
-		b64urlDecode(sigB64),
-		new TextEncoder().encode(`${prefix}.${payloadB64}`),
-	);
+	const key = await crypto.subtle.importKey("raw", b64urlDecode(secretB64), { name: "HMAC", hash: "SHA-256" }, false, [
+		"verify",
+	]);
+	return crypto.subtle.verify("HMAC", key, b64urlDecode(sigB64), new TextEncoder().encode(`${prefix}.${payloadB64}`));
 }
 
 test("SX-NFR-01: vectors.json is well-formed with an expected outcome for every vector", () => {
@@ -163,7 +154,10 @@ test("SX-NFR-01: at least 20 vectors, at least 4 per token type, covering every 
 	for (const type of TOKEN_TYPES) {
 		const ofType = vectors.filter((v) => v.type === type);
 		assert.ok(ofType.length >= 4, `${type}: only ${ofType.length} vectors`);
-		assert.ok(ofType.some((v) => v.expected.ok), `${type}: has a valid vector`);
+		assert.ok(
+			ofType.some((v) => v.expected.ok),
+			`${type}: has a valid vector`,
+		);
 		for (const code of ["TOKEN_INVALID", "TOKEN_MALFORMED", "TOKEN_TOO_LARGE", "CLIENT_UNKNOWN"]) {
 			assert.ok(
 				ofType.some((v) => v.expected.error === code),
@@ -176,10 +170,7 @@ test("SX-NFR-01: at least 20 vectors, at least 4 per token type, covering every 
 	// Cross-type confusion: a token minted under another prefix is presented to each verifier.
 	for (const type of TOKEN_TYPES) {
 		assert.ok(
-			vectors.some(
-				(v) =>
-					v.type === type && v.input.signedWithPrefix && v.input.signedWithPrefix !== PREFIXES[type],
-			),
+			vectors.some((v) => v.type === type && v.input.signedWithPrefix && v.input.signedWithPrefix !== PREFIXES[type]),
 			`${type}: has a wrong-prefix vector`,
 		);
 	}
