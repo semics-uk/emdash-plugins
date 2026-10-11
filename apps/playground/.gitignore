@@ -13,3 +13,4 @@ data.db
 # Playwright
 test-results
 playwright-report
+.e2e-state

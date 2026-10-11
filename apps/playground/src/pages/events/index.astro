@@ -1,0 +1,37 @@
+---
+import { getEmDashCollection } from "emdash";
+import Base from "../../layouts/Base.astro";
+
+// Minimal events listing for the playground and the e2e harness: chronological, with data-*
+// attributes the tests use to fingerprint the seeded state.
+const { entries, cacheHint } = await getEmDashCollection("events");
+if (Astro.cache?.enabled) Astro.cache.set(cacheHint);
+
+const events = entries
+	.map((entry) => ({
+		slug: entry.data.slug as string,
+		title: entry.data.title as string,
+		startsAt: new Date(entry.data.starts_at as string | Date).toISOString(),
+		timezone: entry.data.timezone as string,
+	}))
+	.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+---
+
+<Base title="Events" description="Upcoming and past events">
+	<h1>Events</h1>
+	<ul>
+		{
+			events.map((event) => (
+				<li
+					data-testid="event-row"
+					data-slug={event.slug}
+					data-title={event.title}
+					data-starts-at={event.startsAt}
+					data-timezone={event.timezone}
+				>
+					<a href={`/events/${event.slug}`}>{event.title}</a>
+				</li>
+			))
+		}
+	</ul>
+</Base>

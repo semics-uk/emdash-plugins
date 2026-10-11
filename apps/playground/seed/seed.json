@@ -16,7 +16,14 @@
 			"label": "Posts",
 			"labelSingular": "Post",
 			"urlPattern": "/posts/{slug}",
-			"supports": ["drafts", "revisions", "preview", "scheduling", "search", "seo"],
+			"supports": [
+				"drafts",
+				"revisions",
+				"preview",
+				"scheduling",
+				"search",
+				"seo"
+			],
 			"fields": [
 				{
 					"slug": "title",
@@ -48,7 +55,13 @@
 			"label": "Pages",
 			"labelSingular": "Page",
 			"urlPattern": "/{slug}",
-			"supports": ["drafts", "revisions", "preview", "search", "seo"],
+			"supports": [
+				"drafts",
+				"revisions",
+				"preview",
+				"search",
+				"seo"
+			],
 			"fields": [
 				{
 					"slug": "title",
@@ -64,6 +77,66 @@
 					"searchable": true
 				}
 			]
+		},
+		{
+			"slug": "events",
+			"label": "Events",
+			"labelSingular": "Event",
+			"urlPattern": "/events/{slug}",
+			"supports": [
+				"drafts",
+				"revisions",
+				"preview",
+				"search",
+				"seo"
+			],
+			"fields": [
+				{
+					"slug": "title",
+					"label": "Title",
+					"type": "string",
+					"required": true,
+					"searchable": true
+				},
+				{
+					"slug": "body",
+					"label": "Body",
+					"type": "portableText",
+					"searchable": true
+				},
+				{
+					"slug": "starts_at",
+					"label": "Starts at",
+					"type": "datetime",
+					"required": true
+				},
+				{
+					"slug": "ends_at",
+					"label": "Ends at",
+					"type": "datetime"
+				},
+				{
+					"slug": "timezone",
+					"label": "Time zone (IANA)",
+					"type": "string",
+					"required": true
+				},
+				{
+					"slug": "venue",
+					"label": "Venue",
+					"type": "string"
+				},
+				{
+					"slug": "image",
+					"label": "Image",
+					"type": "image"
+				},
+				{
+					"slug": "summary",
+					"label": "Summary",
+					"type": "text"
+				}
+			]
 		}
 	],
 	"taxonomies": [
@@ -72,7 +145,9 @@
 			"label": "Categories",
 			"labelSingular": "Category",
 			"hierarchical": true,
-			"collections": ["posts"],
+			"collections": [
+				"posts"
+			],
 			"terms": [
 				{
 					"slug": "general",
@@ -89,7 +164,9 @@
 			"label": "Tags",
 			"labelSingular": "Tag",
 			"hierarchical": false,
-			"collections": ["posts"],
+			"collections": [
+				"posts"
+			],
 			"terms": [
 				{
 					"slug": "starter",
@@ -225,8 +302,123 @@
 					]
 				},
 				"taxonomies": {
-					"category": ["general"],
-					"tag": ["starter", "example"]
+					"category": [
+						"general"
+					],
+					"tag": [
+						"starter",
+						"example"
+					]
+				}
+			}
+		],
+		"events": [
+			{
+				"id": "event-london-meetup",
+				"slug": "london-meetup",
+				"status": "published",
+				"data": {
+					"title": "London Community Meetup",
+					"body": [
+						{
+							"_type": "block",
+							"_key": "k0",
+							"style": "normal",
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k1",
+									"text": "An evening of talks and networking in London. Doors open thirty minutes before the start."
+								}
+							]
+						}
+					],
+					"starts_at": "2030-03-14T18:30:00.000Z",
+					"ends_at": "2030-03-14T21:00:00.000Z",
+					"timezone": "Europe/London",
+					"venue": "The Old Library, London",
+					"summary": "An evening of talks and networking in London."
+				}
+			},
+			{
+				"id": "event-nyc-workshop",
+				"slug": "nyc-workshop",
+				"status": "published",
+				"data": {
+					"title": "New York Design Workshop",
+					"body": [
+						{
+							"_type": "block",
+							"_key": "k0",
+							"style": "normal",
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k1",
+									"text": "A hands-on afternoon workshop in Manhattan. Doors open thirty minutes before the start."
+								}
+							]
+						}
+					],
+					"starts_at": "2030-06-20T14:00:00.000Z",
+					"ends_at": "2030-06-20T18:00:00.000Z",
+					"timezone": "America/New_York",
+					"venue": "Chelsea Studio, New York",
+					"summary": "A hands-on afternoon workshop in Manhattan."
+				}
+			},
+			{
+				"id": "event-sydney-conference",
+				"slug": "sydney-conference",
+				"status": "published",
+				"data": {
+					"title": "Sydney Summit",
+					"body": [
+						{
+							"_type": "block",
+							"_key": "k0",
+							"style": "normal",
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k1",
+									"text": "A full-day conference on the harbour. Doors open thirty minutes before the start."
+								}
+							]
+						}
+					],
+					"starts_at": "2030-11-05T22:00:00.000Z",
+					"ends_at": "2030-11-06T08:00:00.000Z",
+					"timezone": "Australia/Sydney",
+					"venue": "Darling Harbour Convention Centre, Sydney",
+					"summary": "A full-day conference on the harbour."
+				}
+			},
+			{
+				"id": "event-past-gala",
+				"slug": "past-gala",
+				"status": "published",
+				"data": {
+					"title": "Winter Gala (past)",
+					"body": [
+						{
+							"_type": "block",
+							"_key": "k0",
+							"style": "normal",
+							"children": [
+								{
+									"_type": "span",
+									"_key": "k1",
+									"text": "A completed event, kept for past-event tests. Doors open thirty minutes before the start."
+								}
+							]
+						}
+					],
+					"starts_at": "2025-12-06T19:00:00.000Z",
+					"ends_at": "2025-12-06T23:00:00.000Z",
+					"timezone": "Europe/London",
+					"venue": "Grand Hall, London",
+					"summary": "A completed event, kept for past-event tests."
 				}
 			}
 		]

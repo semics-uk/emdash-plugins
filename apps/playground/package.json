@@ -13,7 +13,7 @@
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
     "typecheck": "astro check",
-    "e2e": "astro build && playwright test"
+    "e2e": "node e2e/harness/build.mjs && playwright test"
   },
   "dependencies": {
     "@astrojs/node": "^11.1.5",

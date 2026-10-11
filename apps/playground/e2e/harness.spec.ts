@@ -13,7 +13,7 @@ const root = resolve(here, "..");
 const fingerprintFile = resolve(root, ".e2e-state/last-fingerprint.json");
 const staleUpload = resolve(root, "uploads/stale-from-previous-run.txt");
 
-const EXPECTED_SLUGS = ["london-meetup", "nyc-workshop", "past-gala", "sydney-conference"];
+const EXPECTED_SLUGS = ["past-gala", "london-meetup", "nyc-workshop", "sydney-conference"];
 
 test.describe.configure({ mode: "serial" });
 

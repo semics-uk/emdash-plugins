@@ -1,0 +1,37 @@
+---
+import { decodeSlug, getEmDashEntry } from "emdash";
+import { PortableText } from "emdash/ui";
+import Base from "../../layouts/Base.astro";
+
+const slug = decodeSlug(Astro.params.slug);
+const { entry: event, cacheHint } = slug
+	? await getEmDashEntry("events", slug)
+	: { entry: null, cacheHint: undefined };
+
+if (!event) {
+	return new Response(null, { status: 404 });
+}
+if (Astro.cache?.enabled && cacheHint) Astro.cache.set(cacheHint);
+
+// biome-ignore lint/suspicious/noExplicitAny: the events collection is not in the generated types
+const data = event.data as Record<string, any>;
+const startsAt = new Date(data.starts_at);
+---
+
+<Base
+	title={data.title}
+	description={data.summary}
+	content={{ collection: "events", id: data.id, slug }}
+>
+	<article>
+		<h1 {...event.edit.title}>{data.title}</h1>
+		<p>
+			<time data-testid="event-starts-at" datetime={startsAt.toISOString()}>
+				{startsAt.toISOString()}
+			</time>
+			(<span data-testid="event-timezone">{data.timezone}</span>)
+		</p>
+		{data.venue && <p data-testid="event-venue">{data.venue}</p>}
+		<PortableText value={data.body} />
+	</article>
+</Base>
