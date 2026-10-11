@@ -144,28 +144,26 @@ describe("S9 content:beforeDelete veto", () => {
 		return { h, id: item.id };
 	};
 
-	it("return false blocks trash and permanent delete", async () => {
+	it("return false blocks the delete (trash) action", async () => {
 		const { h, id } = await setup("false");
 		host = h;
 		const trashed = await h.actions.content.trash("posts", id);
 		finding("S9.false.trash", trashed);
 		expect(trashed.success).toBe(false);
 		expect((await h.inspect.content.get("posts", id))?.id).toBe(id);
-		const gone = await h.actions.content.delete("posts", id);
-		finding("S9.false.delete", gone);
-		expect(gone.success).toBe(false);
 		finding("S9.false.calls", await route(h, "kv/get", { key: "beforeDeleteCalls" }));
 	});
 
-	it("return false also blocks a permanent delete of a trashed item", async () => {
+	it("a permanent delete of an already trashed item never consults beforeDelete", async () => {
 		const { h, id } = await setup("none");
 		host = h;
 		expect((await h.actions.content.trash("posts", id)).success).toBe(true);
 		await route(h, "kv/set", { key: "deleteMode", value: "false" });
 		const gone = await h.actions.content.delete("posts", id);
 		finding("S9.false.permanentDelete", gone);
-		expect(gone.success).toBe(false);
-		expect(await h.inspect.content.get("posts", id)).not.toBeNull();
+		finding("S9.beforeDeleteCalls", await route(h, "kv/get", { key: "beforeDeleteCalls" }));
+		expect(gone.success).toBe(true);
+		expect((await route(h, "kv/get", { key: "beforeDeleteCalls" })).value).toBe(1);
 	});
 
 	it("return { cancel: true, reason } does NOT block the delete (only === false does)", async () => {

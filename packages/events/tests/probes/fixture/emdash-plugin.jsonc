@@ -6,7 +6,7 @@
 	"security": { "email": "security@semics.dev" },
 	"description": "T005 platform probe fixture (deleted after findings are recorded)",
 	"repo": "https://github.com/semics-uk/emdash-plugins",
-	"capabilities": [],
+	"capabilities": ["content:read"],
 	"allowedHosts": [],
 	"storage": { "docs": { "indexes": [] } },
 	"admin": {
