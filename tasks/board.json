@@ -256,7 +256,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -269,7 +269,7 @@
 				"T020",
 				"T040"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T011": {
 			"file": "T011-shared-opaque-tokens-and-hashing.md",
@@ -481,7 +481,7 @@
 			"unblocks": [
 				"T021"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T021": {
 			"file": "T021-e-sign-templates-domain-and-admin-routes.md",
@@ -839,7 +839,7 @@
 			"unblocks": [
 				"T041"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T041": {
 			"file": "T041-events-collection-mapping-and-schema-validation.md",
@@ -2169,7 +2169,6 @@
 			"T013",
 			"T015",
 			"T016",
-			"T020",
 			"T021",
 			"T022",
 			"T023",
@@ -2184,7 +2183,6 @@
 			"T032",
 			"T033",
 			"T034",
-			"T040",
 			"T041",
 			"T042",
 			"T043",
@@ -2246,11 +2244,12 @@
 		"ready": [
 			"T006",
 			"T007",
-			"T010",
 			"T011",
 			"T014",
 			"T017",
-			"T018"
+			"T018",
+			"T020",
+			"T040"
 		],
 		"in-progress": [],
 		"review": [],
@@ -2262,14 +2261,14 @@
 			"T004",
 			"T005",
 			"T008",
-			"T009"
+			"T009",
+			"T010"
 		],
 		"blocked": [
 			"T110"
 		]
 	},
 	"criticalPath": [
-		"T010",
 		"T040",
 		"T041",
 		"T042",
@@ -2290,5 +2289,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 33
+	"criticalWeight": 32
 }

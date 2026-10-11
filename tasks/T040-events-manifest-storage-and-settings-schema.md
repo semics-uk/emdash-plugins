@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Route list matches the PRD
 - [ ] Admin banner when `EMDASH_ENCRYPTION_KEY` is missing, because secret settings can't be saved without it (S8, T005)
+- [ ] Route handlers return errors through `toRouteError` from `@semics-tech/shared` (T010); e-sign/payment codes confirmed or adjusted in the registry
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
