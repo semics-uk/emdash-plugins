@@ -121,3 +121,17 @@ test("plain", () => {
 	const result = run(vitestBin, ["run", "--coverage"], dir);
 	assert.equal(result.status, 0, result.stdout + result.stderr);
 });
+
+test("a gate whose command cannot be launched fails loudly and names the command", async () => {
+	const { verify } = await import("./verify.mjs");
+	const errors = [];
+	const original = console.error;
+	console.error = (...args) => errors.push(args.join(" "));
+	try {
+		const status = verify(repoRoot, [{ name: "Missing tool", cmd: "semics-no-such-command", args: [], cwd: repoRoot }]);
+		assert.notEqual(status, 0);
+	} finally {
+		console.error = original;
+	}
+	assert.match(errors.join("\n"), /could not start "semics-no-such-command"/);
+});
