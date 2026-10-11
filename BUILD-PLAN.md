@@ -498,7 +498,7 @@ any re-planning after the spikes.
 - S10b (storage survives a Free to Pro swap) waits for the Pro build in Phase 4.
 - **T005 probes (2026-10-11).** Run in the Worker Loader + local D1 test hosts (`@emdash-cms/plugin-test`
   0.2.8, emdash 1.2.0), so numbers that depend on D1 are local; T110 re-measures on Cloudflare.
-  Evidence: `packages/events/tests/probes/README.md`, probes at commit `66392ce`.
+  Evidence: `packages/events/tests/probes/README.md`, probes at commit `2b5249d`.
   - **S3 confirmed.** `ctx.cron.schedule(name, { schedule, data })` takes either a cron expression
     (5-field, 6-field with seconds, or `@daily`-style aliases; evaluated in UTC) or a one-shot ISO 8601
     datetime (`2026-10-11T11:13:45Z`; a datetime without a zone is read as UTC; a past datetime fires on

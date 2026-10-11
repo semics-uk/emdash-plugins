@@ -2,12 +2,12 @@
 
 The probe tests and their fixture plugin were deleted after the findings were recorded in
 `BUILD-PLAN.md` section 7. They ran against `@emdash-cms/plugin-test` 0.2.8 and emdash 1.2.0 (Worker
-Loader sandbox, local D1) at commit **66392ce** (9 of 9 probe tests passing). To re-run them:
-`git checkout 66392ce -- packages/events/tests/probes` then
+Loader sandbox, local D1) at commit **2b5249d** (9 of 9 probe tests passing). To re-run them:
+`git checkout 2b5249d -- packages/events/tests/probes` then
 `vitest run --config tests/probes/vitest.config.ts` from `packages/events` (the config builds the
 fixture plugin in `tests/probes/fixture`, not the real plugin).
 
-Earlier commits of the same files: `d288941` (first expectations), `dba795b` (run with
+Earlier commits of the same files: `5ccf964` (first expectations), `b4cb8ae` (run with
 `capabilities: []`, which showed the `beforeDelete` hook is skipped without `content:read`).
 
 | Spike | Finding |
