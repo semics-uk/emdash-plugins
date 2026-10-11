@@ -402,6 +402,14 @@ Specify this formally in `docs/protocol/esign-intent-v1.md` with test vectors in
   by the client with `{cid, ref, ts}`).
 - **`ref` for per-attendee waivers:** `<bookingRef>:<attendeeCode>`. The intent's `exp` is capped at
   the booking's remaining hold.
+- **Normative spec:** `docs/protocol/esign-intent-v1.md` with 102 test vectors (T008, 2026-10-11). It
+  refines this section: intents carry `iat` (enforcing the 30-minute cap and not-yet-valid checks);
+  optional `as` (`self`, `guardian`, `buyer`), `participant` (for guardians) and `delivery`
+  (`inline`, `email`) express the waiver rules; lookup and catalogue requests are
+  `{v, typ, cid, ts[, ref]}` valid for 5 minutes; receipts never expire, and `pdfSha256` may be null
+  while the PDF is still being generated; a `(cid, ref)` whose envelope was declined, voided or
+  expired gets a new envelope. The spec's check order and error codes are binding on T012, T061,
+  T062 and T064.
 - **Events behaviour:** `signatures/receipt` verifies, matches `ref`→booking, stores
   `docSha256/finalHash/envelopeId`, and advances the state machine. It is idempotent.
 - **Template catalogue for the Events editor panel:** `public/templates/catalog` (client-signed

@@ -209,7 +209,7 @@
 			"phase": 0,
 			"package": "docs",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -222,7 +222,7 @@
 			"unblocks": [
 				"T012"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T009": {
 			"file": "T009-playground-seed-and-end-to-end-harness.md",
@@ -2255,14 +2255,14 @@
 			"T003",
 			"T004",
 			"T005",
-			"T008",
 			"T009"
 		],
 		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
-			"T001"
+			"T001",
+			"T008"
 		],
 		"blocked": [
 			"T110"
