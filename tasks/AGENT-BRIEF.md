@@ -20,6 +20,13 @@ task needs it, and never download browsers (Playwright uses `/opt/pw-browsers/ch
 otherwise the system Chrome via `channel: "chrome"`).
 
 If you start the playground site, use the port given in your instructions, never the default.
+Only one agent may run the playground at a time: the workerd sandbox runner always binds ports from
+18788, so a second server (or a leftover `workerd`) fails with `bind(): Address already in use`. Stop
+every server and `workerd` process you start before finishing. Build the events package before an
+e2e run (`corepack pnpm@10.23.0 --filter @semics-tech/emdash-events build`).
+
+If sourcing nvm is refused, put Node first on PATH instead:
+`export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH"`.
 
 ## Workflow
 

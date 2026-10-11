@@ -108,7 +108,7 @@
 			"phase": 0,
 			"package": "playground",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -124,7 +124,7 @@
 				"T029",
 				"T053"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T005": {
 			"file": "T005-platform-probes-one-shot-cron-document-size-dynamic-secrets.md",
@@ -173,7 +173,7 @@
 				"T029",
 				"T053"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T007": {
 			"file": "T007-budget-harness-bridge-call-counter-and-cpu-timer-for-every-r.md",
@@ -2165,7 +2165,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T006",
 			"T007",
 			"T010",
 			"T011",
@@ -2252,8 +2251,8 @@
 		],
 		"ready": [
 			"T003",
-			"T004",
 			"T005",
+			"T006",
 			"T009"
 		],
 		"in-progress": [],
@@ -2262,6 +2261,7 @@
 			"T000",
 			"T001",
 			"T002",
+			"T004",
 			"T008"
 		],
 		"blocked": [
