@@ -9,6 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { currentBranch } from "./changeset-check.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -25,6 +26,11 @@ export function steps(root) {
 		{ name: "Task board check", ...pnpm("run", "tasks:check") },
 		{ name: "Script tests", ...pnpm("run", "test:scripts") },
 		{
+			name: "Changeset check",
+			...pnpm("run", "changeset:check"),
+			skip: currentBranch() === "main" ? "on main: nothing to compare against" : undefined,
+		},
+		{
 			name: "Packages: validate, typecheck, tests with coverage, build",
 			...pnpm("-r", "--filter", "./packages/**", "verify"),
 		},
@@ -35,6 +41,10 @@ export function steps(root) {
 export function verify(root) {
 	for (const step of steps(root)) {
 		console.log(`\n== ${step.name}`);
+		if (step.skip) {
+			console.log(`skipped (${step.skip})`);
+			continue;
+		}
 		const result = spawnSync(step.cmd, step.args, { cwd: step.cwd, stdio: "inherit" });
 		if (result.status !== 0) {
 			console.error(`\nverify failed at: ${step.name}`);
