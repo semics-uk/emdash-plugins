@@ -1,5 +1,5 @@
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 let host: PluginRuntimeTestHost | undefined;
 
@@ -8,7 +8,11 @@ afterEach(async () => {
 	host = undefined;
 });
 
-const finding = (id: string, value: unknown) => console.log(`FINDING ${id} ${JSON.stringify(value)}`);
+const findings: string[] = [];
+const finding = (id: string, value: unknown) => findings.push(`FINDING ${id} ${JSON.stringify(value)}`);
+afterAll(() => {
+	console.log(findings.join("\n"));
+});
 const route = async (h: PluginRuntimeTestHost, name: string, input: unknown) =>
 	(await h.transport.invokeRoute(name, input)) as Record<string, unknown>;
 
@@ -74,7 +78,7 @@ describe("S4 storage document size", () => {
 		const results: Record<string, unknown> = {};
 		let lastOk = 0;
 		let firstFail = 0;
-		for (const size of [64 * KiB, 512 * KiB, 1024 * KiB, 2048 * KiB]) {
+		for (const size of [64 * KiB, 512 * KiB, 1024 * KiB, 2048 * KiB, 4096 * KiB, 8192 * KiB, 16384 * KiB]) {
 			const r = await route(host, "doc/put", { id: `d${size}`, bytes: size });
 			results[`${size / KiB}KiB`] = r;
 			if (r.ok && r.roundTrip) lastOk = size;
@@ -92,26 +96,36 @@ describe("S4 storage document size", () => {
 			}
 			finding("S4.bisect", { largestOkBytes: lo, smallestFailBytes: hi });
 		}
-		// Expectation: 2 MiB fails (row-size limit); smaller sizes pass.
-		expect(lastOk).toBeGreaterThanOrEqual(1024 * KiB);
-		expect(firstFail).toBe(2048 * KiB);
+		// Measured: the local D1 (SQLite) accepts up to 4 MiB and rejects 8 MiB with SQLITE_TOOBIG on the serialised JSON.
+		expect(lastOk).toBe(4096 * KiB);
+		expect(firstFail).toBe(8192 * KiB);
 	});
 });
 
 describe("S8 dynamic secrets", () => {
 	it("encrypts a schema secret, stores a non-schema key as plaintext", async () => {
+		const bytes = crypto.getRandomValues(new Uint8Array(32));
+		const body = btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
+		process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${body}`;
 		host = await createPluginRuntimeTestHost();
 		const viaAdmin = await host.actions.plugin.updateSettings({ apiKey: "sk-schema-secret" });
 		finding("S8.updateSettings", viaAdmin);
 		const schemaRaw = await host.inspect.settings.raw("apiKey");
 		finding("S8.schemaRaw", schemaRaw);
+		expect(JSON.stringify(schemaRaw)).toContain("ciphertext");
 		expect(JSON.stringify(schemaRaw)).not.toContain("sk-schema-secret");
+
+		// A schema key written from inside the sandbox with ctx.settings.set is encrypted as well.
+		const viaSdk = await route(host, "setting/set", { key: "apiKey", value: "sk-sdk-secret" });
+		const sdkRaw = await host.inspect.settings.raw("apiKey");
+		finding("S8.schemaViaSdk", { got: viaSdk, raw: sdkRaw });
+		expect(JSON.stringify(sdkRaw)).not.toContain("sk-sdk-secret");
 
 		const set = await route(host, "setting/set", { key: "client:abc:secret", value: "dyn-plain-secret" });
 		finding("S8.dynamicGet", set);
 		const raw = await host.inspect.settings.raw("client:abc:secret");
 		finding("S8.dynamicRaw", raw);
-		// Expectation: non-schema keys are NOT encrypted.
+		// Measured: non-schema keys are NOT encrypted.
 		expect(raw).toBe("dyn-plain-secret");
 	});
 });
@@ -119,7 +133,12 @@ describe("S8 dynamic secrets", () => {
 describe("S9 content:beforeDelete veto", () => {
 	const setup = async (mode: string) => {
 		const h = await createPluginRuntimeTestHost();
-		await h.fixtures.collection({ slug: "posts", label: "Posts" });
+		host = h;
+		await h.fixtures.collection({
+			slug: "posts",
+			label: "Posts",
+			fields: [{ slug: "title", label: "Title", type: "string" }],
+		});
 		const item = await h.fixtures.content("posts", { data: { title: "x" }, slug: "x" } as never);
 		await route(h, "kv/set", { key: "deleteMode", value: mode });
 		return { h, id: item.id };
@@ -138,12 +157,23 @@ describe("S9 content:beforeDelete veto", () => {
 		finding("S9.false.calls", await route(h, "kv/get", { key: "beforeDeleteCalls" }));
 	});
 
-	it("return { cancel: true, reason } blocks the delete", async () => {
+	it("return false also blocks a permanent delete of a trashed item", async () => {
+		const { h, id } = await setup("none");
+		host = h;
+		expect((await h.actions.content.trash("posts", id)).success).toBe(true);
+		await route(h, "kv/set", { key: "deleteMode", value: "false" });
+		const gone = await h.actions.content.delete("posts", id);
+		finding("S9.false.permanentDelete", gone);
+		expect(gone.success).toBe(false);
+		expect(await h.inspect.content.get("posts", id)).not.toBeNull();
+	});
+
+	it("return { cancel: true, reason } does NOT block the delete (only === false does)", async () => {
 		const { h, id } = await setup("cancel");
 		host = h;
 		const trashed = await h.actions.content.trash("posts", id);
 		finding("S9.cancel.trash", trashed);
-		expect(trashed.success).toBe(false);
+		expect(trashed.success).toBe(true);
 	});
 
 	it("returning undefined allows the delete", async () => {
