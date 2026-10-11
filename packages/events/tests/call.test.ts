@@ -118,4 +118,19 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 			via: "fetch",
 		});
 	});
+	it("refuses to put token-like fields in a GET query string (R10)", async () => {
+		const handler = vi.fn<Handler>(async () => ({ success: true, data: {} }));
+		for (const key of ["token", "accessToken", "receipt", "secret", "t"]) {
+			const result = await callPublicRoute(
+				{ locals: localsWith(handler), url },
+				{ path: "public/booking", body: { [key]: "abc" } },
+			);
+			expect(result).toEqual({
+				ok: false,
+				error: { code: "TOKEN_IN_QUERY", message: expect.stringContaining(key) },
+				via: "in-process",
+			});
+		}
+		expect(handler).not.toHaveBeenCalled();
+	});
 });
