@@ -84,3 +84,8 @@ question the task doesn't answer) is re-assigned to Opus 5.5 and the change is n
 | `packages/events` UI (`src/ui`, `src/astro`, `src/client`, `src/integration`) | Rendering only, via public routes | Core internals |
 | `packages/esign` | Same split as events | Anything from events |
 | `packages/events-suite` | Wiring between the two products | Business rules |
+
+**Workspace libraries go in `devDependencies` of a core.** `emdash-plugin build` leaves everything in a
+core's `dependencies` and `peerDependencies` as a runtime import, which the sandbox can't resolve, and
+inlines `devDependencies` into `backend.js` (proved in T003). A core's runtime `dependencies` stay empty;
+`emdash` is its only peer.
