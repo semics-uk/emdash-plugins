@@ -4,7 +4,7 @@ title: "Platform probes: one-shot cron, document size, dynamic secrets, delete v
 phase: 0
 package: events
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: M
 depends_on: [T000]
@@ -25,11 +25,11 @@ Answer five platform questions with executable probes in the plugin test hosts a
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] S3: schedule a one-shot task through `ctx.cron.schedule` and assert it fires once in the runtime host
-- [ ] S4: write storage documents of 64 KiB, 512 KiB, 1 MiB, 2 MiB and record the failure point
-- [ ] S8: `ctx.settings.set` on a key outside `settingsSchema` — assert whether `inspect.settings.raw()` shows ciphertext
-- [ ] S9: a `content:beforeDelete` handler returning `false` / `{ cancel: true }` — assert whether the delete is blocked
-- [ ] S7: two fixture plugins with the same slug from different publishers — record the host's behaviour
+- [x] S3: schedule a one-shot task through `ctx.cron.schedule` and assert it fires once in the runtime host
+- [x] S4: write storage documents of 64 KiB, 512 KiB, 1 MiB, 2 MiB and record the failure point
+- [x] S8: `ctx.settings.set` on a key outside `settingsSchema` — assert whether `inspect.settings.raw()` shows ciphertext
+- [x] S9: a `content:beforeDelete` handler returning `false` / `{ cancel: true }` — assert whether the delete is blocked
+- [x] S7: two fixture plugins with the same slug from different publishers — record the host's behaviour
 
 ## Implementation (green, then refactor)
 
@@ -38,9 +38,9 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Every spike has a recorded answer and decision
-- [ ] No probe code remains in `src/`
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Every spike has a recorded answer and decision
+- [x] No probe code remains in `src/`
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 

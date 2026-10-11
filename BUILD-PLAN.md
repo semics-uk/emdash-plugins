@@ -134,7 +134,7 @@ is a new install, so its consent dialog shows the extra host once. Licences are 
 (§13), so neither edition contacts a licence server.
 Deliberately **not** requested: `content:write` (too coarse) and `users:read` (not needed).
 `hooks.content-policy:register` only covers `beforePublish/Schedule/Unpublish` policy hooks. We
-don't need it unless Spike S9 shows a delete veto requires it (see Hooks).
+don't need it: Spike S9 showed a delete veto needs only `content:read` (see Hooks).
 
 **Storage collections**
 
@@ -213,9 +213,13 @@ Route names use slashes only. The docs allow slashes and don't document dots.
 - `page:metadata`: schema.org `Event` JSON-LD (`offers`, `availability`, `eventStatus`,
   `location`, `startDate` with offset) for entries in the events collection.
 - `content:afterPublish` / `afterUnpublish` / `afterDelete`: sync `eventConfigs.status`.
-- Deleting an event with confirmed bookings: if Spike S9 shows `content:beforeDelete` can veto
-  without extra capabilities, veto it (with a log reason). Otherwise `afterDelete` marks the config
-  `orphaned`, pauses sales, and shows an admin banner listing the affected bookings. Don't block
+- Deleting an event with confirmed bookings: veto it. Spike S9 (see §7) shows a sandboxed
+  `content:beforeDelete` hook that returns exactly `false` blocks the delete (`DELETE_BLOCKED`) and
+  needs only `content:read`, which the manifest already declares; without that capability the hook
+  is silently skipped. Log the reason. Return `false`, never `{ cancel: true }` (ignored for this
+  hook). The veto covers the trash action only; a permanent delete of an already trashed entry does
+  not call `beforeDelete`, so `afterDelete` also marks the config `orphaned`, pauses sales, and
+  shows an admin banner listing the affected bookings (the fallback). Don't block
   `beforeUnpublish`, because that needs `hooks.content-policy:register` and the warning banner is enough.
 
 **Admin (Block Kit)**
@@ -446,11 +450,11 @@ any re-planning after the spikes.
 | S1 | Do `ctx.storage/kv/content` bridge calls count toward **10 subrequests**? | Deploy a probe plugin to CF staging that loops storage gets and records the failure point | Checkout is already split into `reserve` + `continue`. Further fallback: aggressive batching (`getMany/putMany`), denormalised docs |
 | S2 | Does `getPublicPluginApiRouteHandler` reach **sandboxed** public routes? | Playground SSR component calling a sandboxed public route | UI kits call routes over `fetch(Astro.url.origin + …)` server-side |
 | S3 | One-shot cron format, minimum interval, task limits | Read `core/src/plugins/cron.ts` + probe | Recurring 5-min sweeper only |
-| S4 | Max storage document size | Probe writes of increasing size | Chunk snapshots/PDFs across docs, or `media:write` |
+| S4 | Max storage document size | Probe writes of increasing size | Chunk snapshots/PDFs across docs, or `media:write`. **Adopted by design:** cap every document at 512 KiB until T110 measures real D1 |
 | S5 | CPU of `pdf-mini` (5 pages + strokes) and of `pdf-lib` stamping | Benchmark in a Dynamic Worker | Render PDFs in `esign-ui` (native) and hash in core |
 | S6 | Can a native UI-only plugin register PT blocks whose data is served by a sandboxed plugin? | Playground | Ship components for manual use in templates and drop PT blocks |
 | S7 | Slug collision behaviour across publishers | Docs/registry source | Prefix slugs |
-| S8 | Does `ctx.settings.set()` on a non-schema key encrypt? (dynamic client secrets) | Code read + probe | Single `integrationSecret` schema field per client slot (e.g. 5 fixed slots) |
+| S8 | Does `ctx.settings.set()` on a non-schema key encrypt? (dynamic client secrets) | Code read + probe | **Negative, fallback adopted:** single `integrationSecret` schema field per client slot (e.g. 5 fixed slots), or store only a hash of each client secret |
 | S9 | Can a sandboxed `content:beforeDelete` hook veto a delete, and does it need a capability? | Runtime test host | `afterDelete` marks the config orphaned and shows an admin banner (already the default plan) |
 | S10 | (a) Does `emdash-plugin build`/`bundle` accept native entry points (`./ui`, `./astro`) in the same package? (b) Does storage survive swapping the Free install for a Pro build with the same slug and publisher? | Scaffold + playground | (a) separate `-ui` packages again; (b) an export/import migration route |
 | S11 | Is Ed25519 available in WebCrypto in the Dynamic Worker and in the Node runner, and how does a plugin learn the site's hostname? | Probe plugin | ECDSA P-256 keys; hostname from a required setting checked against `getPublicUrl()` |
@@ -492,6 +496,57 @@ any re-planning after the spikes.
   from 18788. A leftover `workerd` process holding them makes the next server fail with
   `bind(): Address already in use`, so two playground servers can't run at once.
 - S10b (storage survives a Free to Pro swap) waits for the Pro build in Phase 4.
+- **T005 probes (2026-10-11).** Run in the Worker Loader + local D1 test hosts (`@emdash-cms/plugin-test`
+  0.2.8, emdash 1.2.0), so numbers that depend on D1 are local; T110 re-measures on Cloudflare.
+  Evidence: `packages/events/tests/probes/README.md`, probes at commit `66392ce`.
+  - **S3 confirmed.** `ctx.cron.schedule(name, { schedule, data })` takes either a cron expression
+    (5-field, 6-field with seconds, or `@daily`-style aliases; evaluated in UTC) or a one-shot ISO 8601
+    datetime (`2026-10-11T11:13:45Z`; a datetime without a zone is read as UTC; a past datetime fires on
+    the next tick). The `cron` hook needs no capability. A one-shot fires exactly once and its row is
+    then deleted; a second tick processes 0. A failing one-shot is retried with backoff (1 min doubling,
+    5 retries) and then dropped. The task key is `(plugin, name)` and a second `schedule()` with the same
+    name replaces the pending task, so per-booking tasks need a unique name (letters, digits, `-`, `_`,
+    starts with a letter, max 128 chars; a space is rejected). Each tick claims at most **10** due tasks
+    (12 due tasks took two ticks: 10 then 2). A one-shot fires on the first platform tick after its time, so
+    precision is the tick interval, not the schedule's resolution (the interval itself is set by the
+    host's scheduler; T110 measures it on Cloudflare). Decision: hold expiry may use one-shot
+    tasks named `hold-<ref>`, but `sweep-holds` (recurring, */5) stays the source of truth because one
+    task per hold is capped at 10 per tick; one-shots are only an accelerator.
+  - **S4 passed locally; design cap set anyway.** Documents of 64 KiB, 512 KiB, 1 MiB, 2 MiB and 4 MiB
+    round-trip; 8 MiB fails with `D1_ERROR: string or blob too big: SQLITE_TOOBIG`. Bisected: largest ok
+    8,323,072 bytes of payload (about 8.0 MiB of JSON), failure at 8,388,608. The limit is on the
+    serialised JSON string (the failing size is the JSON length, not the field count). The local SQLite
+    limit is far above Cloudflare D1's documented 2 MB row limit, so it must not be trusted for
+    production. Decision: keep every storage document at or below 512 KiB (chunk `artifacts` and
+    `snapshots` at 256 KiB base64 chunks as already planned) until T110 re-runs this probe on staging.
+  - **S8 negative.** With `EMDASH_ENCRYPTION_KEY` set, a `secret` field in `admin.settingsSchema` is
+    stored as an `{ $emdash: "plugin-setting", v, kid, iv, ciphertext }` envelope, both through
+    `actions.plugin.updateSettings()` and through `ctx.settings.set("apiKey", …)` from the sandbox
+    (which `get` decrypts). `ctx.settings.set("client:abc:secret", "…")` on a key outside the schema
+    stores the **plaintext** (source: `encodePluginSettingValue` returns the value unchanged unless the
+    key is a declared secret field). Without `EMDASH_ENCRYPTION_KEY`, saving a secret fails with
+    `PLUGIN_SETTING_ENCRYPTION_KEY_MISSING`, so the plugin must show a banner when the key is absent.
+    Decision: no dynamically named secrets. Use the fixed-slot fallback (declared secret fields), or
+    store only an HMAC/hash of each integration client secret in a storage document.
+  - **S9 confirmed: delete can be vetoed, with limits.** A `content:beforeDelete` hook that returns
+    exactly `false` makes the trash action fail with `DELETE_BLOCKED` ("Delete blocked by plugin hook")
+    and the entry stays. Returning `{ cancel: true, reason }` does **not** block (the runtime tests
+    `result === false`; the probe's trash succeeded). The hook needs the `content:read` capability and
+    nothing else (not `hooks.content-policy:register`); a plugin with `capabilities: []` has the
+    hook silently skipped (`afterDelete` also does not fire). A permanent delete of an already trashed
+    entry does not run `beforeDelete`, only `afterDelete`. Decision: veto on trash when the event has
+    confirmed bookings, plus the `afterDelete` orphan banner as the backstop (§3.1 Hooks).
+  - **S7 resolved from source: no slug collision across publishers.** Registry installs key a plugin by
+    `r_` + base32(SHA-256(`<publisher DID>\n<slug>`))[0..16] (`makeRegistryPluginId`), so `events` from
+    two publishers get different ids (probe: `r_gnv5d4…` vs `r_z2erd5…`). That id, not the slug, is
+    `ctx.plugin.id`, the route URL segment and the storage/settings/cron namespace for registry
+    installs. A configured (non-registry) plugin keeps its manifest id as is. Installing a registry
+    plugin whose derived id already exists fails with `ALREADY_INSTALLED`, `PLUGIN_ID_COLLISION` or
+    `PLUGIN_ID_CONFLICT`, never merges. Two plugins registered in config with the same id throw
+    `Plugin "<id>" is already registered`. Not probed in a host (the test hosts load one plugin).
+    Decision: no slug prefix is needed. Code must never hard-code `semics-events` as a plugin id: read
+    it from `ctx.plugin.id` or the route URL (affects T004's UI call path, the suite wiring and
+    the e-sign pairing).
 
 **Resolved from docs (2026-10-09):**
 - `updateIf` guard fields don't need declared indexes, and guards compare against literal values
@@ -587,7 +642,7 @@ any re-planning after the spikes.
 | R10 | Distinct HMAC prefix per token type; no tokens in plugin route URLs; `Referrer-Policy: no-referrer` | Prevents token-type confusion and leaks through logs and referrers |
 | R11 | Hidden tickets unlocked only by `unlock` promo codes (`unlockCode` removed) | One mechanism, with usage limits and validity windows |
 | R12 | Route names use slashes only | Dots aren't documented as valid |
-| R13 | Event delete protection: veto only if S9 allows it, otherwise orphan + banner; no `content-policy` capability | Keeps the trust contract minimal |
+| R13 | Event delete protection: veto trash by returning `false` from `content:beforeDelete` (S9: works, needs only `content:read`), plus orphan + banner for permanent deletes; no `content-policy` capability | Keeps the trust contract minimal |
 | R14 | Prefixed slugs `semics-events` / `semics-esign` | Irreversible after the first publish; avoids collisions |
 | R15 | Three packages: `@semics-tech/emdash-events` and `@semics-tech/emdash-esign` each carry core + UI through separate entry points; the suite stays separate | One install per product; the registry can't deliver UI anyway (2026-10-10) |
 | R16 | Open core: Free edition MIT on the registry; Pro edition as a superset build of the same slug, delivered by private npm | Plugins can't share storage, so Pro can't be a separate add-on plugin (2026-10-10) |
