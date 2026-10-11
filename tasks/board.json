@@ -231,7 +231,7 @@
 			"phase": 0,
 			"package": "playground",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -247,7 +247,7 @@
 				"T056",
 				"T110"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T010": {
 			"file": "T010-shared-result-type-stable-error-codes-route-error-mapping.md",
@@ -2247,7 +2247,6 @@
 			"T005",
 			"T006",
 			"T007",
-			"T009",
 			"T010",
 			"T011",
 			"T014",
@@ -2262,7 +2261,8 @@
 			"T002",
 			"T003",
 			"T004",
-			"T008"
+			"T008",
+			"T009"
 		],
 		"blocked": [
 			"T110"
