@@ -1,15 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import {
-	ERROR_CODES,
-	type ErrorCode,
-	err,
-	isErr,
-	isOk,
-	ok,
-	type Result,
-	toRouteError,
-} from "../src/index";
+import { ERROR_CODES, type ErrorCode, err, isErr, isOk, ok, type Result, toRouteError } from "../src/index";
 
 const specPath = new URL("../../../docs/protocol/esign-intent-v1.md", import.meta.url);
 
@@ -90,9 +81,7 @@ describe("toRouteError", () => {
 		const expected = toRouteError("SOLD_OUT");
 		expect(expected.status).toBe(409);
 		expect(toRouteError({ code: "SOLD_OUT" })).toEqual(expected);
-		expect(toRouteError(Object.assign(new Error("db row 7 locked"), { code: "SOLD_OUT" }))).toEqual(
-			expected,
-		);
+		expect(toRouteError(Object.assign(new Error("db row 7 locked"), { code: "SOLD_OUT" }))).toEqual(expected);
 	});
 
 	it("uses the registry message, not the thrown message, for known codes", () => {
@@ -123,8 +112,9 @@ describe("toRouteError", () => {
 
 describe("Result", () => {
 	it("builds and narrows ok and err values", () => {
-		const good: Result<number, string> = ok(1);
-		const bad: Result<number, string> = err("no");
+		const make = (fail: boolean): Result<number, string> => (fail ? err("no") : ok(1));
+		const good = make(false);
+		const bad = make(true);
 		expect(good).toEqual({ ok: true, value: 1 });
 		expect(bad).toEqual({ ok: false, error: "no" });
 		expect(isOk(good)).toBe(true);

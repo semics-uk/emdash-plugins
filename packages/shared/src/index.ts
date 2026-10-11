@@ -8,3 +8,5 @@
 export function sharedVersion(): string {
 	return "shared-0";
 }
+
+export * from "./result";
