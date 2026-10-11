@@ -38,14 +38,20 @@ export function steps(root) {
 	].map((step) => ({ ...step, cwd: root }));
 }
 
-export function verify(root) {
-	for (const step of steps(root)) {
+export function verify(root, stepList = steps(root)) {
+	for (const step of stepList) {
 		console.log(`\n== ${step.name}`);
 		if (step.skip) {
 			console.log(`skipped (${step.skip})`);
 			continue;
 		}
 		const result = spawnSync(step.cmd, step.args, { cwd: step.cwd, stdio: "inherit" });
+		if (result.error) {
+			console.error(
+				`\nverify failed at: ${step.name}: could not start "${step.cmd}" (${result.error.code ?? result.error.message}). Is it on PATH?`,
+			);
+			return 1;
+		}
 		if (result.status !== 0) {
 			console.error(`\nverify failed at: ${step.name}`);
 			return result.status || 1;
