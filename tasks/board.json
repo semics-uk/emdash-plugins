@@ -133,7 +133,7 @@
 			"phase": 0,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -150,7 +150,7 @@
 				"T045",
 				"T051"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T006": {
 			"file": "T006-spike-s6-portable-text-blocks-served-by-a-sandboxed-core.md",
@@ -2244,7 +2244,6 @@
 			"T106"
 		],
 		"ready": [
-			"T005",
 			"T006",
 			"T007",
 			"T010",
@@ -2261,6 +2260,7 @@
 			"T002",
 			"T003",
 			"T004",
+			"T005",
 			"T008",
 			"T009"
 		],

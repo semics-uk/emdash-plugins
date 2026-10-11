@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Runtime host fires hooks with real entries
+- [ ] `content:beforeDelete` returns exactly `false` to veto (not `{ cancel: true }`); `afterDelete` orphan banner covers permanent deletes (S9, T005)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

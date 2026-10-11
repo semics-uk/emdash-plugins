@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No business logic in the suite
+- [ ] `eventsSuite()` passes each core's plugin ID to both UI entries and the pairing glue; no hard-coded slugs (S7, T005)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

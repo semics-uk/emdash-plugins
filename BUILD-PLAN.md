@@ -454,7 +454,7 @@ any re-planning after the spikes.
 | S5 | CPU of `pdf-mini` (5 pages + strokes) and of `pdf-lib` stamping | Benchmark in a Dynamic Worker | Render PDFs in `esign-ui` (native) and hash in core |
 | S6 | Can a native UI-only plugin register PT blocks whose data is served by a sandboxed plugin? | Playground | Ship components for manual use in templates and drop PT blocks |
 | S7 | Slug collision behaviour across publishers | Docs/registry source | Prefix slugs |
-| S8 | Does `ctx.settings.set()` on a non-schema key encrypt? (dynamic client secrets) | Code read + probe | **Negative, fallback adopted:** single `integrationSecret` schema field per client slot (e.g. 5 fixed slots), or store only a hash of each client secret |
+| S8 | Does `ctx.settings.set()` on a non-schema key encrypt? (dynamic client secrets) | Code read + probe | **Negative.** Decision (orchestrator, 2026-10-11): one declared secret field `integrationMasterKey`; each client's secret is derived as `HMAC-SHA256(masterKey, "esign-client/1." + clientId)`, so any number of clients works without dynamic secrets. Revocation is a flag on the `clients` document; rotating the master key re-pairs every client. A hash-only store can't work because HMAC verification needs the secret itself |
 | S9 | Can a sandboxed `content:beforeDelete` hook veto a delete, and does it need a capability? | Runtime test host | `afterDelete` marks the config orphaned and shows an admin banner (already the default plan) |
 | S10 | (a) Does `emdash-plugin build`/`bundle` accept native entry points (`./ui`, `./astro`) in the same package? (b) Does storage survive swapping the Free install for a Pro build with the same slug and publisher? | Scaffold + playground | (a) separate `-ui` packages again; (b) an export/import migration route |
 | S11 | Is Ed25519 available in WebCrypto in the Dynamic Worker and in the Node runner, and how does a plugin learn the site's hostname? | Probe plugin | ECDSA P-256 keys; hostname from a required setting checked against `getPublicUrl()` |
@@ -526,8 +526,8 @@ any re-planning after the spikes.
     stores the **plaintext** (source: `encodePluginSettingValue` returns the value unchanged unless the
     key is a declared secret field). Without `EMDASH_ENCRYPTION_KEY`, saving a secret fails with
     `PLUGIN_SETTING_ENCRYPTION_KEY_MISSING`, so the plugin must show a banner when the key is absent.
-    Decision: no dynamically named secrets. Use the fixed-slot fallback (declared secret fields), or
-    store only an HMAC/hash of each integration client secret in a storage document.
+    Decision: no dynamically named secrets; client secrets are derived from one declared master key
+    (see the S8 row in the spike table).
   - **S9 confirmed: delete can be vetoed, with limits.** A `content:beforeDelete` hook that returns
     exactly `false` makes the trash action fail with `DELETE_BLOCKED` ("Delete blocked by plugin hook")
     and the entry stays. Returning `{ cancel: true, reason }` does **not** block (the runtime tests

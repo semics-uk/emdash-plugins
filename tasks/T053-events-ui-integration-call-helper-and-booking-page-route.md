@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Uses the T004 helper only
+- [ ] The core's plugin ID is never hard-coded: it's a descriptor option (default the slug for npm installs) and the docs explain that registry installs use the `r_…` ID (S7, T005)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

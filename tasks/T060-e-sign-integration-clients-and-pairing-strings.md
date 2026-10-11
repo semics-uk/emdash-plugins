@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Client secrets derived from the declared `integrationMasterKey` secret (S8 decision in BUILD-PLAN §7); pairing string shows the derived secret once
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

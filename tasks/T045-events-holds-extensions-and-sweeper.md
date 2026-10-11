@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Clock injected for tests
+- [ ] One-shot `hold-<ref>` cron tasks are only an accelerator; `sweep-holds` is the source of truth (max 10 due tasks per tick, S3, T005)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
