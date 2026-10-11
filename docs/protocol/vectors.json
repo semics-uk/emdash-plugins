@@ -1,0 +1,4453 @@
+{
+	"protocol": "esign-intent/1",
+	"spec": "docs/protocol/esign-intent-v1.md",
+	"generator": "docs/protocol/generate-vectors.mjs",
+	"note": "Generated file. Do not edit by hand; change the generator and re-run it. Secrets here are test keys only.",
+	"constants": {
+		"prefixes": {
+			"intent": "esign-intent/1",
+			"receipt": "esign-receipt/1",
+			"lookup": "esign-lookup/1",
+			"catalog": "esign-catalog/1"
+		},
+		"maxTokenLength": {
+			"intent": 8192,
+			"receipt": 2048,
+			"lookup": 1024,
+			"catalog": 1024
+		},
+		"clockSkewSeconds": 60,
+		"intentMaxLifetimeSeconds": 1800,
+		"requestMaxAgeSeconds": 300
+	},
+	"errorCodes": [
+		"TOKEN_TOO_LARGE",
+		"TOKEN_MALFORMED",
+		"CLIENT_UNKNOWN",
+		"CLIENT_REVOKED",
+		"TOKEN_INVALID",
+		"PAYLOAD_INVALID",
+		"TOKEN_LIFETIME_EXCEEDED",
+		"TOKEN_NOT_YET_VALID",
+		"TOKEN_EXPIRED",
+		"RETURN_URL_NOT_ALLOWED",
+		"TOKEN_REPLAYED",
+		"PAIRING_MALFORMED"
+	],
+	"keys": {
+		"A": {
+			"cid": "cl_test_aaaaaaaa",
+			"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+			"pairing": "esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+			"role": "paired client (the Events site)"
+		},
+		"B": {
+			"cid": "cl_test_bbbbbbbb",
+			"secret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+			"pairing": "esign1.cl_test_bbbbbbbb.ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+			"role": "another client; its secret is the 'wrong secret'"
+		},
+		"R": {
+			"cid": "cl_test_revoked1",
+			"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+			"pairing": "esign1.cl_test_revoked1.QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+			"role": "a client revoked in the e-sign admin"
+		}
+	},
+	"vectors": [
+		{
+			"name": "intent/valid-minimal",
+			"type": "intent",
+			"description": "Minimal valid intent: optional fields omitted, so as=self and delivery=inline.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/valid-guardian-utf8",
+			"type": "intent",
+			"description": "Buyer signs inline as guardian for a minor; non-ASCII names exercise UTF-8 payload decoding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQkJCQkJCQkJCQkJCQkJCQiIsInRwbCI6InRwbF93YWl2ZXIiLCJ0cGxWZXJzaW9uIjozLCJyZWYiOiJCSzdRMk06QVRUMDIiLCJzaWduZXIiOnsibmFtZSI6Ilpvw6sgw4VuZ3N0csO2bS3DkcO6w7FleiIsImVtYWlsIjoiem9lQGV4YW1wbGUuY29tIn0sImFzIjoiZ3VhcmRpYW4iLCJwYXJ0aWNpcGFudCI6eyJuYW1lIjoiTMOpYSDDhW5nc3Ryw7ZtIn0sImRlbGl2ZXJ5IjoiaW5saW5lIiwicHJlZmlsbCI6eyJlbWVyZ2VuY3lDb250YWN0IjoiTW8gw4VuZ3N0csO2bSAwNzcwMCA5MDAxMjMiLCJtZWRpY2FsIjoiTm9uZSJ9LCJyZXR1cm5VcmwiOiJodHRwczovL2V2ZW50cy5leGFtcGxlL2Jvb2tpbmcvQks3UTJNIn0.BTqetsjr_ILhJPBgbA_Fp-Xs8rt7HiXNBLgcaD0ebkk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-BBBBBBBBBBBBBBBB",
+					"tpl": "tpl_waiver",
+					"tplVersion": 3,
+					"ref": "BK7Q2M:ATT02",
+					"signer": {
+						"name": "Zoë Ångström-Ñúñez",
+						"email": "zoe@example.com"
+					},
+					"as": "guardian",
+					"participant": {
+						"name": "Léa Ångström"
+					},
+					"delivery": "inline",
+					"prefill": {
+						"emergencyContact": "Mo Ångström 07700 900123",
+						"medical": "None"
+					},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-BBBBBBBBBBBBBBBB",
+					"tpl": "tpl_waiver",
+					"tplVersion": 3,
+					"ref": "BK7Q2M:ATT02",
+					"signer": {
+						"name": "Zoë Ångström-Ñúñez",
+						"email": "zoe@example.com"
+					},
+					"as": "guardian",
+					"participant": {
+						"name": "Léa Ångström"
+					},
+					"delivery": "inline",
+					"prefill": {
+						"emergencyContact": "Mo Ångström 07700 900123",
+						"medical": "None"
+					},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/valid-email-delivery",
+			"type": "intent",
+			"description": "Another adult attendee signs for themselves by email (delivery=email).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQ0NDQ0NDQ0NDQ0NDQ0NDQyIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDMiLCJzaWduZXIiOnsibmFtZSI6IlNhbSBBZHVsdCIsImVtYWlsIjoic2FtQGV4YW1wbGUuY29tIn0sImFzIjoic2VsZiIsImRlbGl2ZXJ5IjoiZW1haWwiLCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.P-bBUmIRP9hruZ396q-deZJIFJ2bNM2v29F3l_1VuC8",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-CCCCCCCCCCCCCCCC",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT03",
+					"signer": {
+						"name": "Sam Adult",
+						"email": "sam@example.com"
+					},
+					"as": "self",
+					"delivery": "email",
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-CCCCCCCCCCCCCCCC",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT03",
+					"signer": {
+						"name": "Sam Adult",
+						"email": "sam@example.com"
+					},
+					"as": "self",
+					"delivery": "email",
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/valid-unknown-field-ignored",
+			"type": "intent",
+			"description": "Unknown top-level fields are ignored, not rejected.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtRERERERERERERERERERERCIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSIsImV4dCI6eyJmdXR1cmUiOnRydWV9fQ.OVlYCHrmXUkJsQYtg-gfdebN7QnYnAs722WSGQozbKU",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-DDDDDDDDDDDDDDDD",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"ext": {
+						"future": true
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-DDDDDDDDDDDDDDDD",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"ext": {
+						"future": true
+					}
+				}
+			}
+		},
+		{
+			"name": "intent/valid-expiry-within-skew",
+			"type": "intent",
+			"description": "now = exp + 60: still inside the 60 s clock-skew allowance.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk4MTQwLCJleHAiOjE3OTk5OTk5NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.E_1qMTqUmqqF1e9NRdeckAr9YMejZ2jLS21v-ISubNA",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799998140,
+					"exp": 1799999940,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799998140,
+					"exp": 1799999940,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/expired",
+			"type": "intent",
+			"description": "now = exp + 61: one second past the skew allowance.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk4MTM5LCJleHAiOjE3OTk5OTk5MzksIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.uoQOy-mndRz56r3I4EmjW4e9_wbHJyqX79roRe5vx_k",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799998139,
+					"exp": 1799999939,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_EXPIRED"
+			}
+		},
+		{
+			"name": "intent/valid-iat-within-skew",
+			"type": "intent",
+			"description": "iat = now + 60: the issuer's clock is ahead, within the skew allowance.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxODAwMDAwMDYwLCJleHAiOjE4MDAwMDA2NjAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.GrYhHlNJxSgnDcP-p72v9yw07_S_pt1zBSVJTvxkP70",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1800000060,
+					"exp": 1800000660,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1800000060,
+					"exp": 1800000660,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/not-yet-valid",
+			"type": "intent",
+			"description": "iat = now + 61: issued in the future beyond the skew allowance.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxODAwMDAwMDYxLCJleHAiOjE4MDAwMDA2NjEsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.O_DPgIZvBw9bjmROuAXRHt2wg_pJL5k3DiBmbiRHmMM",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1800000061,
+					"exp": 1800000661,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_NOT_YET_VALID"
+			}
+		},
+		{
+			"name": "intent/valid-max-lifetime",
+			"type": "intent",
+			"description": "exp - iat = 1800 s, the maximum intent lifetime.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDE3NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.C_dXk1jbLapbapz2Ntcf7Y9aIGQipH0HqcHArdeL7yk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800001740,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800001740,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/lifetime-exceeded",
+			"type": "intent",
+			"description": "exp - iat = 1801 s: longer than the 30-minute cap.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDE3NDEsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.DFjjo_cxzPSD4WkRkZbo3O7gLj7wu4oXFPOkP-mSi1k",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800001741,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_LIFETIME_EXCEEDED"
+			}
+		},
+		{
+			"name": "intent/exp-not-after-iat",
+			"type": "intent",
+			"description": "exp = iat: a token must have a positive lifetime.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxODAwMDAwMDAwLCJleHAiOjE4MDAwMDAwMDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.kdNE6mXaNBH2kR040Wu1Q8l3_t_BOks06KFb9q39ZAE",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1800000000,
+					"exp": 1800000000,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/replayed-nonce",
+			"type": "intent",
+			"description": "The (cid, nonce) pair was already consumed.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": [
+					{
+						"cid": "cl_test_aaaaaaaa",
+						"nonce": "n0nce-AAAAAAAAAAAAAAAA"
+					}
+				]
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_REPLAYED"
+			}
+		},
+		{
+			"name": "intent/valid-nonce-scoped-to-client",
+			"type": "intent",
+			"description": "The same nonce was used by a different client; nonces are scoped per cid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": [
+					{
+						"cid": "cl_test_revoked1",
+						"nonce": "n0nce-AAAAAAAAAAAAAAAA"
+					}
+				]
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/wrong-prefix-receipt",
+			"type": "intent",
+			"description": "An intent payload signed under esign-receipt/1 (cross-type confusion).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.QS7XXVpR-7kfXMMNB_NOhgpyZkXqRwnukPsG4vJbs3w",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "intent/receipt-token-presented",
+			"type": "intent",
+			"description": "A genuine receipt token presented to the intent verifier.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.i2F4l9M2tnJ2H9T2DKow6JsUbht2_gwLVSbHagl6LLs",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "intent/typ-mismatch-under-intent-prefix",
+			"type": "intent",
+			"description": "Correctly signed under esign-intent/1, but typ is 'receipt'.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAwODQwLCJub25jZSI6Im4wbmNlLUFBQUFBQUFBQUFBQUFBQUEiLCJ0cGwiOiJ0cGxfd2FpdmVyIiwicmVmIjoiQks3UTJNOkFUVDAxIiwic2lnbmVyIjp7Im5hbWUiOiJBbGV4IEV4YW1wbGUiLCJlbWFpbCI6ImFsZXhAZXhhbXBsZS5jb20ifSwicHJlZmlsbCI6e30sInJldHVyblVybCI6Imh0dHBzOi8vZXZlbnRzLmV4YW1wbGUvYm9va2luZy9CSzdRMk0ifQ.3oO5NjYII_2J4MtKC70My7nI7D0RdCD5OsgaSbYIpbw",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/tampered-payload",
+			"type": "intent",
+			"description": "signer.email changed after signing; the original signature is kept.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYXR0YWNrZXJAZXhhbXBsZS5uZXQifSwicHJlZmlsbCI6e30sInJldHVyblVybCI6Imh0dHBzOi8vZXZlbnRzLmV4YW1wbGUvYm9va2luZy9CSzdRMk0ifQ.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"tamper": "payload segment replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "intent/tampered-signature",
+			"type": "intent",
+			"description": "Lowest bit of the first signature byte flipped.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.0t4RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				},
+				"tamper": "signature bit flipped"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "intent/wrong-secret",
+			"type": "intent",
+			"description": "Claims cid A but is signed with client B's secret.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.PJlVTTBTXbN4thZvy8oB59SLt9oxd0i9br7XLJ-eP5s",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "intent/revoked-client",
+			"type": "intent",
+			"description": "Signed correctly by a client that has been revoked.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X3Jldm9rZWQxIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.TySYdoThRnj4jpsYbj6L-lFNxteiwA0wAY1SpUeEzE8",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_revoked1",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_REVOKED"
+			}
+		},
+		{
+			"name": "intent/unknown-client",
+			"type": "intent",
+			"description": "cid is not registered with the verifier.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X3Vua25vd24xIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.jCbKHI46cg1wwFGWga3b1rZ8CcYlhtg3LZ4i_GAHMhU",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_unknown1",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "intent/order-revoked-before-expiry",
+			"type": "intent",
+			"description": "Revoked and expired: client checks run before time checks.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X3Jldm9rZWQxIiwiaWF0IjoxNzk5OTk2MDAwLCJleHAiOjE3OTk5OTcwMDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.h7ACgVfGECo0CUrnvcg5fOfQK2mQJMoEeszfL9X8poc",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_revoked1",
+					"iat": 1799996000,
+					"exp": 1799997000,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_REVOKED"
+			}
+		},
+		{
+			"name": "intent/order-signature-before-expiry",
+			"type": "intent",
+			"description": "Bad signature and expired: the signature check runs before time checks.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk2MDAwLCJleHAiOjE3OTk5OTcwMDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.epdGWfezoyOiii1VMHVlJa7iYtL2zM2BPB0_GO1lDZg",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799996000,
+					"exp": 1799997000,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				},
+				"tamper": "signature bit flipped"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "intent/malformed-no-dot",
+			"type": "intent",
+			"description": "A single segment with no '.' separator.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-three-segments",
+			"type": "intent",
+			"description": "Three segments (JWS-style header added).",
+			"input": {
+				"token": "eyJhbGciOiJIUzI1NiJ9.eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-empty-payload",
+			"type": "intent",
+			"description": "Empty payload segment.",
+			"input": {
+				"token": ".094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-standard-base64",
+			"type": "intent",
+			"description": "Uses '+' from the standard base64 alphabet.",
+			"input": {
+				"token": "+yJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-intent/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-padding",
+			"type": "intent",
+			"description": "Signature segment carries '=' padding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks=",
+				"expectedPrefix": "esign-intent/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-noncanonical-signature",
+			"type": "intent",
+			"description": "Signature's last character has non-zero padding bits (decodes to the same bytes in lenient decoders).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWskt",
+				"expectedPrefix": "esign-intent/1",
+				"tamper": "non-canonical base64url"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-short-signature",
+			"type": "intent",
+			"description": "Signature segment decodes to 31 bytes, not 32.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsk",
+				"expectedPrefix": "esign-intent/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-not-json",
+			"type": "intent",
+			"description": "Payload is the UTF-8 text 'hello', correctly signed.",
+			"input": {
+				"token": "aGVsbG8.MKh1hmlQruhgtNopukC4sUq5lIjwE5yIf8rg3Jr3OqY",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-invalid-utf8",
+			"type": "intent",
+			"description": "Payload bytes are not valid UTF-8, correctly signed.",
+			"input": {
+				"token": "eyL__iJ9.8O0AEdh_cj-I3Ms5c6eWN_MFMZe7Udp0rWMXDrt4kBU",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-json-array",
+			"type": "intent",
+			"description": "Payload is a JSON array, not an object.",
+			"input": {
+				"token": "W3sidiI6MSwidHlwIjoiaW50ZW50IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImlhdCI6MTc5OTk5OTk0MCwiZXhwIjoxODAwMDAwODQwLCJub25jZSI6Im4wbmNlLUFBQUFBQUFBQUFBQUFBQUEiLCJ0cGwiOiJ0cGxfd2FpdmVyIiwicmVmIjoiQks3UTJNOkFUVDAxIiwic2lnbmVyIjp7Im5hbWUiOiJBbGV4IEV4YW1wbGUiLCJlbWFpbCI6ImFsZXhAZXhhbXBsZS5jb20ifSwicHJlZmlsbCI6e30sInJldHVyblVybCI6Imh0dHBzOi8vZXZlbnRzLmV4YW1wbGUvYm9va2luZy9CSzdRMk0ifV0.MzQmrdzVez9G2PTzhPznmnb2D780vr6ldOLeHhk9wWk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/malformed-missing-cid",
+			"type": "intent",
+			"description": "Payload has no cid, so no key can be selected.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMDg0MCwibm9uY2UiOiJuMG5jZS1BQUFBQUFBQUFBQUFBQUFBIiwidHBsIjoidHBsX3dhaXZlciIsInJlZiI6IkJLN1EyTTpBVFQwMSIsInNpZ25lciI6eyJuYW1lIjoiQWxleCBFeGFtcGxlIiwiZW1haWwiOiJhbGV4QGV4YW1wbGUuY29tIn0sInByZWZpbGwiOnt9LCJyZXR1cm5VcmwiOiJodHRwczovL2V2ZW50cy5leGFtcGxlL2Jvb2tpbmcvQks3UTJNIn0.FpkGGeSepQxv6xINH3VzIlY9u2KNiVy53T2I_dKwyfE",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "intent/valid-max-length",
+			"type": "intent",
+			"description": "Exactly 8192 characters: the largest allowed intent.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtU0laRVNJWkVTSVpFU0laRSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7ImYwMCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjAxIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMDIiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImYwMyI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjA0IjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMDUiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImYwNiI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjA3IjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMDgiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImYwOSI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjEwIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMTEiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.SVmSc9T5JKk_zo_OckbhTDjDoT6N8baHKb7eBjfa4J0",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIZESIZESIZESIZE",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {
+						"f00": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f01": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f02": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f03": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f04": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f05": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f06": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f07": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f08": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f09": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f10": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f11": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+					},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIZESIZESIZESIZE",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {
+						"f00": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f01": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f02": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f03": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f04": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f05": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f06": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f07": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f08": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f09": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f10": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f11": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+					},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/oversize",
+			"type": "intent",
+			"description": "8194 characters: over the 8192 limit; rejected before any decoding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtU0laRVNJWkVTSVpFU0laRSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7ImYwMCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjAxIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMDIiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImYwMyI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjA0IjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMDUiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImYwNiI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjA3IjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMDgiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImYwOSI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiZjEwIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJmMTEiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4In0sInJldHVyblVybCI6Imh0dHBzOi8vZXZlbnRzLmV4YW1wbGUvYm9va2luZy9CSzdRMk0ifQ.jlQkFOwL3FMotAAfWqJN5R7DRa2mGUiYFbuaXhP2VBk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIZESIZESIZESIZE",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {
+						"f00": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f01": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f02": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f03": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f04": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f05": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f06": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f07": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f08": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f09": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f10": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+						"f11": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+					},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "intent/version-2-under-v1-prefix",
+			"type": "intent",
+			"description": "v = 2 inside an esign-intent/1 token.",
+			"input": {
+				"token": "eyJ2IjoyLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.mwDS4V3OiWt9OrgrnAJSJhpEwh7KulVlZe99bJ32uiA",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 2,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/guardian-without-participant",
+			"type": "intent",
+			"description": "as = guardian requires participant.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJhcyI6Imd1YXJkaWFuIiwicHJlZmlsbCI6e30sInJldHVyblVybCI6Imh0dHBzOi8vZXZlbnRzLmV4YW1wbGUvYm9va2luZy9CSzdRMk0ifQ.Hs03HMuypl4uHXT9fsPcdk9NIYMGEA52qZ98Uryjd6I",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"as": "guardian",
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/nonce-too-short",
+			"type": "intent",
+			"description": "nonce shorter than 16 characters.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoic2hvcnQiLCJ0cGwiOiJ0cGxfd2FpdmVyIiwicmVmIjoiQks3UTJNOkFUVDAxIiwic2lnbmVyIjp7Im5hbWUiOiJBbGV4IEV4YW1wbGUiLCJlbWFpbCI6ImFsZXhAZXhhbXBsZS5jb20ifSwicHJlZmlsbCI6e30sInJldHVyblVybCI6Imh0dHBzOi8vZXZlbnRzLmV4YW1wbGUvYm9va2luZy9CSzdRMk0ifQ.E3DfQYifbYmjrNaBQ7EQinBnG7JSAhRkEeheUP_KXEk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "short",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/prefill-non-string",
+			"type": "intent",
+			"description": "prefill values must be strings.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7ImFnZSI6MTd9LCJyZXR1cm5VcmwiOiJodHRwczovL2V2ZW50cy5leGFtcGxlL2Jvb2tpbmcvQks3UTJNIn0.DGHbgEMFne58bWAwz5R9ZVtjebrfh5iUYGUEK1yVaTk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {
+						"age": 17
+					},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/iat-not-integer",
+			"type": "intent",
+			"description": "Times are integer seconds.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTM5LjUsImV4cCI6MTgwMDAwMDg0MCwibm9uY2UiOiJuMG5jZS1BQUFBQUFBQUFBQUFBQUFBIiwidHBsIjoidHBsX3dhaXZlciIsInJlZiI6IkJLN1EyTTpBVFQwMSIsInNpZ25lciI6eyJuYW1lIjoiQWxleCBFeGFtcGxlIiwiZW1haWwiOiJhbGV4QGV4YW1wbGUuY29tIn0sInByZWZpbGwiOnt9LCJyZXR1cm5VcmwiOiJodHRwczovL2V2ZW50cy5leGFtcGxlL2Jvb2tpbmcvQks3UTJNIn0.pg8RCDC-cyDW5Q1ncVexXwTYtLdAwggqH4oj3cHgfQo",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999939.5,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "intent/valid-return-url-exact-path-query",
+			"type": "intent",
+			"description": "returnUrl https://events.example/booking?b=BK7Q2M: exact allowlisted path; the query is not compared.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDFVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nP2I9Qks3UTJNIn0.deflNX_j-CuP09NOXv0QrunpjUme3Ncu3I2hR8jnztE",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL01UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking?b=BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL01UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking?b=BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/valid-return-url-normalised",
+			"type": "intent",
+			"description": "returnUrl https://EVENTS.example:443/sign/BK7Q2M: host case and the default port are normalised before comparison.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDJVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9FVkVOVFMuZXhhbXBsZTo0NDMvc2lnbi9CSzdRMk0ifQ.d_cMMnxi-ioYWa1cNT6j2tA-bg4QJ7zsFzAZbALKLzQ",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL02UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://EVENTS.example:443/sign/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL02UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://EVENTS.example:443/sign/BK7Q2M"
+				}
+			}
+		},
+		{
+			"name": "intent/return-url-other-host",
+			"type": "intent",
+			"description": "returnUrl https://evil.example/booking: host not on the allowlist.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDNVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmlsLmV4YW1wbGUvYm9va2luZyJ9.HwrcRy9NRMGifDhlz5wZCmiOvh1_keigNQEHttc_iIo",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL03UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://evil.example/booking"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-path-boundary",
+			"type": "intent",
+			"description": "returnUrl https://events.example/bookings: '/booking' is a prefix only on a '/' segment boundary.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDRVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5ncyJ9.nuRxHOxMWlTc185z3nV-Iy3gb1PyAhgpRPPTXkFMEXA",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL04UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/bookings"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-port",
+			"type": "intent",
+			"description": "returnUrl https://events.example:8443/booking: port must match exactly.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDVVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZTo4NDQzL2Jvb2tpbmcifQ.KM0Hpc9Lf_0mjkJdCjLtE3hHuNPaZND--o7bxaR4-Vg",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL05UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example:8443/booking"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-scheme",
+			"type": "intent",
+			"description": "returnUrl http://events.example/booking: scheme must match exactly.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDZVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cDovL2V2ZW50cy5leGFtcGxlL2Jvb2tpbmcifQ.A3bbzj0XZijtxPXo988xe3IrDnSoYSmpV2VR4f3FLzw",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL06UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "http://events.example/booking"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-userinfo",
+			"type": "intent",
+			"description": "returnUrl https://user@events.example/booking: userinfo is never allowed.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDdVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly91c2VyQGV2ZW50cy5leGFtcGxlL2Jvb2tpbmcifQ.YdlLU2jou_r-Hz5HXbu4KHYWLDRwAtjyHHke43N6E0Y",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL07UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://user@events.example/booking"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-fragment",
+			"type": "intent",
+			"description": "returnUrl https://events.example/booking#x: a fragment is reserved for the receipt.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDhVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nI3gifQ.02Cp1fLdXMtjIeN6-QIRzBCAuSPgVDlSIJB2kwetugk",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL08UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking#x"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-dot-segments",
+			"type": "intent",
+			"description": "returnUrl https://events.example/booking/../admin: dot segments are resolved first (path becomes /admin).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMDlVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nLy4uL2FkbWluIn0.667TRqOCcFhP-G4pAteljsiAjjWMr0Uo7PmQmInZpFA",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL09UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/../admin"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-relative",
+			"type": "intent",
+			"description": "returnUrl /booking/BK7Q2M: must be an absolute URL.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMTBVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiL2Jvb2tpbmcvQks3UTJNIn0.Un548UTHRd6gKYksJ3UJVsGv_-tgy21MxJzEF9w5SqI",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL10UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "/booking/BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/return-url-javascript",
+			"type": "intent",
+			"description": "returnUrl javascript:alert(1): non-http(s) scheme.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtVVJMMTFVVVVVVVVVVVVVVSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiamF2YXNjcmlwdDphbGVydCgxKSJ9.3N5aY7ZguLlFWzpN3i8A2FSIO6mUQaitocS07VnadlA",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-URL11UUUUUUUUUUU",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "javascript:alert(1)"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "intent/order-allowlist-before-nonce",
+			"type": "intent",
+			"description": "Off-allowlist and replayed: the allowlist is checked before the nonce.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmlsLmV4YW1wbGUvYm9va2luZyJ9.vHn3HTzl-YG4mtFD4rVDR7o-GAEUCufKyqiWz9eTAaw",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-AAAAAAAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://evil.example/booking"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": [
+					{
+						"cid": "cl_test_aaaaaaaa",
+						"nonce": "n0nce-AAAAAAAAAAAAAAAA"
+					}
+				]
+			},
+			"expected": {
+				"ok": false,
+				"error": "RETURN_URL_NOT_ALLOWED"
+			}
+		},
+		{
+			"name": "receipt/valid-completed",
+			"type": "receipt",
+			"description": "Completed envelope, as delivered via returnUrl#receipt=.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.i2F4l9M2tnJ2H9T2DKow6JsUbht2_gwLVSbHagl6LLs",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			}
+		},
+		{
+			"name": "receipt/valid-declined",
+			"type": "receipt",
+			"description": "Declined envelope: no PDF and no final hash.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJkZWNsaW5lZCIsImRvY1NoYTI1NiI6ImU3NDRiNzJhMDY5MzVjNTlmODgwY2I5ZGE3NWU2MTA1ZGQwNWY3YjJmZTA4M2ZhZThkMTQ4YmQzOGQzYzZlOTgiLCJwZGZTaGEyNTYiOm51bGwsImZpbmFsSGFzaCI6bnVsbCwiYXQiOjE3OTk5OTk4ODB9.WL9fA5EXLCGeFyVJwERWsEXJ_8i-TooHTJuazZ-MpEs",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "declined",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": null,
+					"finalHash": null,
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "declined",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": null,
+					"finalHash": null,
+					"at": 1799999880
+				}
+			}
+		},
+		{
+			"name": "receipt/valid-completed-pdf-pending",
+			"type": "receipt",
+			"description": "Completed, but the signed PDF is still being generated (pdfSha256 null).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjpudWxsLCJmaW5hbEhhc2giOiI1MzBlODYwZDhlZmIzOWVhNzc4NzE3ZDIzMTllYzc0NDgzMTA3NzM0OGFjM2QwNjY2OWRlZWQ0ZGZmM2MzNTMwIiwiYXQiOjE3OTk5OTk4ODB9.8PKKEDYIZ-c3PqQQP-DjbOf_Jz0Gky4ZvgOKGHvU33s",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": null,
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": null,
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			}
+		},
+		{
+			"name": "receipt/valid-old",
+			"type": "receipt",
+			"description": "Receipts do not expire: 'at' 30 days ago (email signer, found by reconciliation).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5NzQwODAwMH0.MJwgZ8LWT12pSd_3jnQFroubOyoQSqevmhkQUlqb5Yc",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1797408000
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1797408000
+				}
+			}
+		},
+		{
+			"name": "receipt/valid-at-within-skew",
+			"type": "receipt",
+			"description": "at = now + 60: within the skew allowance.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTgwMDAwMDA2MH0.GHnnXr22cEvGQmjX8e7FGc8H3Zvte6mFE5FBwagru6I",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1800000060
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1800000060
+				}
+			}
+		},
+		{
+			"name": "receipt/not-yet-valid",
+			"type": "receipt",
+			"description": "at = now + 61: in the future beyond the skew allowance.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTgwMDAwMDA2MX0.YoCQE-ii351JfBRXkDinemdvsK1EqcvUrm1eZnC-T4I",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1800000061
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_NOT_YET_VALID"
+			}
+		},
+		{
+			"name": "receipt/wrong-prefix-intent",
+			"type": "receipt",
+			"description": "A receipt payload signed under esign-intent/1 (cross-type confusion).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.oYU1vLbJ74J6dGj0yByIpHHd08HzwwLZcQoglUXIt8Y",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "receipt/intent-token-presented",
+			"type": "receipt",
+			"description": "A genuine intent token presented to the receipt verifier.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtQUFBQUFBQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSJ9.094RHecteVo7I5oJPIhdpn_hID_C1B3jzQMTKpPWsks",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "receipt/tampered-payload",
+			"type": "receipt",
+			"description": "ref changed after signing to claim another attendee's waiver.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDkiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.i2F4l9M2tnJ2H9T2DKow6JsUbht2_gwLVSbHagl6LLs",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"tamper": "payload segment replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "receipt/tampered-signature",
+			"type": "receipt",
+			"description": "Lowest bit of the first signature byte flipped.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.imF4l9M2tnJ2H9T2DKow6JsUbht2_gwLVSbHagl6LLs",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				},
+				"tamper": "signature bit flipped"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "receipt/wrong-secret",
+			"type": "receipt",
+			"description": "Signed with client B's secret.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.gb7NqykC_E6Lgr3yHxAY7ZDlbBBDsqIbxkQxUl0neCU",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "receipt/unknown-client",
+			"type": "receipt",
+			"description": "cid does not match the verifier's pairing.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9iYmJiYmJiYiIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.Vi-NE87TpZZcQ98mQBxSBjgBGuAe92y6QMMW1MQF-TI",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_bbbbbbbb",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "receipt/uppercase-hex",
+			"type": "receipt",
+			"description": "Hashes must be lowercase hex.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJFNzQ0QjcyQTA2OTM1QzU5Rjg4MENCOURBNzVFNjEwNUREMDVGN0IyRkUwODNGQUU4RDE0OEJEMzhEM0M2RTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.sMiylCS57BBLvpsfbPnxdG-8Q6Bw17bLNIPEPZ5soHA",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "E744B72A06935C59F880CB9DA75E6105DD05F7B2FE083FAE8D148BD38D3C6E98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "receipt/completed-without-final-hash",
+			"type": "receipt",
+			"description": "A completed receipt must carry finalHash.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6bnVsbCwiYXQiOjE3OTk5OTk4ODB9.DYduFHJh0DnIN7aCJsFp4wmpeAd8PKjBgSBx-jFqR18",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": null,
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "receipt/declined-with-pdf-hash",
+			"type": "receipt",
+			"description": "Only completed receipts may carry pdfSha256.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJkZWNsaW5lZCIsImRvY1NoYTI1NiI6ImU3NDRiNzJhMDY5MzVjNTlmODgwY2I5ZGE3NWU2MTA1ZGQwNWY3YjJmZTA4M2ZhZThkMTQ4YmQzOGQzYzZlOTgiLCJwZGZTaGEyNTYiOiJlNjY1NTU3Y2UzOWRlZDU5MjYyODFiMzM0NGQ4OGJiZTQ3NmIxZDY3ZDE3OTA4MzIzYjQ1NzMzODljM2UwNGFlIiwiZmluYWxIYXNoIjpudWxsLCJhdCI6MTc5OTk5OTg4MH0.mQdeQ30e7yv6dMFi5uGrV4t968Q99tkK8qUD2Y8PHoU",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "declined",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": null,
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "receipt/unknown-status",
+			"type": "receipt",
+			"description": "status outside the enumeration.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJzaWduZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.EnryDaK3kMuRt-q4tt1pVRcOdxXMmAoVCPC3iDMuaBE",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "signed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "receipt/malformed-bad-base64url",
+			"type": "receipt",
+			"description": "Payload segment contains '/'.",
+			"input": {
+				"token": "/yJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.i2F4l9M2tnJ2H9T2DKow6JsUbht2_gwLVSbHagl6LLs",
+				"expectedPrefix": "esign-receipt/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "receipt/malformed-empty-signature",
+			"type": "receipt",
+			"description": "Signature segment is empty.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MH0.",
+				"expectedPrefix": "esign-receipt/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "receipt/oversize",
+			"type": "receipt",
+			"description": "2050 characters: over the 2048 limit (padded with an unknown field).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJyZWNlaXB0IiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsImVudmVsb3BlSWQiOiJlbnZfMDFKOVo2UTgiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzdGF0dXMiOiJjb21wbGV0ZWQiLCJkb2NTaGEyNTYiOiJlNzQ0YjcyYTA2OTM1YzU5Zjg4MGNiOWRhNzVlNjEwNWRkMDVmN2IyZmUwODNmYWU4ZDE0OGJkMzhkM2M2ZTk4IiwicGRmU2hhMjU2IjoiZTY2NTU1N2NlMzlkZWQ1OTI2MjgxYjMzNDRkODhiYmU0NzZiMWQ2N2QxNzkwODMyM2I0NTczMzg5YzNlMDRhZSIsImZpbmFsSGFzaCI6IjUzMGU4NjBkOGVmYjM5ZWE3Nzg3MTdkMjMxOWVjNzQ0ODMxMDc3MzQ4YWMzZDA2NjY5ZGVlZDRkZmYzYzM1MzAiLCJhdCI6MTc5OTk5OTg4MCwicGFkIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifQ.01VVGmR-PLqcREf61mqrsB8UD8EkxsOzejndFp0xV8k",
+				"expectedPrefix": "esign-receipt/1",
+				"signedWithPrefix": "esign-receipt/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "receipt",
+					"cid": "cl_test_aaaaaaaa",
+					"envelopeId": "env_01J9Z6Q8",
+					"ref": "BK7Q2M:ATT01",
+					"status": "completed",
+					"docSha256": "e744b72a06935c59f880cb9da75e6105dd05f7b2fe083fae8d148bd38d3c6e98",
+					"pdfSha256": "e665557ce39ded5926281b3344d88bbe476b1d67d17908323b4573389c3e04ae",
+					"finalHash": "530e860d8efb39ea778717d2319ec744831077348ac3d06669deed4dff3c3530",
+					"at": 1799999880,
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "lookup/valid",
+			"type": "lookup",
+			"description": "Client-signed receipt lookup for one ref.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.n0w6_Qk0bt7dccuUwFE5_yGQ1dZ5EGRmI9BSJuG4c5s",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M:ATT01"
+				}
+			}
+		},
+		{
+			"name": "lookup/valid-max-age",
+			"type": "lookup",
+			"description": "now = ts + 360: at the edge of the 300 s age limit plus 60 s skew.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk2NDAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.emIEqwppdiAj9EvtPrGd2kOyinAYqxerjHxltoeM-lM",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999640,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999640,
+					"ref": "BK7Q2M:ATT01"
+				}
+			}
+		},
+		{
+			"name": "lookup/expired",
+			"type": "lookup",
+			"description": "now = ts + 361: older than the 300 s age limit plus skew.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk2MzksInJlZiI6IkJLN1EyTTpBVFQwMSJ9.D0l6v-kN5dOk3yGvWxTThImQILHZNODPPHz1flHLg3o",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999639,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_EXPIRED"
+			}
+		},
+		{
+			"name": "lookup/not-yet-valid",
+			"type": "lookup",
+			"description": "ts = now + 61.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE4MDAwMDAwNjEsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.l8KeSxxvrXAWhOGjS1cKWetkEyXxrA9-bIY-59Hvcvw",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1800000061,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_NOT_YET_VALID"
+			}
+		},
+		{
+			"name": "lookup/wrong-prefix-catalog",
+			"type": "lookup",
+			"description": "A lookup payload signed under esign-catalog/1.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.zchYe4UXcana7EW6bG72L4vz1RZ3JtB9houqHZL9-gk",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/tampered-ref",
+			"type": "lookup",
+			"description": "ref changed after signing to read another booking's receipt.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IlpaOVg5WDpBVFQwMSJ9.n0w6_Qk0bt7dccuUwFE5_yGQ1dZ5EGRmI9BSJuG4c5s",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"tamper": "payload segment replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/revoked-client",
+			"type": "lookup",
+			"description": "Signed by a revoked client.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X3Jldm9rZWQxIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.SEm3d-5NXeNxtKXKe0cod421gKJ2KekANMZ9Qa75H2k",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_revoked1",
+					"ts": 1799999990,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_REVOKED"
+			}
+		},
+		{
+			"name": "lookup/unknown-client",
+			"type": "lookup",
+			"description": "cid is not registered.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X3Vua25vd24xIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.L0ZpeNg4hqF_UoshCJv8ydhpz_ABNRiMZAcyz9O9ouQ",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_unknown1",
+					"ts": 1799999990,
+					"ref": "BK7Q2M:ATT01"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "lookup/missing-ref",
+			"type": "lookup",
+			"description": "ref is required.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTB9.kVJon3Ls8v3rtz62T8RMJ5ddvZcjmrmQz5KXnYm5ck4",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "lookup/malformed-padding",
+			"type": "lookup",
+			"description": "Payload segment padded with '='.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9==.n0w6_Qk0bt7dccuUwFE5_yGQ1dZ5EGRmI9BSJuG4c5s",
+				"expectedPrefix": "esign-lookup/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/oversize",
+			"type": "lookup",
+			"description": "1026 characters: over the 1024 limit.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSIsInBhZCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifQ.n-xnR_4rNKpzghDa3kBnf9-1xTldxqnPn3_oUeEvSVI",
+				"expectedPrefix": "esign-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M:ATT01",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "catalog/valid",
+			"type": "catalog",
+			"description": "Client-signed template catalogue request.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5OTkwfQ.FYrFn0Li8hwLu0S9yotQvOGSVeMC-q72_wf8HBfLKOA",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990
+				}
+			}
+		},
+		{
+			"name": "catalog/expired",
+			"type": "catalog",
+			"description": "now = ts + 361.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5NjM5fQ.KsKc3J0OKY74m0XkVDYggyHyaSW1xXSHxo4rRiEmq98",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999639
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_EXPIRED"
+			}
+		},
+		{
+			"name": "catalog/wrong-prefix-lookup",
+			"type": "catalog",
+			"description": "A catalog payload signed under esign-lookup/1 (typ check alone would pass).",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5OTkwfQ.dC1LwcuEJJ9v8rL4pQmdjXcakpd0IW_Szp2BVssMrXg",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "catalog/lookup-token-presented",
+			"type": "catalog",
+			"description": "A genuine lookup token presented to the catalog verifier.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTTpBVFQwMSJ9.n0w6_Qk0bt7dccuUwFE5_yGQ1dZ5EGRmI9BSJuG4c5s",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "catalog/wrong-secret",
+			"type": "catalog",
+			"description": "Signed with client B's secret.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5OTkwfQ.AvuOQtQzAL5TfwuSL746TLXzkkaPR13KEjYrcUrzT2U",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "catalog/revoked-client",
+			"type": "catalog",
+			"description": "Signed by a revoked client.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9yZXZva2VkMSIsInRzIjoxNzk5OTk5OTkwfQ.6XAMYRFnOvpS3EcKtzCKsIf7Kb2rasqC8rF_wa0mWiA",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_revoked1",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_REVOKED"
+			}
+		},
+		{
+			"name": "catalog/unknown-client",
+			"type": "catalog",
+			"description": "cid is not registered.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF91bmtub3duMSIsInRzIjoxNzk5OTk5OTkwfQ.poHnCkAvWAqE7222wuTEiJhqOYmyIGUdgZN_sTnprT8",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_unknown1",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "catalog/typ-mismatch",
+			"type": "catalog",
+			"description": "Signed under esign-catalog/1 but typ is 'lookup'.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTB9.5j4PATPtohVWlQXjS6V6c4iCD-peoV6nVeW-qfYIm4E",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "catalog/malformed-empty-signature",
+			"type": "catalog",
+			"description": "Signature segment is empty.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5OTkwfQ.",
+				"expectedPrefix": "esign-catalog/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "catalog/oversize",
+			"type": "catalog",
+			"description": "1026 characters: over the 1024 limit.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJjYXRhbG9nIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5OTkwLCJwYWQiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifQ.ITNkKfSvqptmto9bAp_9i-sEI5szM17kOlNqQgPTqCU",
+				"expectedPrefix": "esign-catalog/1",
+				"signedWithPrefix": "esign-catalog/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "catalog",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "pairing/valid",
+			"type": "pairing",
+			"description": "esign1.<clientId>.<43-character base64url secret>.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"expected": {
+				"ok": true,
+				"clientId": "cl_test_aaaaaaaa",
+				"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			}
+		},
+		{
+			"name": "pairing/wrong-version",
+			"type": "pairing",
+			"description": "Unknown pairing version.",
+			"input": {
+				"pairing": "esign2.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/missing-secret",
+			"type": "pairing",
+			"description": "Only two segments.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/extra-segment",
+			"type": "pairing",
+			"description": "Four segments.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8.x"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/short-secret",
+			"type": "pairing",
+			"description": "Secret decodes to 31 bytes.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHg"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/padded-secret",
+			"type": "pairing",
+			"description": "Secret carries '=' padding.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8="
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/noncanonical-secret",
+			"type": "pairing",
+			"description": "Secret's last character has non-zero padding bits.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh9"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/bad-client-id",
+			"type": "pairing",
+			"description": "clientId contains a space.",
+			"input": {
+				"pairing": "esign1.cl test.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/surrounding-whitespace",
+			"type": "pairing",
+			"description": "Parsers do not trim; settings UIs trim before storing.",
+			"input": {
+				"pairing": " esign1.cl_test_aaaaaaaa.AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\n"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		}
+	]
+}
