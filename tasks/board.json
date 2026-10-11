@@ -55,7 +55,7 @@
 			"phase": 0,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -68,7 +68,7 @@
 			"unblocks": [
 				"T104"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T003": {
 			"file": "T003-shared-library-package-and-bundling-into-the-sandbox.md",
@@ -2251,7 +2251,6 @@
 			"T106"
 		],
 		"ready": [
-			"T002",
 			"T003",
 			"T004",
 			"T005",
@@ -2262,6 +2261,7 @@
 		"done": [
 			"T000",
 			"T001",
+			"T002",
 			"T008"
 		],
 		"blocked": [
