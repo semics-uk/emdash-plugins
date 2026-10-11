@@ -1,0 +1,21 @@
+{
+	"$schema": "../../../node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
+
+	"slug": "semics-events-shared-fixture",
+	"publisher": "did:plc:semicsdevplaceholder2222",
+
+	"license": "MIT",
+	"author": { "name": "semics", "url": "https://semics.dev" },
+	"security": { "email": "security@semics.dev" },
+	"description": "Events bookings and ticketing for EmDash",
+	"repo": "https://github.com/semics-uk/emdash-plugins",
+
+	// Trust contract — what runtime APIs the plugin asks for.
+	// Empty arrays mean no extra privileges beyond logging,
+	// KV, and route/hook registration. Changing these between
+	// releases requires a version bump because installed
+	// users have consented to the old contract.
+	"capabilities": [],
+	"allowedHosts": [],
+	"storage": {}
+}
