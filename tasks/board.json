@@ -159,7 +159,7 @@
 			"phase": 0,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -173,7 +173,7 @@
 				"T029",
 				"T053"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T007": {
 			"file": "T007-budget-harness-bridge-call-counter-and-cpu-timer-for-every-r.md",
@@ -696,7 +696,7 @@
 				"T031",
 				"T032"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T030": {
 			"file": "T030-e-sign-ui-ceremony-component-with-sanitised-rendering.md",
@@ -1149,7 +1149,7 @@
 				"T054",
 				"T055"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T054": {
 			"file": "T054-events-ui-event-list-card-and-block.md",
@@ -2177,7 +2177,6 @@
 			"T026",
 			"T027",
 			"T028",
-			"T029",
 			"T030",
 			"T031",
 			"T032",
@@ -2195,7 +2194,6 @@
 			"T050",
 			"T051",
 			"T052",
-			"T053",
 			"T054",
 			"T055",
 			"T056",
@@ -2242,14 +2240,15 @@
 			"T106"
 		],
 		"ready": [
-			"T006",
 			"T007",
 			"T011",
 			"T014",
 			"T017",
 			"T018",
 			"T020",
-			"T040"
+			"T029",
+			"T040",
+			"T053"
 		],
 		"in-progress": [],
 		"review": [],
@@ -2260,6 +2259,7 @@
 			"T003",
 			"T004",
 			"T005",
+			"T006",
 			"T008",
 			"T009",
 			"T010"
