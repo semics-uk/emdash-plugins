@@ -126,12 +126,15 @@ test("a gate whose command cannot be launched fails loudly and names the command
 	const { verify } = await import("./verify.mjs");
 	const errors = [];
 	const original = console.error;
+	const originalLog = console.log;
 	console.error = (...args) => errors.push(args.join(" "));
+	console.log = () => {};
 	try {
 		const status = verify(repoRoot, [{ name: "Missing tool", cmd: "semics-no-such-command", args: [], cwd: repoRoot }]);
 		assert.notEqual(status, 0);
 	} finally {
 		console.error = original;
+		console.log = originalLog;
 	}
 	assert.match(errors.join("\n"), /could not start "semics-no-such-command"/);
 });
