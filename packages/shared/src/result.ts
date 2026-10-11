@@ -54,7 +54,7 @@ export const ERROR_CODES = Object.freeze({
 	SOLD_OUT: def(409, "This event is sold out."),
 	HOLD_EXPIRED: def(409, "Your hold has expired. Please start again."),
 	SALES_CLOSED: def(409, "Sales for this event are closed."),
-	BOOKING_TOKEN_INVALID: def(401, "This booking link is not valid."),
+	BOOKING_TOKEN_INVALID: def(404, "Not found."),
 	BOOKING_TOKEN_EXPIRED: def(401, "This booking link has expired."),
 
 	// --- e-sign ---
