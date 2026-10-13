@@ -13,3 +13,4 @@ apps/playground/data.db*
 apps/playground/uploads/
 scripts/.gate-fixture-*/
 .claude/worktrees/
+.verify.log

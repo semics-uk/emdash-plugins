@@ -26,7 +26,7 @@
 		"build": "emdash-plugin build && tsc -p tsconfig.ui.json",
 		"dev": "emdash-plugin dev",
 		"typecheck": "tsc --noEmit",
-		"test:coverage": "vitest run --coverage",
+		"test:coverage": "vitest run --coverage --reporter=dot",
 		"verify": "pnpm run validate && pnpm run typecheck && pnpm run test:coverage && pnpm run build",
 		"test": "emdash-plugin validate && vitest run",
 		"bundle": "emdash-plugin bundle",
