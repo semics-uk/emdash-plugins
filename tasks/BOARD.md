@@ -48,7 +48,7 @@ _None_
 - [T021](T021-e-sign-templates-domain-and-admin-routes.md) E-sign: templates domain and admin routes · sonnet-5.5 · M · free · needs T020, T017, T014
 - [T022](T022-e-sign-envelopes-snapshots-and-status-machine.md) E-sign: envelopes, snapshots and status machine · opus-5.5 · M · free · needs T021, T011
 - [T023](T023-e-sign-hash-chained-audit-trail-with-salted-commitments.md) E-sign: hash-chained audit trail with salted commitments · opus-5.5 · M · free · needs T022
-- [T024](T024-e-sign-signing-ceremony-public-routes.md) E-sign: signing ceremony public routes · opus-5.5 · M · free · needs T023, T013
+- [T024](T024-e-sign-signing-ceremony-public-routes.md) E-sign: signing ceremony public routes · sonnet-5.5 · M · free · needs T023, T013
 - [T025](T025-e-sign-signed-pdf-at-completion-and-download-link.md) E-sign: signed PDF at completion and download link · opus-5.5 · M · free · needs T024, T016
 - [T026](T026-e-sign-hash-verification-route.md) E-sign: hash verification route · sonnet-5.5 · S · free · needs T025
 - [T027](T027-e-sign-invitation-and-completion-emails.md) E-sign: invitation and completion emails · sonnet-5.5 · S · free · needs T024, T015
@@ -100,7 +100,7 @@ _None_
 - [T086](T086-events-pro-mcp-tools.md) Events Pro: MCP tools · sonnet-5.5 · S · pro · needs T057
 - [T087](T087-events-retention-job.md) Events: retention job · sonnet-5.5 · S · free · needs T057
 - [T090](T090-e-sign-pro-several-signers-and-routing.md) E-sign Pro: several signers and routing · opus-5.5 · M · pro · needs T067
-- [T091](T091-e-sign-pro-email-otp.md) E-sign Pro: email OTP · opus-5.5 · S · pro · needs T067
+- [T091](T091-e-sign-pro-email-otp.md) E-sign Pro: email OTP · sonnet-5.5 · S · pro · needs T067
 - [T092](T092-e-sign-decline-void-reminders-and-expiry.md) E-sign: decline, void, reminders and expiry · sonnet-5.5 · S · free · needs T067
 - [T093](T093-e-sign-pro-public-self-serve-templates-and-block.md) E-sign Pro: public self-serve templates and block · sonnet-5.5 · M · pro · needs T067
 - [T094](T094-e-sign-pro-uploaded-pdf-templates.md) E-sign Pro: uploaded PDF templates · opus-5.5 · L · pro · needs T067, T110

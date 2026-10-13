@@ -563,7 +563,7 @@
 			"package": "esign",
 			"edition": "free",
 			"status": "backlog",
-			"model": "opus-5.5",
+			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
 				"T023",
@@ -1842,7 +1842,7 @@
 			"package": "esign",
 			"edition": "pro",
 			"status": "backlog",
-			"model": "opus-5.5",
+			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
 				"T067"

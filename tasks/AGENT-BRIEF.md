@@ -6,14 +6,24 @@ You are implementing exactly one task from this repo's build plan, in your own g
 
 1. Read `tasks/README.md` (TDD standard, Definition of Done, module boundaries) and your task file `tasks/T###-*.md`.
 2. If your task touches `packages/events` or `packages/esign`, read `packages/events/skills/creating-plugins/SKILL.md`.
-3. Read the PRD requirement IDs and BUILD-PLAN sections listed in your task's `spec` (BUILD-PLAN.md and RESEARCH.md are in the repo root).
+3. Read the `CONTEXT.md` of every package your task touches (`packages/*/CONTEXT.md`,
+   `apps/playground/CONTEXT.md`). Open BUILD-PLAN.md only at the sections your task's `spec` cites, and
+   read just those sections (use `grep -n` to find them) rather than the whole file.
 
 ## Environment
 
 ```sh
 export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24.21.0
-corepack pnpm@10.23.0 install --offline || corepack pnpm@10.23.0 install
+corepack pnpm@10.23.0 install --offline --reporter=silent || corepack pnpm@10.23.0 install --reporter=silent
 ```
+
+## Keep output small (it costs tokens every time you read it)
+
+- `pnpm verify` is quiet: one line per passing gate; a failing gate prints its last 200 lines and the
+  full log is in `.verify.log`. Read the log with `grep`/`tail` around the failure, never in full.
+- Package tests use the dot reporter. When a test fails, re-run just that file (`npx vitest run <file>`).
+- Pipe noisy commands through `tail -n 40` or `grep`, and never `cat` generated files (lockfile,
+  `vectors.json`, `board.json`, `dist/`).
 
 Always run pnpm as `corepack pnpm@10.23.0`. The disk is nearly full: don't add a dependency unless the
 task needs it, and never download browsers (Playwright uses `/opt/pw-browsers/chromium` if present,

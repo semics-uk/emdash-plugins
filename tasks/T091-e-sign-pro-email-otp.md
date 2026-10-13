@@ -5,7 +5,7 @@ phase: 6
 package: esign
 edition: pro
 status: backlog
-model: opus-5.5
+model: sonnet-5.5
 size: S
 depends_on: [T067]
 spec: [ES-FR-16, Decision: OTP default]
@@ -19,7 +19,7 @@ spec: [ES-FR-16, Decision: OTP default]
 
 ## Model
 
-**Opus 5.5**: Authentication logic.
+**Sonnet 5.5**: Re-assigned from Opus 5.5 to reduce usage: small, fully specified OTP rules with clear tests; escalate to Opus 5.5 if green fails twice.
 
 ## Tests first (red)
 

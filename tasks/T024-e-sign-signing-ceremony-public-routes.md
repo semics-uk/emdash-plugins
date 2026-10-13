@@ -5,7 +5,7 @@ phase: 1
 package: esign
 edition: free
 status: backlog
-model: opus-5.5
+model: sonnet-5.5
 size: M
 depends_on: [T023, T013]
 spec: [ES-FR-04, ES-US-2]
@@ -19,7 +19,7 @@ spec: [ES-FR-04, ES-US-2]
 
 ## Model
 
-**Opus 5.5**: Internet-facing route with legal-evidence requirements.
+**Sonnet 5.5**: Re-assigned from Opus 5.5 to reduce usage: well-specified by the protocol spec, the audit chain (T023) and the budget harness; escalate to Opus 5.5 if green fails twice.
 
 ## Tests first (red)
 
