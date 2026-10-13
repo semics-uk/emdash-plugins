@@ -138,3 +138,46 @@ test("a gate whose command cannot be launched fails loudly and names the command
 	}
 	assert.match(errors.join("\n"), /could not start "semics-no-such-command"/);
 });
+
+/** Runs verify in-process with fixture steps, capturing what it prints. */
+async function runQuiet(stepList, logFile) {
+	const { verify } = await import("./verify.mjs");
+	const printed = [];
+	const original = { log: console.log, error: console.error };
+	console.log = (...args) => printed.push(args.join(" "));
+	console.error = (...args) => printed.push(args.join(" "));
+	try {
+		return { status: verify(repoRoot, stepList, { logFile }), printed: printed.join("\n") };
+	} finally {
+		console.log = original.log;
+		console.error = original.error;
+	}
+}
+
+const nodeStep = (name, code) => ({ name, cmd: process.execPath, args: ["-e", code], cwd: repoRoot });
+
+test("quiet verify prints one line for a passing gate, not its output, and logs the output", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "verify-log-"));
+	scratch.push(dir);
+	const logFile = join(dir, "verify.log");
+	const { status, printed } = await runQuiet([nodeStep("Noisy gate", "console.log('NOISY-PASS-OUTPUT')")], logFile);
+	assert.equal(status, 0);
+	assert.match(printed, /✔ Noisy gate/);
+	assert.doesNotMatch(printed, /NOISY-PASS-OUTPUT/);
+	assert.match(readFileSync(logFile, "utf8"), /NOISY-PASS-OUTPUT/);
+});
+
+test("quiet verify prints a failing gate's output in full and names the log file", async () => {
+	const dir = mkdtempSync(join(tmpdir(), "verify-log-"));
+	scratch.push(dir);
+	const logFile = join(dir, "verify.log");
+	const { status, printed } = await runQuiet(
+		[nodeStep("Broken gate", "console.error('WHY-IT-FAILED'); process.exit(3)"), nodeStep("Never runs", "")],
+		logFile,
+	);
+	assert.equal(status, 3);
+	assert.match(printed, /✖ Broken gate/);
+	assert.match(printed, /WHY-IT-FAILED/);
+	assert.match(printed, new RegExp(logFile.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+	assert.doesNotMatch(printed, /Never runs/);
+});
