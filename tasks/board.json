@@ -182,7 +182,7 @@
 			"phase": 0,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -200,7 +200,7 @@
 				"T016",
 				"T044"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T008": {
 			"file": "T008-protocol-spec-esign-intent-1-with-test-vectors.md",
@@ -340,7 +340,7 @@
 				"T024",
 				"T047"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T014": {
 			"file": "T014-shared-typed-block-kit-builders.md",
@@ -388,7 +388,7 @@
 				"T027",
 				"T050"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T016": {
 			"file": "T016-shared-dependency-free-deterministic-pdf-writer.md",
@@ -412,7 +412,7 @@
 			"unblocks": [
 				"T025"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T017": {
 			"file": "T017-shared-template-rendering-and-canonical-snapshots.md",
@@ -2166,9 +2166,6 @@
 	"columns": {
 		"backlog": [
 			"T012",
-			"T013",
-			"T015",
-			"T016",
 			"T021",
 			"T022",
 			"T023",
@@ -2239,9 +2236,11 @@
 			"T106"
 		],
 		"ready": [
-			"T007",
 			"T011",
+			"T013",
 			"T014",
+			"T015",
+			"T016",
 			"T017",
 			"T018",
 			"T029",
@@ -2257,6 +2256,7 @@
 			"T004",
 			"T005",
 			"T006",
+			"T007",
 			"T008",
 			"T009",
 			"T010",
