@@ -4,7 +4,7 @@ title: "Shared: rate limiting and Turnstile verification"
 phase: 1
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T003, T007]
