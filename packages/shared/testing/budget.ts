@@ -316,7 +316,7 @@ const LENIENT_CPU_FACTOR = 4;
 /**
  * The CPU figure is sandbox wall time minus bridge waits (workerd has no CPU clock), so a loaded
  * machine inflates it. Strict on CI, with `SEMICS_STRICT_CPU=1`, or when the 1-minute load average
- * is below the core count; lenient otherwise.
+ * is below half the core count (parallel suites already contend there); lenient otherwise.
  */
 export function cpuEnforcement(
 	env: Record<string, string | undefined> = process.env,
@@ -324,7 +324,7 @@ export function cpuEnforcement(
 	cores: number = availableParallelism(),
 ): CpuEnforcement {
 	if (env.SEMICS_STRICT_CPU === "1" || env.CI) return "strict";
-	return load < cores ? "strict" : "lenient";
+	return load < cores / 2 ? "strict" : "lenient";
 }
 
 export function expectWithinBudget(

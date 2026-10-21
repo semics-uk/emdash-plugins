@@ -17,7 +17,8 @@ describe("T007 CPU enforcement under load", () => {
 	});
 	it("is strict on a quiet machine and lenient on a busy one", () => {
 		expect(cpuEnforcement({}, 2, 8)).toBe("strict");
-		expect(cpuEnforcement({}, 9.5, 8)).toBe("lenient");
+		expect(cpuEnforcement({}, 3.9, 8)).toBe("strict");
+		expect(cpuEnforcement({}, 4, 8)).toBe("lenient");
 	});
 	it("lenient mode warns instead of failing for up to 4x the CPU limit", () => {
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
