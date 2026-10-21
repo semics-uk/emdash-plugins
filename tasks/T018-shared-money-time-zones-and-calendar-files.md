@@ -4,7 +4,7 @@ title: "Shared: money, time zones and calendar files"
 phase: 2
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T003]
