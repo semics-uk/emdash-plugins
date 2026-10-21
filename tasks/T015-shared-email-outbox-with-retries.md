@@ -4,7 +4,7 @@ title: "Shared: email outbox with retries"
 phase: 1
 package: shared
 edition: free
-status: backlog
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T003, T007]
