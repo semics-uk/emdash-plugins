@@ -25,8 +25,7 @@ function memStorage() {
 			calls.push("query");
 			const items = [...rows]
 				.filter(
-					([, r]) =>
-						r.status === status && (nextAttemptAtLte === undefined || r.nextAttemptAt <= nextAttemptAtLte),
+					([, r]) => r.status === status && (nextAttemptAtLte === undefined || r.nextAttemptAt <= nextAttemptAtLte),
 				)
 				.sort((a, b) => a[1].nextAttemptAt - b[1].nextAttemptAt)
 				.slice(0, limit)
