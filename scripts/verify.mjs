@@ -36,7 +36,9 @@ export function steps(root) {
 		},
 		{
 			name: "Packages: validate, typecheck, tests with coverage, build",
-			...pnpm("-r", "--filter", "./packages/**", "verify"),
+			// One package at a time: each suite starts workerd sandboxes, and running them together pushed
+			// single invocations past the host's 30 s wall-time limit.
+			...pnpm("-r", "--workspace-concurrency=1", "--filter", "./packages/**", "verify"),
 		},
 		{ name: "Playground typecheck", ...pnpm("--filter", "playground", "typecheck") },
 	].map((step) => ({ ...step, cwd: root }));
