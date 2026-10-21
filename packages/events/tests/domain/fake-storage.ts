@@ -127,6 +127,12 @@ export class FakeKv {
 	readonly values = new Map<string, { value: unknown; revision: string }>();
 	private rev = 0;
 
+	async get<T>(key: string): Promise<T | null> {
+		meter.calls++;
+		const v = this.values.get(key);
+		return v ? (structuredClone(v.value) as T) : null;
+	}
+
 	async getVersioned<T>(key: string) {
 		meter.calls++;
 		const v = this.values.get(key);
