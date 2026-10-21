@@ -129,7 +129,9 @@ describe("strict CSP: only the package's hashed script (SU-NFR-02)", () => {
 		const uses = astro.flatMap((src) => [...src.matchAll(/set:html=\{([^}]*)\}/g)].map((m) => m[1]));
 		expect(uses.sort()).toEqual(["CEREMONY_CSS", "CEREMONY_SCRIPT"]);
 		for (const src of astro) expect(src).not.toMatch(/innerHTML|set:text|is:raw/);
-		expect(readFileSync(resolve(root, "src/client/ceremony.js"), "utf8")).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|eval\(/);
+		expect(readFileSync(resolve(root, "src/client/ceremony.js"), "utf8")).not.toMatch(
+			/innerHTML|outerHTML|insertAdjacentHTML|eval\(/,
+		);
 	});
 });
 
@@ -137,28 +139,72 @@ describe("drawn signatures and field values in handleSign (SU-FR-05, SU-FR-06)",
 	it("SU-FR-06 pad strokes { v, w, h, strokes } are normalised to 0-1 points for public/submit", () => {
 		expect(normaliseStrokes({ v: 1, w: 200, h: 100, strokes: [[[0, 0], [100, 50], { x: 200, y: 100 }]] })).toEqual({
 			ok: true,
-			strokes: [[[0, 0], [0.5, 0.5], [1, 1]]],
+			strokes: [
+				[
+					[0, 0],
+					[0.5, 0.5],
+					[1, 1],
+				],
+			],
 		});
 		// Out-of-pad points are clamped, malformed points and empty strokes dropped, precision capped.
-		expect(normaliseStrokes({ w: 3, h: 3, strokes: [[[1, 2], [-5, 9], ["x", 1]], []] })).toEqual({
+		expect(
+			normaliseStrokes({
+				w: 3,
+				h: 3,
+				strokes: [
+					[
+						[1, 2],
+						[-5, 9],
+						["x", 1],
+					],
+					[],
+				],
+			}),
+		).toEqual({
 			ok: true,
-			strokes: [[[0.333, 0.667], [0, 1]]],
+			strokes: [
+				[
+					[0.333, 0.667],
+					[0, 1],
+				],
+			],
 		});
 	});
 
 	it("SU-FR-06 unusable or oversized strokes are refused before anything is sent", () => {
-		for (const bad of [null, "x", { w: 0, h: 1, strokes: [[[0, 0]]] }, { w: 1, h: 1, strokes: [] }, { w: 1, h: 1, strokes: [[["a"]]] }]) {
+		for (const bad of [
+			null,
+			"x",
+			{ w: 0, h: 1, strokes: [[[0, 0]]] },
+			{ w: 1, h: 1, strokes: [] },
+			{ w: 1, h: 1, strokes: [[["a"]]] },
+		]) {
 			expect(normaliseStrokes(bad)).toEqual({ ok: false, code: "INVALID_SIGNATURE" });
 		}
 		const many = { w: 1, h: 1, strokes: Array.from({ length: 65 }, () => [[0.1, 0.1]]) };
 		expect(normaliseStrokes(many)).toEqual({ ok: false, code: "INVALID_SIGNATURE" });
-		const big = { w: 1, h: 1, strokes: Array.from({ length: 8 }, () => Array.from({ length: 400 }, () => [0.123, 0.456])) };
+		const big = {
+			w: 1,
+			h: 1,
+			strokes: Array.from({ length: 8 }, () => Array.from({ length: 400 }, () => [0.123, 0.456])),
+		};
 		expect(normaliseStrokes(big)).toEqual({ ok: false, code: "STROKES_TOO_LARGE" });
 	});
 
 	it("SU-FR-06 a drawn signature posts kind drawn with the typed name and the normalised strokes", async () => {
 		const h = host({ "public/session": ready, "public/submit": { ok: true } });
-		const strokes = JSON.stringify({ v: 1, w: 100, h: 100, strokes: [[[10, 20], [30, 40]]] });
+		const strokes = JSON.stringify({
+			v: 1,
+			w: 100,
+			h: 100,
+			strokes: [
+				[
+					[10, 20],
+					[30, 40],
+				],
+			],
+		});
 		const view = await handleSign(h.ctx, TOKEN, form({ ...signForm, signatureStrokes: strokes }));
 		expect(view.kind).toBe("signed");
 		expect(submitted(h.seen)).toEqual({
@@ -166,7 +212,16 @@ describe("drawn signatures and field values in handleSign (SU-FR-05, SU-FR-06)",
 			docSha256: DOC,
 			consent: true,
 			intent: true,
-			signature: { kind: "drawn", typedName: "Ada", strokes: [[[0.1, 0.2], [0.3, 0.4]]] },
+			signature: {
+				kind: "drawn",
+				typedName: "Ada",
+				strokes: [
+					[
+						[0.1, 0.2],
+						[0.3, 0.4],
+					],
+				],
+			},
 			fieldValues: {},
 		});
 	});
@@ -174,7 +229,14 @@ describe("drawn signatures and field values in handleSign (SU-FR-05, SU-FR-06)",
 	it("SU-FR-06 bad stroke JSON re-renders the ceremony with the signature to fix and submits nothing", async () => {
 		for (const [strokes, code] of [
 			["{not json", "BAD_REQUEST"],
-			[JSON.stringify({ w: 1, h: 1, strokes: Array.from({ length: 8 }, () => Array.from({ length: 400 }, () => [0.123, 0.456])) }), "STROKES_TOO_LARGE"],
+			[
+				JSON.stringify({
+					w: 1,
+					h: 1,
+					strokes: Array.from({ length: 8 }, () => Array.from({ length: 400 }, () => [0.123, 0.456])),
+				}),
+				"STROKES_TOO_LARGE",
+			],
 		] as const) {
 			const h = host({ "public/session": ready, "public/submit": { ok: true } });
 			const view = await handleSign(h.ctx, TOKEN, form({ ...signForm, signatureStrokes: strokes }));
