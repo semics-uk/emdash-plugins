@@ -515,7 +515,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -530,7 +530,7 @@
 				"T023",
 				"T028"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T023": {
 			"file": "T023-e-sign-hash-chained-audit-trail-with-salted-commitments.md",
@@ -553,7 +553,7 @@
 			"unblocks": [
 				"T024"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T024": {
 			"file": "T024-e-sign-signing-ceremony-public-routes.md",
@@ -671,7 +671,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T029": {
 			"file": "T029-e-sign-ui-descriptor-and-injected-pages.md",
@@ -2189,12 +2189,10 @@
 	},
 	"columns": {
 		"backlog": [
-			"T023",
 			"T024",
 			"T025",
 			"T026",
 			"T027",
-			"T028",
 			"T030",
 			"T031",
 			"T032",
@@ -2249,7 +2247,8 @@
 			"T106"
 		],
 		"ready": [
-			"T022",
+			"T023",
+			"T028",
 			"T029",
 			"T043",
 			"T045",
@@ -2283,6 +2282,7 @@
 			"T018",
 			"T020",
 			"T021",
+			"T022",
 			"T040",
 			"T041",
 			"T042",
@@ -2293,17 +2293,15 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T022",
-		"T023",
-		"T024",
-		"T025",
-		"T026",
-		"T032",
-		"T033",
-		"T034",
-		"T060",
-		"T061",
-		"T062",
+		"T045",
+		"T047",
+		"T048",
+		"T049",
+		"T055",
+		"T056",
+		"T057",
+		"T063",
+		"T064",
 		"T065",
 		"T066",
 		"T067",
