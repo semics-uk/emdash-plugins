@@ -30,6 +30,7 @@ import {
 	templateFields,
 } from "@semics-tech/shared";
 import type { AuditInput } from "./audit";
+import type { StoredPdf } from "./pdf";
 import { canTransition, type EnvelopeStatus } from "./state";
 import { type TemplateDoc, usableForNewEnvelope } from "./templates";
 
@@ -62,6 +63,10 @@ export interface EnvelopeDoc {
 	sentAt: string | null;
 	completedAt: string | null;
 	finalHash: string | null;
+	/** SHA-256 of the stored signed PDF (domain/pdf.ts); absent until the PDF job has run. */
+	pdfSha256?: string | null;
+	/** Where the signed PDF's chunks are (`artifacts`), set with `pdfSha256`. */
+	pdf?: StoredPdf | null;
 	/** Per-envelope salt for the audit commitments (domain/audit.ts); never returned by a route. */
 	piiSalt: string;
 	createdAt: string;

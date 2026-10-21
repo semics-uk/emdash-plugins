@@ -109,7 +109,11 @@ async function linkFromSession(budget: BudgetedHost): Promise<string> {
 }
 
 async function download(budget: BudgetedHost, url: string): Promise<Raw> {
-	const r = await budget.invokeRoute("public/download", {}, { url: new URL(url, "https://site.test").href, method: "GET" });
+	const r = await budget.invokeRoute(
+		"public/download",
+		{},
+		{ url: new URL(url, "https://site.test").href, method: "GET" },
+	);
 	expectWithinBudget(r, TARGET);
 	return r.value as Raw;
 }
@@ -249,7 +253,9 @@ describe("ES-FR-08 public/download", () => {
 		const s = await sent();
 		// A long document (as large as the template limit allows, and then some): seed its snapshot.
 		const paragraph = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor. ";
-		const text = canonicalSnapshot(`# Terms\n\n${Array.from({ length: 2200 }, () => paragraph.repeat(2)).join("\n\n")}`);
+		const text = canonicalSnapshot(
+			`# Terms\n\n${Array.from({ length: 2200 }, () => paragraph.repeat(2)).join("\n\n")}`,
+		);
 		const docSha256 = await sha256Hex(text);
 		const chunks = snapshotChunks(s.id, text, docSha256);
 		for (const c of chunks) await host().fixtures.plugin.storage("snapshots", c.id, c.data as SnapshotChunkDoc);

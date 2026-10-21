@@ -62,6 +62,7 @@ export const ERROR_CODES = Object.freeze({
 	ENVELOPE_CLOSED: def(409, "This document can no longer be signed."),
 	SIGNING_TOKEN_INVALID: def(401, "This signing link is not valid."),
 	SIGNING_TOKEN_EXPIRED: def(401, "This signing link has expired."),
+	SIGNED_PDF_PENDING: def(409, "The signed document is still being prepared. Please try again in a minute."),
 
 	// --- protocol (docs/protocol/esign-intent-v1.md §9; strings and statuses are verbatim) ---
 	TOKEN_TOO_LARGE: def(413, "The token is too large."),

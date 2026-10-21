@@ -2,17 +2,17 @@ import { sha256Hex } from "@semics-tech/shared";
 import { describe, expect, it } from "vitest";
 import { type AuditEventDoc, type AuditInput, finalEnvelopeHash, initialAuditEvents } from "../src/domain/audit";
 import type { EnvelopeDoc, SignerDoc } from "../src/domain/envelopes";
+import { MAX_DOCUMENT_BYTES } from "../src/domain/envelopes";
 import {
 	ARTIFACT_CHUNK_CHARS,
-	CERTIFICATE_WORDING,
 	type ArtifactChunkDoc,
+	CERTIFICATE_WORDING,
 	joinPdf,
 	pdfChunks,
 	renderSignedPdf,
 	type SignedPdfInput,
 	signedPdfDocument,
 } from "../src/domain/pdf";
-import { MAX_DOCUMENT_BYTES } from "../src/domain/envelopes";
 
 const ENV = "env1";
 const SALT = "ab".repeat(32);
@@ -43,7 +43,17 @@ async function fixture(over: Partial<SignerDoc> = {}): Promise<SignedPdfInput> {
 		status: "signed",
 		signedAt: AT,
 		consentVersion: "1",
-		signature: { kind: "drawn", strokes: [[[0.1, 0.2], [0.5, 0.8]]], typedName: "Ada L", sha256: "e".repeat(64) },
+		signature: {
+			kind: "drawn",
+			strokes: [
+				[
+					[0.1, 0.2],
+					[0.5, 0.8],
+				],
+			],
+			typedName: "Ada L",
+			sha256: "e".repeat(64),
+		},
 		...over,
 	} as SignerDoc;
 	return { envelopeId: ENV, envelope, signer, snapshot: "# Terms\n\nI, Ada Lovelace, accept.\n", events, head };
@@ -82,7 +92,19 @@ describe("ES-FR-07 signed PDF and certificate", () => {
 		return Promise.all([
 			fixture().then((input) => {
 				const sig = signedPdfDocument(input).blocks.find((b) => b.type === "signature");
-				expect(sig).toMatchObject({ strokes: { v: 1, w: 1, h: 1, strokes: [[[0.1, 0.2], [0.5, 0.8]]] } });
+				expect(sig).toMatchObject({
+					strokes: {
+						v: 1,
+						w: 1,
+						h: 1,
+						strokes: [
+							[
+								[0.1, 0.2],
+								[0.5, 0.8],
+							],
+						],
+					},
+				});
 				expect(sig).not.toHaveProperty("typedName");
 			}),
 			fixture({ signature: { kind: "typed", typedName: "Ada Lovelace", sha256: "f".repeat(64) } }).then((input) => {

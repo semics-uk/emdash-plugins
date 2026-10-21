@@ -62,8 +62,9 @@ export function canonicalSnapshot(text: string): string {
 	return `${lines.join("\n").replace(/\n+$/, "")}\n`;
 }
 
-/** Lowercase hex SHA-256 of the UTF-8 bytes of `text` (Web Crypto). */
-export async function sha256Hex(text: string): Promise<string> {
-	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
+/** Lowercase hex SHA-256 of the UTF-8 bytes of `text`, or of `bytes` as given (Web Crypto). */
+export async function sha256Hex(input: string | Uint8Array): Promise<string> {
+	const bytes = typeof input === "string" ? new TextEncoder().encode(input) : new Uint8Array(input);
+	const digest = await crypto.subtle.digest("SHA-256", bytes);
 	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }

@@ -55,4 +55,13 @@ each envelope's random `piiSalt` is stored on it and stripped from route respons
 `appendAuditEvent` (head query + create-only CAS = 2 calls, retries once); a fresh envelope's opening events go
 in one `putMany` via `initialAuditEvents`. `verifyAuditChain(id, events, { salt, head })` for the certificate;
 `finalEnvelopeHash(docSha256, head)` is the envelope's `finalHash`. Held to 100% branches in `vitest.config.ts`).
-Budget: from-intent is at 9 bridge calls (others ≤ 8).
+`domain/pdf.ts` + `cron/pdf.ts` + `routes/download.ts` (T025: `public/submit` schedules the one-shot cron task
+`signed-pdf-<envelopeId>` (task names: letters, digits, `-`, `_`); the job verifies the chain ends at `finalHash`
+(else re-arms a minute later, gives up after 5), renders document + signature + certificate (`CERTIFICATE_WORDING`,
+every audit event, head, `finalHash`) with `renderPdf`, writes hash-addressed `artifacts/<id>:pdf:<sha16>:<i>`
+chunks and sets `pdfSha256` + `pdf: { ids, bytes }` with a guarded `updateIf` on `pdfSha256: null`.
+`public/download` is a `response: "raw"` route: a 15-min `signLink` (`esign/download`, param `e` only; HMAC key 32
+random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes after re-checking `pdfSha256`;
+`SIGNED_PDF_PENDING` (409) re-arms the job. Links come from `public/session` (signer of a completed envelope:
+`pdf: "pending" | "ready"`, `download`) and `envelopes/get`).
+Budget: from-intent and submit are at 9 bridge calls (others ≤ 8).

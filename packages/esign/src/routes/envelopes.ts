@@ -38,8 +38,10 @@ import {
 	sentAuditEvent,
 } from "../domain/envelopes";
 import { masterKeyBytes } from "../domain/master-key";
+import type { ArtifactChunkDoc } from "../domain/pdf";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { type TemplateDoc, versionDocId } from "../domain/templates";
+import { downloadLink } from "./download";
 
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
@@ -83,6 +85,7 @@ export interface Stores {
 	clients: Collection<ClientDoc>;
 	nonces: Collection<NonceDoc>;
 	audit_events: Collection<AuditEventDoc>;
+	artifacts: Collection<ArtifactChunkDoc>;
 }
 
 export const stores = (ctx: PluginContext) => ctx.storage as unknown as Stores;
@@ -244,9 +247,12 @@ async function get(routeCtx: { input?: unknown }, ctx: PluginContext) {
 		envelope.snapshot ? snapshots.getMany(envelope.snapshot.ids) : Promise.resolve(new Map<string, SnapshotChunkDoc>()),
 		envelope.signerIds.length > 0 ? signers.getMany(envelope.signerIds) : Promise.resolve(new Map<string, SignerDoc>()),
 	]);
+	// The signed PDF's short-lived download link (T025), once the PDF job has stored it.
+	const download = envelope.pdfSha256 ? await downloadLink(ctx, id, Date.now()) : null;
 	return {
 		ok: true,
 		envelope: view(id, envelope),
+		download,
 		snapshot: envelope.snapshot ? joinSnapshot([...chunks.values()]) : null,
 		signers: [...people].map(([signerId, s]) => ({
 			id: signerId,

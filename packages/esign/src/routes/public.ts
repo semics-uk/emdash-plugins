@@ -7,6 +7,8 @@ export interface PublicRouteSpec {
 	readonly methods: readonly ["POST"] | readonly ["GET"];
 	readonly body: "json" | "none";
 	readonly maxBytes?: number;
+	/** `raw`: the handler returns `pluginResponse()` (the PDF download). */
+	readonly response?: "raw";
 }
 
 const JSON_LIMIT = 64 * 1024;
@@ -18,7 +20,7 @@ export const PUBLIC_ROUTES: readonly PublicRouteSpec[] = [
 	{ name: "public/otp/verify", methods: ["POST"], body: "json", maxBytes: 8 * 1024 },
 	{ name: "public/submit", methods: ["POST"], body: "json", maxBytes: 256 * 1024 },
 	{ name: "public/decline", methods: ["POST"], body: "json", maxBytes: 8 * 1024 },
-	{ name: "public/download", methods: ["GET"], body: "none" },
+	{ name: "public/download", methods: ["GET"], body: "none", response: "raw" },
 	{ name: "public/verify", methods: ["POST"], body: "json", maxBytes: 8 * 1024 },
 	{ name: "public/receipts/lookup", methods: ["POST"], body: "json", maxBytes: 8 * 1024 },
 	{ name: "public/templates/catalog", methods: ["POST"], body: "json", maxBytes: JSON_LIMIT },
@@ -38,6 +40,7 @@ export function publicRoutes(handlers: Readonly<Record<string, RouteHandler>> = 
 			public: true,
 			methods: [...spec.methods],
 			request: spec.maxBytes === undefined ? { body: spec.body } : { body: spec.body, maxBytes: spec.maxBytes },
+			...(spec.response ? { response: spec.response } : {}),
 			handler: handlers[spec.name] ?? notImplemented,
 		};
 	}

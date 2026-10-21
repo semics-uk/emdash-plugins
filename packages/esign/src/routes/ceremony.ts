@@ -13,8 +13,10 @@
  *  - session, first view: signer + settings (2), envelope (1), snapshot (1), transition (1),
  *    audit head + create-only write (2) = 7; later views skip the last two = 5;
  *  - submit: signer + settings (2), envelope (1), audit head (1), transition (1), signer update (1),
- *    audit first event + `putMany` of the rest (2) = 8. The head is read before the transition so
- *    the envelope's `finalHash` (which covers the chain head) is written by that one update;
+ *    audit first event + `putMany` of the rest (2), the signed-PDF one-shot (1) = 9 (T025: the PDF
+ *    is rendered by that job, not here). The head is read before the transition so the envelope's
+ *    `finalHash` (which covers the chain head) is written by that one update;
+ *  - session on a completed envelope: signer + settings (2), envelope (1), download-link key (1) = 4;
  *  - decline: signer (1), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 7.
  *
  * A submit that loses the audit race (a first view appended between its head read and its write)
@@ -22,6 +24,7 @@
  */
 import { hashToken, type RateLimitStore, rateLimit, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
+import { schedulePdfJob } from "../cron/pdf";
 import {
 	type AuditInput,
 	appendAuditEvent,
@@ -43,6 +46,7 @@ import {
 	viewedAuditEvent,
 } from "../domain/signing";
 import { canTransition, type EnvelopeStatus, transitionEnvelope } from "../domain/state";
+import { downloadLink } from "./download";
 import { badRequest, fail, obj, stores } from "./envelopes";
 
 interface RouteInput {
@@ -132,7 +136,11 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	const envelope = await envelopes.get(signer.data.envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	if (!OPEN.includes(envelope.status) || signer.data.status !== "pending") {
-		return { ok: true, state: "closed", status: envelope.status, title: envelope.title };
+		const closed = { ok: true, state: "closed", status: envelope.status, title: envelope.title };
+		if (envelope.status !== "completed" || signer.data.status !== "signed") return closed;
+		// The signer of a completed envelope gets the signed PDF's short-lived link once it is stored.
+		if (!envelope.pdfSha256) return { ...closed, pdf: "pending" };
+		return { ...closed, pdf: "ready", download: await downloadLink(ctx, signer.data.envelopeId, Date.now()) };
 	}
 	const now = new Date().toISOString();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
@@ -245,6 +253,8 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 		const corrected = await finalEnvelopeHash(envelope.docSha256, written.at(-1)?.data.hash ?? "");
 		await envelopes.updateIf(envelopeId, { where: { status: "completed" }, set: { finalHash: corrected } });
 	}
+	// The signed PDF is rendered by a one-shot job on the next cron tick (T025, cron/pdf.ts).
+	await schedulePdfJob(ctx.cron, envelopeId, Date.parse(now));
 	return {
 		ok: true,
 		status: "completed",

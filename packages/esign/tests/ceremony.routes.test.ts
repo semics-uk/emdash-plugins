@@ -4,8 +4,9 @@ import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/
 import { afterEach, describe, expect, it } from "vitest";
 import { type AuditEventDoc, finalEnvelopeHash, verifyAuditChain } from "../src/domain/audit";
 
-/** R22: target ≤ 8 bridge calls per route. */
+/** R22: target ≤ 8 bridge calls per route; submit is at 9 since it schedules the signed-PDF job (T025). */
 const TARGET = { calls: 8, cpuMs: 50 };
+const SUBMIT = { calls: 9, cpuMs: 50 };
 
 let runtime: PluginRuntimeTestHost | undefined;
 const originalKey = process.env.EMDASH_ENCRYPTION_KEY;
@@ -30,7 +31,7 @@ interface Sent {
 
 async function call(budget: BudgetedHost, route: string, input: unknown): Promise<Body> {
 	const r = await budget.invokeRoute(route, input);
-	expectWithinBudget(r, TARGET);
+	expectWithinBudget(r, route === "public/submit" ? SUBMIT : TARGET);
 	return r.value as Body;
 }
 
