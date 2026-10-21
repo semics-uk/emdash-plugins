@@ -39,7 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [x] Clock injected for tests
 - [x] One-shot `hold-<ref>` cron tasks are only an accelerator; `sweep-holds` is the source of truth (max 10 due tasks per tick, S3, T005)
 - [x] Call `release` (T044) before a booking moves to expired/cancelled/refunded; drift repair runs with a cursor across ticks (`repairEventCounters` returns `complete: false` on large events); optional cleared fields on counted documents are `null`
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
