@@ -35,7 +35,9 @@ describe("R17 Pro gate: no new paid work without a key, in-flight work continues
 	it("classifies every listed operation as new or in-flight work", () => {
 		for (const [operation, work] of Object.entries(PRO_OPERATIONS)) {
 			expect(["new", "in-flight"]).toContain(work);
-			expect(gateProOperation(invalid, operation as keyof typeof PRO_OPERATIONS).ok, operation).toBe(work === "in-flight");
+			expect(gateProOperation(invalid, operation as keyof typeof PRO_OPERATIONS).ok, operation).toBe(
+				work === "in-flight",
+			);
 		}
 		expect(PRO_OPERATIONS["events/refund"]).toBe("in-flight");
 		expect(PRO_OPERATIONS["events/checkout"]).toBe("new");

@@ -12,7 +12,7 @@ export default defineConfig({
 	test: {
 		coverage: coverageConfig({
 			allSource: true,
-			strictBranches: ["src/tokens.ts", "src/hmac.ts", "src/pairing.ts", "src/licence.ts"],
+			strictBranches: ["src/tokens.ts", "src/hmac.ts", "src/pairing.ts", "src/licence.ts", "src/gate.ts"],
 		}),
 		projects: [
 			{

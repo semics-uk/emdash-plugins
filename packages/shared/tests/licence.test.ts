@@ -201,7 +201,13 @@ describe("R17 D6 local and preview hosts are exempt", () => {
 	});
 
 	it("does not exempt look-alike hosts", () => {
-		for (const host of ["workers.dev", "evilworkers.dev", "localhost.example.com", "workers.dev.example.com", "pages.dev"]) {
+		for (const host of [
+			"workers.dev",
+			"evilworkers.dev",
+			"localhost.example.com",
+			"workers.dev.example.com",
+			"pages.dev",
+		]) {
 			expect(isExemptHost(host), host).toBe(false);
 		}
 		expect(isExemptHost("a.workers.dev")).toBe(true);
@@ -216,7 +222,17 @@ describe("R17 hostname normalisation", () => {
 	});
 
 	it("rejects anything that is not a bare host", () => {
-		for (const host of ["", ".", "exa mple.com", "user@example.com", "example.com/path", "example.com?x", "http://example.com", ":80", "exémple.com"]) {
+		for (const host of [
+			"",
+			".",
+			"exa mple.com",
+			"user@example.com",
+			"example.com/path",
+			"example.com?x",
+			"http://example.com",
+			":80",
+			"exémple.com",
+		]) {
 			expect(normaliseHostname(host), host).toBeUndefined();
 		}
 	});
@@ -225,7 +241,11 @@ describe("R17 hostname normalisation", () => {
 describe("R17 licence payload schema", () => {
 	it("accepts a valid payload", () => {
 		expect(validateLicencePayload(payload())).toEqual(payload());
-		expect(validateLicencePayload(payload({ sites: Array.from({ length: LICENCE_MAX_SITES }, (_, i) => `s${i}.example.com`) }))).toBeDefined();
+		expect(
+			validateLicencePayload(
+				payload({ sites: Array.from({ length: LICENCE_MAX_SITES }, (_, i) => `s${i}.example.com`) }),
+			),
+		).toBeDefined();
 	});
 
 	it("rejects each malformed field", () => {
@@ -261,7 +281,9 @@ describe("R17 licence payload schema", () => {
 describe("R17 public key and build date are injected at build time", () => {
 	it("refuses a public key that is not 32 raw Ed25519 bytes", () => {
 		expect(() => createLicenceVerifier(build({ publicKey: "not base64!" }))).toThrow(/public key/i);
-		expect(() => createLicenceVerifier(build({ publicKey: encodeBase64Url(new Uint8Array(31)) }))).toThrow(/public key/i);
+		expect(() => createLicenceVerifier(build({ publicKey: encodeBase64Url(new Uint8Array(31)) }))).toThrow(
+			/public key/i,
+		);
 	});
 
 	it("refuses an invalid build date or build product", () => {
