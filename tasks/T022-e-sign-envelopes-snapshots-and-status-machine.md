@@ -4,7 +4,7 @@ title: "E-sign: envelopes, snapshots and status machine"
 phase: 1
 package: esign
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T021, T011]
