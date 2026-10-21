@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] State machine has one source of truth used by routes and cron
 - [ ] Replaces the T020 stub handler for `public/envelopes/from-intent`; snapshot writes stay ≤ 512 KiB per document (chunk if needed); audit collection is `audit_events`
 - [ ] Every route and cron job in this task asserts its budget with `withBudget(host)` + `expectWithinBudget` from `@semics-tech/shared/testing` (T007); this is the first adopter in its package, so also wire the harness into the package test setup
+- [ ] Snapshot = `renderTemplate` output (already escaped, T017); `docSha256 = sha256Hex(canonicalSnapshot(rendered))`, and the ceremony shows exactly that text
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
