@@ -1,0 +1,128 @@
+import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
+import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
+import { afterEach, describe, expect, it } from "vitest";
+
+let runtime: PluginRuntimeTestHost | undefined;
+afterEach(async () => {
+	await runtime?.dispose();
+	runtime = undefined;
+});
+
+type Body = {
+	ok: boolean;
+	error?: { code: string };
+	issues?: Array<{ path: string; code: string }>;
+	config?: { capacity: number; reserved: number; status: string };
+	ticketTypes?: Array<{ id: string; name: string; priceMinor: number; capacity: number; reserved: number }>;
+	occurrences?: Array<{ id: string; startsAt: string; capacity: number }>;
+};
+
+const input = {
+	eventId: "entry_1",
+	config: { status: "on_sale", capacity: 100, currency: "GBP" },
+	ticketTypes: [
+		{ name: "Standard", priceMinor: 1500, capacity: 60 },
+		{ name: "VIP", priceMinor: 4000, capacity: 10, sort: 1 },
+	],
+	occurrences: [
+		{ startsAt: "2026-12-05T18:00:00Z", endsAt: "2026-12-05T22:00:00Z", capacity: 50 },
+		{ startsAt: "2026-12-06T18:00:00Z", endsAt: "2026-12-07T10:00:00Z", capacity: 50 },
+	],
+};
+
+async function setup() {
+	runtime = await createPluginRuntimeTestHost();
+	return { runtime, budget: withBudget(runtime) };
+}
+
+describe("private config routes (EV-FR-02, EV-FR-03)", () => {
+	it("EV-FR-02 saves and loads a config, ticket types and occurrences within budget", async () => {
+		const { budget } = await setup();
+		const saved = await budget.invokeRoute("config/save", input);
+		expectWithinBudget(saved);
+		expect((saved.value as Body).ok).toBe(true);
+		const loaded = await budget.invokeRoute("config/get", { eventId: "entry_1" });
+		expectWithinBudget(loaded);
+		const body = loaded.value as Body;
+		expect(body.config).toMatchObject({ status: "on_sale", capacity: 100, reserved: 0 });
+		expect(body.ticketTypes?.map((t) => [t.name, t.priceMinor, t.capacity])).toEqual([
+			["Standard", 1500, 60],
+			["VIP", 4000, 10],
+		]);
+		expect(body.occurrences?.map((o) => o.startsAt)).toEqual(["2026-12-05T18:00:00.000Z", "2026-12-06T18:00:00.000Z"]);
+	});
+
+	it("EV-FR-02 updating by id keeps ids, and dropping an idle ticket type deletes it", async () => {
+		const { budget } = await setup();
+		await budget.invokeRoute("config/save", input);
+		const first = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		const [std] = first.ticketTypes ?? [];
+		const update = await budget.invokeRoute("config/save", {
+			...input,
+			ticketTypes: [{ id: std?.id, name: "Standard+", priceMinor: 1600, capacity: 60 }],
+			occurrences: first.occurrences,
+		});
+		expectWithinBudget(update);
+		expect((update.value as Body).ok).toBe(true);
+		const after = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		expect(after.ticketTypes).toHaveLength(1);
+		expect(after.ticketTypes?.[0]).toMatchObject({ id: std?.id, name: "Standard+", priceMinor: 1600 });
+		expect(after.occurrences).toHaveLength(2);
+	});
+
+	it("EV-FR-02 rejects invalid input with codes and writes nothing", async () => {
+		const { budget } = await setup();
+		const bad = await budget.invokeRoute("config/save", {
+			...input,
+			ticketTypes: [{ name: "Standard", priceMinor: -5, capacity: 60 }],
+		});
+		expectWithinBudget(bad);
+		expect(bad.value).toMatchObject({
+			ok: false,
+			error: { code: "BAD_REQUEST" },
+			issues: [{ path: "ticketTypes[0].priceMinor", code: "INVALID_PRICE" }],
+		});
+		const loaded = await budget.invokeRoute("config/get", { eventId: "entry_1" });
+		expectWithinBudget(loaded);
+		expect(loaded.value).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
+	});
+
+	it("EV-FR-02 rejects a missing event id", async () => {
+		const { budget } = await setup();
+		for (const name of ["config/save", "config/get"]) {
+			const r = await budget.invokeRoute(name, { config: input.config });
+			expectWithinBudget(r);
+			expect(r.value).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" } });
+		}
+	});
+
+	it("EV-FR-03 refuses to lower capacity below reserved", async () => {
+		const { runtime, budget } = await setup();
+		await budget.invokeRoute("config/save", input);
+		const loaded = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		const std = loaded.ticketTypes?.find((t) => t.name === "Standard");
+		// Reservations are written by the inventory module; simulate one directly in storage.
+		await runtime.fixtures.plugin.storage("ticket_types", std?.id ?? "", {
+			...std,
+			eventId: "entry_1",
+			sold: 0,
+			hidden: false,
+			sort: 0,
+			reserved: 25,
+		});
+		const withCapacity = (capacity: number) => ({
+			...input,
+			ticketTypes: loaded.ticketTypes?.map((t) => ({ ...t, capacity: t.name === "Standard" ? capacity : t.capacity })),
+			occurrences: loaded.occurrences,
+		});
+		const lowered = await budget.invokeRoute("config/save", withCapacity(24));
+		expectWithinBudget(lowered);
+		expect(lowered.value).toMatchObject({
+			ok: false,
+			issues: [{ path: "ticketTypes[0].capacity", code: "CAPACITY_BELOW_RESERVED" }],
+		});
+		const same = await budget.invokeRoute("config/save", withCapacity(25));
+		expectWithinBudget(same);
+		expect((same.value as Body).ok).toBe(true);
+	});
+});
