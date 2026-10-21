@@ -349,7 +349,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -364,7 +364,7 @@
 				"T043",
 				"T052"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T015": {
 			"file": "T015-shared-email-outbox-with-retries.md",
@@ -2259,7 +2259,6 @@
 		"ready": [
 			"T012",
 			"T013",
-			"T014",
 			"T015",
 			"T016",
 			"T017",
@@ -2284,6 +2283,7 @@
 			"T009",
 			"T010",
 			"T011",
+			"T014",
 			"T018",
 			"T020",
 			"T040",
