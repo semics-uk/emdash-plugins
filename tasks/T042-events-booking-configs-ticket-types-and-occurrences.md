@@ -45,3 +45,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ```sh
 pnpm --filter @semics-tech/emdash-events verify
 ```
+
+## Notes
+
+WIP (usage limit): src/domain/config.ts written and domain tests pass (13). Remaining: src/routes/config.ts with config/get and config/save (getMany/putMany/deleteMany, <=10 bridge calls; BAD_REQUEST body plus issues; NOT_FOUND when no config), register in src/plugin.ts, run route tests, pnpm verify, changeset check, tick boxes, status review. Known follow-up: save uses putMany over stored counters (race with inventory); inventory should use updateIf.

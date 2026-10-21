@@ -211,7 +211,7 @@ describe("validateConfigInput (EV-FR-02, EV-FR-03)", () => {
 	it("EV-FR-02 rejects an unknown or duplicated id", () => {
 		const existing: ExistingState = {
 			config: storedConfig,
-			ticketTypes: new Map([["t1", storedTicket]]),
+			ticketTypes: new Map([["t1", { ...storedTicket, reserved: 0, sold: 0 }]]),
 			occurrences: new Map(),
 		};
 		expect(codes(issues({ config: baseConfig, ticketTypes: [{ ...baseTicket, id: "zzz" }] }, existing))).toEqual([
