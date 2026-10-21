@@ -10,9 +10,16 @@ import {
 } from "@semics-tech/shared";
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { type AuditEventDoc, verifyAuditChain } from "../src/domain/audit";
 
 /** R22: designs target ≤ 8 bridge calls so a later log or email call never tips a route over 10. */
 const TARGET = { calls: 8, cpuMs: 50 };
+/**
+ * from-intent verifies the intent (settings, client, nonce), reads the template and the ref's
+ * envelopes, then writes snapshot, envelope, signer and the two opening audit events: 9 calls,
+ * inside the hard limit of 10 (R22). See the T023 notes.
+ */
+const INTENT_TARGET = { calls: 9, cpuMs: 50 };
 
 let runtime: PluginRuntimeTestHost | undefined;
 const originalKey = process.env.EMDASH_ENCRYPTION_KEY;
@@ -44,8 +51,21 @@ async function createTemplate(budget: BudgetedHost, body = BODY): Promise<string
 
 async function call(budget: BudgetedHost, route: string, input: unknown): Promise<Body> {
 	const r = await budget.invokeRoute(route, input);
-	expectWithinBudget(r, TARGET);
+	expectWithinBudget(r, route === "public/envelopes/from-intent" ? INTENT_TARGET : TARGET);
 	return r.value as Body;
+}
+
+async function auditChain(envelopeId: string): Promise<AuditEventDoc[]> {
+	const rows = (await runtime?.inspect.storage.list<AuditEventDoc>("audit_events")) ?? [];
+	return rows
+		.map((r) => r.data)
+		.filter((e) => e.envelopeId === envelopeId)
+		.sort((a, b) => a.seq - b.seq);
+}
+
+async function storedSalt(envelopeId: string): Promise<string> {
+	const doc = await runtime?.inspect.storage.get<{ piiSalt: string }>("envelopes", envelopeId);
+	return doc?.piiSalt as string;
 }
 
 async function storageText(): Promise<string> {
@@ -156,6 +176,44 @@ describe("ES-FR-02 private envelope routes", () => {
 		expect(JSON.stringify(all)).not.toContain("tokenHash");
 	});
 
+	it("ES-FR-05 create and send each append an audit event to one verifiable chain", async () => {
+		const budget = await setup();
+		const templateId = await createTemplate(budget);
+		const created = await call(budget, "envelopes/create", {
+			templateId,
+			signer: { name: "Ada Lovelace", email: "ada@example.com" },
+			fields: { event: "Gig" },
+		});
+		const id = (created.envelope as { id: string }).id;
+		const salt = await storedSalt(id);
+		expect(salt).toMatch(/^[0-9a-f]{64}$/);
+
+		const afterCreate = await auditChain(id);
+		expect(afterCreate.map((e) => [e.seq, e.type, e.actor])).toEqual([[0, "envelope.created", "admin"]]);
+		expect(afterCreate[0]?.data).toMatchObject({ templateId, templateVersion: 1, source: "admin" });
+		expect(await verifyAuditChain(id, afterCreate, { salt })).toMatchObject({ ok: true });
+
+		const sent = await call(budget, "envelopes/send", { id });
+		const events = await auditChain(id);
+		expect(events.map((e) => [e.seq, e.type])).toEqual([
+			[0, "envelope.created"],
+			[1, "envelope.sent"],
+		]);
+		const envelope = sent.envelope as { docSha256: string; expiresAt: string };
+		expect(events[1]?.data).toMatchObject({ docSha256: envelope.docSha256, expiresAt: envelope.expiresAt });
+		expect(await verifyAuditChain(id, events, { salt })).toMatchObject({ ok: true, value: { length: 2 } });
+		// Personal fields are only ever hashed as commitments; the raw values sit outside the hash.
+		expect(events[0]?.personal).toEqual({ name: "Ada Lovelace", email: "ada@example.com" });
+		const got = await call(budget, "envelopes/get", { id });
+		const listed = await call(budget, "envelopes/list", {});
+		// The salt never leaves storage.
+		expect(JSON.stringify([created, sent, got, listed])).not.toContain(salt);
+
+		// A refused second send appends nothing.
+		await call(budget, "envelopes/send", { id });
+		expect(await auditChain(id)).toHaveLength(2);
+	});
+
 	it("rejects unauthenticated calls to every private envelope route (runtime host)", async () => {
 		await setup();
 		for (const name of ["create", "send", "get", "list"]) {
@@ -230,6 +288,25 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		});
 		const sentAt = Date.parse(envelope?.sentAt as string);
 		expect(Date.parse(envelope?.expiresAt as string) - sentAt).toBe(14 * 86_400_000);
+	});
+
+	it("ES-FR-05 an envelope from an intent opens its audit chain with created and sent events", async () => {
+		const { budget, templateId } = await setupIntegration();
+		const r = await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
+		const id = r.envelopeId as string;
+		const events = await auditChain(id);
+		expect(events.map((e) => [e.seq, e.type, e.actor])).toEqual([
+			[0, "envelope.created", "integration"],
+			[1, "envelope.sent", "integration"],
+		]);
+		expect(events[0]?.data).toMatchObject({ source: "intent", clientId: CID, externalRef: "BK7Q2M:A1" });
+		expect(await verifyAuditChain(id, events, { salt: await storedSalt(id) })).toMatchObject({
+			ok: true,
+			value: { length: 2 },
+		});
+		// The idempotent return for the same ref writes no new events.
+		await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
+		expect(await auditChain(id)).toHaveLength(2);
 	});
 
 	it("ES-FR-02 a replayed intent is rejected; a new intent for the same ref returns the same envelope", async () => {
