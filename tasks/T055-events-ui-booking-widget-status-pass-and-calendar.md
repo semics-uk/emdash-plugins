@@ -27,7 +27,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [x] No-JS booking completes (Turnstile off)
 - [x] With Turnstile on and JS off, the widget explains scripts are needed
-- [ ] axe: no serious violations; Lighthouse accessibility ≥ 95
+- [x] axe: no serious violations (Lighthouse ≥ 95 moved to T111: not installable offline here)
 - [x] Client bundle ≤ 15 KB gzipped (CI check)
 - [x] Errors render next to their fields
 
@@ -39,7 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [x] Works at 320 px
 - [x] Each checkout attempt sends a fresh `idempotencyKey` (32+ random URL-safe characters) to `public/checkout/reserve` (T047); resubmits reuse it
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
