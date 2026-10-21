@@ -1,12 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	canonicalSnapshot,
-	escapeValue,
-	renderTemplate,
-	sha256Hex,
-	TemplateError,
-	templateFields,
-} from "../src/index";
+import { canonicalSnapshot, escapeValue, renderTemplate, sha256Hex, TemplateError, templateFields } from "../src/index";
 
 describe("renderTemplate (ES-FR-01)", () => {
 	it("fills placeholders, tolerating inner spaces and repeats", () => {

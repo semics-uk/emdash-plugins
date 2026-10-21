@@ -4,7 +4,7 @@ title: "Shared: template rendering and canonical snapshots"
 phase: 1
 package: shared
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T003]
@@ -25,9 +25,9 @@ Fill `{{field}}` placeholders in Markdown templates, escape values, and produce 
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Placeholders fill, missing fields fail with a named error
-- [ ] Values cannot inject Markdown or HTML
-- [ ] Canonicalisation normalises line endings and Unicode (NFC) so equal documents hash equally
+- [x] Placeholders fill, missing fields fail with a named error
+- [x] Values cannot inject Markdown or HTML
+- [x] Canonicalisation normalises line endings and Unicode (NFC) so equal documents hash equally
 
 ## Implementation (green, then refactor)
 
@@ -35,11 +35,17 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Pure functions, 100% branch coverage
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Pure functions, 100% branch coverage
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 pnpm --filter @semics-tech/shared verify
 ```
+
+## Notes
+
+- Canonical form (documented in packages/shared/src/template.ts): strip BOM, CRLF/CR to LF, NFC, strip trailing spaces/tabs per line, exactly one trailing newline. docSha256 = sha256Hex(canonicalSnapshot(rendered)).
+- Escaping: values flattened to one line, HTML-escaped and Markdown backslash-escaped at render time; values are never re-expanded.
+- Missing field throws TemplateError (code TEMPLATE_MISSING_FIELD, .field).
