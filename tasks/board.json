@@ -707,7 +707,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -722,7 +722,7 @@
 				"T033",
 				"T065"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T031": {
 			"file": "T031-e-sign-ui-signature-pad.md",
@@ -2278,7 +2278,6 @@
 		],
 		"ready": [
 			"T028",
-			"T030",
 			"T031",
 			"T032",
 			"T043",
@@ -2290,6 +2289,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T030",
 			"T113"
 		],
 		"review": [],

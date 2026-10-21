@@ -4,7 +4,7 @@ title: "E-sign UI: ceremony component with sanitised rendering"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T029, T024]
@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] CSP header allows only the package's hashed script
 - [ ] Ceremony posts `{token, consent, intent, docSha256, signature:{kind, typedName?, strokes?}}` to `public/submit` (T024); renders `public/session` (snapshot text, `docSha256`, consent wording/version, signer name; `state: "closed"` for finished envelopes)
 - [ ] After submit, poll `public/session` until `pdf: "ready"` and show its `download` link (T025: the submit response carries none)
+- [ ] Builds on `SignPage.astro` + `src/astro/lib/sign.ts` (`handleSign`, T029: typed signature, consent/intent, decline, no-JS); add drawn signatures and field values without breaking the no-JS path
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
