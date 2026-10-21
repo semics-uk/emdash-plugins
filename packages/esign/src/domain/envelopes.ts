@@ -30,7 +30,7 @@ import {
 	templateFields,
 } from "@semics-tech/shared";
 import { canTransition, type EnvelopeStatus } from "./state";
-import type { TemplateDoc } from "./templates";
+import { type TemplateDoc, usableForNewEnvelope } from "./templates";
 
 export type SignerCapacity = "self" | "guardian" | "buyer";
 export type Delivery = "inline" | "email";
@@ -195,11 +195,9 @@ export function pickTemplateVersion(
 	version: TemplateDoc | undefined,
 	requested: number | undefined,
 ): Result<TemplateDoc, "TEMPLATE_NOT_FOUND"> {
-	if (head?.status !== "active") return err("TEMPLATE_NOT_FOUND");
-	if (requested === undefined) return ok(head);
-	return version && version.status === "version" && version.version === requested
-		? ok(version)
-		: err("TEMPLATE_NOT_FOUND");
+	const usable = head ? usableForNewEnvelope(head) : err("TEMPLATE_NOT_FOUND" as const);
+	if (!usable.ok || requested === undefined) return usable;
+	return version?.status === "version" && version.version === requested ? ok(version) : err("TEMPLATE_NOT_FOUND");
 }
 
 /** Values the template sees: the field values plus the built-in `signer.*` and `participant.name`. */

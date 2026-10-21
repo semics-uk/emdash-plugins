@@ -43,3 +43,9 @@ automatic reminders/expiry, PDF templates, self-serve forms, bulk send, MCP (BUI
 
 `src/domain` pure logic (90% lines; 100% branches for audit and signing) · `src/routes` thin adapters ·
 `src/storage/schema.ts` · `src/admin` Block Kit · `src/cron` · `tests/`.
+
+Modules so far: `domain/templates.ts` (T021: head + immutable `<id>:v<n>` versions), `domain/state.ts` (T022: the
+status table and `transitionEnvelope`, a guarded `updateIf` on the expected status; every status change, route or
+cron, goes through it), `domain/envelopes.ts` (T022: drafts, `sendEnvelope` freezes the canonical snapshot +
+`docSha256`, hash-addressed snapshot chunks, signer `tokenHash` only), `routes/envelopes.ts` (T022: private
+`envelopes/create|send|get|list` and `public/envelopes/from-intent`).
