@@ -54,6 +54,14 @@ describe("error registry", () => {
 		}
 	});
 
+	it("R31 SESSION_REQUIRED is a 409 asking the signer to reopen the page", () => {
+		expect(ERROR_CODES.SESSION_REQUIRED.status).toBe(409);
+		expect(toRouteError("SESSION_REQUIRED")).toEqual({
+			status: 409,
+			body: { ok: false, error: { code: "SESSION_REQUIRED", message: ERROR_CODES.SESSION_REQUIRED.message } },
+		});
+	});
+
 	it("contains the seeded PRD codes", () => {
 		for (const code of [
 			"BAD_REQUEST",

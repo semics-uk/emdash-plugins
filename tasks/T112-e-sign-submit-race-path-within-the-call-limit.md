@@ -4,7 +4,7 @@ title: "E-sign: submit race path within the call limit"
 phase: 1
 package: esign
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T025]
@@ -32,10 +32,10 @@ rebuild path is deleted.
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Submit against a `sent` envelope returns `SESSION_REQUIRED` and writes nothing (budget asserted)
-- [ ] After `public/session`, submit succeeds within 9 calls and the chain verifies to `finalHash`
-- [ ] Two concurrent submits: one completes, the other gets `CONFLICT`; neither exceeds 10 calls
-- [ ] No code path in `public/submit` can exceed 10 calls (the rebuild branch is gone)
+- [x] Submit against a `sent` envelope returns `SESSION_REQUIRED` and writes nothing (budget asserted)
+- [x] After `public/session`, submit succeeds within 9 calls and the chain verifies to `finalHash`
+- [x] Two concurrent submits: one completes, the other gets `CONFLICT`; neither exceeds 10 calls
+- [x] No code path in `public/submit` can exceed 10 calls (the rebuild branch is gone)
 
 ## Implementation (green, then refactor)
 
@@ -44,11 +44,18 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] T030 note: the ceremony UI calls `public/session` before showing the submit button (it already must)
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] T030 note: the ceremony UI calls `public/session` before showing the submit button (it already must)
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 corepack pnpm@10.23.0 --filter @semics-tech/emdash-esign exec vitest run tests/ceremony.routes.test.ts
 ```
+
+## Notes
+
+- Concurrent submits: the loser gets `ENVELOPE_CLOSED` (the existing code for a lost transition; there is no `CONFLICT` code in the registry), or `SIGNING_TOKEN_INVALID` if it reads the signer after the winner finished. The test accepts either.
+- Existing ceremony/download tests now call `public/session` before submitting (the real ceremony does).
+- T030: the UI must call `public/session` before enabling submit (it already does).
+- `writeChain` is kept for `public/decline`.

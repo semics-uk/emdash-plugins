@@ -64,4 +64,5 @@ chunks and sets `pdfSha256` + `pdf: { ids, bytes }` with a guarded `updateIf` on
 random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes after re-checking `pdfSha256`;
 `SIGNED_PDF_PENDING` (409) re-arms the job. Links come from `public/session` (signer of a completed envelope:
 `pdf: "pending" | "ready"`, `download`) and `envelopes/get`).
+`public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
 Budget: from-intent and submit are at 9 bridge calls (others ≤ 8).

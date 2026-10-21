@@ -67,6 +67,9 @@ const good = (s: Sent, over: Record<string, unknown> = {}) => ({
 	...over,
 });
 
+/** The ceremony always opens the page first: `public/session` does the `sent -> in_progress` view transition. */
+const view = (s: Sent) => call(s.budget, "public/session", { token: TOKEN });
+
 async function chain(id: string): Promise<AuditEventDoc[]> {
 	const rows = (await runtime?.inspect.storage.list<AuditEventDoc>("audit_events")) ?? [];
 	return rows
@@ -120,6 +123,7 @@ describe("ES-FR-04 public/session", () => {
 
 	it("ES-FR-04 a finished envelope shows its state and no document", async () => {
 		const s = await sent();
+		await view(s);
 		await call(s.budget, "public/submit", good(s));
 		const r = await call(s.budget, "public/session", { token: TOKEN });
 		expect(r).toMatchObject({ ok: true, state: "closed", status: "completed" });
@@ -151,6 +155,7 @@ describe("ES-FR-04 public/submit", () => {
 
 	it("ES-FR-04 rejects stroke JSON over 32 KB, empty signatures and a stale document hash", async () => {
 		const s = await sent();
+		await view(s);
 		const stroke = Array.from({ length: 3000 }, (_, i) => [i / 3000, 0.123456]);
 		const big = await call(
 			s.budget,
@@ -165,11 +170,12 @@ describe("ES-FR-04 public/submit", () => {
 			error: { code: "BAD_REQUEST" },
 			issues: [{ code: "DOC_CHANGED" }],
 		});
-		expect((await envelopeOf(s.id))?.status).toBe("sent");
+		expect((await envelopeOf(s.id))?.status).toBe("in_progress");
 	});
 
 	it("ES-FR-04 a wrong token fails and a used token fails", async () => {
 		const s = await sent();
+		await view(s);
 		expect(await call(s.budget, "public/submit", good(s, { token: "w".repeat(43) }))).toMatchObject({
 			error: { code: "SIGNING_TOKEN_INVALID" },
 		});
@@ -177,7 +183,7 @@ describe("ES-FR-04 public/submit", () => {
 		expect(await call(s.budget, "public/submit", good(s))).toMatchObject({
 			error: { code: "SIGNING_TOKEN_INVALID" },
 		});
-		expect(await chain(s.id)).toHaveLength(5);
+		expect(await chain(s.id)).toHaveLength(6);
 	});
 
 	it("ES-FR-04 a completed submit stores the signature, writes the audit events and completes the envelope", async () => {
@@ -221,8 +227,54 @@ describe("ES-FR-04 public/submit", () => {
 		expect((signer?.signature as { sha256: string } | undefined)?.sha256).toBe(expectedSha);
 	});
 
+	it("R31 submit against a sent envelope is SESSION_REQUIRED and writes nothing", async () => {
+		const s = await sent();
+		const before = await chain(s.id);
+		const r = await s.budget.invokeRoute("public/submit", good(s));
+		expectWithinBudget(r, SUBMIT);
+		expect(r.value).toMatchObject({ ok: false, error: { code: "SESSION_REQUIRED" } });
+		expect((await envelopeOf(s.id))?.status).toBe("sent");
+		expect(await chain(s.id)).toEqual(before);
+		const signer = await runtime?.inspect.storage.get<Record<string, unknown>>("signers", `${s.id}:s1`);
+		expect(signer?.status).toBe("pending");
+		// The same link works once the page has been opened.
+		await view(s);
+		expect(await call(s.budget, "public/submit", good(s))).toMatchObject({ ok: true, status: "completed" });
+	});
+
+	it("R31 after public/session, submit completes within 9 calls and the chain verifies to finalHash", async () => {
+		const s = await sent();
+		await view(s);
+		const r = await s.budget.invokeRoute("public/submit", good(s));
+		expectWithinBudget(r, SUBMIT);
+		expect(r.value).toMatchObject({ ok: true });
+		const env = await envelopeOf(s.id);
+		const events = await chain(s.id);
+		expect(await verifyAuditChain(s.id, events, { salt: env?.piiSalt as string })).toMatchObject({ ok: true });
+		expect(env?.finalHash).toBe(await finalEnvelopeHash(s.docSha256, events.at(-1)?.hash as string));
+	});
+
+	it("R31 two concurrent submits: one completes, the other CONFLICTs; neither exceeds 10 calls", async () => {
+		const s = await sent();
+		await view(s);
+		const [a, b] = await Promise.all([
+			s.budget.invokeRoute("public/submit", good(s)),
+			s.budget.invokeRoute("public/submit", good(s)),
+		]);
+		for (const r of [a, b]) expectWithinBudget(r, { calls: 10, cpuMs: 50 });
+		const codes = [a, b].map((r) => ((r.value as Body).ok ? "ok" : (r.value as Body).error?.code));
+		expect(codes.filter((c) => c === "ok")).toHaveLength(1);
+		expect(
+			codes.filter((c) => c === "ENVELOPE_CLOSED" || c === "SIGNING_TOKEN_INVALID" || c === "CONFLICT"),
+		).toHaveLength(1);
+		const env = await envelopeOf(s.id);
+		const events = await chain(s.id);
+		expect(await verifyAuditChain(s.id, events, { salt: env?.piiSalt as string })).toMatchObject({ ok: true });
+	});
+
 	it("ES-FR-04 a signed link cannot decline afterwards", async () => {
 		const s = await sent();
+		await view(s);
 		await call(s.budget, "public/submit", good(s));
 		expect((await envelopeOf(s.id))?.status).toBe("completed");
 		expect(await call(s.budget, "public/decline", { token: TOKEN })).toMatchObject({

@@ -78,6 +78,7 @@ const submitBody = (s: Sent, signature: unknown = { kind: "typed", typedName: "A
 });
 
 async function signed(s: Sent, signature?: unknown): Promise<void> {
+	await call(s.budget, "public/session", { token: TOKEN });
 	const r = await call(s.budget, "public/submit", submitBody(s, signature), SUBMIT);
 	expect(r).toMatchObject({ ok: true, status: "completed" });
 }

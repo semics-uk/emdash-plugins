@@ -19,8 +19,9 @@
  *  - session on a completed envelope: signer + settings (2), envelope (1), download-link key (1) = 4;
  *  - decline: signer (1), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 7.
  *
- * A submit that loses the audit race (a first view appended between its head read and its write)
- * re-reads the head, rebuilds and rewrites, then corrects `finalHash`: a rare path, +4 calls.
+ * Submit accepts only an `in_progress` envelope (R31): the first view (`sent -> in_progress`, which writes
+ * `signer.viewed`) is `public/session`'s job, so no event can land between submit's head read and its
+ * write and there is no rebuild path. A `sent` envelope is `SESSION_REQUIRED` and nothing is written.
  */
 import { hashToken, type RateLimitStore, rateLimit, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
@@ -205,7 +206,8 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	const envelopeId = signer.data.envelopeId;
 	const envelope = await envelopes.get(envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
-	if (!OPEN.includes(envelope.status)) return fail("ENVELOPE_CLOSED");
+	if (envelope.status === "sent") return fail("SESSION_REQUIRED");
+	if (envelope.status !== "in_progress") return fail("ENVELOPE_CLOSED");
 	const now = new Date().toISOString();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 	// The signature binds to the document the signer saw; the snapshot is immutable after send.
@@ -247,12 +249,9 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 			...who,
 		},
 	});
-	const written = await writeChain(ctx, envelopeId, envelope.piiSalt, inputs, planned);
-	if (written !== planned) {
-		// A view slipped in after the head was read: the chain moved, so the final hash must follow.
-		const corrected = await finalEnvelopeHash(envelope.docSha256, written.at(-1)?.data.hash ?? "");
-		await envelopes.updateIf(envelopeId, { where: { status: "completed" }, set: { finalHash: corrected } });
-	}
+	// Only `in_progress` envelopes get here and the transition above is the single arbiter, so the head
+	// cannot have moved: one create-only write, no rebuild.
+	if (!(await writeAuditEvents(audit_events, planned))) throw new Error("audit chain contention");
 	// The signed PDF is rendered by a one-shot job on the next cron tick (T025, cron/pdf.ts).
 	await schedulePdfJob(ctx.cron, envelopeId, Date.parse(now));
 	return {
