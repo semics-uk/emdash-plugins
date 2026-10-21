@@ -635,7 +635,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -648,7 +648,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T028": {
 			"file": "T028-e-sign-block-kit-admin-envelopes-templates-settings.md",
@@ -2269,7 +2269,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T027",
 			"T055"
 		],
 		"review": [],
@@ -2300,6 +2299,7 @@
 			"T024",
 			"T025",
 			"T026",
+			"T027",
 			"T040",
 			"T041",
 			"T042",
