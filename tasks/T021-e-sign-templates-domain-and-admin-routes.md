@@ -4,7 +4,7 @@ title: "E-sign: templates domain and admin routes"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: review
 model: sonnet-5.5
 size: M
 depends_on: [T020, T017, T014]
@@ -25,10 +25,10 @@ Create, version, list and archive Markdown templates; editing makes a new versio
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Create returns version 1; update returns version 2 and keeps version 1 readable
-- [ ] Archived templates can't be used for new envelopes
-- [ ] Private routes reject unauthenticated calls (runtime host)
-- [ ] Each route within budget
+- [x] Create returns version 1; update returns version 2 and keeps version 1 readable
+- [x] Archived templates can't be used for new envelopes
+- [x] Private routes reject unauthenticated calls (runtime host)
+- [x] Each route within budget
 
 ## Implementation (green, then refactor)
 
@@ -36,11 +36,19 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Domain logic is pure and tested without the host
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Domain logic is pure and tested without the host
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 pnpm --filter @semics-tech/emdash-esign verify
 ```
+
+## Notes
+
+- One head document per template (id = template id, status `active`/`archived`) plus immutable version documents
+  (`<id>:v<n>`, status `version`); `list` filters on status. Bridge calls: create 1, update 2, get 1, list 1, archive 2.
+- T022: load the head and call `usableForNewEnvelope`; archived → `TEMPLATE_NOT_FOUND`; editing archived → `TEMPLATE_ARCHIVED` issue.
+- Out of scope: un-archive route, `list` cursor (200 cap).
+- Red evidence for the auth test is weak (route didn't exist); green proves 401/403 on all five routes.
