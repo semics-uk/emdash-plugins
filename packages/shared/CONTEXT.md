@@ -14,6 +14,7 @@ Modules so far: `result.ts` (Result, `ERROR_CODES`, `toRouteError`), `money.ts`,
 `tokens.ts` (T011: opaque tokens, `constantTimeEqual`, `signLink`/`verifyLink`), `hmac.ts` + `pairing.ts`
 (T012: `esign-intent/1` sign/verify per type, injected `consumeNonce`, `isReturnUrlAllowed`,
 `deriveClientSecret`), `blockkit.ts` (T014: typed builders, `notice`/`notices` banners), `template.ts` (T017:
-`renderTemplate`, `canonicalSnapshot`, `sha256Hex`), `pdf/` (T016: `renderPdf`, deterministic). Security
-globs at 100% branches: `strictBranches` in `vitest.config.ts`. Planned: ratelimit, turnstile, outbox, rrule,
+`renderTemplate`, `canonicalSnapshot`, `sha256Hex`), `pdf/` (T016: `renderPdf`, deterministic), `ratelimit.ts`
+(T013: `rateLimit(store, ip, now, opts)`, hashed IPs, 2 store calls) and `turnstile.ts` (T013: `verifyTurnstile`). Security
+globs at 100% branches: `strictBranches` in `vitest.config.ts`. Planned: outbox, rrule,
 licence.

@@ -15,9 +15,10 @@ const bad = { ok: false, error: "TURNSTILE_FAILED" };
 describe("verifyTurnstile (EV-NFR-04)", () => {
 	it("passes on success with exactly one call to the allowed host", async () => {
 		const { fetch, calls } = fakeFetch({ success: true });
-		expect(
-			await verifyTurnstile(fetch, { secret: "sec", token: "tok", remoteIp: "1.2.3.4" }),
-		).toEqual({ ok: true, value: true });
+		expect(await verifyTurnstile(fetch, { secret: "sec", token: "tok", remoteIp: "1.2.3.4" })).toEqual({
+			ok: true,
+			value: true,
+		});
 		expect(calls).toHaveLength(1);
 		const first = calls[0];
 		expect(new URL(first?.url ?? "").hostname).toBe("challenges.cloudflare.com");
