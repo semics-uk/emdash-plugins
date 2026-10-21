@@ -207,7 +207,9 @@ describe("snapshot Markdown subset (SU-FR-03)", () => {
 	});
 
 	it("SU-FR-03 escapes are undone inside code, link text and unsafe link sources too", () => {
-		expect(parseSnapshot("`a &lt;b&gt; \\*`")).toEqual([{ type: "paragraph", children: [{ type: "code", text: "a <b> *" }] }]);
+		expect(parseSnapshot("`a &lt;b&gt; \\*`")).toEqual([
+			{ type: "paragraph", children: [{ type: "code", text: "a <b> *" }] },
+		]);
 		expect(parseSnapshot("```\nx &amp; y\n```")).toEqual([{ type: "code", text: "x & y" }]);
 		expect(textOf(parseSnapshot("[a &amp; b](javascript:x)"))).toBe("[a & b](javascript:x)");
 		expect(textOf(parseSnapshot("![a &amp; b](https://x.example/i.png)"))).toBe("a & b");
