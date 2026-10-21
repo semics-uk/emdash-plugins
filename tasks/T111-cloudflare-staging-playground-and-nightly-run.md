@@ -41,6 +41,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] S2 confirmed on Worker Loader and recorded in BUILD-PLAN §7
 - [ ] Workflow uses a scoped Cloudflare API token stored as a GitHub secret (owner creates it; needs the GitHub repo)
 - [ ] CI installs `qpdf` so the T016 `qpdf --check` test runs
+- [ ] Lighthouse accessibility ≥ 95 on the booking widget and booking page (moved from T055: not installable offline locally)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No private fields in responses
+- [ ] `public/event` takes `GET { eventId }` and answers in the `PublicEvent` shape in `src/astro/lib/widget.ts` (T055); then drop the playground event page's fixture `data` prop
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
