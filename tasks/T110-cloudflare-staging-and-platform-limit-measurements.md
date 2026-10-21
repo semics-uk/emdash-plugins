@@ -4,7 +4,7 @@ title: "Cloudflare staging and platform-limit measurements"
 phase: 0
 package: repo
 edition: free
-status: blocked
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T009]
