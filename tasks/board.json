@@ -848,7 +848,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -861,7 +861,7 @@
 			"unblocks": [
 				"T042"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T042": {
 			"file": "T042-events-booking-configs-ticket-types-and-occurrences.md",
@@ -2245,7 +2245,6 @@
 			"T017",
 			"T018",
 			"T029",
-			"T041",
 			"T053"
 		],
 		"in-progress": [],
@@ -2262,14 +2261,15 @@
 			"T009",
 			"T010",
 			"T020",
-			"T040"
+			"T040",
+			"T041"
 		],
 		"blocked": [
 			"T110"
 		]
 	},
 	"criticalPath": [
-		"T041",
+		"T018",
 		"T042",
 		"T044",
 		"T045",

@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Settings page calls `validateMapping` (`src/domain/mapping.ts`) with the `schema:read` collections and renders its `banner`; shows the T040 `encryptionKeyStatus` banner too
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
