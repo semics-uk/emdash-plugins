@@ -78,6 +78,18 @@ export class FakeCollection {
 		};
 	}
 
+	async put(id: string, data: Doc) {
+		meter.calls++;
+		if (this.failOn?.("put", id, data)) throw new Error("injected storage failure");
+		this.set(id, structuredClone(data));
+	}
+
+	async putMany(items: Array<{ id: string; data: Doc }>) {
+		meter.calls++;
+		if (this.failOn?.("putMany", "", items)) throw new Error("injected storage failure");
+		for (const { id, data } of items) this.set(id, structuredClone(data));
+	}
+
 	async updateIf(
 		id: string,
 		args: {
@@ -134,5 +146,7 @@ export function makeStore() {
 		event_configs: new FakeCollection(),
 		ticket_types: new FakeCollection(),
 		occurrences: new FakeCollection(),
+		attendees: new FakeCollection(),
+		outbox: new FakeCollection(),
 	};
 }
