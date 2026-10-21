@@ -39,7 +39,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   draft → held) must guard its `updateIf` on `releaseClaimedAt: null` (and the status it read), and
   treat a miss as "hold lapsed". Checkout schedules the accelerator with `scheduleHoldTask`.
 - Checkout is two calls: `public/checkout/reserve` then `public/checkout/continue`, each ≤ 10 bridge
-  calls (assert with the T007 budget harness).
+  calls (assert with the T007 budget harness). Reserve (`src/routes/checkout-reserve.ts`, T047) plans
+  from the event config alone: `config/save` keeps a `catalog` of ticket types and occurrences on it
+  (no counters; the guards pin its capacities). The booking id comes from the client's
+  `idempotencyKey` and is created with `compareAndSet(id, null, …)`; a resubmit gets the same
+  booking with a reissued token. The rate limit counts the IP's recent bookings (`ipHash`, salted)
+  instead of KV. Reserve schedules `hold-<ref>` only when the budget has room; continue re-arms it.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.

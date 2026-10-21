@@ -259,6 +259,28 @@ describe("public/checkout/reserve (EV-FR-05)", () => {
 		expect(await counter(s, "event_configs", "entry_1")).toBe(2);
 	});
 
+	it("EV-FR-05 a resubmit after the hold lapsed is HOLD_EXPIRED; after confirmation it keeps the emailed token", async () => {
+		const s = await setup();
+		const input = order(s);
+		const first = await reserve(s, input);
+		const [stored] = await bookings(s);
+		const id = stored?.id ?? "";
+		await s.runtime.fixtures.plugin.storage("bookings", id, { ...stored?.data, status: "confirmed" });
+		const confirmed = await reserve(s, input);
+		expect(confirmed.body).toEqual({ ok: true, bookingRef: first.body.bookingRef, status: "confirmed" });
+		expect((await bookings(s))[0]?.data.accessTokenHash).toBe(await hashToken(first.body.accessToken ?? ""));
+		await s.runtime.fixtures.plugin.storage("bookings", id, { ...stored?.data, status: "expired" });
+		const expired = await reserve(s, input);
+		expect(expired.body).toMatchObject({ ok: false, error: { code: "HOLD_EXPIRED" } });
+	});
+
+	it("EV-FR-05 an occurrence event refuses an order without its occurrence", async () => {
+		const s = await setup({ occurrences: true });
+		const { body } = await reserve(s, order(s));
+		expect(body).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" } });
+		expect(body.issues).toEqual([{ path: "occurrenceId", code: "OCCURRENCE_REQUIRED" }]);
+	});
+
 	it("EV-FR-05 reusing an idempotency key for a different order is refused", async () => {
 		const s = await setup();
 		const input = order(s);

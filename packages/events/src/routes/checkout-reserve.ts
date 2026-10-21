@@ -167,7 +167,8 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	const plan = planCheckout(input.eventId, config, input, now, { maxSteps: RESERVE_MAX_CALLS - calls - 2 });
 	if (!plan.ok) {
 		const e = plan.error;
-		return resumeOr(attempt, e.code === "BAD_REQUEST" ? badRequest([{ path: "lines", code: e.reason }]) : fail(e.code));
+		const path = e.code === "BAD_REQUEST" && e.reason.includes("OCCURRENCE") ? "occurrenceId" : "lines";
+		return resumeOr(attempt, e.code === "BAD_REQUEST" ? badRequest([{ path, code: e.reason }]) : fail(e.code));
 	}
 
 	const hold = startHold(now, { paid: plan.value.paid }, holdSettings(settings));
