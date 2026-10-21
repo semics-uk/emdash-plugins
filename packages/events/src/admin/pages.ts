@@ -10,14 +10,13 @@ import {
 	header,
 	link,
 	meter,
+	type NoticeInput,
 	notices,
 	numberInput,
-	section,
 	select,
 	table,
 	textInput,
 	toMinor,
-	type NoticeInput,
 } from "@semics-tech/shared";
 
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
@@ -43,7 +42,12 @@ import {
  */
 type Where = Record<string, unknown>;
 type Page = { items: Array<{ id: string; data: unknown }>; hasMore?: boolean; cursor?: string };
-type Query = (o: { where?: Where; orderBy?: Record<string, "asc" | "desc">; limit?: number; cursor?: string }) => Promise<Page>;
+type Query = (o: {
+	where?: Where;
+	orderBy?: Record<string, "asc" | "desc">;
+	limit?: number;
+	cursor?: string;
+}) => Promise<Page>;
 
 export type AdminStorage = AttendeeStorage &
 	ConfigStorage & {
@@ -185,7 +189,10 @@ async function bookingsPage(
 				select(
 					"status",
 					"Status",
-					[{ label: "Any status", value: "" }, ...BOOKING_STATUSES.map((s) => ({ label: s.replaceAll("_", " "), value: s }))],
+					[
+						{ label: "Any status", value: "" },
+						...BOOKING_STATUSES.map((s) => ({ label: s.replaceAll("_", " "), value: s })),
+					],
 					{ initialValue: status },
 				),
 			],
@@ -309,11 +316,17 @@ async function attendeesPage(
 			submit: { label: "Check in by code", actionId: "attendees.checkin_code" },
 		}),
 		form({
-			fields: [textInput("eventId", "Event", { initialValue: eventId }), textInput("q", "Name, email or code", { initialValue: q })],
+			fields: [
+				textInput("eventId", "Event", { initialValue: eventId }),
+				textInput("q", "Name, email or code", { initialValue: q }),
+			],
 			submit: { label: "Search attendees", actionId: "attendees.search" },
 		}),
 		actions([
-			link(q ? "Download CSV (first part)" : "Download CSV (this page)", { kind: "external", url: exportUrl(deps, eventId, q ? undefined : opts.cursor) }),
+			link(q ? "Download CSV (first part)" : "Download CSV (this page)", {
+				kind: "external",
+				url: exportUrl(deps, eventId, q ? undefined : opts.cursor),
+			}),
 			button("attendees.open", "Back to first page", { value: eventId, style: "secondary" }),
 		]),
 		table({
@@ -335,7 +348,8 @@ async function attendeesPage(
 
 const REFUSALS: Record<string, (r: { bookingStatus?: string; name?: string }) => string> = {
 	NOT_FOUND: () => "No attendee has that code for this event.",
-	BOOKING_NOT_CONFIRMED: (r) => `The booking is not confirmed (it is ${r.bookingStatus ?? "unknown"}), so this ticket is not valid.`,
+	BOOKING_NOT_CONFIRMED: (r) =>
+		`The booking is not confirmed (it is ${r.bookingStatus ?? "unknown"}), so this ticket is not valid.`,
 	ATTENDEE_NOT_VALID: () => "This ticket is not valid yet: a waiver may still be pending, or it was cancelled.",
 };
 
@@ -355,7 +369,11 @@ async function doCheckIn(
 			message: `${result.name ?? "This attendee"} was first checked in at ${result.checkedInAt ?? "an unknown time"}.`,
 		};
 	} else {
-		banner = { severity: "error", title: "Cannot check in", message: REFUSALS[result.reason]?.(result) ?? "Check-in refused." };
+		banner = {
+			severity: "error",
+			title: "Cannot check in",
+			message: REFUSALS[result.reason]?.(result) ?? "Check-in refused.",
+		};
 	}
 	return attendeesPage(deps, eventId, { extra: notices([banner]) });
 }
@@ -412,7 +430,12 @@ async function openEditor(deps: AdminDeps, eventId: string): Promise<AdminRespon
 	return editorForm(eventId, state);
 }
 
-async function saveEditor(deps: AdminDeps, eventId: string, blockId: string | undefined, values: Record<string, unknown>) {
+async function saveEditor(
+	deps: AdminDeps,
+	eventId: string,
+	blockId: string | undefined,
+	values: Record<string, unknown>,
+) {
 	const id = eventId || (blockId?.startsWith("event:") ? blockId.slice(6) : "");
 	if (!id) return respond(notices([{ severity: "error", title: "Choose an event first" }]));
 	const state = await loadEventState(id, deps.storage);
@@ -455,25 +478,39 @@ async function saveEditor(deps: AdminDeps, eventId: string, blockId: string | un
 		return item;
 	});
 	if (changed === 0) {
-		return editorForm(id, state, notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]));
+		return editorForm(
+			id,
+			state,
+			notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]),
+		);
 	}
 
 	const out = (await saveConfig(
 		deps.storage,
-		{ eventId: id, config: { ...config, status }, ticketTypes, occurrences: state.occurrences.map(({ id: oid, data }) => ({ ...(data as object), id: oid })) },
+		{
+			eventId: id,
+			config: { ...config, status },
+			ticketTypes,
+			occurrences: state.occurrences.map(({ id: oid, data }) => ({ ...(data as object), id: oid })),
+		},
 		deps.newId,
 		state,
 	)) as { ok: boolean; issues?: Array<{ path: string; code: string }> };
 
 	if (out.ok) {
 		// Show what was written without reading it back (a read would go over the call budget).
-		const fresh: EventState = { ...state, config: { ...stored, status: status as EventConfigDoc["status"] }, ticketTypes: applied };
+		const fresh: EventState = {
+			...state,
+			config: { ...stored, status: status as EventConfigDoc["status"] },
+			ticketTypes: applied,
+		};
 		return editorForm(id, fresh, notices([{ severity: "info", title: "Saved", message: "The event was updated." }]));
 	}
 	const issues = out.issues ?? [];
 	const message =
-		issues.map((i) => `${ISSUE_MESSAGES[i.code] ?? i.code}${i.path && i.code !== "TOO_MANY_CHANGES" ? ` (${i.path})` : ""}`).join(" ") ||
-		"The change was refused.";
+		issues
+			.map((i) => `${ISSUE_MESSAGES[i.code] ?? i.code}${i.path && i.code !== "TOO_MANY_CHANGES" ? ` (${i.path})` : ""}`)
+			.join(" ") || "The change was refused.";
 	return editorForm(
 		id,
 		state,
@@ -523,7 +560,13 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "/bookings":
 				return bookingsPage(deps, {});
 			case "/attendees":
-				return eventsList(deps, "Attendees", "attendees.open", "Open", "Choose an event to see its attendees and check people in.");
+				return eventsList(
+					deps,
+					"Attendees",
+					"attendees.open",
+					"Open",
+					"Choose an event to see its attendees and check people in.",
+				);
 			case "/events":
 				return eventsList(deps, "Events", "events.edit", "Edit", "Change capacity, prices and sales status.");
 			case "widget:sales":
@@ -543,7 +586,10 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return attendeesPage(deps, eventIdOf(v.eventId), { q: str(v.q) });
 			case "attendees.checkin_code": {
 				const code = str(v.code, 80);
-				if (!code) return attendeesPage(deps, eventIdOf(v.eventId), { extra: notices([{ severity: "error", title: "Enter a check-in code" }]) });
+				if (!code)
+					return attendeesPage(deps, eventIdOf(v.eventId), {
+						extra: notices([{ severity: "error", title: "Enter a check-in code" }]),
+					});
 				return doCheckIn(deps, { code }, eventIdOf(v.eventId));
 			}
 			case "event.save":

@@ -18,5 +18,5 @@ export function csvCell(value: unknown): string {
 
 /** Header and rows joined with CRLF (RFC 4180), ending with a line break. */
 export function toCsv(header: readonly string[], rows: ReadonlyArray<readonly unknown[]>): string {
-	return [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n") + "\r\n";
+	return `${[header, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n")}\r\n`;
 }

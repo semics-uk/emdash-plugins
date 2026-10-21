@@ -20,7 +20,9 @@ const MAPPED: Settings = {
 	fieldVenue: "venue",
 	turnstileSecretKey: "secret",
 };
-const SCHEMAS = [{ slug: "events", fields: ["title", "starts_at", "ends_at", "timezone", "venue"].map((slug) => ({ slug })) }];
+const SCHEMAS = [
+	{ slug: "events", fields: ["title", "starts_at", "ends_at", "timezone", "venue"].map((slug) => ({ slug })) },
+];
 
 beforeEach(() => {
 	meter.calls = 0;
@@ -146,7 +148,12 @@ describe("bookings page (EV-US-7)", () => {
 
 	it("searches by reference or email and filters by status", async () => {
 		const { deps, s } = world();
-		s.bookings.set("bk_2", { ...(s.bookings.docs.get("bk_1") as Doc), ref: "REF2", email: "bob@example.com", status: "cancelled" });
+		s.bookings.set("bk_2", {
+			...(s.bookings.docs.get("bk_1") as Doc),
+			ref: "REF2",
+			email: "bob@example.com",
+			status: "cancelled",
+		});
 		const byEmail = await handleAdmin(deps, {
 			type: "form_submit",
 			action_id: "bookings.search",
@@ -222,15 +229,21 @@ describe("attendees page and check-in (EV-US-5)", () => {
 				values: { eventId: "ev1", code },
 			});
 		const first = await submit("CODE-ADA");
-		expect(banners(first.blocks)[0]).toMatchObject({ variant: "default", title: expect.stringContaining("Checked in") });
+		expect(banners(first.blocks)[0]).toMatchObject({
+			variant: "default",
+			title: expect.stringContaining("Checked in"),
+		});
 		expect(typeof (s.attendees.docs.get("bk_1-1") as Doc).checkedInAt).toBe("string");
 		const firstAt = (s.attendees.docs.get("bk_1-1") as Doc).checkedInAt as string;
-		const second = await handleAdmin({ ...deps, now: NOW + 600_000 }, {
-			type: "form_submit",
-			action_id: "attendees.checkin_code",
-			page: "/attendees",
-			values: { eventId: "ev1", code: "CODE-ADA" },
-		});
+		const second = await handleAdmin(
+			{ ...deps, now: NOW + 600_000 },
+			{
+				type: "form_submit",
+				action_id: "attendees.checkin_code",
+				page: "/attendees",
+				values: { eventId: "ev1", code: "CODE-ADA" },
+			},
+		);
 		expect(banners(second.blocks)[0]).toMatchObject({ variant: "alert", title: "Already checked in" });
 		expect(banners(second.blocks)[0]?.description).toContain(firstAt);
 		expect((s.attendees.docs.get("bk_1-1") as Doc).checkedInAt).toBe(firstAt);
@@ -283,11 +296,21 @@ describe("attendees page and check-in (EV-US-5)", () => {
 
 describe("event editor (T044)", () => {
 	const save = (deps: AdminDeps, values: Record<string, unknown>) =>
-		handleAdmin(deps, { type: "form_submit", action_id: "event.save", page: "/events", values: { eventId: "ev1", ...values } });
+		handleAdmin(deps, {
+			type: "form_submit",
+			action_id: "event.save",
+			page: "/events",
+			values: { eventId: "ev1", ...values },
+		});
 
 	it("opens an event with a field for each ticket type", async () => {
 		const { deps } = world();
-		const out = await handleAdmin(deps, { type: "block_action", action_id: "events.edit", page: "/events", value: "ev1" });
+		const out = await handleAdmin(deps, {
+			type: "block_action",
+			action_id: "events.edit",
+			page: "/events",
+			value: "ev1",
+		});
 		const text = json(out.blocks);
 		expect(text).toContain("capacity:tt_a");
 		expect(text).toContain("price:tt_b");

@@ -36,7 +36,7 @@ async function setup() {
 		bookingId: "bk_1",
 		eventId: "ev1",
 		ticketTypeId: "tt_a",
-		name: "Ada, \"The\" Lovelace",
+		name: 'Ada, "The" Lovelace',
 		email: "ada@example.com",
 		code: "CODE-ADA",
 		status: "valid",
@@ -103,8 +103,7 @@ describe("admin pages in the host (EV-FR-11)", () => {
 
 	it("EV-US-5 check-in twice shows the first check-in time", async () => {
 		const { r } = await setup();
-		const submit = () =>
-			r.admin.submit("/attendees", "attendees.checkin_code", { eventId: "ev1", code: "CODE-ADA" });
+		const submit = () => r.admin.submit("/attendees", "attendees.checkin_code", { eventId: "ev1", code: "CODE-ADA" });
 		const first = await submit();
 		expect(JSON.stringify(first.blocks)).toContain("Checked in");
 		const second = await submit();

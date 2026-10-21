@@ -1,6 +1,6 @@
+import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { pluginResponse } from "emdash/plugin";
-import { toRouteError } from "@semics-tech/shared";
 
 import { toCsv } from "../admin/csv";
 import type { AttendeeDoc, BookingDoc } from "../storage/schema";
@@ -35,11 +35,7 @@ export interface AttendeeStorage {
 
 export type CheckInTarget = { id: string } | { code: string };
 
-export type CheckInFailure =
-	| "NOT_FOUND"
-	| "BOOKING_NOT_CONFIRMED"
-	| "ATTENDEE_NOT_VALID"
-	| "ALREADY_CHECKED_IN";
+export type CheckInFailure = "NOT_FOUND" | "BOOKING_NOT_CONFIRMED" | "ATTENDEE_NOT_VALID" | "ALREADY_CHECKED_IN";
 
 export type CheckInResult =
 	| { ok: true; id: string; name: string; checkedInAt: string }
@@ -69,7 +65,7 @@ export async function checkIn(
 	const { id, doc } = hit;
 	const who = { id, name: doc.name };
 	const booking = (await storage.bookings.get(doc.bookingId)) as BookingDoc | null;
-	if (!booking || booking.status !== "confirmed") {
+	if (booking?.status !== "confirmed") {
 		return { ok: false, reason: "BOOKING_NOT_CONFIRMED", ...who, bookingStatus: booking?.status ?? "missing" };
 	}
 	if (doc.status !== "valid") return { ok: false, reason: "ATTENDEE_NOT_VALID", ...who };
@@ -78,7 +74,12 @@ export async function checkIn(
 	if (!written.applied) {
 		// Someone else got there first: show their time.
 		const current = (await storage.attendees.get(id)) as AttendeeDoc | null;
-		return { ok: false, reason: "ALREADY_CHECKED_IN", ...who, ...(current?.checkedInAt ? { checkedInAt: current.checkedInAt } : {}) };
+		return {
+			ok: false,
+			reason: "ALREADY_CHECKED_IN",
+			...who,
+			...(current?.checkedInAt ? { checkedInAt: current.checkedInAt } : {}),
+		};
 	}
 	return { ok: true, ...who, checkedInAt: nowIso };
 }
