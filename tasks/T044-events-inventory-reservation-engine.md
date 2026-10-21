@@ -4,7 +4,7 @@ title: "Events: inventory reservation engine"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: L
 depends_on: [T042, T007]
