@@ -4,7 +4,7 @@ title: "Shared: dependency-free deterministic PDF writer"
 phase: 1
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: L
 depends_on: [T003, T007]

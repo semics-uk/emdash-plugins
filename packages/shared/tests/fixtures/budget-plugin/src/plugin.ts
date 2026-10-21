@@ -1,4 +1,6 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
+import { renderPdf } from "../../../../src/pdf";
+import { waiverDocument } from "../../pdf-waiver";
 
 /** Deterministic pure-CPU workload: `rounds` xorshift steps. Returns a checksum so it can't be elided. */
 function spin(rounds: number): number {
@@ -74,6 +76,14 @@ const plugin: SandboxedPlugin = {
 		/** Fixed CPU workload, no bridge calls. */
 		spin: {
 			handler: async ({ input }) => ({ checksum: spin(count(input)) }),
+		},
+		/** T016: render the 5-page, 2-signature waiver and hash it, as the e-sign core will (R25). */
+		pdf: {
+			handler: async () => {
+				const bytes = renderPdf(waiverDocument());
+				const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+				return { bytes: bytes.length, sha256: [...digest].map((b) => b.toString(16).padStart(2, "0")).join("") };
+			},
 		},
 		/** A route that throws after one bridge call. */
 		fails: {
