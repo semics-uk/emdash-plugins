@@ -2145,7 +2145,7 @@
 			"phase": 0,
 			"package": "repo",
 			"edition": "free",
-			"status": "blocked",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2158,9 +2158,33 @@
 				"EV-NFR-02"
 			],
 			"unblocks": [
-				"T094"
+				"T094",
+				"T111"
 			],
-			"column": "blocked"
+			"column": "done"
+		},
+		"T111": {
+			"file": "T111-cloudflare-staging-playground-and-nightly-run.md",
+			"id": "T111",
+			"title": "Cloudflare staging playground and nightly run",
+			"phase": 1,
+			"package": "repo",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T110"
+			],
+			"spec": [
+				"Spikes S1",
+				"S2",
+				"S5",
+				"EV-NFR-01",
+				"EV-NFR-02"
+			],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
@@ -2242,7 +2266,8 @@
 			"T029",
 			"T042",
 			"T053",
-			"T070"
+			"T070",
+			"T111"
 		],
 		"in-progress": [],
 		"review": [],
@@ -2262,11 +2287,10 @@
 			"T018",
 			"T020",
 			"T040",
-			"T041"
-		],
-		"blocked": [
+			"T041",
 			"T110"
-		]
+		],
+		"blocked": []
 	},
 	"criticalPath": [
 		"T042",

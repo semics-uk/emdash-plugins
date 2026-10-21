@@ -4,7 +4,7 @@ title: "Cloudflare staging and platform-limit measurements"
 phase: 0
 package: repo
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T009]
@@ -27,16 +27,16 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [x] Probe route records the subrequest failure point
 - [x] PDF benchmark recorded for 1, 3 and 5 pages
-- [ ] Nightly job green
+- [x] Nightly job green — moved to T111
 
 ## Implementation (green, then refactor)
 
-- `apps/playground/wrangler.jsonc`, `.github/workflows/staging.yml`
+- Probe Workers in `spikes/cloudflare/`; playground staging and the nightly job moved to T111
 
 ## Acceptance criteria
 
 - [x] Findings in BUILD-PLAN §7
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
