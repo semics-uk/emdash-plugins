@@ -48,4 +48,11 @@ Modules so far: `domain/templates.ts` (T021: head + immutable `<id>:v<n>` versio
 status table and `transitionEnvelope`, a guarded `updateIf` on the expected status; every status change, route or
 cron, goes through it), `domain/envelopes.ts` (T022: drafts, `sendEnvelope` freezes the canonical snapshot +
 `docSha256`, hash-addressed snapshot chunks, signer `tokenHash` only), `routes/envelopes.ts` (T022: private
-`envelopes/create|send|get|list` and `public/envelopes/from-intent`).
+`envelopes/create|send|get|list` and `public/envelopes/from-intent`), `domain/audit.ts` (T023: the chain. Event
+ids `<envelopeId>:a<seq 6 digits>`; personal fields (name, email, participant, ip, ua) are hashed only as
+`SHA256(piiSalt ‖ value)` commitments, raw values in `personal` outside the hash, purged with `purgePersonal`;
+each envelope's random `piiSalt` is stored on it and stripped from route responses. Append a later event with
+`appendAuditEvent` (head query + create-only CAS = 2 calls, retries once); a fresh envelope's opening events go
+in one `putMany` via `initialAuditEvents`. `verifyAuditChain(id, events, { salt, head })` for the certificate;
+`finalEnvelopeHash(docSha256, head)` is the envelope's `finalHash`. Held to 100% branches in `vitest.config.ts`).
+Budget: from-intent is at 9 bridge calls (others ≤ 8).

@@ -149,7 +149,10 @@ describe("ES-FR-02 snapshot and docSha256", () => {
 
 	it("ES-FR-02 a guardian intent fills participant.name", async () => {
 		const tpl = template({ body: "{{signer.name}} for {{participant.name}}", fields: [] });
-		const d = draftFromIntent(intent({ as: "guardian", participant: { name: "Tim" } }), tpl, { now: NOW, piiSalt: SALT });
+		const d = draftFromIntent(intent({ as: "guardian", participant: { name: "Tim" } }), tpl, {
+			now: NOW,
+			piiSalt: SALT,
+		});
 		if (!d.ok) throw new Error("bad fixture");
 		const r = await renderSnapshot(d.value, tpl.body);
 		expect(r.ok && r.value.text).toBe("Ada for Tim\n");
@@ -246,7 +249,10 @@ function intent(over: Partial<IntentPayload> = {}): IntentPayload {
 describe("ES-FR-02 drafts from intents", () => {
 	it("records client, ref, return URL, delivery and capacity", () => {
 		const tpl = template({ body: "{{event}}" });
-		const d = draftFromIntent(intent({ prefill: { event: "Gig" }, delivery: "email" }), tpl, { now: NOW, piiSalt: SALT });
+		const d = draftFromIntent(intent({ prefill: { event: "Gig" }, delivery: "email" }), tpl, {
+			now: NOW,
+			piiSalt: SALT,
+		});
 		expect(d.ok && d.value).toMatchObject({
 			status: "draft",
 			clientId: "cl_test",

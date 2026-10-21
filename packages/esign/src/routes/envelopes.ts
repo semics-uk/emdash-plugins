@@ -21,13 +21,7 @@ import {
 	verifyIntentToken,
 } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler, SandboxedPlugin } from "emdash/plugin";
-import {
-	type AuditEventDoc,
-	type AuditInput,
-	appendAuditEvent,
-	initialAuditEvents,
-	newPiiSalt,
-} from "../domain/audit";
+import { type AuditEventDoc, type AuditInput, appendAuditEvent, initialAuditEvents, newPiiSalt } from "../domain/audit";
 import {
 	buildDraft,
 	createdAuditEvent,

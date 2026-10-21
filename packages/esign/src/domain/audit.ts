@@ -103,7 +103,10 @@ export function auditEventId(envelopeId: string, seq: number): string {
 	return `${envelopeId}:a${String(seq).padStart(6, "0")}`;
 }
 
-const sortedPairs = (o: Readonly<Record<string, unknown>>) => Object.keys(o).sort().map((k) => [k, o[k]]);
+const sortedPairs = (o: Readonly<Record<string, unknown>>) =>
+	Object.keys(o)
+		.sort()
+		.map((k) => [k, o[k]]);
 
 function eventHash(e: Omit<AuditEventDoc, "hash" | "personal">): Promise<string> {
 	const canonical = JSON.stringify([
