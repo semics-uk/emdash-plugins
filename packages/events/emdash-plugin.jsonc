@@ -26,7 +26,16 @@
 		"occurrences": { "indexes": [["eventId", "startsAt"], "startsAt", "status"] },
 		"ticket_types": { "indexes": ["eventId"] },
 		"bookings": {
-			"indexes": ["eventId", "status", "email", "createdAt", ["status", "holdExpiresAt"], ["eventId", "status"]],
+			// ["ipHash", "createdAt"]: checkout's rate limit counts recent bookings per hashed IP (T047).
+			"indexes": [
+				"eventId",
+				"status",
+				"email",
+				"createdAt",
+				["status", "holdExpiresAt"],
+				["eventId", "status"],
+				["ipHash", "createdAt"]
+			],
 			"uniqueIndexes": ["ref"]
 		},
 		// id = "<provider>:<sessionId>", which gives webhook idempotency; no unique index needed.

@@ -1,6 +1,8 @@
 import { toRouteError } from "@semics-tech/shared";
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
+
 /**
  * Every public route of BUILD-PLAN 3.1. Routes are declared in code (the manifest schema has no
  * route section), so this list is the public-surface part of the trust contract: installing the
@@ -20,7 +22,7 @@ const EVENTS_LIST_CACHE = "public, max-age=60, stale-while-revalidate=300";
 export const PUBLIC_ROUTES: Record<string, RouteDef> = {
 	"public/events": route({ methods: ["GET"], cacheControl: EVENTS_LIST_CACHE }),
 	"public/event": route({ methods: ["GET"] }),
-	"public/checkout/reserve": route({ methods: ["POST"] }),
+	"public/checkout/reserve": CHECKOUT_RESERVE_ROUTE,
 	"public/checkout/continue": route({ methods: ["POST"] }),
 	"public/booking": route({ methods: ["POST"] }),
 	"public/booking/cancel": route({ methods: ["POST"] }),

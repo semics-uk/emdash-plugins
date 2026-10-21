@@ -65,8 +65,11 @@ export interface InventoryStorage extends CounterStorage {
 	bookings: { query(options: unknown): Promise<Page> };
 }
 
-/** Counter fields only this module writes; `orphaned` belongs to the delete hooks. */
-const MANAGED_FIELDS = new Set(["reserved", "sold", "orphaned"]);
+/**
+ * Fields an admin edit never diffs: the counters (only this module writes them), `orphaned` (the
+ * delete hooks) and the config's derived `catalog` (written separately by `config/save`).
+ */
+const MANAGED_FIELDS = new Set(["reserved", "sold", "orphaned", "catalog"]);
 
 /** Designs target ≤ 8 bridge calls per invocation (R22). */
 export const DEFAULT_MAX_CALLS = 8;
@@ -104,13 +107,22 @@ export function worstCaseCalls(steps: number): number {
 }
 
 /**
+ * How a miss is undone: `full` compensates every step taken (the worst case is
+ * `worstCaseCalls(steps)`); `bounded` compensates only while `reserve`'s `maxCalls` lasts and
+ * leaves the rest to the sweeper's drift repair (an over-count is the safe direction), so only the
+ * forward steps must fit.
+ */
+export type Compensation = "full" | "bounded";
+
+/**
  * Turn an order into reservation steps in the fixed order, merging repeated ticket types. Pure.
  * Answers `SOLD_OUT` from the documents read when a step cannot fit, so a sold-out request costs
- * no writes. `maxCalls` bounds the worst case (`worstCaseCalls`) so the caller's budget holds.
+ * no writes. `maxCalls` bounds the worst case (`worstCaseCalls`, or the step count with `bounded`
+ * compensation) so the caller's budget holds.
  */
 export function planReservation(
 	req: ReservationRequest,
-	{ maxCalls = DEFAULT_MAX_CALLS }: { maxCalls?: number } = {},
+	{ maxCalls = DEFAULT_MAX_CALLS, compensation = "full" }: { maxCalls?: number; compensation?: Compensation } = {},
 ): Result<ReserveStep[], PlanError> {
 	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) =>
 		err({ code: "BAD_REQUEST" as const, reason });
@@ -138,7 +150,8 @@ export function planReservation(
 	}
 	read.push([{ collection: "event_configs", id: req.eventId, qty: total, capacity: req.event.capacity }, req.event]);
 
-	if (worstCaseCalls(read.length) > maxCalls) return bad("TOO_MANY_LINES");
+	const worst = compensation === "full" ? worstCaseCalls(read.length) : read.length;
+	if (worst > maxCalls) return bad("TOO_MANY_LINES");
 	for (const [step, doc] of read) {
 		if ((doc.reserved ?? 0) + step.qty > step.capacity) {
 			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id });
@@ -154,14 +167,22 @@ export type ReserveError = (SoldOut | { code: "INTERNAL"; cause: unknown }) & {
 
 /**
  * Apply the steps in order. On a guard miss (`SOLD_OUT`) or a storage error (`INTERNAL`) the steps
- * already applied are decremented again before returning. A step whose `updateIf` threw is not
- * compensated: if it did commit, the over-count is safe and repair removes it.
+ * already applied are decremented again before returning, as many as `maxCalls` (forward steps
+ * plus compensations) allows, earliest first; the rest come back as `uncompensated` for drift
+ * repair. A step whose `updateIf` threw is not compensated: if it did commit, the over-count is
+ * safe and repair removes it.
  */
 export async function reserve(
 	storage: CounterStorage,
 	steps: ReserveStep[],
+	{ maxCalls = Number.POSITIVE_INFINITY }: { maxCalls?: number } = {},
 ): Promise<Result<ReserveStep[], ReserveError>> {
 	const done: ReserveStep[] = [];
+	const undo = async () => {
+		const room = Math.max(0, maxCalls - (done.length + 1));
+		const failed = await release(storage, done.slice(0, room));
+		return [...failed, ...done.slice(room).map(strip)];
+	};
 	for (const step of steps) {
 		let applied: boolean;
 		try {
@@ -170,11 +191,10 @@ export async function reserve(
 				delta: { reserved: { inc: step.qty } },
 			}));
 		} catch (cause) {
-			return err({ code: "INTERNAL", cause, uncompensated: await release(storage, done) });
+			return err({ code: "INTERNAL", cause, uncompensated: await undo() });
 		}
 		if (!applied) {
-			const uncompensated = await release(storage, done);
-			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id, uncompensated });
+			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id, uncompensated: await undo() });
 		}
 		done.push(step);
 	}

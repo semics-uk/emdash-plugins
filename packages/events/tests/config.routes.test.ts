@@ -186,7 +186,9 @@ describe("private config routes (EV-FR-02, EV-FR-03)", () => {
 			[ids.Standard ?? ""]: expect.objectContaining({ capacity: 60, priceMinor: 1500, hidden: false }),
 			[ids.VIP ?? ""]: expect.objectContaining({ capacity: 10, priceMinor: 4000, hidden: false }),
 		});
-		expect(Object.values((await catalog())?.occurrences ?? {}).map((o) => [o.startsAt, o.capacity, o.status])).toEqual([
+		const occurrences = Object.values((await catalog())?.occurrences ?? {});
+		occurrences.sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+		expect(occurrences.map((o) => [o.startsAt, o.capacity, o.status])).toEqual([
 			["2026-12-05T18:00:00.000Z", 50, "open"],
 			["2026-12-06T18:00:00.000Z", 50, "open"],
 		]);

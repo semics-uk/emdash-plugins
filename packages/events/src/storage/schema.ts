@@ -25,7 +25,15 @@ export const STORAGE_COLLECTIONS = {
 	occurrences: { indexes: [["eventId", "startsAt"], "startsAt", "status"], uniqueIndexes: [] },
 	ticket_types: { indexes: ["eventId"], uniqueIndexes: [] },
 	bookings: {
-		indexes: ["eventId", "status", "email", "createdAt", ["status", "holdExpiresAt"], ["eventId", "status"]],
+		indexes: [
+			"eventId",
+			"status",
+			"email",
+			"createdAt",
+			["status", "holdExpiresAt"],
+			["eventId", "status"],
+			["ipHash", "createdAt"],
+		],
 		uniqueIndexes: ["ref"],
 	},
 	// id = `<provider>:<sessionId>`: the document id is the webhook idempotency key.
@@ -80,6 +88,28 @@ export interface EventConfigDoc {
 	recurrence?: string | null;
 	/** Set when the entry was permanently deleted while it still had bookings. */
 	orphaned?: boolean;
+	/** Derived from the event's ticket types and occurrences by `config/save` (see `EventCatalog`). */
+	catalog?: EventCatalog | null;
+}
+
+/** What checkout needs from a ticket type, copied onto the event config. */
+export type CatalogTicketType = Pick<
+	TicketTypeDoc,
+	"capacity" | "priceMinor" | "hidden" | "minPerOrder" | "maxPerOrder" | "salesStart" | "salesEnd"
+>;
+
+/** What checkout needs from an occurrence, copied onto the event config. */
+export type CatalogOccurrence = Pick<OccurrenceDoc, "capacity" | "startsAt" | "status">;
+
+/**
+ * A denormalised copy of an event's ticket types and occurrences, written by `config/save` after
+ * the documents themselves, so `public/checkout/reserve` plans an order from one read (R22). It
+ * holds no counters. A stale capacity is safe: every reservation guard pins the capacity it was
+ * planned with, so a mismatch fails as sold out and can never oversell.
+ */
+export interface EventCatalog {
+	ticketTypes: Record<string, CatalogTicketType>;
+	occurrences: Record<string, CatalogOccurrence>;
 }
 
 export type OccurrenceStatus = "open" | "closed" | "cancelled";
@@ -148,6 +178,11 @@ export interface BookingDoc {
 	answers: Record<string, string>;
 	/** SHA-256 of the access token; the token itself is never stored. */
 	accessTokenHash: string;
+	/**
+	 * Salted hash of the client IP that created the booking (never the IP): checkout's rate limit
+	 * counts recent bookings by it. Erased with the booking's personal data.
+	 */
+	ipHash?: string;
 	createdAt: string;
 }
 

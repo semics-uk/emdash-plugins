@@ -12,6 +12,7 @@
 import { err, ok, type Result, toMinor } from "@semics-tech/shared";
 
 import type {
+	EventCatalog,
 	EventConfigDoc,
 	EventQuestion,
 	EventStatus,
@@ -356,4 +357,34 @@ export function validateConfigInput(
 		deleteTicketTypeIds: ticketTypes.deleteIds,
 		deleteOccurrenceIds: occurrences.deleteIds,
 	});
+}
+
+/**
+ * The checkout catalog of an event (`EventCatalog`) from its ticket type and occurrence documents.
+ * Keys are in id order and optional fields always present (`null` when unset), so two catalogs of
+ * the same documents serialise identically whatever order they were read in and however a cleared
+ * field was stored. Pure.
+ */
+export function catalogOf(
+	ticketTypes: Iterable<{ id: string; data: TicketTypeDoc }>,
+	occurrences: Iterable<{ id: string; data: OccurrenceDoc }>,
+): EventCatalog {
+	const byId = <T>(items: Iterable<{ id: string; data: T }>) =>
+		[...items].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+	const catalog: EventCatalog = { ticketTypes: {}, occurrences: {} };
+	for (const { id, data: t } of byId(ticketTypes)) {
+		catalog.ticketTypes[id] = {
+			capacity: t.capacity,
+			priceMinor: t.priceMinor,
+			hidden: t.hidden === true,
+			minPerOrder: t.minPerOrder ?? null,
+			maxPerOrder: t.maxPerOrder ?? null,
+			salesStart: t.salesStart ?? null,
+			salesEnd: t.salesEnd ?? null,
+		};
+	}
+	for (const { id, data: o } of byId(occurrences)) {
+		catalog.occurrences[id] = { capacity: o.capacity, startsAt: o.startsAt, status: o.status };
+	}
+	return catalog;
 }

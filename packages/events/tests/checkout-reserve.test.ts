@@ -59,6 +59,7 @@ type Booking = {
 interface Setup {
 	runtime: PluginRuntimeTestHost;
 	budget: BudgetedHost;
+	turnstile: boolean;
 	types: Record<string, string>;
 	occurrenceId?: string;
 }
@@ -86,10 +87,10 @@ async function setup({
 	};
 	if (turnstile) {
 		await runtime.actions.plugin.updateSettings({ turnstileSecretKey: SECRET });
-		await runtime.http.respond(TURNSTILE_VERIFY_URL, Response.json({ success: true }));
 	}
 	return {
 		runtime,
+		turnstile,
 		budget: withBudget(runtime),
 		types: Object.fromEntries(loaded.ticketTypes.map((t) => [t.name, t.id])),
 		...(loaded.occurrences[0] ? { occurrenceId: loaded.occurrences[0].id } : {}),
@@ -112,7 +113,11 @@ const counter = async (s: Setup, collection: string, id: string) =>
 	(await s.runtime.inspect.storage.get<Counted>(collection, id))?.reserved;
 const bookings = async (s: Setup) => s.runtime.inspect.storage.list<Booking>("bookings");
 
-async function reserve(s: Setup, input: unknown, ip: string | null = IP) {
+/** Invoke the route; Cloudflare's answer (one per request) is armed when a token is sent. */
+async function reserve(s: Setup, input: unknown, ip: string | null = IP, human = true) {
+	if (s.turnstile && (input as { turnstileToken?: string } | undefined)?.turnstileToken) {
+		await s.runtime.http.respond(TURNSTILE_VERIFY_URL, Response.json({ success: human }));
+	}
 	const result = await s.budget.invokeRoute(ROUTE, input, meta(ip));
 	expectWithinBudget(result);
 	return { result, body: result.value as Body };
@@ -200,8 +205,7 @@ describe("public/checkout/reserve (EV-FR-05)", () => {
 		const s = await setup();
 		const missing = await reserve(s, order(s, { turnstileToken: undefined }));
 		expect(missing.body).toMatchObject({ ok: false, error: { code: "TURNSTILE_FAILED" } });
-		await s.runtime.http.respond(TURNSTILE_VERIFY_URL, Response.json({ success: false }));
-		const failed = await reserve(s, order(s));
+		const failed = await reserve(s, order(s), IP, false);
 		expect(failed.body).toMatchObject({ ok: false, error: { code: "TURNSTILE_FAILED" } });
 		expect(await bookings(s)).toEqual([]);
 		expect(await counter(s, "event_configs", "entry_1")).toBe(0);
@@ -250,8 +254,7 @@ describe("public/checkout/reserve (EV-FR-05)", () => {
 		const s = await setup();
 		const input = order(s);
 		const first = await reserve(s, input);
-		await s.runtime.http.respond(TURNSTILE_VERIFY_URL, Response.json({ success: false }));
-		const again = await reserve(s, input);
+		const again = await reserve(s, input, IP, false);
 		expect(again.body).toMatchObject({ ok: true, bookingRef: first.body.bookingRef });
 		expect(await counter(s, "event_configs", "entry_1")).toBe(2);
 	});

@@ -45,7 +45,8 @@
 		"@vitest/coverage-v8": "4.1.11",
 		"emdash": "1.2.0",
 		"typescript": "^5.9.0",
-		"vitest": "^4.1.0"
+		"vitest": "^4.1.0",
+		"zod": "4.6.5"
 	},
 	"description": "Events bookings and ticketing for EmDash",
 	"license": "MIT",
