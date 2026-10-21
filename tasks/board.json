@@ -373,7 +373,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -388,7 +388,7 @@
 				"T027",
 				"T050"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T016": {
 			"file": "T016-shared-dependency-free-deterministic-pdf-writer.md",
@@ -2250,7 +2250,6 @@
 			"T106"
 		],
 		"ready": [
-			"T015",
 			"T022",
 			"T029",
 			"T043",
@@ -2279,6 +2278,7 @@
 			"T012",
 			"T013",
 			"T014",
+			"T015",
 			"T016",
 			"T017",
 			"T018",

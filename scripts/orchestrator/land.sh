@@ -18,7 +18,7 @@ if ! $G rebase -q main 2>/dev/null; then
   done
   echo REBASED_WITH_INDEX_FIX
 fi
-sed -i '' 's/^status: review/status: done/' $W/tasks/$T-*.md
+sed -i '' 's/^status: .*/status: done/' $W/tasks/$T-*.md
 $G commit -qam "chore($T): mark done$TR"
 cd $M && git merge -q --ff-only $B
 corepack pnpm@10.23.0 install --offline --reporter=silent
