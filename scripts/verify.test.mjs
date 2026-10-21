@@ -56,6 +56,8 @@ test("running verify on a deliberately broken fixture exits non-zero", () => {
 	const result = run(process.execPath, [join(here, "verify.mjs"), "--root", dir], repoRoot);
 	assert.notEqual(result.status, 0, result.stdout + result.stderr);
 	assert.match(result.stdout + result.stderr, /verify failed/i);
+	// The fixture run logs inside its own root, never over the real repo's .verify.log.
+	assert.match(readFileSync(join(dir, ".verify.log"), "utf8"), /noUnusedImports/);
 });
 
 test("the repo root and every package expose a verify script", () => {

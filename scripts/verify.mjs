@@ -44,11 +44,7 @@ export function steps(root) {
 
 const TAIL_LINES = 200;
 
-export function verify(
-	root,
-	stepList = steps(root),
-	{ verbose = false, logFile = join(repoRoot, ".verify.log") } = {},
-) {
+export function verify(root, stepList = steps(root), { verbose = false, logFile = join(root, ".verify.log") } = {}) {
 	writeFileSync(logFile, `verify started ${new Date().toISOString()}\n`);
 	for (const step of stepList) {
 		if (step.skip) {
