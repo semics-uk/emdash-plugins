@@ -1134,7 +1134,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1150,7 +1150,7 @@
 				"T054",
 				"T055"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T054": {
 			"file": "T054-events-ui-event-list-card-and-block.md",
@@ -2267,12 +2267,12 @@
 			"T050",
 			"T051",
 			"T052",
-			"T053",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T026"
+			"T026",
+			"T053"
 		],
 		"review": [],
 		"done": [

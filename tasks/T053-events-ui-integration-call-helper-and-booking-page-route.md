@@ -4,7 +4,7 @@ title: "Events UI: integration, call helper and booking page route"
 phase: 2
 package: events
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T004, T006]
