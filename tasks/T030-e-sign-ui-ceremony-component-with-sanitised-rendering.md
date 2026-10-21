@@ -4,7 +4,7 @@ title: "E-sign UI: ceremony component with sanitised rendering"
 phase: 1
 package: esign
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T029, T024]
