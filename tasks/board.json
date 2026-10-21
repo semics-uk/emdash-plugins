@@ -326,7 +326,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -340,7 +340,7 @@
 				"T024",
 				"T047"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T014": {
 			"file": "T014-shared-typed-block-kit-builders.md",
@@ -2251,7 +2251,6 @@
 			"T106"
 		],
 		"ready": [
-			"T013",
 			"T015",
 			"T022",
 			"T029",
@@ -2279,6 +2278,7 @@
 			"T010",
 			"T011",
 			"T012",
+			"T013",
 			"T014",
 			"T016",
 			"T017",
