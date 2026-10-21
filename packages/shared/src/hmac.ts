@@ -396,7 +396,7 @@ function decodeJsonObject(bytes: Uint8Array): Obj | undefined {
 	}
 }
 
-function issuedAt<T extends EsignTokenType>(type: T, payload: EsignPayloads[EsignTokenType]): number {
+function issuedAt(type: EsignTokenType, payload: EsignPayloads[EsignTokenType]): number {
 	if (type === "intent") return (payload as IntentPayload).iat;
 	if (type === "receipt") return (payload as ReceiptPayload).at;
 	return (payload as LookupPayload | CatalogPayload).ts;
