@@ -82,5 +82,5 @@ pnpm --filter @semics-tech/emdash-esign verify
 - **Gate evidence (2026-10-21, machine load 10–17 on 8 cores from parallel agents)**: `pnpm verify` stopped at the
   shared package's T007 CPU-stability test (±20% spread; not touched here). `pnpm --filter @semics-tech/emdash-esign
   verify` passed validate + typecheck; tests 128/131, the 3 failures being CPU-ceiling readings of 57–82 ms,
-  including T021's untouched `templates/create`. On a quieter run all 131 pass, and the probe measured send and
+  including T021's untouched `templates/create`. Earlier runs of the `core` project passed 118/118 three times in a row, and the probe measured send and
   from-intent at ≤ 23 ms CPU and ≤ 6 / ≤ 8 bridge calls. Re-run the gates on an idle machine before merging.
