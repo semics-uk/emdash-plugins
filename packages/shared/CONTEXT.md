@@ -12,7 +12,10 @@ runtime dependency would ship an unresolvable import.
 
 Modules so far: `result.ts` (Result type, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts`
 (T018), `tokens.ts` (T011: `generateToken`, `hashToken`, `verifyToken`, `constantTimeEqual`, `signLink`/
-`verifyLink` — reuse `constantTimeEqual` in hmac). Security globs at 100% branches are listed in
+`verifyLink` — reuse `constantTimeEqual` in hmac), `pdf/` (T016: `renderPdf(doc)` → deterministic PDF bytes from
+blocks — heading, paragraph, table, signature (stroke JSON as vector paths), rule, spacer, pageBreak — plus
+`measureText`/`wrapText`; Helvetica WinAnsi only, never embeds fonts or images; inject `info.creationDate`;
+tests check output with `tests/helpers/pdf-parse.ts`). Security globs at 100% branches are listed in
 `vitest.config.ts` `strictBranches`. Planned: hmac + pairing
-(implement `docs/protocol/esign-intent-v1.md` exactly), ratelimit, turnstile, blockkit, outbox, pdf,
+(implement `docs/protocol/esign-intent-v1.md` exactly), ratelimit, turnstile, blockkit, outbox,
 template, rrule, licence.
