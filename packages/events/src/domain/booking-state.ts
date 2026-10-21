@@ -104,15 +104,18 @@ export function planAttendees(
 	const buyer = { name: booking.buyer.name, email: booking.buyer.email };
 	const people = new Map<string, Array<{ name: string; email: string }>>();
 	if (attendees === undefined) {
-		for (const [type, qty] of seats) people.set(type, Array.from({ length: qty }, () => buyer));
+		for (const [type, qty] of seats)
+			people.set(
+				type,
+				Array.from({ length: qty }, () => buyer),
+			);
 	} else {
 		for (const a of attendees) {
 			const list = people.get(a.ticketTypeId) ?? [];
 			list.push({ name: a.name, email: (a.email ?? buyer.email).trim().toLowerCase() });
 			people.set(a.ticketTypeId, list);
 		}
-		const matches =
-			people.size === seats.size && [...seats].every(([type, qty]) => people.get(type)?.length === qty);
+		const matches = people.size === seats.size && [...seats].every(([type, qty]) => people.get(type)?.length === qty);
 		if (!matches) return err([{ path: "attendees", code: "ATTENDEES_MISMATCH" }]);
 	}
 	const docs: Array<{ id: string; data: AttendeeDoc }> = [];

@@ -30,7 +30,12 @@ async function world({
 	priceMinor = 0,
 	types = ["tt_a"],
 	occurrence = false,
-}: { status?: string; priceMinor?: number; types?: string[]; occurrence?: boolean } = {}) {
+}: {
+	status?: string;
+	priceMinor?: number;
+	types?: string[];
+	occurrence?: boolean;
+} = {}) {
 	const storage = makeStore();
 	const token = generateToken();
 	const counted = (capacity: number) => ({ capacity, reserved: types.length, sold: 0 });
@@ -57,7 +62,12 @@ async function world({
 	const cron = new FakeCron();
 	const deps = (now: number, extra: Partial<ContinueDeps> = {}): ContinueDeps => ({
 		storage: storage as unknown as ContinueStorage,
-		settings: { list: async () => (meter.calls++, []) },
+		settings: {
+			list: async () => {
+				meter.calls++;
+				return [];
+			},
+		},
 		cron,
 		now,
 		...extra,

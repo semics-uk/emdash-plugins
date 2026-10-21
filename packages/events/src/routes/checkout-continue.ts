@@ -178,9 +178,7 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	if (!step || step.type === "sign") return fail("INTERNAL");
 	const planned = attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
 	if (!planned.ok) return badRequest(planned.error);
-	return step.type === "done"
-		? confirm(c, booking, planned.value)
-		: pay(c, booking, step.status, planned.value);
+	return step.type === "done" ? confirm(c, booking, planned.value) : pay(c, booking, step.status, planned.value);
 }
 
 export const CHECKOUT_CONTINUE_ROUTE: RouteDef = {

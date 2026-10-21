@@ -45,6 +45,11 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `idempotencyKey` and is created with `compareAndSet(id, null, …)`; a resubmit gets the same
   booking with a reissued token. The rate limit counts the IP's recent bookings (`ipHash`, salted)
   instead of KV. Reserve schedules `hold-<ref>` only when the budget has room; continue re-arms it.
+  Continue (`src/routes/checkout-continue.ts`, T048) finds the booking by `ref` + token, confirms a
+  free booking (then `confirmSold`, attendees, outbox `confirm-<bookingId>`, in that order: the
+  outbox row marks the side effects done, so a replay writes nothing) and steps a paid one to
+  `awaiting_payment` through a `PaymentStep` seam that Free leaves empty (`PAYMENT_FAILED`). The
+  status graph and next-step rule live in `src/domain/booking-state.ts`.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.

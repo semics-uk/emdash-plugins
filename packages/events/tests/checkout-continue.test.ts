@@ -45,7 +45,9 @@ async function setup({ occurrences = false, price = 0 }: { occurrences?: boolean
 			{ name: "Adult", priceMinor: price, capacity: 50 },
 			{ name: "Child", priceMinor: 0, capacity: 50, sort: 1 },
 		],
-		occurrences: occurrences ? [{ startsAt: "2099-12-05T18:00:00Z", endsAt: "2099-12-05T22:00:00Z", capacity: 50 }] : [],
+		occurrences: occurrences
+			? [{ startsAt: "2099-12-05T18:00:00Z", endsAt: "2099-12-05T22:00:00Z", capacity: 50 }]
+			: [],
 	})) as { ok: boolean };
 	expect(saved.ok).toBe(true);
 	const loaded = (await runtime.transport.invokeRoute("config/get", { eventId: "entry_1" })) as {
