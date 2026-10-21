@@ -4,7 +4,7 @@ title: "Events: booking configs, ticket types and occurrences"
 phase: 2
 package: events
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: M
 depends_on: [T041, T018]
@@ -25,10 +25,10 @@ Per-entry `eventConfigs`, `ticketTypes` and single/multi-day `occurrences` with 
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Save and load round-trip
-- [ ] Invalid prices, capacities and sale windows are rejected with codes
-- [ ] Capacity can't be lowered below `reserved`
-- [ ] Routes within budget
+- [x] Save and load round-trip
+- [x] Invalid prices, capacities and sale windows are rejected with codes
+- [x] Capacity can't be lowered below `reserved`
+- [x] Routes within budget
 
 ## Implementation (green, then refactor)
 
@@ -36,9 +36,9 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Pure validation functions
-- [ ] Every route and cron job in this task asserts its budget with `withBudget(host)` + `expectWithinBudget` from `@semics-tech/shared/testing` (T007); this is the first adopter in its package, so also wire the harness into the package test setup
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Pure validation functions
+- [x] Every route and cron job in this task asserts its budget with `withBudget(host)` + `expectWithinBudget` from `@semics-tech/shared/testing` (T007); this is the first adopter in its package, so also wire the harness into the package test setup
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
@@ -48,4 +48,8 @@ pnpm --filter @semics-tech/emdash-events verify
 
 ## Notes
 
-WIP (usage limit): src/domain/config.ts written and domain tests pass (13). Remaining: src/routes/config.ts with config/get and config/save (getMany/putMany/deleteMany, <=10 bridge calls; BAD_REQUEST body plus issues; NOT_FOUND when no config), register in src/plugin.ts, run route tests, pnpm verify, changeset check, tick boxes, status review. Known follow-up: save uses putMany over stored counters (race with inventory); inventory should use updateIf.
+- Routes are private `config/get` and `config/save` (`src/routes/config.ts`); validation is pure in `src/domain/config.ts`. Both routes assert the T007 budget (save is at most 8 bridge calls).
+- Rejections return the shared `BAD_REQUEST` body plus `issues: [{path, code}]`. The field codes (INVALID_PRICE, CAPACITY_BELOW_RESERVED, ...) are local to events because `packages/shared` is owned by another task; promote them to the registry if wanted.
+- Follow-up for the inventory task: `config/save` rewrites `reserved`/`sold` using values read moments earlier, so a concurrent checkout in that window can be lost. Counter writes should move to `updateIf` in `src/domain/inventory.ts`; save should then leave counters untouched.
+- Limits: 25 ticket types and 100 occurrences per event (query page size 100).
+- Changeset added: `.changeset/events-booking-config.md`.

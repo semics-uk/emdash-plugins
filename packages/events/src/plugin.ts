@@ -1,5 +1,6 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { CONFIG_ROUTES } from "./routes/config";
 import { PUBLIC_ROUTES } from "./routes/public";
 
 /**
@@ -15,6 +16,7 @@ const plugin: SandboxedPlugin = {
 				return { greeting: "hello", pluginId: ctx.plugin.id };
 			},
 		},
+		...CONFIG_ROUTES,
 		...PUBLIC_ROUTES,
 	},
 };

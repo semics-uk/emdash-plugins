@@ -128,27 +128,29 @@ describe("validateConfigInput (EV-FR-02, EV-FR-03)", () => {
 		expect(codes(issues({ config: baseConfig, ticketTypes: [{ ...baseTicket, ...equal }] }))).toEqual([
 			"ticketTypes[0].salesEnd:INVALID_WINDOW",
 		]);
-		expect(codes(issues({ config: baseConfig, occurrences: [{ ...baseOcc, endsAt: "2026-12-05T17:00:00Z" }] }))).toEqual([
-			"occurrences[0].endsAt:INVALID_WINDOW",
-		]);
-		expect(codes(issues({ config: baseConfig, occurrences: [{ ...baseOcc, startsAt: "2026-02-30T10:00:00Z" }] }))).toEqual([
-			"occurrences[0].startsAt:INVALID_DATE",
-		]);
+		expect(
+			codes(issues({ config: baseConfig, occurrences: [{ ...baseOcc, endsAt: "2026-12-05T17:00:00Z" }] })),
+		).toEqual(["occurrences[0].endsAt:INVALID_WINDOW"]);
+		expect(
+			codes(issues({ config: baseConfig, occurrences: [{ ...baseOcc, startsAt: "2026-02-30T10:00:00Z" }] })),
+		).toEqual(["occurrences[0].startsAt:INVALID_DATE"]);
 		expect(codes(issues({ config: baseConfig, occurrences: [{ capacity: 5 }] }))).toEqual([
 			"occurrences[0].startsAt:INVALID_DATE",
 		]);
 	});
 
 	it("EV-FR-02 rejects bad currency, status, names, per-order limits and shape", () => {
-		expect(codes(issues({ config: { ...baseConfig, currency: "pounds" } }))).toEqual(["config.currency:INVALID_CURRENCY"]);
+		expect(codes(issues({ config: { ...baseConfig, currency: "pounds" } }))).toEqual([
+			"config.currency:INVALID_CURRENCY",
+		]);
 		expect(codes(issues({ config: { ...baseConfig, currency: "ZZZ" } }))).toEqual(["config.currency:INVALID_CURRENCY"]);
 		expect(codes(issues({ config: { ...baseConfig, status: "live" } }))).toEqual(["config.status:INVALID_STATUS"]);
 		expect(codes(issues({ config: baseConfig, ticketTypes: [{ ...baseTicket, name: "  " }] }))).toEqual([
 			"ticketTypes[0].name:INVALID_NAME",
 		]);
-		expect(codes(issues({ config: baseConfig, ticketTypes: [{ ...baseTicket, minPerOrder: 5, maxPerOrder: 2 }] }))).toEqual([
-			"ticketTypes[0].maxPerOrder:INVALID_QUANTITY_LIMITS",
-		]);
+		expect(
+			codes(issues({ config: baseConfig, ticketTypes: [{ ...baseTicket, minPerOrder: 5, maxPerOrder: 2 }] })),
+		).toEqual(["ticketTypes[0].maxPerOrder:INVALID_QUANTITY_LIMITS"]);
 		expect(codes(issues({ config: baseConfig, ticketTypes: [{ ...baseTicket, minPerOrder: 0 }] }))).toEqual([
 			"ticketTypes[0].minPerOrder:INVALID_QUANTITY_LIMITS",
 		]);
@@ -221,7 +223,9 @@ describe("validateConfigInput (EV-FR-02, EV-FR-03)", () => {
 			{ ...baseTicket, id: "t1" },
 			{ ...baseTicket, id: "t1" },
 		];
-		expect(codes(issues({ config: baseConfig, ticketTypes: dup }, existing))).toEqual(["ticketTypes[1].id:DUPLICATE_ID"]);
+		expect(codes(issues({ config: baseConfig, ticketTypes: dup }, existing))).toEqual([
+			"ticketTypes[1].id:DUPLICATE_ID",
+		]);
 	});
 
 	it("EV-FR-02 deletes items left out, unless they hold or sold seats", () => {
@@ -234,7 +238,10 @@ describe("validateConfigInput (EV-FR-02, EV-FR-03)", () => {
 			]),
 			occurrences: new Map([["o1", storedOcc]]),
 		};
-		expect(codes(issues({ config: baseConfig }, existing))).toEqual(["ticketTypes:ITEM_IN_USE", "occurrences:ITEM_IN_USE"]);
+		expect(codes(issues({ config: baseConfig }, existing))).toEqual([
+			"ticketTypes:ITEM_IN_USE",
+			"occurrences:ITEM_IN_USE",
+		]);
 		const r = validate(
 			{ config: baseConfig, ticketTypes: [{ ...baseTicket, id: "busy" }], occurrences: [{ ...baseOcc, id: "o1" }] },
 			existing,
