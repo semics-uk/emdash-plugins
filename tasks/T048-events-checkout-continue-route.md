@@ -4,7 +4,7 @@ title: "Events: checkout continue route"
 phase: 2
 package: events
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T047]
@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] State machine shared with later phases
+- [ ] Schedules or re-arms the `hold-<ref>` one-shot (T047 reserve skips it when Turnstile is configured, to stay within 8 calls); every booking write guards on status + `releaseClaimedAt: null`
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Works at 320 px
+- [ ] Each checkout attempt sends a fresh `idempotencyKey` (32+ random URL-safe characters) to `public/checkout/reserve` (T047); resubmits reuse it
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

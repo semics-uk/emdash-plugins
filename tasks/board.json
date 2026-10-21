@@ -1013,7 +1013,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1030,7 +1030,7 @@
 				"T055",
 				"T073"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T049": {
 			"file": "T049-events-booking-status-and-self-service-cancel.md",
@@ -2247,14 +2247,14 @@
 			"T029",
 			"T043",
 			"T046",
-			"T048",
 			"T051",
 			"T053",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T025"
+			"T025",
+			"T048"
 		],
 		"review": [],
 		"done": [
