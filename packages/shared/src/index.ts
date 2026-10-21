@@ -10,8 +10,10 @@ export function sharedVersion(): string {
 }
 
 export * from "./blockkit";
+export * from "./hmac";
 export * from "./ics";
 export * from "./money";
+export * from "./pairing";
 export * from "./pdf";
 export * from "./result";
 export * from "./template";

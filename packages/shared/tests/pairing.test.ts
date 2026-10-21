@@ -22,7 +22,9 @@ const vectors: PairingVector[] = JSON.parse(
 ).vectors.filter((v: PairingVector) => v.type === "pairing");
 
 const outcome = (r: ReturnType<typeof parsePairing>) =>
-	r.ok ? { ok: true, clientId: r.value.clientId, secret: encodeBase64Url(r.value.secret) } : { ok: false, error: r.error };
+	r.ok
+		? { ok: true, clientId: r.value.clientId, secret: encodeBase64Url(r.value.secret) }
+		: { ok: false, error: r.error };
 
 describe("SX-NFR-01 pairing string vectors", () => {
 	it("has the 9 pairing vectors", () => expect(vectors).toHaveLength(9));
@@ -38,7 +40,7 @@ describe("SX-NFR-02 pairing string parsing", () => {
 	it("rejects malformed strings and short or long secrets", () => {
 		for (const bad of [
 			"",
-			`esign1.cl_x.${secret}`, // client id under 4 characters
+			`esign1.c_x.${secret}`, // client id under 4 characters
 			`esign1.${"c".repeat(65)}.${secret}`,
 			`esign1.cl_test.${secret.slice(0, 42)}`,
 			`esign1.cl_test.${secret}A`,

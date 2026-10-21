@@ -7,8 +7,8 @@ import {
 	type EsignClient,
 	type EsignTokenType,
 	encodeBase64Url,
-	isReturnUrlAllowed,
 	type IntentPayload,
+	isReturnUrlAllowed,
 	type ReceiptPayload,
 	signEsignToken,
 	validateEsignPayload,
@@ -122,6 +122,7 @@ describe("SX-NFR-01 SX-NFR-02 esign-intent/1 vectors", () => {
 			v.input.tamper === undefined &&
 			v.input.signedWithPrefix === v.input.expectedPrefix &&
 			v.input.signedWithSecret !== undefined &&
+			v.input.token.length <= ESIGN_MAX_TOKEN_LENGTH[v.type] &&
 			validateEsignPayload(v.type, v.input.payload).ok,
 	);
 
@@ -129,14 +130,17 @@ describe("SX-NFR-01 SX-NFR-02 esign-intent/1 vectors", () => {
 		expect(new Set(reproducible.map((v) => v.type))).toEqual(new Set(["intent", "receipt", "lookup", "catalog"]));
 	});
 
-	it.each(reproducible.map((v) => [v.name, v] as const))("%s is reproduced byte for byte by the issuer", async (_n, v) => {
-		const token = await signEsignToken(
-			v.type,
-			v.input.payload as IntentPayload,
-			bytes(v.input.signedWithSecret as string),
-		);
-		expect(token).toBe(v.input.token);
-	});
+	it.each(reproducible.map((v) => [v.name, v] as const))(
+		"%s is reproduced byte for byte by the issuer",
+		async (_n, v) => {
+			const token = await signEsignToken(
+				v.type,
+				v.input.payload as IntentPayload,
+				bytes(v.input.signedWithSecret as string),
+			);
+			expect(token).toBe(v.input.token);
+		},
+	);
 });
 
 // --- fixtures for targeted tests ---
@@ -250,7 +254,11 @@ describe("SX-NFR-02 prefix confusion", () => {
 
 describe("SX-NFR-02 expiry and tampering", () => {
 	it("an expired intent fails with TOKEN_EXPIRED and does not burn its nonce", async () => {
-		const token = await signEsignToken("intent", intentPayload({ iat: NOW_S - 1000, exp: NOW_S - 61 }), bytes(KEY_A.secret));
+		const token = await signEsignToken(
+			"intent",
+			intentPayload({ iat: NOW_S - 1000, exp: NOW_S - 61 }),
+			bytes(KEY_A.secret),
+		);
 		const { result, store } = await verifyIntent(token);
 		expect(errorOf(result)).toBe("TOKEN_EXPIRED");
 		expect(store.calls).toEqual([]);
@@ -258,14 +266,24 @@ describe("SX-NFR-02 expiry and tampering", () => {
 
 	it("expired lookup and catalog requests fail with TOKEN_EXPIRED", async () => {
 		const secret = bytes(KEY_A.secret);
-		const lookup = await signEsignToken("lookup", { v: 1, typ: "lookup", cid: KEY_A.cid, ts: NOW_S - 361, ref: "R" }, secret);
+		const lookup = await signEsignToken(
+			"lookup",
+			{ v: 1, typ: "lookup", cid: KEY_A.cid, ts: NOW_S - 361, ref: "R" },
+			secret,
+		);
 		const catalog = await signEsignToken("catalog", { v: 1, typ: "catalog", cid: KEY_A.cid, ts: NOW_S - 361 }, secret);
 		expect(errorOf(await verifyLookupToken({ token: lookup, now: NOW, getClient: clientsA() }))).toBe("TOKEN_EXPIRED");
-		expect(errorOf(await verifyCatalogToken({ token: catalog, now: NOW, getClient: clientsA() }))).toBe("TOKEN_EXPIRED");
+		expect(errorOf(await verifyCatalogToken({ token: catalog, now: NOW, getClient: clientsA() }))).toBe(
+			"TOKEN_EXPIRED",
+		);
 	});
 
 	it("truncates the injected millisecond clock to whole seconds", async () => {
-		const token = await signEsignToken("intent", intentPayload({ iat: NOW_S - 1000, exp: NOW_S - 60 }), bytes(KEY_A.secret));
+		const token = await signEsignToken(
+			"intent",
+			intentPayload({ iat: NOW_S - 1000, exp: NOW_S - 60 }),
+			bytes(KEY_A.secret),
+		);
 		expect(errorOf((await verifyIntent(token, { now: NOW + 999 })).result)).toBe("ok");
 		expect(errorOf((await verifyIntent(token, { now: NOW + 1000 })).result)).toBe("TOKEN_EXPIRED");
 	});
@@ -287,7 +305,9 @@ describe("SX-NFR-02 expiry and tampering", () => {
 		const [, sig] = token.split(".");
 		const forged = await rawSign("ignored", receiptPayload({ ref: "BK7Q2M:ATT02" }));
 		const tampered = `${forged.split(".")[0]}.${sig}`;
-		expect(errorOf(await verifyReceiptToken({ token: tampered, now: NOW, getClient: clientsA() }))).toBe("TOKEN_INVALID");
+		expect(errorOf(await verifyReceiptToken({ token: tampered, now: NOW, getClient: clientsA() }))).toBe(
+			"TOKEN_INVALID",
+		);
 	});
 });
 
@@ -307,8 +327,12 @@ describe("SX-NFR-02 verification order and structure", () => {
 	});
 
 	it("rejects a byte-order mark, a non-string cid and a cid outside the grammar", async () => {
-		const bom = encodeBase64Url(new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(JSON.stringify(intentPayload()))]));
-		expect(errorOf((await verifyIntent(await rawSignSegment(ESIGN_PREFIXES.intent, bom))).result)).toBe("TOKEN_MALFORMED");
+		const bom = encodeBase64Url(
+			new Uint8Array([0xef, 0xbb, 0xbf, ...new TextEncoder().encode(JSON.stringify(intentPayload()))]),
+		);
+		expect(errorOf((await verifyIntent(await rawSignSegment(ESIGN_PREFIXES.intent, bom))).result)).toBe(
+			"TOKEN_MALFORMED",
+		);
 		for (const cid of [42, "abc", "a".repeat(65), "cl test", null]) {
 			const token = await rawSign(ESIGN_PREFIXES.intent, intentPayload({ cid }));
 			expect([cid, errorOf((await verifyIntent(token)).result)]).toEqual([cid, "TOKEN_MALFORMED"]);
@@ -342,14 +366,22 @@ describe("SX-NFR-02 verification order and structure", () => {
 	});
 
 	it("checks the return URL before consuming the nonce", async () => {
-		const token = await signEsignToken("intent", intentPayload({ returnUrl: "https://evil.example/" }), bytes(KEY_A.secret));
+		const token = await signEsignToken(
+			"intent",
+			intentPayload({ returnUrl: "https://evil.example/" }),
+			bytes(KEY_A.secret),
+		);
 		const { result, store } = await verifyIntent(token);
 		expect(errorOf(result)).toBe("RETURN_URL_NOT_ALLOWED");
 		expect(store.calls).toEqual([]);
 	});
 
 	it("falls back to the e-sign site's origin when a client has no allowlist, and fails closed without one", async () => {
-		const sameOrigin = await signEsignToken("intent", intentPayload({ returnUrl: `${SITE_ORIGIN}/done` }), bytes(KEY_A.secret));
+		const sameOrigin = await signEsignToken(
+			"intent",
+			intentPayload({ returnUrl: `${SITE_ORIGIN}/done` }),
+			bytes(KEY_A.secret),
+		);
 		const noList = { getClient: clientsA({ returnUrlAllowlist: undefined }) };
 		expect(errorOf((await verifyIntent(sameOrigin, noList)).result)).toBe("ok");
 		const emptyList = { getClient: clientsA({ returnUrlAllowlist: [] }) };
@@ -442,7 +474,8 @@ describe("SX-NFR-02 intent schema", () => {
 			nonce: "n".repeat(64),
 		});
 		expect(errorOf(validateEsignPayload("intent", payload))).toBe("ok");
-		for (const as of ["self", "buyer"]) expect(errorOf(validateEsignPayload("intent", intentPayload({ as })))).toBe("ok");
+		for (const as of ["self", "buyer"])
+			expect(errorOf(validateEsignPayload("intent", intentPayload({ as })))).toBe("ok");
 		expect(errorOf(validateEsignPayload("intent", intentPayload({ delivery: "inline" })))).toBe("ok");
 	});
 
@@ -454,9 +487,9 @@ describe("SX-NFR-02 intent schema", () => {
 		await expect(signEsignToken("intent", intentPayload({ tpl: "" }), bytes(KEY_A.secret))).rejects.toThrow(
 			/PAYLOAD_INVALID/,
 		);
-		await expect(
-			signEsignToken("intent", intentPayload({ exp: NOW_S + 1800 }), bytes(KEY_A.secret)),
-		).rejects.toThrow(/TOKEN_LIFETIME_EXCEEDED/);
+		await expect(signEsignToken("intent", intentPayload({ exp: NOW_S + 1800 }), bytes(KEY_A.secret))).rejects.toThrow(
+			/TOKEN_LIFETIME_EXCEEDED/,
+		);
 	});
 
 	it("the issuer requires a 32-byte secret", async () => {
@@ -492,9 +525,9 @@ describe("SX-NFR-02 receipt, lookup and catalog schemas", () => {
 
 	it("accepts every terminal status with the right hashes", () => {
 		for (const status of ["declined", "voided", "expired"]) {
-			expect(errorOf(validateEsignPayload("receipt", receiptPayload({ status, pdfSha256: null, finalHash: null })))).toBe(
-				"ok",
-			);
+			expect(
+				errorOf(validateEsignPayload("receipt", receiptPayload({ status, pdfSha256: null, finalHash: null }))),
+			).toBe("ok");
 		}
 		expect(errorOf(validateEsignPayload("receipt", receiptPayload({ pdfSha256: null })))).toBe("ok");
 	});
