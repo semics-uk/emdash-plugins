@@ -10,12 +10,10 @@ runtime dependency would ship an unresolvable import.
 - Never imports a core or UI.
 - `testing/` holds test-only helpers (budget harness, T007); runtime code must never import it.
 
-Modules so far: `result.ts` (Result type, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts`
-(T018), `tokens.ts` (T011: `generateToken`, `hashToken`, `verifyToken`, `constantTimeEqual`, `signLink`/
-`verifyLink` — reuse `constantTimeEqual` in hmac), `pdf/` (T016: `renderPdf(doc)` → deterministic PDF bytes from
-blocks — heading, paragraph, table, signature (stroke JSON as vector paths), rule, spacer, pageBreak — plus
-`measureText`/`wrapText`; Helvetica WinAnsi only, never embeds fonts or images; inject `info.creationDate`;
-tests check output with `tests/helpers/pdf-parse.ts`). Security globs at 100% branches are listed in
-`vitest.config.ts` `strictBranches`. Planned: hmac + pairing
-(implement `docs/protocol/esign-intent-v1.md` exactly), ratelimit, turnstile, blockkit, outbox,
-template, rrule, licence.
+Modules so far: `result.ts` (Result, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts` (T018),
+`tokens.ts` (T011: opaque tokens, `constantTimeEqual`, `signLink`/`verifyLink`), `hmac.ts` + `pairing.ts`
+(T012: `esign-intent/1` sign/verify per type, injected `consumeNonce`, `isReturnUrlAllowed`,
+`deriveClientSecret`), `blockkit.ts` (T014: typed builders, `notice`/`notices` banners), `template.ts` (T017:
+`renderTemplate`, `canonicalSnapshot`, `sha256Hex`), `pdf/` (T016: `renderPdf`, deterministic). Security
+globs at 100% branches: `strictBranches` in `vitest.config.ts`. Planned: ratelimit, turnstile, outbox, rrule,
+licence.
