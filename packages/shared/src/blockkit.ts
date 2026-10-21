@@ -41,23 +41,14 @@ import type {
 	StatItem,
 	StatsBlock,
 	TabBlock,
-	TabPanel,
 	TableBlock,
 	TableColumn,
+	TabPanel,
 	TextInputElement,
 	ToggleElement,
 } from "@emdash-cms/blocks";
 
-export type {
-	ActionElement,
-	Block,
-	FormField,
-	LinkTarget,
-	RepeaterSubField,
-	StatItem,
-	TabPanel,
-	TableColumn,
-};
+export type { ActionElement, Block, FormField, LinkTarget, RepeaterSubField, StatItem, TableColumn, TabPanel };
 
 type Option = { label: string; value: string };
 
@@ -75,10 +66,7 @@ export function header(text: string, opts: { blockId?: string } = {}): HeaderBlo
 	return clean({ type: "header", text, block_id: opts.blockId });
 }
 
-export function section(
-	text: string,
-	opts: { accessory?: ActionElement; blockId?: string } = {},
-): SectionBlock {
+export function section(text: string, opts: { accessory?: ActionElement; blockId?: string } = {}): SectionBlock {
 	return clean({ type: "section", text, accessory: opts.accessory, block_id: opts.blockId });
 }
 
@@ -97,12 +85,7 @@ export function fieldsBlock(
 	return clean({ type: "fields", fields, block_id: opts.blockId });
 }
 
-export function image(opts: {
-	url: string;
-	alt: string;
-	title?: string;
-	blockId?: string;
-}): ImageBlock {
+export function image(opts: { url: string; alt: string; title?: string; blockId?: string }): ImageBlock {
 	return clean({
 		type: "image",
 		url: opts.url,
@@ -116,10 +99,7 @@ export function columns(cols: Block[][], opts: { blockId?: string } = {}): Colum
 	return clean({ type: "columns", columns: cols, block_id: opts.blockId });
 }
 
-export function tabs(
-	panels: TabPanel[],
-	opts: { defaultTab?: number; blockId?: string } = {},
-): TabBlock {
+export function tabs(panels: TabPanel[], opts: { defaultTab?: number; blockId?: string } = {}): TabBlock {
 	return clean({
 		type: "tab",
 		panels,
@@ -245,11 +225,7 @@ export function timeseriesChart(opts: {
 	});
 }
 
-export function customChart(opts: {
-	options: Record<string, unknown>;
-	height?: number;
-	blockId?: string;
-}): ChartBlock {
+export function customChart(opts: { options: Record<string, unknown>; height?: number; blockId?: string }): ChartBlock {
 	return clean({
 		type: "chart",
 		config: clean({
@@ -322,9 +298,7 @@ export function notice(input: NoticeInput): BannerBlock {
 }
 
 /** One banner per notice, in order. Falsy entries are skipped so callers can inline checks. */
-export function notices(
-	items: ReadonlyArray<NoticeInput | null | undefined | false>,
-): BannerBlock[] {
+export function notices(items: ReadonlyArray<NoticeInput | null | undefined | false>): BannerBlock[] {
 	return items.filter((n): n is NoticeInput => !!n).map(notice);
 }
 
