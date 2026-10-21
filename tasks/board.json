@@ -1453,7 +1453,7 @@
 			"phase": 4,
 			"package": "shared",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1467,7 +1467,7 @@
 				"T071",
 				"T072"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T071": {
 			"file": "T071-pro-build-pipeline-and-free-pro-data-continuity.md",
@@ -1513,7 +1513,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T073": {
 			"file": "T073-events-pro-stripe-provider-and-checkout-session.md",
@@ -2218,7 +2218,6 @@
 			"T066",
 			"T067",
 			"T071",
-			"T072",
 			"T073",
 			"T074",
 			"T075",
@@ -2257,7 +2256,7 @@
 			"T046",
 			"T051",
 			"T053",
-			"T070",
+			"T072",
 			"T111"
 		],
 		"in-progress": [],
@@ -2288,6 +2287,7 @@
 			"T041",
 			"T042",
 			"T044",
+			"T070",
 			"T110"
 		],
 		"blocked": []
