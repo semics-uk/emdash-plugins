@@ -18,10 +18,11 @@ const TARGET = { calls: 8, cpuMs: 50 };
  * from-intent verifies the intent (settings, client, nonce), reads the template, then writes the
  * envelope (create-only, first), snapshot, signer and the two opening audit events: 8 calls
  * inline, 9 with email delivery (T113). A retry after a declined, voided or expired envelope
- * reads the ref's envelopes and creates the next one: 9 inline, 10 with email (hard limit 10).
+ * reads the ref's envelopes and creates the next one: 10 inline (the hard limit). With email delivery the
+ * retry only creates the draft and schedules `intent-finish-<id>` (8 in the route, 8 in the task).
  */
 const INTENT_TARGET = { calls: 9, cpuMs: 50 };
-const RETRY_INTENT_TARGET = { calls: 9, cpuMs: 50 };
+const RETRY_INTENT_TARGET = { calls: 10, cpuMs: 50 };
 const RETRY_EMAIL_INTENT_TARGET = { calls: 10, cpuMs: 50 };
 /** T027: send also queues the invitation (one outbox put); an email-delivery intent likewise. */
 const SEND_TARGET = { calls: 9, cpuMs: 50 };
@@ -358,7 +359,7 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		expect(await runtime?.inspect.storage.list("envelopes")).toHaveLength(2);
 	});
 
-	it("ES-FR-03 a declined envelope retried with email delivery stays within 10 calls", async () => {
+	it("ES-FR-03 a declined envelope retried with email delivery is finished by a cron task", async () => {
 		const { budget, templateId } = await setupIntegration();
 		const first = await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
 		const stored = await runtime?.inspect.storage.get<Record<string, unknown>>("envelopes", first.envelopeId as string);
@@ -367,7 +368,29 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 			intent: await sign(payload(templateId, { delivery: "email" })),
 		});
 		expectWithinBudget(retried, RETRY_EMAIL_INTENT_TARGET);
-		expect(retried.value).toMatchObject({ ok: true, status: "sent" });
+		const body = retried.value as Body;
+		const id = body.envelopeId as string;
+		expect(body).toMatchObject({ ok: true, status: "draft" });
+		expect(body.signingToken).toBeUndefined();
+		// Not visible as sent until the task has finished: no signer, no mail yet.
+		expect((await runtime?.inspect.storage.get<{ status: string }>("envelopes", id))?.status).toBe("draft");
+		expect(await runtime?.inspect.storage.list("outbox")).toHaveLength(0);
+		const task = `intent-finish-${id}`;
+		expect((await runtime?.inspect.scheduledTasks())?.map((t) => t.name)).toContain(task);
+
+		const event = { name: task, scheduledAt: new Date().toISOString(), data: { envelopeId: id } };
+		const finished = await budget.invokeHook("cron", event);
+		expectWithinBudget(finished, TARGET);
+		expect((await runtime?.inspect.storage.get<{ status: string }>("envelopes", id))?.status).toBe("sent");
+		expect(await runtime?.inspect.storage.list("outbox")).toHaveLength(1);
+		expect(await runtime?.inspect.storage.list("signers")).toHaveLength(2);
+		expect((await auditChain(id)).map((e) => e.type)).toEqual(["envelope.created", "envelope.sent"]);
+
+		// A re-run does nothing: one read, no writes.
+		const again = await budget.invokeHook("cron", event);
+		expectWithinBudget(again, { calls: 1, cpuMs: 50 });
+		expect(await runtime?.inspect.storage.list("outbox")).toHaveLength(1);
+		expect(await auditChain(id)).toHaveLength(2);
 	});
 
 	it("ES-FR-02 email delivery returns no signing token", async () => {
