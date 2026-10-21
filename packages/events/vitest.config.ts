@@ -5,6 +5,8 @@ import { coverageConfig } from "../../vitest.coverage.mjs";
 const sharedFixture = "tests/fixtures/shared-plugin";
 // Same manifest as the real plugin (symlink) plus probe routes that drive storage and fetch.
 const contractFixture = "tests/fixtures/contract-probe";
+// Same manifest again, with probe routes that drive the inventory module on D1 (T044).
+const inventoryFixture = "tests/fixtures/inventory-probe";
 // Cold workerd starts and plugin builds are slow when several packages verify in parallel.
 const testTimeout = 120_000;
 
@@ -24,6 +26,7 @@ export default defineConfig({
 						...configDefaults.exclude,
 						"tests/shared-bundle*.test.ts",
 						"tests/contract.test.ts",
+						"tests/inventory.test.ts",
 						"tests/manifest.test.ts",
 						"tests/fixtures/**",
 					],
@@ -36,6 +39,10 @@ export default defineConfig({
 			{
 				plugins: [emdashPluginTest({ dir: contractFixture })],
 				test: { name: "contract", testTimeout, hookTimeout: testTimeout, include: ["tests/contract.test.ts"] },
+			},
+			{
+				plugins: [emdashPluginTest({ dir: inventoryFixture })],
+				test: { name: "inventory", testTimeout, hookTimeout: testTimeout, include: ["tests/inventory.test.ts"] },
 			},
 			{
 				test: { name: "manifest", environment: "node", testTimeout, include: ["tests/manifest.test.ts"] },
