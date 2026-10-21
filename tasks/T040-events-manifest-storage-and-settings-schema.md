@@ -4,7 +4,7 @@ title: "Events: manifest, storage and settings schema"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T003, T010]
