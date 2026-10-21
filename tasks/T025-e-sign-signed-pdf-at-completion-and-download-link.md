@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Certificate lists every audit event and the final hash
 - [ ] Signed PDF stored in `artifacts` as 256 KiB base64 chunks (each document ≤ 512 KiB); replaces the `public/download` stub
+- [ ] Download links use `signLink`/`verifyLink` (`@semics-tech/shared`, T011) with purpose `esign/download` and a secret of at least 32 bytes; the signing token never appears in the URL
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
