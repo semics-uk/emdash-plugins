@@ -17,7 +17,6 @@ import { OUTBOX_TASK, outboxReport, runOutboxJob } from "../src/emails/outbox";
 /** R22: target ≤ 8, hard limit 10. Send and the PDF job each gain one outbox write. */
 const TARGET = { calls: 8, cpuMs: 50 };
 const ONE_MORE = { calls: 9, cpuMs: 50 };
-const LIMIT = { calls: 10, cpuMs: 50 };
 
 let runtime: PluginRuntimeTestHost | undefined;
 const originalKey = process.env.EMDASH_ENCRYPTION_KEY;
@@ -98,7 +97,11 @@ describe("ES-FR-10 invitation emails", () => {
 		const mail = await host().inspect.email();
 		expect(mail).toHaveLength(1);
 		expect(mail[0]).toMatchObject({ to: "ada@example.com" });
-		expect((await outbox())[0]?.status).toBe("sent");
+		const [row] = await outbox();
+		expect(row?.status).toBe("sent");
+		// R32: the sent row no longer holds the clear-text signing token.
+		expect(row?.message).toEqual({ to: "ada@example.com", subject: "Acme Theatre asks you to sign: Waiver" });
+		expect(JSON.stringify(row)).not.toContain(tokenIn(message?.text ?? ""));
 	});
 
 	it("a second send of the same envelope queues nothing more", async () => {
@@ -193,13 +196,13 @@ async function integration() {
 }
 
 describe("ES-FR-10 from-intent delivery", () => {
-	it("delivery: email queues the invitation (one extra call) and never returns the token", async () => {
+	it("delivery: email queues the invitation, never returns the token and stays at 9 calls", async () => {
 		const { budget, templateId } = await integration();
 		const r = await call(
 			budget,
 			"public/envelopes/from-intent",
 			{ intent: await intent(templateId, { delivery: "email" }) },
-			LIMIT,
+			ONE_MORE,
 		);
 		expect(Object.keys(r).sort()).toEqual(["envelopeId", "ok", "status"]);
 		const rows = await outbox();
@@ -219,12 +222,12 @@ describe("ES-FR-10 from-intent delivery", () => {
 	it("an idempotent replay of an email intent queues no second invitation", async () => {
 		const { budget, templateId } = await integration();
 		const first = await intent(templateId, { delivery: "email" });
-		await call(budget, "public/envelopes/from-intent", { intent: first }, LIMIT);
+		await call(budget, "public/envelopes/from-intent", { intent: first }, ONE_MORE);
 		await call(
 			budget,
 			"public/envelopes/from-intent",
 			{ intent: await intent(templateId, { delivery: "email" }) },
-			LIMIT,
+			ONE_MORE,
 		);
 		expect(await outbox()).toHaveLength(1);
 	});

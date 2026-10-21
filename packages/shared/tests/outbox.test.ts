@@ -124,4 +124,51 @@ describe("outbox", () => {
 		expect(r2.sent).toBe(2);
 		expect([...rows.values()].filter((x) => x.status === "sent")).toHaveLength(r.sent + 2);
 	});
+	describe("scrubbing (R32)", () => {
+		const SECRET = "tok_SECRET-abc_123";
+		const secretMsg = (to: string) => ({
+			to,
+			subject: "Sign",
+			text: `link /sign/${SECRET}`,
+			html: `<a href="/sign/${SECRET}">sign</a>`,
+			payload: { token: SECRET },
+		});
+
+		it("a sent row keeps to/subject/timestamps/attempts and loses body, html and payload", async () => {
+			const { storage, rows } = memStorage();
+			await enqueueEmail(storage, secretMsg("a@x.com") as never, 1000, () => "m1");
+			await drainOutbox({ storage, email: mail([]), now: 2000 });
+			const row = rows.get("m1");
+			expect(row).toMatchObject({ status: "sent", attempts: 1, createdAt: 1000, sentAt: 2000 });
+			expect(row?.message).toEqual({ to: "a@x.com", subject: "Sign" });
+			expect(JSON.stringify(row)).not.toContain(SECRET);
+		});
+
+		it("a row that gives up is scrubbed the same way and keeps lastError", async () => {
+			const { storage, rows } = memStorage();
+			const email = mail([], new Set(["bad@x.com"]));
+			await enqueueEmail(storage, secretMsg("bad@x.com") as never, 0, () => "m1");
+			for (let i = 0; i < 5; i++) await drainOutbox({ storage, email, now: rows.get("m1")?.nextAttemptAt ?? 0 });
+			const row = rows.get("m1");
+			expect(row).toMatchObject({ status: "failed", attempts: 5, lastError: "smtp down" });
+			expect(row?.message).toEqual({ to: "bad@x.com", subject: "Sign" });
+			expect(JSON.stringify(row)).not.toContain(SECRET);
+		});
+
+		it("a row that will retry keeps its body, since it still has to be sent", async () => {
+			const { storage, rows } = memStorage();
+			await enqueueEmail(storage, secretMsg("bad@x.com") as never, 0, () => "m1");
+			await drainOutbox({ storage, email: mail([], new Set(["bad@x.com"])), now: 0 });
+			expect(rows.get("m1")?.status).toBe("pending");
+			expect(rows.get("m1")?.message).toMatchObject({ text: `link /sign/${SECRET}` });
+		});
+
+		it("scrubbing adds no storage call: still 1 query + sends + 1 putMany", async () => {
+			const { storage, calls } = memStorage();
+			for (let i = 0; i < 3; i++) await enqueueEmail(storage, secretMsg(`u${i}@x.com`) as never, 0, () => `m${i}`);
+			calls.length = 0;
+			await drainOutbox({ storage, email: mail([]), now: 0 });
+			expect(calls).toEqual(["query", "putMany"]);
+		});
+	});
 });
