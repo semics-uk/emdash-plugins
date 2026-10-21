@@ -12,8 +12,21 @@ function esc(s) {
 // Deterministic pseudo-random text so every run renders the same bytes.
 function makeLine(seed, i) {
 	const words = [
-		"agreement", "participant", "waiver", "liability", "event", "signature", "consent",
-		"organiser", "risk", "activity", "acknowledge", "release", "claims", "injury", "property",
+		"agreement",
+		"participant",
+		"waiver",
+		"liability",
+		"event",
+		"signature",
+		"consent",
+		"organiser",
+		"risk",
+		"activity",
+		"acknowledge",
+		"release",
+		"claims",
+		"injury",
+		"property",
 	];
 	let x = (seed * 7919 + i * 104729) >>> 0;
 	const out = [];
@@ -28,7 +41,7 @@ function wrap(text, maxChars) {
 	const lines = [];
 	let line = "";
 	for (const word of text.split(" ")) {
-		if ((line + " " + word).trim().length > maxChars) {
+		if (`${line} ${word}`.trim().length > maxChars) {
 			lines.push(line.trim());
 			line = word;
 		} else line += ` ${word}`;
@@ -96,9 +109,7 @@ export async function renderPdf({ pages, linesPerPage = 60, strokes = null, comp
 	for (let p = 0; p < pages; p++) {
 		const raw = enc.encode(pageContent(p, linesPerPage, p === pages - 1 ? strokes : null));
 		const data = compress ? await deflate(raw) : raw;
-		const head = enc.encode(
-			`<< /Length ${data.length}${compress ? " /Filter /FlateDecode" : ""} >>\nstream\n`,
-		);
+		const head = enc.encode(`<< /Length ${data.length}${compress ? " /Filter /FlateDecode" : ""} >>\nstream\n`);
 		const tail = enc.encode("\nendstream");
 		const stream = new Uint8Array(head.length + data.length + tail.length);
 		stream.set(head, 0);

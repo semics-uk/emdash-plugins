@@ -35,9 +35,7 @@ async function s1(env, { mode, max = 40, parallel = false }) {
 		}
 	}
 	if (parallel) {
-		const results = await Promise.allSettled(
-			Array.from({ length: max }, (_, i) => oneCall(env, mode, i)),
-		);
+		const results = await Promise.allSettled(Array.from({ length: max }, (_, i) => oneCall(env, mode, i)));
 		const firstFail = results.findIndex((r) => r.status === "rejected");
 		return {
 			mode,

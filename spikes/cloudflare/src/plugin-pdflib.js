@@ -1,6 +1,6 @@
 // Sandboxed probe for pdf-lib cost (S5 fallback question). Separate isolate so the mini writer's
 // numbers are not charged pdf-lib's module parse.
-import { PDFDocument, StandardFonts, rgb } from "./pdf-lib.js";
+import { PDFDocument, rgb, StandardFonts } from "./pdf-lib.js";
 
 function strokes(count, points) {
 	const out = [];

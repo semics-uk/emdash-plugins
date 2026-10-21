@@ -1,7 +1,7 @@
 // Local calibration for S5: the same workloads as the sandboxed probe, timed with process.cpuUsage()
 // in Node. Workers clocks do not advance during CPU work, so this is the honest per-render figure;
 // the deployed probe gives the enforcement behaviour.
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { makeStrokes, renderPdf } from "./src/pdf-mini.js";
 
 const strokes = makeStrokes(6, 120);

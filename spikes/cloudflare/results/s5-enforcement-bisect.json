@@ -1,80 +1,80 @@
 [
-  {
-    "limits": "emdash",
-    "reps": 50,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "emdash",
-    "reps": 70,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "emdash",
-    "reps": 90,
-    "ok": false,
-    "error": "Error: Worker exceeded CPU time limit."
-  },
-  {
-    "limits": "custom&cpuMs=1000",
-    "reps": 50,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=1000",
-    "reps": 70,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=1000",
-    "reps": 90,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=1000",
-    "reps": 120,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=1000",
-    "reps": 160,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=3000",
-    "reps": 50,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=3000",
-    "reps": 70,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=3000",
-    "reps": 90,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=3000",
-    "reps": 120,
-    "ok": true,
-    "error": null
-  },
-  {
-    "limits": "custom&cpuMs=3000",
-    "reps": 160,
-    "ok": true,
-    "error": null
-  }
+	{
+		"limits": "emdash",
+		"reps": 50,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "emdash",
+		"reps": 70,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "emdash",
+		"reps": 90,
+		"ok": false,
+		"error": "Error: Worker exceeded CPU time limit."
+	},
+	{
+		"limits": "custom&cpuMs=1000",
+		"reps": 50,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=1000",
+		"reps": 70,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=1000",
+		"reps": 90,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=1000",
+		"reps": 120,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=1000",
+		"reps": 160,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=3000",
+		"reps": 50,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=3000",
+		"reps": 70,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=3000",
+		"reps": 90,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=3000",
+		"reps": 120,
+		"ok": true,
+		"error": null
+	},
+	{
+		"limits": "custom&cpuMs=3000",
+		"reps": 160,
+		"ok": true,
+		"error": null
+	}
 ]

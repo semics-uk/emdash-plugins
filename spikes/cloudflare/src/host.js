@@ -1,7 +1,7 @@
 // T110 probe host. Mirrors @emdash-cms/cloudflare 1.2.0's sandbox runner: each request builds a
 // fresh loopback bridge binding from ctx.exports and calls LOADER.get(name, …) with
 // { cpuMs: 50, subRequests: 10 } and globalOutbound: null (src/sandbox/runner.ts createWorker).
-import { WorkerEntrypoint, exports } from "cloudflare:workers";
+import { exports, WorkerEntrypoint } from "cloudflare:workers";
 import { pdfLib, pdfMini, plugin, pluginPdflib } from "../gen/modules.js";
 import { renderPdf } from "./pdf-mini.js";
 
@@ -40,9 +40,7 @@ export class ProbeBridge extends WorkerEntrypoint {
 			.run();
 	}
 	async kvGet(key) {
-		const row = await this.env.DB.prepare("SELECT value FROM _probe_kv WHERE key = ?")
-			.bind(key)
-			.first();
+		const row = await this.env.DB.prepare("SELECT value FROM _probe_kv WHERE key = ?").bind(key).first();
 		return row?.value ?? null;
 	}
 }
@@ -107,10 +105,7 @@ async function setup(env) {
 			env.DB.prepare(
 				"INSERT OR REPLACE INTO _plugin_storage (plugin_id, collection, id, data) VALUES (?, ?, ?, ?)",
 			).bind("semics-probe", "docs", `doc-${i}`, JSON.stringify({ n: i })),
-			env.DB.prepare("INSERT OR REPLACE INTO _probe_kv (key, value) VALUES (?, ?)").bind(
-				`key-${i}`,
-				String(i),
-			),
+			env.DB.prepare("INSERT OR REPLACE INTO _probe_kv (key, value) VALUES (?, ?)").bind(`key-${i}`, String(i)),
 		);
 	}
 	await env.DB.batch(stmts);
@@ -151,9 +146,7 @@ async function uniqueProbe(env) {
 	out.nullField2 = await put("f", { email: null });
 	out.caseDiffers = await put("g", { email: "X@example.com" });
 	out.otherCollectionSameValue = await db
-		.prepare(
-			"INSERT INTO _plugin_storage (plugin_id, collection, id, data) VALUES ('semics-probe', 'uq2', 'a', ?)",
-		)
+		.prepare("INSERT INTO _plugin_storage (plugin_id, collection, id, data) VALUES ('semics-probe', 'uq2', 'a', ?)")
 		.bind(JSON.stringify({ email: "x@example.com" }))
 		.run()
 		.then(
@@ -164,14 +157,10 @@ async function uniqueProbe(env) {
 	out.batchWithViolation = await db
 		.batch([
 			db
-				.prepare(
-					"INSERT INTO _plugin_storage (plugin_id, collection, id, data) VALUES ('semics-probe', 'uq', 'h', ?)",
-				)
+				.prepare("INSERT INTO _plugin_storage (plugin_id, collection, id, data) VALUES ('semics-probe', 'uq', 'h', ?)")
 				.bind(JSON.stringify({ email: "h@example.com" })),
 			db
-				.prepare(
-					"INSERT INTO _plugin_storage (plugin_id, collection, id, data) VALUES ('semics-probe', 'uq', 'i', ?)",
-				)
+				.prepare("INSERT INTO _plugin_storage (plugin_id, collection, id, data) VALUES ('semics-probe', 'uq', 'i', ?)")
 				.bind(JSON.stringify({ email: "x@example.com" })),
 		])
 		.then(
@@ -179,9 +168,7 @@ async function uniqueProbe(env) {
 			(e) => String(e),
 		);
 	out.batchFirstRowPresent =
-		(await db
-			.prepare("SELECT COUNT(*) AS n FROM _plugin_storage WHERE collection = 'uq' AND id = 'h'")
-			.first("n")) > 0;
+		(await db.prepare("SELECT COUNT(*) AS n FROM _plugin_storage WHERE collection = 'uq' AND id = 'h'").first("n")) > 0;
 	const { results } = await db
 		.prepare("SELECT id, data FROM _plugin_storage WHERE collection = 'uq' ORDER BY id")
 		.all();
@@ -272,15 +259,12 @@ export default {
 		return new Response("not found", { status: 404 });
 	},
 
-	async scheduled(controller, env, ctx) {
+	async scheduled(controller, env, _ctx) {
 		const startedAt = Date.now();
 		const stub = loadPlugin(env, { name: "cron-s1", limits: EMDASH_LIMITS });
 		const s1 = await invoke(stub, { op: "s1", mode: "rpc-d1", max: 15 });
-		await env.DB.prepare(
-			"INSERT INTO _probe_ticks (cron, scheduled_time, started_at, s1) VALUES (?, ?, ?, ?)",
-		)
+		await env.DB.prepare("INSERT INTO _probe_ticks (cron, scheduled_time, started_at, s1) VALUES (?, ?, ?, ?)")
 			.bind(controller.cron, controller.scheduledTime, startedAt, JSON.stringify(s1))
 			.run();
 	},
 };
-

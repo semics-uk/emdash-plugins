@@ -54,7 +54,19 @@ test("S1: probe route records the subrequest failure point (EV-NFR-01)", { skip:
 });
 
 test("S4: storage document size limit on real D1", { skip: !run("s4") }, async () => {
-	const sizes = [64 * 1024, 512 * 1024, 1024 * 1024, 1_900_000, 1_999_000, 2_000_000, 2 * 1024 * 1024, 4 * 1024 * 1024, 8 * 1024 * 1024, 16 * 1024 * 1024, 32 * 1024 * 1024];
+	const sizes = [
+		64 * 1024,
+		512 * 1024,
+		1024 * 1024,
+		1_900_000,
+		1_999_000,
+		2_000_000,
+		2 * 1024 * 1024,
+		4 * 1024 * 1024,
+		8 * 1024 * 1024,
+		16 * 1024 * 1024,
+		32 * 1024 * 1024,
+	];
 	const out = [];
 	for (const bytes of sizes) out.push(await get(`/s4?bytes=${bytes}`));
 	// Bisect the largest payload that stores.
@@ -115,9 +127,7 @@ async function minCpuMs(engine, pages, extra = "") {
 	let hi = 64;
 	while (hi - lo > 1) {
 		const mid = Math.floor((lo + hi) / 2);
-		const p = await passes(
-			`/pdf?engine=${engine}&pages=${pages}&reps=1&warm=1&limits=custom&cpuMs=${mid}${extra}`,
-		);
+		const p = await passes(`/pdf?engine=${engine}&pages=${pages}&reps=1&warm=1&limits=custom&cpuMs=${mid}${extra}`);
 		if (p.ok === p.tries) hi = mid;
 		else lo = mid;
 	}
@@ -129,9 +139,7 @@ test("S5: PDF benchmark recorded for 1, 3 and 5 pages (EV-NFR-02)", { skip: !run
 	for (const engine of ["mini", "pdflib-create", "pdflib-stamp"]) {
 		for (const pages of [1, 3, 5]) {
 			const single = await get(`/pdf?engine=${engine}&pages=${pages}&reps=1&warm=1`);
-			const cold = await get(
-				`/pdf?engine=${engine}&pages=${pages}&reps=1&variant=cold-${Date.now()}`,
-			);
+			const cold = await get(`/pdf?engine=${engine}&pages=${pages}&reps=1&variant=cold-${Date.now()}`);
 			const reps = await maxReps(engine, pages);
 			const cpu = await minCpuMs(engine, pages);
 			out.push({
@@ -168,9 +176,7 @@ test("S5: I/O-bracketed timings and CPU-limit enforcement (EV-NFR-02)", { skip: 
 			for (const reps of [1, 10]) {
 				const samples = [];
 				for (let i = 0; i < 3; i++) {
-					const r = await get(
-						`/pdf?engine=${engine}&pages=${pages}&reps=${reps}&warm=1&timed=1&limits=none`,
-					);
+					const r = await get(`/pdf?engine=${engine}&pages=${pages}&reps=${reps}&warm=1&timed=1&limits=none`);
 					assert.ok(r.ok, r.error);
 					const t = r.result;
 					samples.push(...t.workMs.map((w, j) => w - t.baselineMs[j]));

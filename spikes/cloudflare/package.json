@@ -1,13 +1,13 @@
 {
-  "name": "semics-probe-cloudflare",
-  "private": true,
-  "type": "module",
-  "description": "T110 Cloudflare platform-limit probes. Not part of the pnpm workspace; install with npm in this folder.",
-  "scripts": {
-    "build": "node build.mjs",
-    "probe": "node probe.mjs"
-  },
-  "devDependencies": {
-    "pdf-lib": "1.17.1"
-  }
+	"name": "semics-probe-cloudflare",
+	"private": true,
+	"type": "module",
+	"description": "T110 Cloudflare platform-limit probes. Not part of the pnpm workspace; install with npm in this folder.",
+	"scripts": {
+		"build": "node build.mjs",
+		"probe": "node probe.mjs"
+	},
+	"devDependencies": {
+		"pdf-lib": "1.17.1"
+	}
 }

@@ -5,9 +5,7 @@
 	"compatibility_date": "2026-10-01",
 	"workers_dev": true,
 	"worker_loaders": [{ "binding": "LOADER" }],
-	"d1_databases": [
-		{ "binding": "DB", "database_name": "semics-probe-d1", "database_id": "__PROBE_D1_ID__" }
-	],
+	"d1_databases": [{ "binding": "DB", "database_name": "semics-probe-d1", "database_id": "__PROBE_D1_ID__" }],
 	// EmDash's recommended trigger (emdash doctor): one tick a minute drives plugin cron.
 	"triggers": { "crons": ["* * * * *"] },
 	"observability": { "enabled": true }

@@ -23,8 +23,5 @@ writeFileSync(
 );
 
 const id = process.env.PROBE_D1_ID ?? "00000000-0000-0000-0000-000000000000";
-writeFileSync(
-	join(here, "gen/wrangler.jsonc"),
-	read("wrangler.template.jsonc").replace("__PROBE_D1_ID__", id),
-);
+writeFileSync(join(here, "gen/wrangler.jsonc"), read("wrangler.template.jsonc").replace("__PROBE_D1_ID__", id));
 console.log("built gen/modules.js and gen/wrangler.jsonc");

@@ -1,319 +1,139 @@
 {
-  "out": [
-    {
-      "engine": "mini",
-      "pages": 1,
-      "reps": 1,
-      "msPerRender": 0,
-      "samples": [
-        -1,
-        -1,
-        -3,
-        0,
-        2,
-        1,
-        -3,
-        1,
-        0
-      ]
-    },
-    {
-      "engine": "mini",
-      "pages": 1,
-      "reps": 10,
-      "msPerRender": 0.2,
-      "samples": [
-        5,
-        2,
-        6,
-        5,
-        -6,
-        0,
-        0,
-        0,
-        3
-      ]
-    },
-    {
-      "engine": "mini",
-      "pages": 3,
-      "reps": 1,
-      "msPerRender": 0,
-      "samples": [
-        0,
-        -1,
-        0,
-        4,
-        -2,
-        0,
-        -1,
-        -3,
-        3
-      ]
-    },
-    {
-      "engine": "mini",
-      "pages": 3,
-      "reps": 10,
-      "msPerRender": 0.2,
-      "samples": [
-        -1,
-        2,
-        2,
-        2,
-        2,
-        1,
-        5,
-        5,
-        1
-      ]
-    },
-    {
-      "engine": "mini",
-      "pages": 5,
-      "reps": 1,
-      "msPerRender": 0,
-      "samples": [
-        3,
-        2,
-        1,
-        -1,
-        0,
-        1,
-        0,
-        0,
-        -1
-      ]
-    },
-    {
-      "engine": "mini",
-      "pages": 5,
-      "reps": 10,
-      "msPerRender": 0.2,
-      "samples": [
-        2,
-        1,
-        2,
-        1,
-        1,
-        4,
-        2,
-        2,
-        0
-      ]
-    },
-    {
-      "engine": "pdflib-create",
-      "pages": 1,
-      "reps": 1,
-      "msPerRender": 0,
-      "samples": [
-        9,
-        4,
-        0,
-        2,
-        2,
-        -2,
-        -1,
-        -1,
-        0
-      ]
-    },
-    {
-      "engine": "pdflib-create",
-      "pages": 1,
-      "reps": 10,
-      "msPerRender": 0.5,
-      "samples": [
-        11,
-        21,
-        1,
-        6,
-        -1,
-        -1,
-        5,
-        5,
-        7
-      ]
-    },
-    {
-      "engine": "pdflib-create",
-      "pages": 3,
-      "reps": 1,
-      "msPerRender": 1,
-      "samples": [
-        1,
-        1,
-        8,
-        0,
-        13,
-        9,
-        2,
-        1,
-        0
-      ]
-    },
-    {
-      "engine": "pdflib-create",
-      "pages": 3,
-      "reps": 10,
-      "msPerRender": 1.4,
-      "samples": [
-        8,
-        17,
-        25,
-        43,
-        6,
-        17,
-        5,
-        14,
-        5
-      ]
-    },
-    {
-      "engine": "pdflib-create",
-      "pages": 5,
-      "reps": 1,
-      "msPerRender": 5,
-      "samples": [
-        5,
-        1,
-        1,
-        0,
-        8,
-        -5,
-        5,
-        5,
-        5
-      ]
-    },
-    {
-      "engine": "pdflib-create",
-      "pages": 5,
-      "reps": 10,
-      "msPerRender": 3,
-      "samples": [
-        30,
-        28,
-        157,
-        41,
-        33,
-        19,
-        23,
-        34,
-        29
-      ]
-    },
-    {
-      "engine": "pdflib-stamp",
-      "pages": 1,
-      "reps": 1,
-      "msPerRender": 3,
-      "samples": [
-        19,
-        42,
-        10,
-        0,
-        3,
-        2,
-        1,
-        -2,
-        11
-      ]
-    },
-    {
-      "engine": "pdflib-stamp",
-      "pages": 1,
-      "reps": 10,
-      "msPerRender": 6.7,
-      "samples": [
-        95,
-        65,
-        88,
-        63,
-        65,
-        75,
-        73,
-        67,
-        34
-      ]
-    },
-    {
-      "engine": "pdflib-stamp",
-      "pages": 3,
-      "reps": 1,
-      "msPerRender": 10,
-      "samples": [
-        12,
-        7,
-        25,
-        -1,
-        19,
-        4,
-        10,
-        14,
-        -4
-      ]
-    },
-    {
-      "engine": "pdflib-stamp",
-      "pages": 3,
-      "reps": 10,
-      "msPerRender": 8.1,
-      "samples": [
-        69,
-        110,
-        62,
-        43,
-        98,
-        69,
-        81,
-        100,
-        94
-      ]
-    },
-    {
-      "engine": "pdflib-stamp",
-      "pages": 5,
-      "reps": 1,
-      "msPerRender": 1,
-      "samples": [
-        -4,
-        2,
-        21,
-        -1,
-        1,
-        21,
-        1,
-        0,
-        16
-      ]
-    },
-    {
-      "engine": "pdflib-stamp",
-      "pages": 5,
-      "reps": 10,
-      "msPerRender": 8.7,
-      "samples": [
-        34,
-        59,
-        119,
-        89,
-        98,
-        467,
-        85,
-        63,
-        87
-      ]
-    }
-  ],
-  "enforcement": {
-    "enforced": {
-      "ok": true,
-      "error": null
-    },
-    "unlimited": {
-      "ok": true
-    }
-  }
+	"out": [
+		{
+			"engine": "mini",
+			"pages": 1,
+			"reps": 1,
+			"msPerRender": 0,
+			"samples": [-1, -1, -3, 0, 2, 1, -3, 1, 0]
+		},
+		{
+			"engine": "mini",
+			"pages": 1,
+			"reps": 10,
+			"msPerRender": 0.2,
+			"samples": [5, 2, 6, 5, -6, 0, 0, 0, 3]
+		},
+		{
+			"engine": "mini",
+			"pages": 3,
+			"reps": 1,
+			"msPerRender": 0,
+			"samples": [0, -1, 0, 4, -2, 0, -1, -3, 3]
+		},
+		{
+			"engine": "mini",
+			"pages": 3,
+			"reps": 10,
+			"msPerRender": 0.2,
+			"samples": [-1, 2, 2, 2, 2, 1, 5, 5, 1]
+		},
+		{
+			"engine": "mini",
+			"pages": 5,
+			"reps": 1,
+			"msPerRender": 0,
+			"samples": [3, 2, 1, -1, 0, 1, 0, 0, -1]
+		},
+		{
+			"engine": "mini",
+			"pages": 5,
+			"reps": 10,
+			"msPerRender": 0.2,
+			"samples": [2, 1, 2, 1, 1, 4, 2, 2, 0]
+		},
+		{
+			"engine": "pdflib-create",
+			"pages": 1,
+			"reps": 1,
+			"msPerRender": 0,
+			"samples": [9, 4, 0, 2, 2, -2, -1, -1, 0]
+		},
+		{
+			"engine": "pdflib-create",
+			"pages": 1,
+			"reps": 10,
+			"msPerRender": 0.5,
+			"samples": [11, 21, 1, 6, -1, -1, 5, 5, 7]
+		},
+		{
+			"engine": "pdflib-create",
+			"pages": 3,
+			"reps": 1,
+			"msPerRender": 1,
+			"samples": [1, 1, 8, 0, 13, 9, 2, 1, 0]
+		},
+		{
+			"engine": "pdflib-create",
+			"pages": 3,
+			"reps": 10,
+			"msPerRender": 1.4,
+			"samples": [8, 17, 25, 43, 6, 17, 5, 14, 5]
+		},
+		{
+			"engine": "pdflib-create",
+			"pages": 5,
+			"reps": 1,
+			"msPerRender": 5,
+			"samples": [5, 1, 1, 0, 8, -5, 5, 5, 5]
+		},
+		{
+			"engine": "pdflib-create",
+			"pages": 5,
+			"reps": 10,
+			"msPerRender": 3,
+			"samples": [30, 28, 157, 41, 33, 19, 23, 34, 29]
+		},
+		{
+			"engine": "pdflib-stamp",
+			"pages": 1,
+			"reps": 1,
+			"msPerRender": 3,
+			"samples": [19, 42, 10, 0, 3, 2, 1, -2, 11]
+		},
+		{
+			"engine": "pdflib-stamp",
+			"pages": 1,
+			"reps": 10,
+			"msPerRender": 6.7,
+			"samples": [95, 65, 88, 63, 65, 75, 73, 67, 34]
+		},
+		{
+			"engine": "pdflib-stamp",
+			"pages": 3,
+			"reps": 1,
+			"msPerRender": 10,
+			"samples": [12, 7, 25, -1, 19, 4, 10, 14, -4]
+		},
+		{
+			"engine": "pdflib-stamp",
+			"pages": 3,
+			"reps": 10,
+			"msPerRender": 8.1,
+			"samples": [69, 110, 62, 43, 98, 69, 81, 100, 94]
+		},
+		{
+			"engine": "pdflib-stamp",
+			"pages": 5,
+			"reps": 1,
+			"msPerRender": 1,
+			"samples": [-4, 2, 21, -1, 1, 21, 1, 0, 16]
+		},
+		{
+			"engine": "pdflib-stamp",
+			"pages": 5,
+			"reps": 10,
+			"msPerRender": 8.7,
+			"samples": [34, 59, 119, 89, 98, 467, 85, 63, 87]
+		}
+	],
+	"enforcement": {
+		"enforced": {
+			"ok": true,
+			"error": null
+		},
+		"unlimited": {
+			"ok": true
+		}
+	}
 }
