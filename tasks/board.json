@@ -646,7 +646,8 @@
 				"ES-FR-10"
 			],
 			"unblocks": [
-				"T033"
+				"T033",
+				"T113"
 			],
 			"column": "done"
 		},
@@ -2206,6 +2207,27 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T113": {
+			"file": "T113-outbox-scrubs-sent-mail-and-from-intent-headroom.md",
+			"id": "T113",
+			"title": "Outbox scrubs sent mail; from-intent headroom",
+			"phase": 1,
+			"package": "shared",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T027"
+			],
+			"spec": [
+				"ES-NFR-02",
+				"R22",
+				"R32"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2269,7 +2291,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T055"
+			"T055",
+			"T113"
 		],
 		"review": [],
 		"done": [

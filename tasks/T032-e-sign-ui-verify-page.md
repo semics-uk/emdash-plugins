@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Accessible file input
+- [ ] A stable "get my signed copy" page (via `public/session` with the emailed token) that issues a fresh download link: the completion email (T027) must link there, not to the 15-minute `downloadLink`
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

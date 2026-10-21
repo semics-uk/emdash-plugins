@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Pages declared in manifest
 - [ ] Settings page shows the `encryptionKeyStatus()` banner (`src/domain/encryption-key.ts`) when `EMDASH_ENCRYPTION_KEY` is missing; saving a secret maps `isEncryptionKeyMissingError` to that banner
 - [ ] Admin pages built with the `@semics-tech/shared` Block Kit builders (T014), not raw JSON; banners via `notices([...])`
+- [ ] Admin "resend invitation" for a `sent` envelope whose invitation failed to queue (T027: `send` errors after storing the signer)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
