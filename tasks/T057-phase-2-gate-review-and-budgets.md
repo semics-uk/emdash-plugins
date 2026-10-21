@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No open Severity 1 or 2 findings
+- [ ] Unique indexes (`bookings.ref`, `attendees.code`, `promo_codes.code`, E-sign `tokenHash`/`clientId`/`nonce`) proven to reject duplicates on real D1 (the in-memory test host does not enforce them; T110 records the finding)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
