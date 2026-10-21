@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Snapshots in 3 zones
 - [ ] Emails go through the shared outbox (T015): declare `OUTBOX_COLLECTION`, adapt `ctx.storage.outbox` to `OutboxStorage`, `drainOutbox` from the cron tick; delivery is at-least-once
 - [ ] The queued `confirm-<bookingId>` row holds only `{ bookingId, bookingRef }` (T048): render at send time, read attendees then, issue a fresh access token for the emailed link (store only its hash); reconcile the schema `OutboxDoc` (`kind` + `payload`, string `nextAttemptAt`) with the shared `OutboxRecord`/`OutboxStorage`
+- [ ] Sends the `booking_cancelled` outbox kind (T049) as well as confirmations
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

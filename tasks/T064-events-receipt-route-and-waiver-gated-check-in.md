@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Check-in refuses attendees whose booking is not `confirmed` (T049 does not mark attendee docs on cancel)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

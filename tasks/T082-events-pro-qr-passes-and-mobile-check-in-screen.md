@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Pro build only
+- [ ] Check-in refuses attendees whose booking is not `confirmed` (T049)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
