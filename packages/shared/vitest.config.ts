@@ -10,7 +10,10 @@ const testTimeout = 120_000;
 // fixture plugin through the Worker Loader sandbox host (tests/**/*.host.test.ts).
 export default defineConfig({
 	test: {
-		coverage: coverageConfig({ allSource: true }),
+		coverage: coverageConfig({
+			allSource: true,
+			strictBranches: ["src/tokens.ts", "src/hmac.ts", "src/pairing.ts", "src/licence.ts"],
+		}),
 		projects: [
 			{
 				test: {

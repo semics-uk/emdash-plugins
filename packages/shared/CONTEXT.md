@@ -10,6 +10,9 @@ runtime dependency would ship an unresolvable import.
 - Never imports a core or UI.
 - `testing/` holds test-only helpers (budget harness, T007); runtime code must never import it.
 
-Modules so far: `result.ts` (Result type, `ERROR_CODES`, `toRouteError`). Planned: tokens, hmac + pairing
+Modules so far: `result.ts` (Result type, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts`
+(T018), `tokens.ts` (T011: `generateToken`, `hashToken`, `verifyToken`, `constantTimeEqual`, `signLink`/
+`verifyLink` — reuse `constantTimeEqual` in hmac). Security globs at 100% branches are listed in
+`vitest.config.ts` `strictBranches`. Planned: hmac + pairing
 (implement `docs/protocol/esign-intent-v1.md` exactly), ratelimit, turnstile, blockkit, outbox, pdf,
-template, money, time, ics, rrule, licence.
+template, rrule, licence.
