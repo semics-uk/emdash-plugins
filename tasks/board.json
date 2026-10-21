@@ -490,7 +490,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -506,7 +506,7 @@
 				"T022",
 				"T028"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T022": {
 			"file": "T022-e-sign-envelopes-snapshots-and-status-machine.md",
@@ -530,7 +530,7 @@
 				"T023",
 				"T028"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T023": {
 			"file": "T023-e-sign-hash-chained-audit-trail-with-salted-commitments.md",
@@ -2189,7 +2189,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T022",
 			"T023",
 			"T024",
 			"T025",
@@ -2255,7 +2254,7 @@
 			"T012",
 			"T013",
 			"T015",
-			"T021",
+			"T022",
 			"T029",
 			"T043",
 			"T044",
@@ -2285,6 +2284,7 @@
 			"T017",
 			"T018",
 			"T020",
+			"T021",
 			"T040",
 			"T041",
 			"T042",
