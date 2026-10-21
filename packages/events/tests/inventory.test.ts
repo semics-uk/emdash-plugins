@@ -48,9 +48,10 @@ const read = async (collection: string, id: string) => (await host.storage<Count
 
 /**
  * Run every request concurrently, at most `width` in flight: each still races the others, but a
- * loaded machine cannot queue one past the host's 30 s per-invocation wall-time limit.
+ * loaded machine cannot queue one past the host's 30 s per-invocation wall-time limit (50 in flight
+ * timed out at load ~9; 16 still interleaves every step of every reservation).
  */
-async function parallel(inputs: unknown[], width = 50): Promise<Reply[]> {
+async function parallel(inputs: unknown[], width = 16): Promise<Reply[]> {
 	const out: Reply[] = new Array(inputs.length);
 	let next = 0;
 	const lane = async () => {
