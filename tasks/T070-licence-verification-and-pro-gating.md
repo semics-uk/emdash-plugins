@@ -4,7 +4,7 @@ title: "Licence verification and Pro gating"
 phase: 4
 package: shared
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T011]
