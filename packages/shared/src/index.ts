@@ -13,5 +13,6 @@ export * from "./blockkit";
 export * from "./ics";
 export * from "./money";
 export * from "./result";
+export * from "./template";
 export * from "./time";
 export * from "./tokens";
