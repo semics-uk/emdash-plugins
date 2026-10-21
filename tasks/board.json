@@ -1040,7 +1040,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1053,7 +1053,7 @@
 			"unblocks": [
 				"T055"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T050": {
 			"file": "T050-events-confirmation-email-and-calendar-routes.md",
@@ -2265,7 +2265,6 @@
 			"T029",
 			"T043",
 			"T046",
-			"T049",
 			"T050",
 			"T051",
 			"T052",
@@ -2274,6 +2273,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T049",
 			"T112"
 		],
 		"review": [],
