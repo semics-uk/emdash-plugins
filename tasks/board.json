@@ -539,7 +539,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -553,7 +553,7 @@
 			"unblocks": [
 				"T024"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T024": {
 			"file": "T024-e-sign-signing-ceremony-public-routes.md",
@@ -578,7 +578,7 @@
 				"T027",
 				"T030"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T025": {
 			"file": "T025-e-sign-signed-pdf-at-completion-and-download-link.md",
@@ -2189,7 +2189,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T024",
 			"T025",
 			"T026",
 			"T027",
@@ -2246,6 +2245,7 @@
 			"T106"
 		],
 		"ready": [
+			"T024",
 			"T028",
 			"T029",
 			"T043",
@@ -2256,7 +2256,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T023",
 			"T047"
 		],
 		"review": [],
@@ -2283,6 +2282,7 @@
 			"T020",
 			"T021",
 			"T022",
+			"T023",
 			"T040",
 			"T041",
 			"T042",
@@ -2294,16 +2294,14 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T023",
-		"T024",
-		"T025",
-		"T026",
-		"T032",
-		"T033",
-		"T034",
-		"T060",
-		"T061",
-		"T062",
+		"T047",
+		"T048",
+		"T049",
+		"T055",
+		"T056",
+		"T057",
+		"T063",
+		"T064",
 		"T065",
 		"T066",
 		"T067",
