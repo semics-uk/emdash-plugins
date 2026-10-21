@@ -65,7 +65,7 @@ random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes af
 `SIGNED_PDF_PENDING` (409) re-arms the job. Links come from `public/session` (signer of a completed envelope:
 `pdf: "pending" | "ready"`, `download`) and `envelopes/get`).
 `public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
-Budget: from-intent is 8 calls inline and 9 with email delivery (create-only envelope write first; a retry after a declined/voided/expired envelope is 10 inline, 11 with email: known, see T113 notes), submit is 9 (others ≤ 8).
+Budget: from-intent is 8 calls inline and 9 with email delivery (create-only envelope write first; a retry after a declined/voided/expired envelope is 10 inline, and with email only stores a draft and schedules `intent-finish-<id>` (cron/intent-finish.ts, 8 calls), T113), submit is 9 (others ≤ 8).
 
 UI (T029-T030): `/sign/[token]` = `SignPage.astro` → `handleSign` (`src/astro/lib/sign.ts`) → `<SigningCeremony>`.
 The snapshot is rendered only via `lib/markdown.ts` (allowlisted tree, `{text}` output, http(s)/mailto links; 100%

@@ -41,6 +41,7 @@ import { masterKeyBytes } from "../domain/master-key";
 import type { ArtifactChunkDoc } from "../domain/pdf";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { type TemplateDoc, versionDocId } from "../domain/templates";
+import { scheduleIntentFinish } from "../cron/intent-finish";
 import { outboxReport, queueInvitation } from "../emails/outbox";
 import { downloadLink } from "./download";
 
@@ -110,7 +111,7 @@ function idOf(input: unknown): string | null {
 
 const DEFAULT_EXPIRY_DAYS = 30;
 
-function expiryDays(value: unknown): number {
+export function expiryDays(value: unknown): number {
 	return Number.isSafeInteger(value) && (value as number) >= 1 && (value as number) <= 365
 		? (value as number)
 		: DEFAULT_EXPIRY_DAYS;
@@ -399,9 +400,24 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 			limit: LIST_LIMIT,
 		});
 		const current = existingForRef(previous.items);
-		if (current) return reuse(signers, current.id, current.data, deps.random);
+		if (current) {
+			// A draft here is an email intent whose finishing task may never have been scheduled.
+			if (current.data.status === "draft") await scheduleIntentFinish(ctx.cron, current.id, nowMs);
+			return reuse(signers, current.id, current.data, deps.random);
+		}
 		// Every earlier envelope for the pair was declined, voided or expired: start the next one.
-		attempt = await build(Math.max(previous.items.length, 1) + 1);
+		const next = Math.max(previous.items.length, 1) + 1;
+		if (draft.value.delivery === "email") {
+			// 8 calls so far and the hard limit is 10: store a draft and let a cron task finish it.
+			const draftId = await envelopeIdForRef(intent.cid, intent.ref, next);
+			if (!(await envelopes.compareAndSet(draftId, null, draft.value)).applied) {
+				const winner = await envelopes.get(draftId);
+				return winner ? reuse(signers, draftId, winner, deps.random) : fail("INTERNAL");
+			}
+			await scheduleIntentFinish(ctx.cron, draftId, nowMs);
+			return response(draftId, draft.value, undefined);
+		}
+		attempt = await build(next);
 		if (!attempt.sent.ok) return Array.isArray(attempt.sent.error) ? badRequest(attempt.sent.error) : fail("INTERNAL");
 		created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
 		if (!created.applied) {
