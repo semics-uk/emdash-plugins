@@ -130,7 +130,11 @@ test("a gate whose command cannot be launched fails loudly and names the command
 	console.error = (...args) => errors.push(args.join(" "));
 	console.log = () => {};
 	try {
-		const status = verify(repoRoot, [{ name: "Missing tool", cmd: "semics-no-such-command", args: [], cwd: repoRoot }]);
+		const dir = mkdtempSync(join(tmpdir(), "verify-missing-"));
+		scratch.push(dir);
+		const steps = [{ name: "Missing tool", cmd: "semics-no-such-command", args: [], cwd: repoRoot }];
+		// A private log file, so this test never overwrites the real run's .verify.log.
+		const status = verify(repoRoot, steps, { logFile: join(dir, "verify.log") });
 		assert.notEqual(status, 0);
 	} finally {
 		console.error = original;

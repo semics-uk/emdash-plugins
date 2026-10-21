@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Single module owns all counter writes
+- [ ] `config/save` (T042, `src/routes/config.ts`) stops rewriting `reserved`/`sold`: counters change only through `updateIf` in `src/domain/inventory.ts`, with a test that a reservation between the read and the write is not lost
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
