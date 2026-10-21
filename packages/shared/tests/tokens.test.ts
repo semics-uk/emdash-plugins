@@ -26,8 +26,8 @@ describe("EV-FR-07 ES-NFR-02 opaque tokens", () => {
 		expect(TOKEN_BYTES).toBe(32);
 		expect(token).toHaveLength(43);
 		expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
-		// 32 bytes of 0xff in base64url, unpadded: every 6-bit group is 63 ("_") except the last.
-		expect(token).toBe(`${"_".repeat(42)}w`);
+		// 32 bytes of 0xff in base64url, unpadded: every 6-bit group is 63 ("_"); the last holds 4 bits plus 2 zero bits (60, "8").
+		expect(token).toBe(`${"_".repeat(42)}8`);
 	});
 
 	it("uses Web Crypto randomness by default and never repeats", () => {
