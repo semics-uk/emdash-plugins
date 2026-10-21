@@ -11,22 +11,13 @@ in full; the per-package `CONTEXT.md` files summarise them.
 - They read on a phone: keep chat replies short; the board page is how they follow progress.
 - They asked to keep token usage down: quiet commands, small prompts, no re-running gates needlessly.
 
-## State (2026-10-13)
+## State (2026-10-21)
 
-- 10 of 93 tasks done: T000–T006, T008, T009, T010. Board: `node scripts/tasks.mjs`, page:
+- 24 of 94 tasks done (see the board). T111 needs the GitHub repo and a Cloudflare CI token from the owner. Board: `node scripts/tasks.mjs`, page:
   `node scripts/board-page.mjs . <scratch>/build-board.html` then publish to
   https://claude.ai/artifact/TuztqKnpDhZWYtrJry55L5 (Artifact tool, `url` of that artifact).
-- Cloudflare: wrangler logged in (device flow) as oliver@semics.co.uk; Workers Paid is enabled (owner
-  confirmed). T110 can start: deploy a probe Worker with the Worker Loader binding to staging, measure
-  S1 (bridge calls vs 10 subrequests), S4 (document size), S5 (PDF CPU) and the cron tick, then delete
-  any probe Worker it created.
-- **Paused mid-task** (agents stopped by the owner on 2026-10-13; work is in their worktrees, not on
-  main). Continue each with a new agent told to work in that existing worktree (no `isolation`):
-  - T040 Events manifest/storage: `.claude/worktrees/agent-aefe67b498b100132`, branch
-    `worktree-agent-aefe67b498b100132` (test commit 7f68623 + uncommitted green work).
-  - T007 budget harness: `.claude/worktrees/agent-a6710b93c02712a5c` (uncommitted; was adding a skeleton
-    `testing/budget.ts` so the red tests fail on assertions).
-  - T020 E-sign manifest/storage: `.claude/worktrees/agent-a75ef3d4287548ed0` (uncommitted).
+- Cloudflare: wrangler logged in (device flow) as oliver@semics.co.uk; Workers Paid on. T110 measured the
+  limits (BUILD-PLAN §7, R22–R27) and deleted its probe Workers; staging deploy is T111.
 - Nothing is pushed; there is no remote yet. GitHub org `semics-uk`, npm scope `@semics-tech`.
 
 ## The loop
@@ -75,3 +66,9 @@ in full; the per-package `CONTEXT.md` files summarise them.
 - Registry installs use an `r_…` plugin ID; never hard-code the slug in UI or suite code.
 - Agents leave `workerd` processes behind when stopped; clean up before the next playground run.
 - The usage limit has stopped agents three times; three parallel agents drain it fast.
+- `isolation: worktree` can start an agent on an old commit: every prompt now begins with "rebase main
+  and install first". Land with `land.sh` (`scripts/orchestrator/land.sh <agent-id> <T###>`; it rebases, auto-resolves the shared
+  `src/index.ts` export list, marks done, merges, installs, regenerates the board).
+- CPU budgets are wall-time estimates; on a busy machine they warn (≤ 4x) instead of failing. Stop
+  finished agents' leftover background jobs (TaskStop) so they don't load the machine.
+- Agents sometimes skip the "ready for review" commit; check `status:` and the checkboxes before landing.
