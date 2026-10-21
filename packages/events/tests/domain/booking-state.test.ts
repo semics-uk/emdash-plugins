@@ -67,7 +67,11 @@ describe("booking state machine (EV-FR-07)", () => {
 		expect(nextStep(free, { signaturePending: false })).toEqual({ type: "done", status: "confirmed" });
 		expect(nextStep(paid, { signaturePending: false })).toEqual({ type: "pay", status: "awaiting_payment" });
 		expect(nextStep(paid, { signaturePending: true })).toEqual({ type: "sign", status: "awaiting_signature" });
-		expect(nextStep(booking({ status: "awaiting_payment" }), { signaturePending: false })).toEqual({
+		expect(nextStep({ ...paid, status: "awaiting_payment" }, { signaturePending: false })).toEqual({
+			type: "pay",
+			status: "awaiting_payment",
+		});
+		expect(nextStep(booking({ status: "awaiting_signature" }), { signaturePending: false })).toEqual({
 			type: "done",
 			status: "confirmed",
 		});

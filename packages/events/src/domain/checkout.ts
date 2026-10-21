@@ -49,13 +49,44 @@ export const reserveInputSchema = z.strictObject({
 
 export type ReserveInput = z.output<typeof reserveInputSchema>;
 
+/**
+ * The `public/checkout/continue` body: the booking's public ref and the access token reserve
+ * returned (in the body, never the URL), plus the attendee details. Without `attendees` every seat
+ * is in the buyer's name.
+ */
+export const continueInputSchema = z.strictObject({
+	bookingRef: z.string().check(z.regex(/^[0-9A-HJKMNP-TV-Z]{10}$/)),
+	accessToken: z.string().check(z.regex(/^[A-Za-z0-9_-]{43}$/)),
+	attendees: z.optional(
+		z
+			.array(
+				z.strictObject({
+					ticketTypeId: docId,
+					name: z.string().check(z.trim(), z.minLength(1), z.maxLength(200)),
+					email: z.optional(z.pipe(z.string().check(z.trim(), z.toLowerCase(), z.maxLength(254)), z.email())),
+				}),
+			)
+			.check(z.minLength(1), z.maxLength(MAX_LINES * MAX_QTY_PER_LINE)),
+	),
+});
+
+export type ContinueInput = z.output<typeof continueInputSchema>;
+
 export interface InputIssue {
 	path: string;
 	code: string;
 }
 
 export function parseReserveInput(raw: unknown): Result<ReserveInput, InputIssue[]> {
-	const parsed = reserveInputSchema.safeParse(raw);
+	return parseWith(reserveInputSchema, raw);
+}
+
+export function parseContinueInput(raw: unknown): Result<ContinueInput, InputIssue[]> {
+	return parseWith(continueInputSchema, raw);
+}
+
+function parseWith<S extends z.ZodMiniType>(schema: S, raw: unknown): Result<z.output<S>, InputIssue[]> {
+	const parsed = schema.safeParse(raw);
 	if (parsed.success) return ok(parsed.data);
 	return err(
 		parsed.error.issues.map((issue) => ({

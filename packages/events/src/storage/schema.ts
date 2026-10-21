@@ -169,6 +169,8 @@ export interface BookingDoc {
 	releaseClaimedAt?: string | null;
 	/** When the hold expired. */
 	expiredAt?: string;
+	/** When checkout confirmed the booking. */
+	confirmedAt?: string;
 	buyer: { name: string; email: string };
 	/** The buyer's email, denormalised to the top level because indexes read top-level fields. */
 	email: string;

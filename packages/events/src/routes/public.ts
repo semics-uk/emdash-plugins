@@ -1,6 +1,7 @@
 import { toRouteError } from "@semics-tech/shared";
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { CHECKOUT_CONTINUE_ROUTE } from "./checkout-continue";
 import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
 
 /**
@@ -23,7 +24,7 @@ export const PUBLIC_ROUTES: Record<string, RouteDef> = {
 	"public/events": route({ methods: ["GET"], cacheControl: EVENTS_LIST_CACHE }),
 	"public/event": route({ methods: ["GET"] }),
 	"public/checkout/reserve": CHECKOUT_RESERVE_ROUTE,
-	"public/checkout/continue": route({ methods: ["POST"] }),
+	"public/checkout/continue": CHECKOUT_CONTINUE_ROUTE,
 	"public/booking": route({ methods: ["POST"] }),
 	"public/booking/cancel": route({ methods: ["POST"] }),
 	"public/booking/ics": route({ methods: ["GET"], response: "raw" }),
