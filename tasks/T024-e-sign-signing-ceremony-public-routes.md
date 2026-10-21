@@ -4,7 +4,7 @@ title: "E-sign: signing ceremony public routes"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: M
 depends_on: [T023, T013]

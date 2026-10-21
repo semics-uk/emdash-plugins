@@ -562,7 +562,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -578,7 +578,7 @@
 				"T027",
 				"T030"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T025": {
 			"file": "T025-e-sign-signed-pdf-at-completion-and-download-link.md",
@@ -2245,7 +2245,6 @@
 			"T106"
 		],
 		"ready": [
-			"T024",
 			"T028",
 			"T029",
 			"T043",
@@ -2256,6 +2255,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T024",
 			"T047"
 		],
 		"review": [],
