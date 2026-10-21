@@ -2,6 +2,7 @@ import { canonicalSnapshot, type IntentPayload, renderTemplate, sha256Hex } from
 import { describe, expect, it } from "vitest";
 import {
 	buildDraft,
+	createdAuditEvent,
 	draftFromIntent,
 	type EnvelopeDoc,
 	joinSnapshot,
@@ -11,12 +12,14 @@ import {
 	renderSnapshot,
 	SNAPSHOT_CHUNK_CHARS,
 	sendEnvelope,
+	sentAuditEvent,
 	signerDocId,
 	snapshotChunks,
 } from "../src/domain/envelopes";
 import type { TemplateDoc } from "../src/domain/templates";
 
 const NOW = "2026-10-21T10:00:00.000Z";
+const SALT = "ab".repeat(32);
 const LATER = "2026-10-21T11:00:00.000Z";
 const HASH = "a".repeat(64);
 
@@ -44,7 +47,7 @@ const input = {
 function draft(): EnvelopeDoc {
 	const fields = parseDraftInput(input);
 	if (!fields.ok) throw new Error("bad fixture");
-	const d = buildDraft(fields.value, template(), { now: NOW });
+	const d = buildDraft(fields.value, template(), { now: NOW, piiSalt: SALT });
 	if (!d.ok) throw new Error("bad fixture");
 	return d.value;
 }
@@ -95,7 +98,7 @@ describe("ES-FR-02 draft input", () => {
 	it("ES-FR-02 a draft whose fields cannot all be filled is rejected", () => {
 		const fields = parseDraftInput({ ...input, fields: {} });
 		if (!fields.ok) throw new Error("bad fixture");
-		expect(buildDraft(fields.value, template(), { now: NOW })).toEqual({
+		expect(buildDraft(fields.value, template(), { now: NOW, piiSalt: SALT })).toEqual({
 			ok: false,
 			error: [{ path: "fields.event", code: "MISSING_FIELD" }],
 		});
@@ -110,6 +113,7 @@ describe("ES-FR-02 draft input", () => {
 			title: "Waiver",
 			docSha256: null,
 			snapshot: null,
+			piiSalt: SALT,
 		});
 	});
 });
@@ -145,7 +149,7 @@ describe("ES-FR-02 snapshot and docSha256", () => {
 
 	it("ES-FR-02 a guardian intent fills participant.name", async () => {
 		const tpl = template({ body: "{{signer.name}} for {{participant.name}}", fields: [] });
-		const d = draftFromIntent(intent({ as: "guardian", participant: { name: "Tim" } }), tpl, { now: NOW });
+		const d = draftFromIntent(intent({ as: "guardian", participant: { name: "Tim" } }), tpl, { now: NOW, piiSalt: SALT });
 		if (!d.ok) throw new Error("bad fixture");
 		const r = await renderSnapshot(d.value, tpl.body);
 		expect(r.ok && r.value.text).toBe("Ada for Tim\n");
@@ -242,7 +246,7 @@ function intent(over: Partial<IntentPayload> = {}): IntentPayload {
 describe("ES-FR-02 drafts from intents", () => {
 	it("records client, ref, return URL, delivery and capacity", () => {
 		const tpl = template({ body: "{{event}}" });
-		const d = draftFromIntent(intent({ prefill: { event: "Gig" }, delivery: "email" }), tpl, { now: NOW });
+		const d = draftFromIntent(intent({ prefill: { event: "Gig" }, delivery: "email" }), tpl, { now: NOW, piiSalt: SALT });
 		expect(d.ok && d.value).toMatchObject({
 			status: "draft",
 			clientId: "cl_test",
@@ -255,7 +259,43 @@ describe("ES-FR-02 drafts from intents", () => {
 	});
 
 	it("rejects an intent whose prefill misses a template field", () => {
-		const d = draftFromIntent(intent(), template({ body: "{{event}}" }), { now: NOW });
+		const d = draftFromIntent(intent(), template({ body: "{{event}}" }), { now: NOW, piiSalt: SALT });
 		expect(d).toEqual({ ok: false, error: [{ path: "fields.event", code: "MISSING_FIELD" }] });
+	});
+});
+
+describe("ES-FR-05 envelope audit events", () => {
+	it("ES-FR-05 created: template, delivery and source as data; signer identity only as personal fields", () => {
+		expect(createdAuditEvent(draft(), "admin")).toEqual({
+			type: "envelope.created",
+			at: NOW,
+			actor: "admin",
+			data: { source: "admin", templateId: "tpl1", templateVersion: 2, title: "Waiver", delivery: "email", as: "self" },
+			personal: { name: "Ada Lovelace", email: "ada@example.com" },
+		});
+		const tpl = template({ body: "{{participant.name}}", fields: [] });
+		const d = draftFromIntent(intent({ as: "guardian", participant: { name: "Tim" } }), tpl, {
+			now: NOW,
+			piiSalt: SALT,
+		});
+		if (!d.ok) throw new Error("bad fixture");
+		expect(createdAuditEvent(d.value, "integration")).toMatchObject({
+			actor: "integration",
+			data: { source: "intent", clientId: d.value.clientId, externalRef: d.value.externalRef, as: "guardian" },
+			personal: { participant: "Tim" },
+		});
+	});
+
+	it("ES-FR-05 sent: docSha256, expiry and signer ids at the send time", async () => {
+		const r = await send(draft());
+		if (!r.ok) throw new Error("bad fixture");
+		const { envelope } = r.value;
+		expect(sentAuditEvent(envelope, "admin")).toEqual({
+			type: "envelope.sent",
+			at: LATER,
+			actor: "admin",
+			data: { docSha256: envelope.docSha256, expiresAt: envelope.expiresAt, signerIds: "env1:s1" },
+			personal: { email: "ada@example.com" },
+		});
 	});
 });

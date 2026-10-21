@@ -29,6 +29,7 @@ import {
 	TemplateError,
 	templateFields,
 } from "@semics-tech/shared";
+import type { AuditInput } from "./audit";
 import { canTransition, type EnvelopeStatus } from "./state";
 import { type TemplateDoc, usableForNewEnvelope } from "./templates";
 
@@ -61,6 +62,8 @@ export interface EnvelopeDoc {
 	sentAt: string | null;
 	completedAt: string | null;
 	finalHash: string | null;
+	/** Per-envelope salt for the audit commitments (domain/audit.ts); never returned by a route. */
+	piiSalt: string;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -222,7 +225,7 @@ function draftDoc(
 	base: Pick<EnvelopeDoc, "templateId" | "signer" | "fieldValues" | "delivery"> &
 		Partial<Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title">>,
 	template: TemplateDoc,
-	now: string,
+	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
 	const { title, ...rest } = base;
 	const envelope: EnvelopeDoc = {
@@ -238,8 +241,9 @@ function draftDoc(
 		sentAt: null,
 		completedAt: null,
 		finalHash: null,
-		createdAt: now,
-		updatedAt: now,
+		piiSalt: ctx.piiSalt,
+		createdAt: ctx.now,
+		updatedAt: ctx.now,
 	};
 	const missing = missingFields(envelope, template.body);
 	return missing.length > 0 ? err(missing) : ok(envelope);
@@ -249,7 +253,7 @@ function draftDoc(
 export function buildDraft(
 	fields: DraftFields,
 	template: TemplateDoc,
-	ctx: { now: string },
+	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
 	return draftDoc(
 		{
@@ -260,7 +264,7 @@ export function buildDraft(
 			...(fields.title === undefined ? {} : { title: fields.title }),
 		},
 		template,
-		ctx.now,
+		ctx,
 	);
 }
 
@@ -268,7 +272,7 @@ export function buildDraft(
 export function draftFromIntent(
 	intent: IntentPayload,
 	template: TemplateDoc,
-	ctx: { now: string },
+	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
 	const signer: SignerInput = {
 		name: intent.signer.name.trim(),
@@ -287,7 +291,7 @@ export function draftFromIntent(
 			returnUrl: intent.returnUrl,
 		},
 		template,
-		ctx.now,
+		ctx,
 	);
 }
 
@@ -408,4 +412,47 @@ export function existingForRef<T extends { data: Pick<EnvelopeDoc, "status"> }>(
  */
 export async function envelopeIdForRef(cid: string, ref: string, attempt: number): Promise<string> {
 	return `env_${(await sha256Hex(`${cid}\n${ref}`)).slice(0, 32)}_${attempt}`;
+}
+
+/** Who started an envelope: an admin (private routes) or an integration (a verified intent). */
+export type EnvelopeActor = "admin" | "integration";
+
+/** The `envelope.created` audit event (ES-FR-05); the signer's name and email are personal fields. */
+export function createdAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): AuditInput {
+	const { signer, clientId, externalRef } = envelope;
+	return {
+		type: "envelope.created",
+		at: envelope.createdAt,
+		actor,
+		data: {
+			source: actor === "admin" ? "admin" : "intent",
+			templateId: envelope.templateId,
+			templateVersion: envelope.templateVersion,
+			title: envelope.title,
+			delivery: envelope.delivery,
+			as: signer.as,
+			...(clientId === undefined ? {} : { clientId }),
+			...(externalRef === undefined ? {} : { externalRef }),
+		},
+		personal: {
+			name: signer.name,
+			email: signer.email,
+			...(signer.participant ? { participant: signer.participant.name } : {}),
+		},
+	};
+}
+
+/** The `envelope.sent` audit event for an envelope `sendEnvelope` just froze (`at` = the send time). */
+export function sentAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): AuditInput {
+	return {
+		type: "envelope.sent",
+		at: envelope.updatedAt,
+		actor,
+		data: {
+			docSha256: envelope.docSha256,
+			expiresAt: envelope.expiresAt,
+			signerIds: envelope.signerIds.join(","),
+		},
+		personal: { email: envelope.signer.email },
+	};
 }

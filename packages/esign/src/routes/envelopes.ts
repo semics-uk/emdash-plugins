@@ -7,7 +7,9 @@
  *
  * Every status change goes through `transitionEnvelope` (or, for an envelope created already sent,
  * through `sendEnvelope`'s `draft → sent` check), so the table in `domain/state.ts` is the one
- * source of truth for routes and cron jobs. Each handler stays at ≤ 8 bridge calls (R22).
+ * source of truth for routes and cron jobs. Each handler stays at ≤ 8 bridge calls (R22), except
+ * from-intent at 9 (still inside the hard limit of 10; see below). Create and send write the
+ * envelope's opening `audit_events` (domain/audit.ts).
  */
 import {
 	deriveClientSecret,
@@ -20,7 +22,15 @@ import {
 } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler, SandboxedPlugin } from "emdash/plugin";
 import {
+	type AuditEventDoc,
+	type AuditInput,
+	appendAuditEvent,
+	initialAuditEvents,
+	newPiiSalt,
+} from "../domain/audit";
+import {
 	buildDraft,
+	createdAuditEvent,
 	draftFromIntent,
 	type EnvelopeDoc,
 	type EnvelopeIssue,
@@ -32,6 +42,7 @@ import {
 	type SignerDoc,
 	type SnapshotChunkDoc,
 	sendEnvelope,
+	sentAuditEvent,
 } from "../domain/envelopes";
 import { masterKeyBytes } from "../domain/master-key";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
@@ -78,6 +89,7 @@ interface Stores {
 	templates: Collection<TemplateDoc>;
 	clients: Collection<ClientDoc>;
 	nonces: Collection<NonceDoc>;
+	audit_events: Collection<AuditEventDoc>;
 }
 
 const stores = (ctx: PluginContext) => ctx.storage as unknown as Stores;
@@ -154,8 +166,18 @@ export async function insertSigner(
 	return stored;
 }
 
-const view = (id: string, doc: EnvelopeDoc) => ({ id, ...doc });
-const summary = (id: string, { snapshot: _s, fieldValues: _f, ...rest }: EnvelopeDoc) => ({ id, ...rest });
+// The audit salt never leaves storage.
+const view = (id: string, { piiSalt: _p, ...doc }: EnvelopeDoc) => ({ id, ...doc });
+const summary = (id: string, { snapshot: _s, fieldValues: _f, piiSalt: _p, ...rest }: EnvelopeDoc) => ({
+	id,
+	...rest,
+});
+
+/** Appends to an existing chain; an append that loses every race fails the route (500). */
+async function appendAudit(ctx: PluginContext, id: string, envelope: EnvelopeDoc, input: AuditInput) {
+	const appended = await appendAuditEvent(stores(ctx).audit_events, id, input, { salt: envelope.piiSalt });
+	if (!appended.ok) throw new Error("audit chain contention");
+}
 
 // --- private routes ---
 
@@ -163,7 +185,7 @@ async function create(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	const fields = parseDraftInput(routeCtx.input);
 	if (!fields.ok) return badRequest(fields.error);
 	const { templateId, templateVersion } = fields.value;
-	const { templates, envelopes } = stores(ctx);
+	const { templates, envelopes, audit_events } = stores(ctx);
 	const docs = await templates.getMany(
 		templateVersion === undefined ? [templateId] : [templateId, versionDocId(templateId, templateVersion)],
 	);
@@ -173,10 +195,13 @@ async function create(routeCtx: { input?: unknown }, ctx: PluginContext) {
 		templateVersion,
 	);
 	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
-	const draft = buildDraft(fields.value, template.value, { now: new Date().toISOString() });
+	const piiSalt = newPiiSalt();
+	const draft = buildDraft(fields.value, template.value, { now: new Date().toISOString(), piiSalt });
 	if (!draft.ok) return badRequest(draft.error);
 	const id = crypto.randomUUID();
 	await envelopes.put(id, draft.value);
+	// A fresh UUID: nobody else can be writing this chain yet.
+	await audit_events.putMany(await initialAuditEvents(id, [createdAuditEvent(draft.value, "admin")], piiSalt));
 	return { ok: true, envelope: view(id, draft.value) };
 }
 
@@ -211,6 +236,8 @@ async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
 	// The token goes out in the invitation email (T027); it is never returned or stored.
 	await insertSigner(signers, sent.value.signer, token);
+	// Only the winner of the guarded draft → sent update gets here, so at most one `sent` event.
+	await appendAudit(ctx, id, moved.value, sentAuditEvent(moved.value, "admin"));
 	return { ok: true, envelope: view(id, moved.value) };
 }
 
@@ -280,7 +307,8 @@ function siteOrigin(ctx: PluginContext): string | undefined {
 
 /**
  * Protocol §8.1. Bridge calls: settings + client (2), nonce (1), template + existing envelopes (2),
- * then snapshot, envelope and signer writes (3): 8 at most.
+ * then snapshot, envelope, signer and opening audit-event writes (4): 9. A lost create race costs
+ * the envelope read and a token rotation instead of the signer and audit writes: 9 too.
  */
 export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
 	const nowMs = (deps.now ?? Date.now)();
@@ -340,7 +368,8 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	const current = existingForRef(previous.items);
 	if (current) return reuse(signers, current.id, current.data, deps.random);
 
-	const draft = draftFromIntent(intent, template.value, { now });
+	const piiSalt = newPiiSalt(deps.random);
+	const draft = draftFromIntent(intent, template.value, { now, piiSalt });
 	if (!draft.ok) return badRequest(draft.error);
 	const id = await envelopeIdForRef(intent.cid, intent.ref, previous.items.length + 1);
 	const token = generateToken(deps.random);
@@ -359,6 +388,9 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		return winner ? reuse(signers, id, winner, deps.random) : fail("INTERNAL");
 	}
 	const stored = await insertSigner(signers, sent.value.signer, token, deps.random);
+	// This request won the create-only envelope write, so it alone opens the chain: one putMany.
+	const opening = [createdAuditEvent(draft.value, "integration"), sentAuditEvent(sent.value.envelope, "integration")];
+	await stores(ctx).audit_events.putMany(await initialAuditEvents(id, opening, piiSalt));
 	return response(id, sent.value.envelope, stored);
 }
 

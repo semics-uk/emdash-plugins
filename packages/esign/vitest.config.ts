@@ -14,7 +14,8 @@ const testTimeout = 120_000;
 export default defineConfig({
 	test: {
 		...machineLimits,
-		coverage: coverageConfig(),
+		// The audit chain is a security module: 100% branches (tasks/README.md).
+		coverage: coverageConfig({ strictBranches: ["src/domain/audit.ts"] }),
 		projects: [
 			{
 				plugins: [emdashPluginTest()],

@@ -201,8 +201,17 @@ describe("ES-FR-05 verifier", () => {
 	});
 
 	it("ES-FR-05 events without personal fields carry no commitments and verify", async () => {
-		const docs = await initialAuditEvents(ENV, [{ type: "envelope.sent", at: "2026-10-21T00:00:00.000Z", actor: "system" }], SALT);
+		const docs = await initialAuditEvents(
+			ENV,
+			[
+				{ type: "envelope.sent", at: "2026-10-21T00:00:00.000Z", actor: "system" },
+				{ type: "envelope.sent", at: "2026-10-21T00:00:00.000Z", actor: "system", personal: { ip: undefined } },
+			],
+			SALT,
+		);
 		const event = docs[0]?.data as AuditEventDoc;
+		// An absent (undefined) personal value is not committed to.
+		expect(docs[1]?.data).toMatchObject({ commitments: {}, personal: null });
 		expect(event.commitments).toEqual({});
 		expect(event.data).toEqual({});
 		expect(event.personal).toBeNull();
