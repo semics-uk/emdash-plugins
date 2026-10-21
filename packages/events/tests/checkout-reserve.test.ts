@@ -69,7 +69,12 @@ async function setup({
 	capacity = 50,
 	typeCapacity = capacity,
 	occurrences = false,
-}: { turnstile?: boolean; capacity?: number; typeCapacity?: number; occurrences?: boolean } = {}): Promise<Setup> {
+}: {
+	turnstile?: boolean;
+	capacity?: number;
+	typeCapacity?: number;
+	occurrences?: boolean;
+} = {}): Promise<Setup> {
 	runtime = await createPluginRuntimeTestHost();
 	const saved = (await runtime.transport.invokeRoute("config/save", {
 		eventId: "entry_1",

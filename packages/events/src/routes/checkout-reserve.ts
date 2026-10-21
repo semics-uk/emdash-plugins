@@ -15,11 +15,11 @@ import {
 	bookingKeys,
 	type InputIssue,
 	parseReserveInput,
+	planCheckout,
 	RESERVE_RATE_LIMIT,
 	type ReserveInput,
 	rateWindowStart,
 	sameOrder,
-	planCheckout,
 } from "../domain/checkout";
 import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "../domain/holds";
 import { type CounterCollection, reserve } from "../domain/inventory";
@@ -208,7 +208,10 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	if (!reserved.ok) {
 		// Close the draft: at once when every seat was given back; otherwise end its hold now so the
 		// sweeper closes it after the draft grace period and repairs the event's counters.
-		const set = reserved.error.uncompensated.length === 0 ? { status: "expired", expiredAt: iso(now) } : { holdExpiresAt: iso(now) };
+		const set =
+			reserved.error.uncompensated.length === 0
+				? { status: "expired", expiredAt: iso(now) }
+				: { holdExpiresAt: iso(now) };
 		await storage.bookings
 			.updateIf(id, { where: { status: "draft", releaseClaimedAt: null }, set })
 			.catch(() => undefined);

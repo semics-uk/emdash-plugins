@@ -26,7 +26,15 @@ const EXPECTED_STORAGE = {
 	occurrences: { indexes: [["eventId", "startsAt"], "startsAt", "status"], uniqueIndexes: [] },
 	ticket_types: { indexes: ["eventId"], uniqueIndexes: [] },
 	bookings: {
-		indexes: ["eventId", "status", "email", "createdAt", ["status", "holdExpiresAt"], ["eventId", "status"]],
+		indexes: [
+			"eventId",
+			"status",
+			"email",
+			"createdAt",
+			["status", "holdExpiresAt"],
+			["eventId", "status"],
+			["ipHash", "createdAt"],
+		],
 		uniqueIndexes: ["ref"],
 	},
 	payments: { indexes: ["bookingId"], uniqueIndexes: [] },

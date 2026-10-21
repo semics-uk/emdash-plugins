@@ -144,7 +144,9 @@ describe("planCheckout (EV-FR-05)", () => {
 	});
 
 	it("a free order is not paid", () => {
-		const p = planned(planCheckout("e1", config(), input({ lines: [{ ticketTypeId: "tt_b", qty: 1 }] }), NOW, { maxSteps: 4 }));
+		const p = planned(
+			planCheckout("e1", config(), input({ lines: [{ ticketTypeId: "tt_b", qty: 1 }] }), NOW, { maxSteps: 4 }),
+		);
 		expect(p.paid).toBe(false);
 	});
 
@@ -224,7 +226,9 @@ describe("planCheckout (EV-FR-05)", () => {
 			ok: false,
 			error: { code: "SOLD_OUT" },
 		});
-		expect(planCheckout("e1", config(), input({ lines: [{ ticketTypeId: "tt_b", qty: 6 }] }), NOW, { maxSteps: 4 })).toMatchObject({
+		expect(
+			planCheckout("e1", config(), input({ lines: [{ ticketTypeId: "tt_b", qty: 6 }] }), NOW, { maxSteps: 4 }),
+		).toMatchObject({
 			ok: false,
 			error: { code: "SOLD_OUT" },
 		});
