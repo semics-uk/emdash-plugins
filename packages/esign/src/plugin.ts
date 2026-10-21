@@ -5,6 +5,7 @@ import { downloadHandler } from "./routes/download";
 import { ENVELOPE_ROUTES, fromIntentHandler } from "./routes/envelopes";
 import { publicRoutes } from "./routes/public";
 import { TEMPLATE_ROUTES } from "./routes/templates";
+import { verifyHandler } from "./routes/verify";
 
 /** Sandboxed plugin entry. Route handlers are filled in by the tasks that own each route. */
 const plugin: SandboxedPlugin = {
@@ -17,6 +18,7 @@ const plugin: SandboxedPlugin = {
 		...publicRoutes({
 			"public/envelopes/from-intent": fromIntentHandler,
 			"public/download": downloadHandler,
+			"public/verify": verifyHandler,
 			...CEREMONY_HANDLERS,
 		}),
 		...TEMPLATE_ROUTES,

@@ -26,7 +26,7 @@ export interface StorageDeclaration {
 export const STORAGE_DECLARATIONS: Readonly<Record<CollectionName, StorageDeclaration>> = {
 	templates: { indexes: ["status", "kind", "public"] },
 	envelopes: {
-		indexes: ["status", "expiresAt", "createdAt", "clientId", "externalRef", ["status", "expiresAt"]],
+		indexes: ["status", "expiresAt", "createdAt", "clientId", "externalRef", "pdfSha256", ["status", "expiresAt"]],
 	},
 	signers: { indexes: ["envelopeId", "email"], uniqueIndexes: ["tokenHash"] },
 	snapshots: { indexes: ["envelopeId"] },

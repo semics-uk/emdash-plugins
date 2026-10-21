@@ -81,6 +81,7 @@ describe("ES public routes equal the PRD list (T020)", () => {
 			"public/submit",
 			"public/decline",
 			"public/download",
+			"public/verify",
 		]);
 		for (const [name] of PRD_PUBLIC_ROUTES.filter(([n]) => !implemented.has(n))) {
 			const result = (await host.invokeRoute(name, {})) as { ok: boolean; error: { code: string; message: string } };
