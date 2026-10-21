@@ -61,7 +61,9 @@ dependency is not Done; the board check fails if it is.
 
   `result.calls` lists each bridge call (`storage.get items k0`, `kv.set`, `http.fetch`, `log.info`,
   ...); a batch method such as `getMany` is one call. The CPU figure is time inside the sandbox minus
-  time waiting on the bridge: a local proxy, not Cloudflare's meter. The harness is test-only; runtime
+  time waiting on the bridge: a local proxy, not Cloudflare's meter (it over-estimates, R27). Bridge-call
+  limits always fail the test; a CPU breach only warns (up to 4x) when the machine is busy, and is strict on
+  CI or with `SEMICS_STRICT_CPU=1`. The harness is test-only; runtime
   code never imports it (checked by `packages/shared/tests/testing-boundary.test.ts`).
 - Every public route has tests for: bad input, missing or wrong token, rate limit, and a response
   containing no one else's data.
