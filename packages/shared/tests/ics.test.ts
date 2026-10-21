@@ -3,8 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildCalendar, escapeText, foldLine } from "../src/ics";
 import { zonedToUtc } from "../src/time";
 
-const fixture = (name: string) =>
-	readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
+const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const octets = (s: string) => new TextEncoder().encode(s).length;
 const unfold = (s: string) => s.replace(/\r\n /g, "");
 
