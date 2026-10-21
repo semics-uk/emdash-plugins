@@ -1,4 +1,5 @@
 import type { SandboxedPlugin } from "emdash/plugin";
+import { CEREMONY_HANDLERS } from "./routes/ceremony";
 import { ENVELOPE_ROUTES, fromIntentHandler } from "./routes/envelopes";
 import { publicRoutes } from "./routes/public";
 import { TEMPLATE_ROUTES } from "./routes/templates";
@@ -6,7 +7,7 @@ import { TEMPLATE_ROUTES } from "./routes/templates";
 /** Sandboxed plugin entry. Route handlers are filled in by the tasks that own each route. */
 const plugin: SandboxedPlugin = {
 	routes: {
-		...publicRoutes({ "public/envelopes/from-intent": fromIntentHandler }),
+		...publicRoutes({ "public/envelopes/from-intent": fromIntentHandler, ...CEREMONY_HANDLERS }),
 		...TEMPLATE_ROUTES,
 		...ENVELOPE_ROUTES,
 	},

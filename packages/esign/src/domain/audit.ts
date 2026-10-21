@@ -156,16 +156,27 @@ export async function buildAuditEvent(
  * this writer just created (a fresh UUID, or one whose create-only write it won), so nobody else
  * can be appending; the caller can then write them all in one `putMany`.
  */
-export async function initialAuditEvents(
+export function initialAuditEvents(
 	envelopeId: string,
 	inputs: readonly AuditInput[],
 	salt: string,
 ): Promise<Array<{ id: string; data: AuditEventDoc }>> {
+	return extendAuditChain(envelopeId, null, inputs, salt);
+}
+
+/** The events that follow `prev` (null: from the genesis), chained in memory; nothing is written. */
+export async function extendAuditChain(
+	envelopeId: string,
+	prev: Pick<AuditEventDoc, "seq" | "hash"> | null,
+	inputs: readonly AuditInput[],
+	salt: string,
+): Promise<Array<{ id: string; data: AuditEventDoc }>> {
 	const out: Array<{ id: string; data: AuditEventDoc }> = [];
-	let prev: AuditEventDoc | null = null;
+	let last: Pick<AuditEventDoc, "seq" | "hash"> | null = prev;
 	for (const input of inputs) {
-		prev = await buildAuditEvent(envelopeId, prev, input, salt);
-		out.push({ id: auditEventId(envelopeId, prev.seq), data: prev });
+		const event = await buildAuditEvent(envelopeId, last, input, salt);
+		out.push({ id: auditEventId(envelopeId, event.seq), data: event });
+		last = event;
 	}
 	return out;
 }
@@ -198,6 +209,33 @@ export async function appendAuditEvent(
 		if (written.applied) return ok(event);
 	}
 	return err("CONFLICT");
+}
+
+/** The slice a batch write needs: the head query, the create-only write and `putMany`. */
+export interface AuditBatchStore extends AuditStore {
+	putMany(items: Array<{ id: string; data: AuditEventDoc }>): Promise<void>;
+}
+
+/** The current chain head (one bridge call), or null for an empty chain. */
+export async function readAuditHead(store: AuditStore, envelopeId: string): Promise<AuditEventDoc | null> {
+	const { items } = await store.query({ where: { envelopeId }, orderBy: { seq: "desc" }, limit: 1 });
+	return items[0]?.data ?? null;
+}
+
+/**
+ * Writes events built by `extendAuditChain`: the first with a create-only write (so a writer that
+ * raced us for the same position loses), then the rest in one `putMany` (2 calls for any batch).
+ * False means the first position was taken: nothing was written, rebuild from a fresh head.
+ */
+export async function writeAuditEvents(
+	store: AuditBatchStore,
+	items: ReadonlyArray<{ id: string; data: AuditEventDoc }>,
+): Promise<boolean> {
+	const [first, ...rest] = items;
+	if (!first) return true;
+	if (!(await store.compareAndSet(first.id, null, first.data)).applied) return false;
+	if (rest.length > 0) await store.putMany(rest);
+	return true;
 }
 
 async function opensCommitments(e: AuditEventDoc, salt: string): Promise<boolean> {

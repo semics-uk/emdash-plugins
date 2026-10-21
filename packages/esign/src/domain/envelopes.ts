@@ -79,6 +79,24 @@ export interface SignerDoc {
 	status: "pending" | "signed" | "declined";
 	tokenHash: string;
 	createdAt: string;
+	/** Set by the signing ceremony (domain/signing.ts). Personal data: purged by retention. */
+	signature?: StoredSignature;
+	consentAt?: string;
+	consentVersion?: string;
+	signedAt?: string;
+	fieldValues?: Record<string, string>;
+	declinedAt?: string;
+	declineReason?: string;
+	ip?: string;
+	ua?: string;
+}
+
+export interface StoredSignature {
+	kind: "typed" | "drawn";
+	typedName?: string;
+	strokes?: number[][][];
+	/** SHA-256 binding the signature to `docSha256` (domain/signing.ts). */
+	sha256: string;
 }
 
 export interface SnapshotChunkDoc {

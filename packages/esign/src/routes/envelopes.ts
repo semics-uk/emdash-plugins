@@ -27,7 +27,6 @@ import {
 	createdAuditEvent,
 	draftFromIntent,
 	type EnvelopeDoc,
-	type EnvelopeIssue,
 	envelopeIdForRef,
 	existingForRef,
 	joinSnapshot,
@@ -47,7 +46,7 @@ type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<un
 
 // --- storage access (the slice of StorageCollection each handler uses) ---
 
-interface Collection<T> {
+export interface Collection<T> {
 	get(id: string): Promise<T | null>;
 	getMany(ids: string[]): Promise<Map<string, T>>;
 	put(id: string, data: T): Promise<void>;
@@ -76,7 +75,7 @@ interface NonceDoc {
 	expiresAt: string;
 }
 
-interface Stores {
+export interface Stores {
 	envelopes: Collection<EnvelopeDoc>;
 	signers: Collection<SignerDoc>;
 	snapshots: Collection<SnapshotChunkDoc>;
@@ -86,19 +85,19 @@ interface Stores {
 	audit_events: Collection<AuditEventDoc>;
 }
 
-const stores = (ctx: PluginContext) => ctx.storage as unknown as Stores;
+export const stores = (ctx: PluginContext) => ctx.storage as unknown as Stores;
 
 // --- helpers ---
 
-const obj = (input: unknown): Record<string, unknown> =>
+export const obj = (input: unknown): Record<string, unknown> =>
 	typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
 
-const badRequest = (issues?: readonly EnvelopeIssue[]) => ({
+export const badRequest = (issues?: readonly { path: string; code: string }[]) => ({
 	...toRouteError("BAD_REQUEST").body,
 	...(issues ? { issues } : {}),
 });
 
-const fail = (code: Parameters<typeof toRouteError>[0]) => toRouteError(code).body;
+export const fail = (code: Parameters<typeof toRouteError>[0]) => toRouteError(code).body;
 
 function idOf(input: unknown): string | null {
 	const id = obj(input).id;

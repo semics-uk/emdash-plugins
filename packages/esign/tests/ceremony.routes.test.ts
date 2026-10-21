@@ -217,7 +217,7 @@ describe("ES-FR-04 public/submit", () => {
 		const signer = await runtime?.inspect.storage.get<Record<string, unknown>>("signers", `${s.id}:s1`);
 		expect(signer).toMatchObject({ status: "signed", consentVersion: "1", signature: { kind: "drawn", strokes } });
 		const expectedSha = await sha256Hex(JSON.stringify([s.docSha256, "drawn", "Ada", strokes]));
-		expect((signer?.signature as { sha256: string }).sha256).toBe(expectedSha);
+		expect((signer?.signature as { sha256: string } | undefined)?.sha256).toBe(expectedSha);
 	});
 
 	it("ES-FR-04 a signed link cannot decline afterwards", async () => {
