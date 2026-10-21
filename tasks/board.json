@@ -612,7 +612,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -626,7 +626,7 @@
 				"T032",
 				"T033"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T027": {
 			"file": "T027-e-sign-invitation-and-completion-emails.md",
@@ -2271,7 +2271,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T026",
 			"T053"
 		],
 		"review": [],
@@ -2301,6 +2300,7 @@
 			"T023",
 			"T024",
 			"T025",
+			"T026",
 			"T040",
 			"T041",
 			"T042",
