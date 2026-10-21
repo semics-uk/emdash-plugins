@@ -5,7 +5,7 @@
  * (`drainOutbox`: 1 query + up to 6 sends + 1 `putMany` = 8 calls; an empty tick is 1). Delivery is
  * at-least-once: a crash between `email.send` and the `putMany` sends that message again.
  *
- * The invitation holds the signing token in clear text until it is sent: only the token's hash is
+ * The invitation holds the signing token in clear text until it is sent (the drain then scrubs the row, R32): only the token's hash is
  * stored anywhere else (T022), so the token has to travel in the queued message. The token is the
  * credential for one signer, valid until the envelope expires or is signed.
  */

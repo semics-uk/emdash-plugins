@@ -15,14 +15,16 @@ import { type AuditEventDoc, verifyAuditChain } from "../src/domain/audit";
 /** R22: designs target ≤ 8 bridge calls so a later log or email call never tips a route over 10. */
 const TARGET = { calls: 8, cpuMs: 50 };
 /**
- * from-intent verifies the intent (settings, client, nonce), reads the template and the ref's
- * envelopes, then writes snapshot, envelope, signer and the two opening audit events: 9 calls,
- * inside the hard limit of 10 (R22). See the T023 notes.
+ * from-intent verifies the intent (settings, client, nonce), reads the template, then writes the
+ * envelope (create-only, first), snapshot, signer and the two opening audit events: 8 calls
+ * inline, 9 with email delivery (T113). A retry after a declined, voided or expired envelope
+ * reads the ref's envelopes and creates the next one: 10 inline, still inside the hard limit.
  */
 const INTENT_TARGET = { calls: 9, cpuMs: 50 };
+const RETRY_INTENT_TARGET = { calls: 10, cpuMs: 50 };
 /** T027: send also queues the invitation (one outbox put); an email-delivery intent likewise. */
 const SEND_TARGET = { calls: 9, cpuMs: 50 };
-const EMAIL_INTENT_TARGET = { calls: 10, cpuMs: 50 };
+const EMAIL_INTENT_TARGET = { calls: 9, cpuMs: 50 };
 
 let runtime: PluginRuntimeTestHost | undefined;
 const originalKey = process.env.EMDASH_ENCRYPTION_KEY;
@@ -345,7 +347,9 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		const first = await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
 		const stored = await runtime?.inspect.storage.get<Record<string, unknown>>("envelopes", first.envelopeId as string);
 		await runtime?.fixtures.plugin.storage("envelopes", first.envelopeId as string, { ...stored, status: "declined" });
-		const next = await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
+		const retried = await budget.invokeRoute("public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
+		expectWithinBudget(retried, RETRY_INTENT_TARGET);
+		const next = retried.value as Body;
 		expect(next).toMatchObject({ ok: true, status: "sent" });
 		expect(next.envelopeId).not.toBe(first.envelopeId);
 		expect(await runtime?.inspect.storage.list("envelopes")).toHaveLength(2);

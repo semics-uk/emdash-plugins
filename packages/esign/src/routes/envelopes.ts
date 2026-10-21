@@ -8,7 +8,7 @@
  * Every status change goes through `transitionEnvelope` (or, for an envelope created already sent,
  * through `sendEnvelope`'s `draft → sent` check), so the table in `domain/state.ts` is the one
  * source of truth for routes and cron jobs. Each handler stays at ≤ 8 bridge calls (R22), except
- * from-intent at 9 (still inside the hard limit of 10; see below). Create and send write the
+ * from-intent at 9 with email delivery (still inside the hard limit of 10; see below). Create and send write the
  * envelope's opening `audit_events` (domain/audit.ts).
  */
 import {
@@ -315,9 +315,11 @@ function siteOrigin(ctx: PluginContext): string | undefined {
 }
 
 /**
- * Protocol §8.1. Bridge calls: settings + client (2), nonce (1), template + existing envelopes (2),
- * then snapshot, envelope, signer and opening audit-event writes (4): 9. A lost create race costs
- * the envelope read and a token rotation instead of the signer and audit writes: 9 too.
+ * Protocol §8.1. Bridge calls: settings + client (2), nonce (1), template (1), then the create-only
+ * envelope write first (1), snapshot, signer and opening audit-event writes (3), plus the outbox
+ * put for email delivery (1): 8 inline, 9 email. The existing-envelopes read happens only when the
+ * create-only write loses: a replay is then 7 (inline reuse adds a token rotation), and a retry
+ * after a declined, voided or expired envelope costs the read and a second create: 10 inline.
  */
 export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
 	const nowMs = (deps.now ?? Date.now)();
@@ -363,10 +365,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	const intent = verified.value;
 
 	const versionId = intent.tplVersion === undefined ? undefined : versionDocId(intent.tpl, intent.tplVersion);
-	const [docs, previous] = await Promise.all([
-		templates.getMany(versionId === undefined ? [intent.tpl] : [intent.tpl, versionId]),
-		envelopes.query({ where: { clientId: intent.cid, externalRef: intent.ref }, limit: LIST_LIMIT }),
-	]);
+	const docs = await templates.getMany(versionId === undefined ? [intent.tpl] : [intent.tpl, versionId]);
 	const template = pickTemplateVersion(
 		docs.get(intent.tpl),
 		versionId === undefined ? undefined : docs.get(versionId),
@@ -374,28 +373,46 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	);
 	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
 
-	const current = existingForRef(previous.items);
-	if (current) return reuse(signers, current.id, current.data, deps.random);
-
 	const piiSalt = newPiiSalt(deps.random);
 	const draft = draftFromIntent(intent, template.value, { now, piiSalt });
 	if (!draft.ok) return badRequest(draft.error);
-	const id = await envelopeIdForRef(intent.cid, intent.ref, previous.items.length + 1);
 	const token = generateToken(deps.random);
-	const sent = await sendEnvelope(id, draft.value, template.value, {
-		now,
-		tokenHash: await hashToken(token),
-		expiryDays: expiryDays(settings.expiryDays),
-	});
-	if (!sent.ok) return Array.isArray(sent.error) ? badRequest(sent.error) : fail("INTERNAL");
-	// Chunk ids are hash-addressed, so a racing intent can't overwrite this snapshot; the
-	// create-only envelope write decides which of two racing intents for the pair wins.
-	await snapshots.putMany(sent.value.chunks);
-	const created = await envelopes.compareAndSet(id, null, sent.value.envelope);
+	const tokenHash = await hashToken(token);
+	const build = async (attempt: number) => {
+		const id = await envelopeIdForRef(intent.cid, intent.ref, attempt);
+		const sent = await sendEnvelope(id, draft.value, template.value, {
+			now,
+			tokenHash,
+			expiryDays: expiryDays(settings.expiryDays),
+		});
+		return { id, sent };
+	};
+
+	// Optimistic first attempt: most intents are the first for their (cid, ref), so the create-only
+	// write goes first and the existing-envelopes read only happens when it loses.
+	let attempt = await build(1);
+	if (!attempt.sent.ok) return Array.isArray(attempt.sent.error) ? badRequest(attempt.sent.error) : fail("INTERNAL");
+	let created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
 	if (!created.applied) {
-		const winner = await envelopes.get(id);
-		return winner ? reuse(signers, id, winner, deps.random) : fail("INTERNAL");
+		const previous = await envelopes.query({
+			where: { clientId: intent.cid, externalRef: intent.ref },
+			limit: LIST_LIMIT,
+		});
+		const current = existingForRef(previous.items);
+		if (current) return reuse(signers, current.id, current.data, deps.random);
+		// Every earlier envelope for the pair was declined, voided or expired: start the next one.
+		attempt = await build(Math.max(previous.items.length, 1) + 1);
+		if (!attempt.sent.ok) return Array.isArray(attempt.sent.error) ? badRequest(attempt.sent.error) : fail("INTERNAL");
+		created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
+		if (!created.applied) {
+			const winner = await envelopes.get(attempt.id);
+			return winner ? reuse(signers, attempt.id, winner, deps.random) : fail("INTERNAL");
+		}
 	}
+	const { id, sent } = attempt;
+	if (!sent.ok) return fail("INTERNAL");
+	// Chunk ids are hash-addressed, and only the winner of the create-only write gets here.
+	await snapshots.putMany(sent.value.chunks);
 	const stored = await insertSigner(signers, sent.value.signer, token, deps.random);
 	if (sent.value.envelope.delivery === "email") {
 		// The only place the token exists besides the hash: queued for the cron drain (1 call).
