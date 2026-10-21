@@ -41,6 +41,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Download links use `signLink`/`verifyLink` (`@semics-tech/shared`, T011) with purpose `esign/download` and a secret of at least 32 bytes; the signing token never appears in the URL
 - [ ] Render once at completion with `renderPdf` (T016), hash the returned bytes, chunk into `artifacts`; certificate wording owned here
 - [ ] The certificate prints the audit head and `finalHash` (T023)
+- [ ] Builds on T024: envelope `completed`, `finalHash` set, `signature.sha256 = SHA256(JSON([docSha256, kind, typedName|null, strokes|null]))`; generate the PDF in cron if the submit route has no budget left (it uses 8 calls)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

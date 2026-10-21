@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] CSP header allows only the package's hashed script
+- [ ] Ceremony posts `{token, consent, intent, docSha256, signature:{kind, typedName?, strokes?}}` to `public/submit` (T024); renders `public/session` (snapshot text, `docSha256`, consent wording/version, signer name; `state: "closed"` for finished envelopes)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
