@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Completion uses `appendAuditEvent`, sets `finalHash = finalEnvelopeHash(docSha256, head)`; verification passes the recorded head to `verifyAuditChain` (T023)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
