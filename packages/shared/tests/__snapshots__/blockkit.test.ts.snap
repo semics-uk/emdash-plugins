@@ -1,0 +1,119 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`sample admin page snapshots > banner 1`] = `
+{
+  "description": "Set it.",
+  "title": "Key missing",
+  "type": "banner",
+  "variant": "alert",
+}
+`;
+
+exports[`sample admin page snapshots > chart 1`] = `
+{
+  "config": {
+    "chart_type": "timeseries",
+    "series": [
+      {
+        "data": [
+          [
+            1,
+            2,
+          ],
+        ],
+        "name": "S",
+      },
+    ],
+  },
+  "type": "chart",
+}
+`;
+
+exports[`sample admin page snapshots > form 1`] = `
+{
+  "fields": [
+    {
+      "action_id": "a",
+      "label": "A",
+      "type": "text_input",
+    },
+    {
+      "action_id": "b",
+      "condition": {
+        "eq": "x",
+        "field": "a",
+      },
+      "label": "B",
+      "type": "toggle",
+    },
+  ],
+  "submit": {
+    "action_id": "save",
+    "label": "Save",
+  },
+  "type": "form",
+}
+`;
+
+exports[`sample admin page snapshots > repeater 1`] = `
+{
+  "action_id": "r",
+  "fields": [
+    {
+      "action_id": "q",
+      "label": "Q",
+      "type": "text_input",
+    },
+  ],
+  "item_label": "Q",
+  "label": "R",
+  "type": "repeater",
+}
+`;
+
+exports[`sample admin page snapshots > stats 1`] = `
+{
+  "items": [
+    {
+      "label": "Events",
+      "value": 3,
+    },
+  ],
+  "type": "stats",
+}
+`;
+
+exports[`sample admin page snapshots > table 1`] = `
+{
+  "columns": [
+    {
+      "key": "t",
+      "label": "Title",
+    },
+  ],
+  "page_action_id": "p",
+  "rows": [
+    {
+      "t": "A",
+    },
+  ],
+  "type": "table",
+}
+`;
+
+exports[`sample admin page snapshots > tabs 1`] = `
+{
+  "panels": [
+    {
+      "blocks": [
+        {
+          "text": "c",
+          "type": "context",
+        },
+      ],
+      "label": "One",
+    },
+  ],
+  "type": "tab",
+}
+`;

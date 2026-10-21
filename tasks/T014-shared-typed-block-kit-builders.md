@@ -4,7 +4,7 @@ title: "Shared: typed Block Kit builders"
 phase: 1
 package: shared
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T003]
@@ -25,8 +25,8 @@ Typed helpers for the Block Kit blocks and elements both admins use (table, stat
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Each builder's output passes the runtime host's Block Kit validation
-- [ ] Snapshot tests for a sample page per block type
+- [x] Each builder's output passes the runtime host's Block Kit validation
+- [x] Snapshot tests for a sample page per block type
 
 ## Implementation (green, then refactor)
 
@@ -34,11 +34,18 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Admin tasks use builders, not raw JSON
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Admin tasks use builders, not raw JSON
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 pnpm --filter @semics-tech/shared verify
 ```
+
+## Notes
+
+- Builders live in `packages/shared/src/blockkit.ts` (snake_case host JSON out, camelCase options in) and use the host types via `import type` from `@emdash-cms/blocks`, added to shared as a devDependency (type-only, erased at bundle time). Tests validate with `validateBlocks` from `@emdash-cms/blocks/server`.
+- `notice({ severity: "error"|"warning"|"info", title, message })` maps to banner variants error/alert/default; `notices([...])` skips falsy entries. Matches the `encryptionKeyStatus` and `validateMapping` shapes.
+- `repeater` and `mediaPicker` are admin-authoring elements, not valid inside an admin-page `form` (host docs), so their tests assert shape rather than validator acceptance.
+- Acceptance "admin tasks use builders, not raw JSON" is enforced by T052/T028.
