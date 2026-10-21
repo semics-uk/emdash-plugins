@@ -443,7 +443,7 @@
 			"phase": 2,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -458,7 +458,7 @@
 				"T050",
 				"T084"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T020": {
 			"file": "T020-e-sign-manifest-storage-and-settings-schema.md",
@@ -887,7 +887,7 @@
 				"T046",
 				"T051"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T043": {
 			"file": "T043-events-editor-panel-tickets-booking.md",
@@ -2179,7 +2179,6 @@
 			"T032",
 			"T033",
 			"T034",
-			"T042",
 			"T043",
 			"T044",
 			"T045",
@@ -2242,8 +2241,8 @@
 			"T015",
 			"T016",
 			"T017",
-			"T018",
 			"T029",
+			"T042",
 			"T053"
 		],
 		"in-progress": [],
@@ -2260,6 +2259,7 @@
 			"T008",
 			"T009",
 			"T010",
+			"T018",
 			"T020",
 			"T040",
 			"T041"
@@ -2269,7 +2269,6 @@
 		]
 	},
 	"criticalPath": [
-		"T018",
 		"T042",
 		"T044",
 		"T045",
@@ -2288,5 +2287,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 31
+	"criticalWeight": 30
 }
