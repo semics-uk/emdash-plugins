@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Inputs validated with zod
 - [ ] Budget (T044): reads + worst-case reserve leave room for only 3 inventory steps under 8 calls, and the route also needs a booking put, a rate-limit KV call and Turnstile. Denormalise reads or leave compensation to the sweeper (an over-count is safe); pass the remaining budget as `maxCalls`. Write the booking as `draft` before `reserve`
+- [ ] Every write to a held booking guards on `releaseClaimedAt: null` and the status read; a miss means "hold lapsed". Use `startHold`, `extendHold`, `stepTarget`, `holdSettings` and `scheduleHoldTask` from T045
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
