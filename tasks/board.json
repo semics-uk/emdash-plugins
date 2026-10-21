@@ -2194,7 +2194,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2205,7 +2205,7 @@
 				"R22"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -2273,8 +2273,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T049",
-			"T112"
+			"T049"
 		],
 		"review": [],
 		"done": [
@@ -2311,7 +2310,8 @@
 			"T047",
 			"T048",
 			"T070",
-			"T110"
+			"T110",
+			"T112"
 		],
 		"blocked": []
 	},
