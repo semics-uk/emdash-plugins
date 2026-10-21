@@ -17,7 +17,89 @@ export interface SessionData {
 	signer?: { name: string; as?: string; participant?: string };
 	snapshot?: string;
 	consent?: { version: string; wording: string };
+	/** Values the signer fills in (`fieldValues` on submit). The core sends none yet. */
+	fields?: SessionField[];
 }
+
+export interface SessionField {
+	key: string;
+	label: string;
+	required?: boolean;
+}
+
+/** Field keys as `public/submit` accepts them; others are never rendered or sent. */
+export const FIELD_KEY = /^[A-Za-z0-9_]{1,64}$/;
+
+/** The form control name of a session field. */
+export const fieldName = (key: string) => `field.${key}`;
+
+/** The session's fields that can be rendered and posted. */
+export const sessionFields = (session: SessionData): SessionField[] =>
+	(Array.isArray(session.fields) ? session.fields : []).filter(
+		(f) => f && typeof f.key === "string" && FIELD_KEY.test(f.key) && typeof f.label === "string",
+	);
+
+/** Limits of `public/submit` (T024): at most 64 strokes, at most 32 KB of stroke JSON. */
+export const MAX_STROKES = 64;
+export const MAX_STROKES_JSON_BYTES = 32 * 1024;
+/** Raw pad JSON larger than this is not even parsed. */
+const MAX_PAD_JSON = 512 * 1024;
+
+const toPoint = (p: unknown): [number, number] | undefined => {
+	let x: unknown;
+	let y: unknown;
+	if (Array.isArray(p)) [x, y] = p;
+	else if (p !== null && typeof p === "object") ({ x, y } = p as { x?: unknown; y?: unknown });
+	return typeof x === "number" && typeof y === "number" && Number.isFinite(x) && Number.isFinite(y)
+		? [x, y]
+		: undefined;
+};
+
+const unit = (n: number, size: number) => Math.round(Math.min(1, Math.max(0, n / size)) * 1000) / 1000;
+
+/**
+ * The signature pad's `{ v, w, h, strokes }` (pad coordinates, y down; T031) as `public/submit`
+ * takes it: `[x, y]` points normalised to 0-1 (the PDF draws them in a 1 x 1 box), three decimals.
+ */
+export function normaliseStrokes(
+	pad: unknown,
+): { ok: true; strokes: number[][][] } | { ok: false; code: "INVALID_SIGNATURE" | "STROKES_TOO_LARGE" } {
+	const invalid = { ok: false, code: "INVALID_SIGNATURE" } as const;
+	if (pad === null || typeof pad !== "object") return invalid;
+	const { w, h, strokes } = pad as { w?: unknown; h?: unknown; strokes?: unknown };
+	if (typeof w !== "number" || typeof h !== "number" || !(w > 0) || !(h > 0) || !Number.isFinite(w * h)) return invalid;
+	if (!Array.isArray(strokes)) return invalid;
+	const out: number[][][] = [];
+	for (const stroke of strokes) {
+		const points = (Array.isArray(stroke) ? stroke : [])
+			.map(toPoint)
+			.filter((p): p is [number, number] => p !== undefined)
+			.map(([x, y]) => [unit(x, w), unit(y, h)]);
+		if (points.length > 0) out.push(points);
+	}
+	if (out.length === 0 || out.length > MAX_STROKES) return invalid;
+	if (JSON.stringify(out).length > MAX_STROKES_JSON_BYTES) return { ok: false, code: "STROKES_TOO_LARGE" };
+	return { ok: true, strokes: out };
+}
+
+/** The drawn signature in the form, if any: `undefined` for none, else the normalised strokes or why not. */
+function formStrokes(form: FormData): ReturnType<typeof normaliseStrokes> | undefined {
+	const raw = form.get("signatureStrokes");
+	if (typeof raw !== "string" || raw.trim() === "") return undefined;
+	if (raw.length > MAX_PAD_JSON) return { ok: false, code: "STROKES_TOO_LARGE" };
+	try {
+		return normaliseStrokes(JSON.parse(raw));
+	} catch {
+		return { ok: false, code: "INVALID_SIGNATURE" };
+	}
+}
+
+/** Where the core's submit issues show on the form. */
+const ISSUE_FIELD: Record<string, string> = {
+	intent: "agree",
+	"signature.strokes": "signature",
+	fieldValues: "fields",
+};
 
 export type SignView =
 	| { kind: "error"; code: string; message: string }
@@ -42,6 +124,7 @@ export const MESSAGES: Record<string, string> = {
 	TOKEN_IN_QUERY: "This link is not valid. Open the link from your email.",
 	SESSION_REQUIRED: "Please reload the page and try again.",
 	BAD_REQUEST: "Please check the form and try again.",
+	STROKES_TOO_LARGE: "Your drawn signature is too detailed. Clear it and sign again more simply.",
 };
 
 const message = (code: string) => MESSAGES[code] ?? "Something went wrong. Please try again.";
@@ -94,13 +177,24 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 	}
 
 	const typedName = text(form, "typedName");
+	const strokes = formStrokes(form);
+	const fieldValues: Record<string, string> = {};
+	const missingFields: string[] = [];
+	for (const field of sessionFields(session)) {
+		const value = text(form, fieldName(field.key));
+		if (value) fieldValues[field.key] = value;
+		else if (field.required) missingFields.push(fieldName(field.key));
+	}
 	const fields = [
+		...missingFields,
 		...(typedName ? [] : ["typedName"]),
+		...(strokes && !strokes.ok ? ["signature"] : []),
 		...(form.get("consent") === "on" ? [] : ["consent"]),
 		...(form.get("agree") === "on" ? [] : ["agree"]),
 	];
 	if (fields.length > 0) {
-		return { kind: "ready", session, fields, errorCode: "BAD_REQUEST", message: message("BAD_REQUEST") };
+		const code = strokes && !strokes.ok && strokes.code === "STROKES_TOO_LARGE" ? strokes.code : "BAD_REQUEST";
+		return { kind: "ready", session, fields, errorCode: code, message: message(code) };
 	}
 	const result = await callPublicRoute<{ returnUrl?: string }>(ctx, {
 		method: "POST",
@@ -110,12 +204,12 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 			docSha256: session.envelope?.docSha256 ?? "",
 			consent: true,
 			intent: true,
-			signature: { kind: "typed", typedName },
-			fieldValues: {},
+			signature: strokes?.ok ? { kind: "drawn", typedName, strokes: strokes.strokes } : { kind: "typed", typedName },
+			fieldValues,
 		},
 	});
 	if (!result.ok) {
-		const issues = (result.error.issues ?? []).map((i) => i.path);
+		const issues = [...new Set((result.error.issues ?? []).map((i) => ISSUE_FIELD[i.path] ?? i.path))];
 		return {
 			kind: "ready",
 			session,

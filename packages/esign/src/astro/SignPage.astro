@@ -1,18 +1,22 @@
 ---
 // Injected at `/sign/[token]` by the integration (SU-FR-01). The one place a token may sit in a URL:
 // this page's path. It sends `Referrer-Policy: no-referrer`, is never cached, and passes the token
-// to the core only in POST bodies. A plain form post works without JavaScript.
+// to the core only in POST bodies. A plain form post works without JavaScript. Its CSP allows only
+// the ceremony's own hashed script and style (SU-NFR-02).
+import { pluginId } from "virtual:semics-esign/config";
+import { ceremonyCsp } from "./lib/csp";
 import { handleSign } from "./lib/sign";
+import SigningCeremony from "./SigningCeremony.astro";
 
 export const prerender = false;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
 const view = await handleSign({ locals: Astro.locals, url: Astro.url }, token, form);
-const bad = (name: string) => view.kind === "ready" && (view.fields ?? []).includes(name);
 ---
 <!doctype html>
 <html lang="en">
@@ -26,77 +30,7 @@ const bad = (name: string) => view.kind === "ready" && (view.fields ?? []).inclu
 	<body>
 		<main class="semics-esign semics-sign" data-testid="sign-page" data-state={view.kind}>
 			<h1>{view.kind === "ready" ? view.session.envelope?.title ?? "Sign a document" : "Sign a document"}</h1>
-			{view.kind === "error" && <p role="alert" data-testid="sign-error" data-code={view.code}>{view.message}</p>}
-			{
-				view.kind === "closed" && (
-					<p data-testid="sign-closed" data-status={view.status}>
-						{view.status === "completed"
-							? "This document has been signed."
-							: view.status === "declined"
-								? "This document was declined."
-								: "This document can no longer be signed."}
-						{view.download && <> <a href={view.download}>Download the signed PDF</a></>}
-						{view.pdf === "pending" && " The signed PDF is being prepared; reload in a minute."}
-					</p>
-				)
-			}
-			{
-				view.kind === "signed" && (
-					<section data-testid="sign-done">
-						<p>Thank you. Your signature has been recorded.</p>
-						{view.download ? (
-							<p><a href={view.download}>Download the signed PDF</a></p>
-						) : (
-							<p>The signed PDF is being prepared. Reload this page in a minute for the download link.</p>
-						)}
-						{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
-					</section>
-				)
-			}
-			{
-				view.kind === "declined" && (
-					<section data-testid="sign-declined">
-						<p>You declined to sign. The sender has been told.</p>
-						{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
-					</section>
-				)
-			}
-			{
-				view.kind === "ready" && (
-					<>
-						{view.message && <p role="alert" data-testid="sign-error" data-code={view.errorCode}>{view.message}</p>}
-						<p>
-							Signing as <strong>{view.session.signer?.name}</strong>
-							{view.session.signer?.as ? ` (${view.session.signer.as})` : ""}
-						</p>
-						<section aria-label="Document" data-testid="sign-document">
-							<pre style="white-space: pre-wrap; font: inherit">{view.session.snapshot}</pre>
-						</section>
-						<form method="post" action={Astro.url.pathname}>
-							<p>
-								<label for="esign-name">Type your full name to sign</label><br />
-								<input id="esign-name" name="typedName" type="text" autocomplete="name" required maxlength="200" aria-invalid={bad("typedName") ? "true" : undefined} />
-							</p>
-							<p>
-								<input id="esign-consent" name="consent" type="checkbox" required aria-invalid={bad("consent") ? "true" : undefined} />
-								<label for="esign-consent">{view.session.consent?.wording}</label>
-							</p>
-							<p>
-								<input id="esign-agree" name="agree" type="checkbox" required aria-invalid={bad("agree") ? "true" : undefined} />
-								<label for="esign-agree">I intend my typed name to be my signature on this document.</label>
-							</p>
-							<button type="submit" name="intent" value="sign">Sign document</button>
-						</form>
-						<form method="post" action={Astro.url.pathname}>
-							<p>
-								<label for="esign-reason">Or decline to sign (optional reason)</label><br />
-								<input id="esign-reason" name="reason" type="text" maxlength="500" />
-							</p>
-							<button type="submit" name="intent" value="decline">Decline</button>
-						</form>
-					</>
-				)
-			}
+			<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} />
 		</main>
 	</body>
 </html>

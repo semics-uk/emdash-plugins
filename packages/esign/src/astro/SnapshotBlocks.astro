@@ -1,0 +1,35 @@
+---
+// Block nodes of a parsed snapshot (lib/markdown.ts): only these elements are ever produced.
+import type { Block } from "./lib/markdown";
+import SnapshotInline from "./SnapshotInline.astro";
+
+interface Props {
+	blocks: Block[];
+}
+
+const { blocks } = Astro.props;
+---
+{
+	blocks.map((block) => {
+		switch (block.type) {
+			case "heading": {
+				const Heading = `h${block.level}` as "h2";
+				return <Heading><SnapshotInline nodes={block.children} /></Heading>;
+			}
+			case "paragraph":
+				return <p><SnapshotInline nodes={block.children} /></p>;
+			case "list":
+				return block.ordered ? (
+					<ol start={block.start}>{block.items.map((item) => <li><SnapshotInline nodes={item} /></li>)}</ol>
+				) : (
+					<ul>{block.items.map((item) => <li><SnapshotInline nodes={item} /></li>)}</ul>
+				);
+			case "quote":
+				return <blockquote><Astro.self blocks={block.children} /></blockquote>;
+			case "code":
+				return <pre><code>{block.text}</code></pre>;
+			default:
+				return <hr />;
+		}
+	})
+}

@@ -1,0 +1,28 @@
+---
+// Inline nodes of a parsed snapshot (lib/markdown.ts). Text goes in only through `{…}`, which
+// escapes; the one attribute from data is a link's href, already limited to http(s)/mailto.
+import type { Inline } from "./lib/markdown";
+
+interface Props {
+	nodes: Inline[];
+}
+
+const { nodes } = Astro.props;
+---
+{
+	nodes.map((node) =>
+		node.type === "text" ? (
+			node.text
+		) : node.type === "break" ? (
+			<br />
+		) : node.type === "code" ? (
+			<code>{node.text}</code>
+		) : node.type === "strong" ? (
+			<strong><Astro.self nodes={node.children} /></strong>
+		) : node.type === "em" ? (
+			<em><Astro.self nodes={node.children} /></em>
+		) : (
+			<a href={node.href} rel="noopener noreferrer nofollow"><Astro.self nodes={node.children} /></a>
+		),
+	)
+}

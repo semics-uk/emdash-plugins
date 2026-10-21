@@ -1,0 +1,157 @@
+---
+// <SigningCeremony> (SU-FR-03..08, SU-NFR-01..03): the document, the signer's fields, the typed
+// signature (and a slot for the signature pad, T031), the consent and intent boxes, decline, and
+// the completion screen. Give it the view from `handleSign` (lib/sign.ts).
+//
+// Works without JavaScript: both forms post to `action`. The inlined client script (allowed by
+// hash, see lib/csp.ts: a page rendering this must send `ceremonyCsp()`) keeps Sign disabled
+// until the form is complete and, after signing, polls `public/session` for the signed PDF.
+//
+// The snapshot is rendered only through the parsed tree (lib/markdown.ts) and `{…}` text, never
+// as HTML. Its exact hashed text is offered verbatim beside its SHA-256.
+import { CEREMONY_CSS, CEREMONY_SCRIPT } from "./lib/assets";
+import { ESIGN_PLUGIN_ID } from "./lib/call";
+import { parseSnapshot } from "./lib/markdown";
+import { fieldName, type SignView, sessionFields } from "./lib/sign";
+import SnapshotBlocks from "./SnapshotBlocks.astro";
+
+interface Props {
+	view: SignView;
+	/** Where both forms post: the page that calls `handleSign`. */
+	action: string;
+	/** The signing token, for the signed-PDF poll (sent in a POST body only). */
+	token: string;
+	/** The core's plugin id, when it is not the default slug. */
+	pluginId?: string;
+}
+
+const { view, action, token, pluginId = ESIGN_PLUGIN_ID } = Astro.props;
+const ready = view.kind === "ready" ? view : undefined;
+const session = ready?.session;
+const blocks = session ? parseSnapshot(session.snapshot ?? "") : [];
+const fields = session ? sessionFields(session) : [];
+const bad = (name: string) => (ready?.fields ?? []).includes(name) || undefined;
+const pdfPending =
+	(view.kind === "signed" || (view.kind === "closed" && view.status === "completed")) &&
+	!view.download &&
+	view.pdf === "pending";
+const doneLink = (view.kind === "signed" || view.kind === "closed") && view.download ? view.download : undefined;
+---
+<div class="semics-esign semics-ceremony" data-testid="signing-ceremony" data-state={view.kind}>
+	{view.kind === "error" && <p role="alert" class="semics-error" data-testid="sign-error" data-code={view.code}>{view.message}</p>}
+	{
+		view.kind === "closed" && (
+			<section data-testid="sign-closed" data-status={view.status} {...(pdfPending ? { "data-esign-poll": "", "data-token": token, "data-plugin": pluginId } : {})}>
+				<p>
+					{view.status === "completed"
+						? "This document has been signed."
+						: view.status === "declined"
+							? "This document was declined."
+							: "This document can no longer be signed."}
+				</p>
+				{(doneLink || pdfPending) && (
+					<p data-esign-pdf aria-live="polite">
+						{doneLink ? <a href={doneLink}>Download the signed PDF</a> : "The signed PDF is being prepared; reload in a minute."}
+					</p>
+				)}
+			</section>
+		)
+	}
+	{
+		view.kind === "signed" && (
+			<section data-testid="sign-done" {...(pdfPending ? { "data-esign-poll": "", "data-token": token, "data-plugin": pluginId } : {})}>
+				<p>Thank you. Your signature has been recorded.</p>
+				<p data-esign-pdf aria-live="polite">
+					{doneLink ? (
+						<a href={doneLink}>Download the signed PDF</a>
+					) : (
+						"The signed PDF is being prepared. Reload this page in a minute for the download link."
+					)}
+				</p>
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+			</section>
+		)
+	}
+	{
+		view.kind === "declined" && (
+			<section data-testid="sign-declined">
+				<p>You declined to sign. The sender has been told.</p>
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+			</section>
+		)
+	}
+	{
+		ready && session && (
+			<>
+				{ready.message && <p role="alert" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{ready.message}</p>}
+				<p>
+					Signing as <strong>{session.signer?.name}</strong>
+					{session.signer?.as ? ` (${session.signer.as})` : ""}
+				</p>
+				<section aria-label="Document to sign" data-testid="sign-document">
+					<div class="semics-doc"><SnapshotBlocks blocks={blocks} /></div>
+					<details data-testid="sign-exact">
+						<summary>Exact text you are signing</summary>
+						<p>SHA-256 fingerprint: <span class="semics-hash">{session.envelope?.docSha256}</span></p>
+						<pre>{session.snapshot}</pre>
+					</details>
+				</section>
+				<form method="post" action={action} data-esign-sign-form data-consent-version={session.consent?.version}>
+					{
+						fields.length > 0 && (
+							<fieldset>
+								<legend>Your details</legend>
+								{fields.map((field) => (
+									<div class="semics-field">
+										<label for={`esign-field-${field.key}`}>{field.label}{field.required ? " (required)" : ""}</label>
+										<input
+											id={`esign-field-${field.key}`}
+											name={fieldName(field.key)}
+											type="text"
+											maxlength="500"
+											data-esign-field
+											data-label={field.label}
+											required={field.required || undefined}
+											aria-invalid={bad(fieldName(field.key)) && "true"}
+										/>
+									</div>
+								))}
+							</fieldset>
+						)
+					}
+					<fieldset>
+						<legend>Your signature</legend>
+						<div class="semics-field">
+							<label for="esign-name">Type your full name to sign</label>
+							<input id="esign-name" name="typedName" type="text" autocomplete="name" required maxlength="200" aria-invalid={bad("typedName") && "true"} />
+						</div>
+						<div data-esign-pad-slot data-testid="sign-pad-slot">
+							<slot name="pad" />
+							<input type="hidden" name="signatureStrokes" value="" />
+							{bad("signature") && <p class="semics-error">{ready.message}</p>}
+						</div>
+					</fieldset>
+					<div class="semics-check">
+						<input id="esign-consent" name="consent" type="checkbox" required aria-invalid={bad("consent") && "true"} />
+						<label for="esign-consent">{session.consent?.wording}</label>
+					</div>
+					<div class="semics-check">
+						<input id="esign-agree" name="agree" type="checkbox" required aria-invalid={bad("agree") && "true"} />
+						<label for="esign-agree">I intend the signature above to be my signature on this document.</label>
+					</div>
+					<p id="esign-missing" class="semics-note" data-esign-missing data-testid="sign-missing" aria-live="polite" hidden></p>
+					<button type="submit" name="intent" value="sign" data-esign-sign aria-describedby="esign-missing">Sign document</button>
+				</form>
+				<form method="post" action={action} class="semics-decline">
+					<div class="semics-field">
+						<label for="esign-reason">Or decline to sign (optional reason)</label>
+						<input id="esign-reason" name="reason" type="text" maxlength="500" />
+					</div>
+					<button type="submit" name="intent" value="decline" data-esign-decline>Decline</button>
+				</form>
+			</>
+		)
+	}
+</div>
+<style is:inline set:html={CEREMONY_CSS}></style>
+<script is:inline type="module" set:html={CEREMONY_SCRIPT}></script>

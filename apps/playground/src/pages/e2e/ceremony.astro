@@ -1,0 +1,71 @@
+---
+// e2e-only page (T030): <SigningCeremony> in fixed states the seeded site can't reach yet (no
+// envelope is sent until T033's fixture). ?state=ready|signed|closed, ?doc=xss renders the XSS
+// payload suite as the document, ?csp=off drops the CSP header so the sanitiser is tested alone.
+import { ceremonyCsp } from "@semics-tech/emdash-esign/astro";
+import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
+import payloads from "../../../../../packages/esign/tests/ui/xss-payloads.json";
+
+export const prerender = false;
+
+const TOKEN = "T".repeat(43);
+const params = Astro.url.searchParams;
+if (params.get("csp") !== "off") Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const agreement = [
+	"# Mutual non-disclosure agreement",
+	"",
+	"This agreement is between **Example Ltd** and *Ada Lovelace*, dated 1 March 2030.",
+	"",
+	"## Terms",
+	"",
+	"1. Keep the other party's information confidential.",
+	"2. Use it only for the purpose described in the [schedule](https://example.com/schedule).",
+	"",
+	"> Nothing here transfers ownership of any information.",
+	"",
+	"Signed for Example Ltd by Grace \\*Hopper\\* &amp; partners.",
+].join("\n");
+const snapshot = params.get("doc") === "xss" ? (payloads as string[]).join("\n\n") : agreement;
+
+const session = {
+	ok: true as const,
+	state: "ready" as const,
+	envelope: { id: "env_e2e", title: "Mutual NDA", status: "in_progress", docSha256: "0".repeat(64), expiresAt: null },
+	signer: { name: "Ada Lovelace", as: "Recipient" },
+	snapshot,
+	consent: {
+		version: "1",
+		wording:
+			"I agree to sign this document electronically and that my electronic signature has the same legal effect as a handwritten one.",
+	},
+	fields: [
+		{ key: "company", label: "Company", required: true },
+		{ key: "role", label: "Job title" },
+	],
+};
+
+const state = params.get("state");
+const view =
+	state === "signed"
+		? ({ kind: "signed", pdf: "pending" } as const)
+		: state === "closed"
+			? ({ kind: "closed", status: "completed", pdf: "ready", download: "/signed.pdf" } as const)
+			: ({ kind: "ready", session } as const);
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Signing ceremony</title>
+	</head>
+	<body>
+		<main>
+			<h1>Signing ceremony</h1>
+			<SigningCeremony view={view} action="/e2e/ceremony" token={TOKEN} />
+		</main>
+	</body>
+</html>
