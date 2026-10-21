@@ -208,6 +208,21 @@ export function release(storage: CounterStorage, refs: CounterRef[], { sold = fa
 	);
 }
 
+/**
+ * Take back seats that `release` gave up for a booking that turned out to still be live (its move to
+ * `expired` lost a race with another writer). Unguarded on capacity: the seats belong to a live
+ * booking, and an over-count is the safe direction (it blocks sales; drift repair removes it).
+ * Returns the refs it could not restore.
+ */
+export function restore(storage: CounterStorage, refs: CounterRef[]): Promise<CounterRef[]> {
+	throw new Error("T045: not implemented");
+}
+
+/** Sum refs that name the same counted document (one guarded write each, R22). Pure. */
+export function mergeRefs(refs: Iterable<CounterRef>): CounterRef[] {
+	throw new Error("T045: not implemented");
+}
+
 /** Count a booking's reserved seats as sold (on confirm). Returns the refs it could not count. */
 export function confirmSold(storage: CounterStorage, refs: CounterRef[]): Promise<CounterRef[]> {
 	return eachRef(refs, (ref) =>
@@ -363,6 +378,50 @@ export async function repairEventCounters(
 	const pending = fixes.slice(writable.length);
 	const { repaired, conflicted } = await applyDriftRepair(storage, writable);
 	return { complete: pending.length === 0, repaired, conflicted, pending };
+}
+
+// --- resumable drift repair (sweep-holds, across cron ticks) --------------------------------------
+
+/**
+ * A drift repair in progress, small enough for one KV value. The same three phases as
+ * `repairEventCounters`, spread over as many invocations as the event needs: snapshot the counted
+ * documents, scan the live bookings page by page (default order, so the cursor is a stable
+ * `(created_at, id)` keyset), then write the fixes. The writes are still guarded on the snapshot,
+ * so a reservation, release or confirm landing between ticks turns its fix into a conflict instead
+ * of a wrong count; the next pass retries.
+ */
+export interface RepairJob {
+	eventId: string;
+	/** Clock reading when the counters were snapshotted: the tally's `now` for every page. */
+	at?: number;
+	snapshot?: CounterSnapshot[];
+	tally?: Array<[string, { reserved: number; sold: number }]>;
+	/** Booking scan cursor, after the first page. */
+	cursor?: string;
+	/** Fixes left to write once the scan is complete. */
+	fixes?: DriftFix[];
+}
+
+export interface RepairStepResult {
+	/** What is left to do, or `null` when the event is repaired (or gone). */
+	job: RepairJob | null;
+	/** Bridge calls this step made. */
+	calls: number;
+	repaired: DriftFix[];
+	conflicted: DriftFix[];
+}
+
+/** Bridge calls the snapshot phase makes (config, ticket types, occurrences). */
+export const REPAIR_SNAPSHOT_CALLS = 3;
+
+/** Advance a repair job by at most `maxCalls` bridge calls. */
+export async function repairStep(
+	storage: InventoryStorage,
+	job: RepairJob,
+	now: number,
+	maxCalls: number,
+): Promise<RepairStepResult> {
+	throw new Error("T045: not implemented");
 }
 
 // --- admin edits of counted documents (config/save) ------------------------------------------------

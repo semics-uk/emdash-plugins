@@ -7,7 +7,16 @@ import {
 	reserve,
 	type UpdateIfArgsLike,
 } from "../../../../src/domain/inventory";
+import { expireHoldTask, type SweepDeps, type SweepStorage, sweepHolds } from "../../../../src/cron/sweep";
+import { extendHold, type HoldFields } from "../../../../src/domain/holds";
 import { CONFIG_ROUTES, type ConfigStorage, saveConfig } from "../../../../src/routes/config";
+
+const sweepDeps = (ctx: PluginContext, i: Record<string, unknown>): SweepDeps => ({
+	storage: ctx.storage as unknown as SweepStorage,
+	kv: ctx.kv,
+	...(ctx.cron ? { cron: ctx.cron } : {}),
+	now: Date.parse(String(i.now)),
+});
 
 /**
  * Test-only plugin (never published). Its emdash-plugin.jsonc is a symlink to the real manifest, so
@@ -106,6 +115,27 @@ const plugin: SandboxedPlugin = {
 			handler: async (r, ctx) => {
 				const i = input(r);
 				return repairEventCounters(store(ctx), String(i.eventId), Date.parse(String(i.now)));
+			},
+		},
+		// T045: the hold jobs with an injected clock (`now`), against the shipped storage on D1.
+		"probe/sweep": {
+			handler: async (r, ctx) => {
+				const i = input(r);
+				return sweepHolds({ ...sweepDeps(ctx, i), ...(typeof i.maxCalls === "number" ? { maxCalls: i.maxCalls } : {}) });
+			},
+		},
+		"probe/hold-task": {
+			handler: async (r, ctx) => {
+				const i = input(r);
+				return { result: await expireHoldTask(sweepDeps(ctx, i), String(i.bookingId)) };
+			},
+		},
+		"probe/extend": {
+			handler: async (r, ctx) => {
+				const i = input(r);
+				const id = String(i.bookingId);
+				const booking = (await store(ctx).bookings.get(id)) as HoldFields;
+				return extendHold(store(ctx).bookings, id, booking, Date.parse(String(i.now)), Date.parse(String(i.until)));
 			},
 		},
 		"probe/config-save-race": {

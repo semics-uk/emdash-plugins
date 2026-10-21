@@ -1,5 +1,6 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { runCron, scheduleSweeper } from "./cron/sweep";
 import { CONFIG_ROUTES } from "./routes/config";
 import { PUBLIC_ROUTES } from "./routes/public";
 
@@ -9,6 +10,10 @@ import { PUBLIC_ROUTES } from "./routes/public";
  * `event` parameters are typed by hook name).
  */
 const plugin: SandboxedPlugin = {
+	hooks: {
+		"plugin:activate": async (_event, ctx) => scheduleSweeper(ctx),
+		cron: async (event, ctx) => runCron(event, ctx),
+	},
 	routes: {
 		hello: {
 			handler: async (_routeCtx, ctx) => {
