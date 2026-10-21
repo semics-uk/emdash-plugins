@@ -53,7 +53,7 @@ describe("ES manifest: trust contract (T020)", () => {
 
 describe("ES public routes equal the PRD list (T020)", () => {
 	it("registers exactly the PRD's public routes, each public and method-restricted", () => {
-		const routes = plugin.routes ?? {};
+		const routes = (plugin.routes ?? {}) as Record<string, { public?: boolean; methods?: string[] }>;
 		const publicRoutes = Object.entries(routes).filter(([, route]) => route.public === true);
 		expect(publicRoutes.map(([name]) => name).sort()).toEqual(PRD_PUBLIC_ROUTES.map(([n]) => n).sort());
 		for (const [name, method] of PRD_PUBLIC_ROUTES) {

@@ -15,7 +15,82 @@
 	// KV, and route/hook registration. Changing these between
 	// releases requires a version bump because installed
 	// users have consented to the old contract.
-	"capabilities": [],
-	"allowedHosts": [],
-	"storage": {}
+	"capabilities": ["email:send", "media:read", "media:bytes:read", "network:request"],
+	"allowedHosts": ["challenges.cloudflare.com"],
+	"storage": {
+		"templates": { "indexes": ["status", "kind", "public"] },
+		"envelopes": {
+			"indexes": ["status", "expiresAt", "createdAt", "clientId", "externalRef", ["status", "expiresAt"]]
+		},
+		"signers": { "indexes": ["envelopeId", "email"], "uniqueIndexes": ["tokenHash"] },
+		"snapshots": { "indexes": ["envelopeId"] },
+		"artifacts": { "indexes": ["envelopeId", ["envelopeId", "kind"]] },
+		"audit_events": { "indexes": ["envelopeId", ["envelopeId", "seq"]] },
+		"clients": { "indexes": ["createdAt"], "uniqueIndexes": ["clientId"] },
+		"nonces": { "indexes": ["expiresAt"], "uniqueIndexes": ["nonce"] }
+	},
+	"admin": {
+		"settingsSchema": {
+			"senderName": {
+				"label": "Sender name",
+				"type": "string",
+				"description": "Shown as the sender of signing emails."
+			},
+			"consentVersion": {
+				"label": "Consent version",
+				"type": "string",
+				"default": "1",
+				"description": "Recorded with every signature; bump when the wording changes."
+			},
+			"consentWording": {
+				"label": "Consent wording",
+				"type": "string",
+				"multiline": true,
+				"default": "I agree to sign this document electronically and that my electronic signature has the same legal effect as a handwritten one.",
+				"description": "Shown to signers before they sign."
+			},
+			"expiryDays": { "label": "Envelope expiry (days)", "type": "number", "default": 30, "min": 1, "max": 365 },
+			"reminderCadenceDays": {
+				"label": "Reminder cadence (days)",
+				"type": "number",
+				"default": 3,
+				"min": 1,
+				"max": 30,
+				"description": "Pro: automatic reminders."
+			},
+			"otpDefault": {
+				"label": "Require email code by default",
+				"type": "boolean",
+				"default": false,
+				"description": "Pro: one-time code before signing."
+			},
+			"otpContractTemplates": {
+				"label": "Require email code for contract templates",
+				"type": "boolean",
+				"default": true,
+				"description": "Pro."
+			},
+			"retentionPersonalDataMonths": {
+				"label": "Keep personal data (months)",
+				"type": "number",
+				"default": 12,
+				"min": 1,
+				"max": 120
+			},
+			"retentionSignedRecordsYears": {
+				"label": "Keep signed records (years)",
+				"type": "number",
+				"default": 7,
+				"min": 1,
+				"max": 50
+			},
+			"turnstileSiteKey": { "label": "Turnstile site key", "type": "string" },
+			"turnstileSecretKey": { "label": "Turnstile secret key", "type": "secret" },
+			"integrationMasterKey": {
+				"label": "Integration master key",
+				"type": "secret",
+				"description": "Client secrets are derived from this key; it is never shown again."
+			}
+		}
+	}
 }

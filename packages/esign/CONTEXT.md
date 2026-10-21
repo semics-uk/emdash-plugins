@@ -22,7 +22,7 @@ automatic reminders/expiry, PDF templates, self-serve forms, bulk send, MCP (BUI
 ## Storage collections
 
 `templates`, `envelopes`, `signers`, `snapshots`, `artifacts` (signed PDF chunks, 256 KiB base64),
-`auditEvents`, `clients`, `nonces`. Every document ≤ 512 KiB.
+`audit_events`, `clients`, `nonces`. Every document ≤ 512 KiB.
 
 ## Rules that bite
 
