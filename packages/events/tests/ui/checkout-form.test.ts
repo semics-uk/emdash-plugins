@@ -111,7 +111,8 @@ describe("handleCheckoutForm (EU-FR-05, EU-FR-06)", () => {
 		await handleCheckoutForm({ locals: h.locals, url }, form({ ...goodForm, idempotencyKey: "" }), {
 			newKey: () => "g".repeat(43),
 		});
-		expect((h.seen[0]?.body as { idempotencyKey: string }).idempotencyKey).toBe("g".repeat(43));
+		const sent = h.seen[0]?.body as { idempotencyKey: string } | undefined;
+		expect(sent?.idempotencyKey).toBe("g".repeat(43));
 
 		const empty = host(undefined, undefined);
 		const out = await handleCheckoutForm({ locals: empty.locals, url }, form({ ...goodForm, "qty:general": "0" }), {});

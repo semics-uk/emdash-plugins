@@ -4,6 +4,7 @@ import { defineConfig } from "astro/config";
 import emdash, { local } from "emdash/astro";
 import { sqlite } from "emdash/db";
 import semicsEvents from "@semics-tech/emdash-events";
+import { eventsIntegration } from "@semics-tech/emdash-events/integration";
 import { eventsUi } from "@semics-tech/emdash-events/ui";
 
 export default defineConfig({
@@ -17,6 +18,7 @@ export default defineConfig({
 	},
 	integrations: [
 		react(),
+		eventsIntegration(),
 		emdash({
 			database: sqlite({ url: "file:./data.db" }),
 			storage: local({
