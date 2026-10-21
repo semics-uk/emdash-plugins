@@ -8,14 +8,14 @@ const storageFixture = "tests/fixtures/storage-probe";
 // Cold workerd starts and plugin builds are slow when several packages verify in parallel.
 const testTimeout = 120_000;
 
-// Four projects: the real plugin in workerd; a test-only fixture plugin that imports
+// Projects: the real plugin in workerd; a test-only fixture plugin that imports
 // @semics-tech/shared (host proof); a fixture that shares the real manifest and probes storage
-// indexes and the network allow-list; and a plain Node project that checks build output.
+// indexes and the network allow-list; plain Node projects for the UI and for build output.
 export default defineConfig({
 	test: {
 		...machineLimits,
-		// The audit chain is a security module: 100% branches (tasks/README.md).
-		coverage: coverageConfig({ strictBranches: ["src/domain/audit.ts"] }),
+		// The audit chain and the snapshot sanitiser are security modules: 100% branches (tasks/README.md).
+		coverage: coverageConfig({ strictBranches: ["src/domain/audit.ts", "src/astro/lib/markdown.ts"] }),
 		projects: [
 			{
 				plugins: [emdashPluginTest()],
@@ -27,6 +27,8 @@ export default defineConfig({
 						"tests/shared-bundle*.test.ts",
 						"tests/storage-host.test.ts",
 						"tests/ui/*.build.test.ts",
+						"tests/ui/markdown.test.ts",
+						"tests/ui/ceremony.test.ts",
 						"tests/fixtures/**",
 					],
 				},
@@ -38,6 +40,14 @@ export default defineConfig({
 			{
 				plugins: [emdashPluginTest({ dir: storageFixture })],
 				test: { name: "storage-host", testTimeout, include: ["tests/storage-host.test.ts"] },
+			},
+			{
+				// The ceremony's renderer, client helpers and CSP (T030): plain Node, no host.
+				test: {
+					name: "ui",
+					environment: "node",
+					include: ["tests/ui/markdown.test.ts", "tests/ui/ceremony.test.ts"],
+				},
 			},
 			{
 				test: { name: "ui-build", environment: "node", include: ["tests/ui/*.build.test.ts"] },
