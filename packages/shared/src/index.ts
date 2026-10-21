@@ -13,6 +13,7 @@ export * from "./blockkit";
 export * from "./hmac";
 export * from "./ics";
 export * from "./money";
+export * from "./outbox";
 export * from "./pairing";
 export * from "./pdf";
 export * from "./ratelimit";

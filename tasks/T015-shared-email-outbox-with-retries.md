@@ -25,10 +25,10 @@ Queue emails in a storage collection, deliver from cron in bounded batches with 
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Queued mail is sent once on the next cron run
-- [ ] A failing send is retried with backoff and gives up after 5 attempts
-- [ ] With no `ctx.email`, mail stays queued and `status()` reports `no_transport`
-- [ ] A cron batch stays within the call budget
+- [x] Queued mail is sent once on the next cron run
+- [x] A failing send is retried with backoff and gives up after 5 attempts
+- [x] With no `ctx.email`, mail stays queued and `status()` reports `no_transport`
+- [x] A cron batch stays within the call budget
 
 ## Implementation (green, then refactor)
 
@@ -36,11 +36,17 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Used by both cores
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Used by both cores
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 pnpm --filter @semics-tech/shared verify
 ```
+
+## Notes
+
+- Storage is injected as a narrow `OutboxStorage` (`put`, `putMany`, `query({status, nextAttemptAtLte, limit})`); cores adapt `ctx.storage.outbox` to it. `email` is `ctx.email` or undefined.
+- A tick = 1 query + up to `maxPerTick` (default 6) sends + 1 putMany = 8 calls. Backoff 60 s doubling (cap 1 h), 5 attempts then `failed`. `outboxStatus` costs 2 calls (counts capped at 100).
+- Sends are at-least-once (a crash between send and putMany re-sends).
