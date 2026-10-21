@@ -18,10 +18,11 @@ const TARGET = { calls: 8, cpuMs: 50 };
  * from-intent verifies the intent (settings, client, nonce), reads the template, then writes the
  * envelope (create-only, first), snapshot, signer and the two opening audit events: 8 calls
  * inline, 9 with email delivery (T113). A retry after a declined, voided or expired envelope
- * reads the ref's envelopes and creates the next one: 10 inline, still inside the hard limit.
+ * reads the ref's envelopes and creates the next one: 9 inline, 10 with email (hard limit 10).
  */
 const INTENT_TARGET = { calls: 9, cpuMs: 50 };
-const RETRY_INTENT_TARGET = { calls: 10, cpuMs: 50 };
+const RETRY_INTENT_TARGET = { calls: 9, cpuMs: 50 };
+const RETRY_EMAIL_INTENT_TARGET = { calls: 10, cpuMs: 50 };
 /** T027: send also queues the invitation (one outbox put); an email-delivery intent likewise. */
 const SEND_TARGET = { calls: 9, cpuMs: 50 };
 const EMAIL_INTENT_TARGET = { calls: 9, cpuMs: 50 };
@@ -355,6 +356,18 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		expect(next).toMatchObject({ ok: true, status: "sent" });
 		expect(next.envelopeId).not.toBe(first.envelopeId);
 		expect(await runtime?.inspect.storage.list("envelopes")).toHaveLength(2);
+	});
+
+	it("ES-FR-03 a declined envelope retried with email delivery stays within 10 calls", async () => {
+		const { budget, templateId } = await setupIntegration();
+		const first = await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
+		const stored = await runtime?.inspect.storage.get<Record<string, unknown>>("envelopes", first.envelopeId as string);
+		await runtime?.fixtures.plugin.storage("envelopes", first.envelopeId as string, { ...stored, status: "voided" });
+		const retried = await budget.invokeRoute("public/envelopes/from-intent", {
+			intent: await sign(payload(templateId, { delivery: "email" })),
+		});
+		expectWithinBudget(retried, RETRY_EMAIL_INTENT_TARGET);
+		expect(retried.value).toMatchObject({ ok: true, status: "sent" });
 	});
 
 	it("ES-FR-02 email delivery returns no signing token", async () => {
