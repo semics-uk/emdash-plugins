@@ -169,4 +169,58 @@ describe("private config routes (EV-FR-02, EV-FR-03)", () => {
 		expectWithinBudget(same);
 		expect((same.value as Body).ok).toBe(true);
 	});
+
+	it("R22 keeps a catalog of ticket types and occurrences on the config for checkout, matching the documents", async () => {
+		const { runtime, budget } = await setup();
+		await budget.invokeRoute("config/save", input);
+		type Catalog = {
+			ticketTypes: Record<string, { capacity: number; priceMinor: number; hidden: boolean }>;
+			occurrences: Record<string, { capacity: number; startsAt: string; status: string }>;
+		};
+		const catalog = async () =>
+			(await runtime.inspect.storage.get<{ catalog: Catalog }>("event_configs", "entry_1"))?.catalog;
+		const loaded = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		expect(loaded.config).not.toHaveProperty("catalog");
+		const ids = Object.fromEntries((loaded.ticketTypes ?? []).map((t) => [t.name, t.id]));
+		expect((await catalog())?.ticketTypes).toEqual({
+			[ids.Standard ?? ""]: expect.objectContaining({ capacity: 60, priceMinor: 1500, hidden: false }),
+			[ids.VIP ?? ""]: expect.objectContaining({ capacity: 10, priceMinor: 4000, hidden: false }),
+		});
+		expect(Object.values((await catalog())?.occurrences ?? {}).map((o) => [o.startsAt, o.capacity, o.status])).toEqual([
+			["2026-12-05T18:00:00.000Z", 50, "open"],
+			["2026-12-06T18:00:00.000Z", 50, "open"],
+		]);
+
+		// An edit that only touches a ticket type still refreshes the catalog; a deleted type leaves it.
+		const edit = await budget.invokeRoute("config/save", {
+			...input,
+			ticketTypes: [{ id: ids.Standard, name: "Standard", priceMinor: 1600, capacity: 55 }],
+			occurrences: loaded.occurrences,
+		});
+		expectWithinBudget(edit);
+		expect((edit.value as Body).ok).toBe(true);
+		expect((await catalog())?.ticketTypes).toEqual({
+			[ids.Standard ?? ""]: expect.objectContaining({ capacity: 55, priceMinor: 1600 }),
+		});
+
+		// A refused capacity cut leaves the catalog matching what is stored.
+		const std = await runtime.inspect.storage.get<Record<string, unknown>>("ticket_types", ids.Standard ?? "");
+		await runtime.fixtures.plugin.storage("ticket_types", ids.Standard ?? "", { ...std, reserved: 30 });
+		const cut = await budget.invokeRoute("config/save", {
+			...input,
+			config: { ...input.config, capacity: 90 },
+			ticketTypes: [{ id: ids.Standard, name: "Standard", priceMinor: 1700, capacity: 20 }],
+			occurrences: loaded.occurrences,
+		});
+		expectWithinBudget(cut);
+		expect(cut.value).toMatchObject({ ok: false, issues: [{ code: "CAPACITY_BELOW_RESERVED" }] });
+		const stored = await runtime.inspect.storage.get<{ capacity: number; priceMinor: number }>(
+			"ticket_types",
+			ids.Standard ?? "",
+		);
+		expect((await catalog())?.ticketTypes[ids.Standard ?? ""]).toMatchObject({
+			capacity: stored?.capacity,
+			priceMinor: stored?.priceMinor,
+		});
+	});
 });

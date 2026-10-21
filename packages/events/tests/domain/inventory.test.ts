@@ -167,6 +167,17 @@ describe("planReservation (EV-FR-04, R3)", () => {
 		expect(r).toMatchObject({ ok: false, error: { code: "BAD_REQUEST", reason: "TOO_MANY_LINES" } });
 	});
 
+	it("R22 with bounded compensation, only the forward steps must fit the budget", () => {
+		const s = seeded();
+		const lines = [
+			{ ticketTypeId: "tt_a", qty: 1 },
+			{ ticketTypeId: "tt_b", qty: 1 },
+		];
+		expect(planReservation(request(s, lines), { maxCalls: 4, compensation: "bounded" }).ok).toBe(true);
+		const r = planReservation(request(s, lines), { maxCalls: 3, compensation: "bounded" });
+		expect(r).toMatchObject({ ok: false, error: { code: "BAD_REQUEST", reason: "TOO_MANY_LINES" } });
+	});
+
 	it("EV-FR-04 answers SOLD_OUT from the documents just read, before any write", () => {
 		const s = seeded();
 		s.ticket_types.docs.set("tt_b", { eventId: "e1", ...counter(5, 4) });
@@ -238,6 +249,40 @@ describe("reserve (EV-FR-04, R3)", () => {
 			error: { code: "SOLD_OUT", id: "e1", uncompensated: [{ collection: "ticket_types", id: "tt_a", qty: 2 }] },
 		});
 		expect(reserved(s)).toEqual({ tt_a: 2, tt_b: 0, occ_1: 0, e1: 19 });
+	});
+
+	it("R22 maxCalls caps forward steps plus compensations; the rest is left for the sweeper", async () => {
+		const s = seeded();
+		const steps = plan(s, [
+			{ ticketTypeId: "tt_a", qty: 1 },
+			{ ticketTypeId: "tt_b", qty: 1 },
+		]);
+		// The event step (4th) misses: 4 calls made, so a budget of 5 leaves room to undo one step.
+		s.event_configs.docs.set("e1", { ...counter(20, 20) });
+		const calls = () => s.ticket_types.calls + s.occurrences.calls + s.event_configs.calls;
+		const r = await reserve(s, steps, { maxCalls: 5 });
+		expect(calls()).toBe(5);
+		expect(r).toMatchObject({
+			ok: false,
+			error: {
+				code: "SOLD_OUT",
+				id: "e1",
+				uncompensated: [
+					{ collection: "ticket_types", id: "tt_b", qty: 1 },
+					{ collection: "occurrences", id: "occ_1", qty: 2 },
+				],
+			},
+		});
+		expect(reserved(s)).toEqual({ tt_a: 0, tt_b: 1, occ_1: 2, e1: 20 });
+	});
+
+	it("R22 with no calls to spare, nothing is compensated", async () => {
+		const s = seeded();
+		const steps = plan(s, [{ ticketTypeId: "tt_a", qty: 1 }], false);
+		s.event_configs.docs.set("e1", { ...counter(20, 20) });
+		const r = await reserve(s, steps, { maxCalls: 2 });
+		expect(r).toMatchObject({ ok: false, error: { uncompensated: [{ id: "tt_a" }] } });
+		expect(s.ticket_types.calls + s.event_configs.calls).toBe(2);
 	});
 });
 

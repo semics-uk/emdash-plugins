@@ -36,7 +36,9 @@ describe("public routes (route list matches BUILD-PLAN 3.1)", () => {
 		expect(Object.keys(PUBLIC_ROUTES).sort()).toEqual([...EXPECTED].sort());
 	});
 
-	for (const name of EXPECTED) {
+	// Routes whose task has landed have their own tests.
+	const IMPLEMENTED = new Set(["public/checkout/reserve"]);
+	for (const name of EXPECTED.filter((n) => !IMPLEMENTED.has(n))) {
 		it(`${name} is a stub that answers through the shared error registry`, async () => {
 			host = await createPluginTestHost();
 			const body = await host.invokeRoute(name);
