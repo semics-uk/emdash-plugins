@@ -942,7 +942,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -957,7 +957,7 @@
 			"unblocks": [
 				"T047"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T046": {
 			"file": "T046-events-public-event-listing-routes.md",
@@ -1004,7 +1004,7 @@
 				"T048",
 				"T055"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T048": {
 			"file": "T048-events-checkout-continue-route.md",
@@ -2198,7 +2198,6 @@
 			"T032",
 			"T033",
 			"T034",
-			"T047",
 			"T048",
 			"T049",
 			"T050",
@@ -2251,8 +2250,8 @@
 			"T028",
 			"T029",
 			"T043",
-			"T045",
 			"T046",
+			"T047",
 			"T051",
 			"T053",
 			"T072",
@@ -2287,21 +2286,23 @@
 			"T041",
 			"T042",
 			"T044",
+			"T045",
 			"T070",
 			"T110"
 		],
 		"blocked": []
 	},
 	"criticalPath": [
-		"T045",
-		"T047",
-		"T048",
-		"T049",
-		"T055",
-		"T056",
-		"T057",
-		"T063",
-		"T064",
+		"T023",
+		"T024",
+		"T025",
+		"T026",
+		"T032",
+		"T033",
+		"T034",
+		"T060",
+		"T061",
+		"T062",
 		"T065",
 		"T066",
 		"T067",
@@ -2309,5 +2310,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 25
+	"criticalWeight": 23
 }
