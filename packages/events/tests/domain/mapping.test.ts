@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { validateMapping, type CollectionSchemas, type EventsMapping } from "../../src/domain/mapping";
+import { type CollectionSchemas, type EventsMapping, validateMapping } from "../../src/domain/mapping";
 
 const mapping: EventsMapping = {
 	eventsCollection: "events",

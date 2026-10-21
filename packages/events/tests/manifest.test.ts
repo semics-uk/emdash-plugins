@@ -8,6 +8,7 @@ import { SECRET_SETTING_KEYS, STORAGE_COLLECTIONS } from "../src/storage/schema"
 const root = resolve(import.meta.dirname, "..");
 
 /** Read the shipped manifest from disk (JSONC: whole-line comments only). */
+// biome-ignore lint/suspicious/noExplicitAny: test reads arbitrary manifest JSON
 function readManifest(): Record<string, any> {
 	const text = readFileSync(resolve(root, "emdash-plugin.jsonc"), "utf8");
 	return JSON.parse(
