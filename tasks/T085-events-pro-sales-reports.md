@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Counters precomputed, not scanned
+- [ ] Full attendee export that walks the 100-row CSV parts (T052 offers one part per page)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

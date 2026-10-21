@@ -36,6 +36,8 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Collections scope set
+- [ ] Occurrence (date) editing: the admin Event editor (T052) passes occurrences through unchanged; the editor panel owns adding, editing and removing them via `config/save`
+- [ ] Show event titles where events are listed (T052 lists by id; titles need `content:read`, so read them in one batch per page)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
