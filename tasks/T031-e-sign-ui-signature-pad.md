@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No canvas raster is ever submitted
+- [ ] Pad output is `{ v, w, h, strokes }` with `[x, y]` points in pad coordinates (y down), the shape `renderPdf` signature blocks take (T016)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
