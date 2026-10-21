@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] No client JS
 - [ ] `EventList.astro` replaces T006's static placeholder data with `callPublicRoute` to `public/events`; the S2 skipped e2e test is re-enabled against that route
+- [ ] Seed an event config (tickets, capacity) so the e2e can make a real booking through `POST /_events/checkout` → `/booking` (T053 covers only error paths end to end)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
