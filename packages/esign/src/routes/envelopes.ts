@@ -21,6 +21,7 @@ import {
 	verifyIntentToken,
 } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler, SandboxedPlugin } from "emdash/plugin";
+import { scheduleIntentFinish } from "../cron/intent-finish";
 import { type AuditEventDoc, type AuditInput, appendAuditEvent, initialAuditEvents, newPiiSalt } from "../domain/audit";
 import {
 	buildDraft,
@@ -41,7 +42,6 @@ import { masterKeyBytes } from "../domain/master-key";
 import type { ArtifactChunkDoc } from "../domain/pdf";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { type TemplateDoc, versionDocId } from "../domain/templates";
-import { scheduleIntentFinish } from "../cron/intent-finish";
 import { outboxReport, queueInvitation } from "../emails/outbox";
 import { downloadLink } from "./download";
 
