@@ -35,7 +35,9 @@ export type ConfigIssueCode =
 	| "UNKNOWN_ID"
 	| "DUPLICATE_ID"
 	| "CAPACITY_BELOW_RESERVED"
-	| "ITEM_IN_USE";
+	| "ITEM_IN_USE"
+	/** The save would take more bridge calls than one invocation allows; save in smaller batches. */
+	| "TOO_MANY_CHANGES";
 
 export interface ConfigIssue {
 	/** Dotted path into the input, for example `ticketTypes[1].priceMinor`. */

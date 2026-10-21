@@ -2,10 +2,10 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import {
 	type CounterStorage,
-	type InventoryStorage,
 	planReservation,
 	repairEventCounters,
 	reserve,
+	type UpdateIfArgsLike,
 } from "../../../../src/domain/inventory";
 import { CONFIG_ROUTES, type ConfigStorage, saveConfig } from "../../../../src/routes/config";
 
@@ -20,10 +20,30 @@ type Input = Record<string, unknown>;
 type Line = { ticketTypeId: string; qty: number };
 type Counted = { capacity: number; reserved: number };
 
-const input = (r: { input?: unknown }): Input => (r.input ?? {}) as Input;
-const store = (ctx: PluginContext) => ctx.storage as unknown as InventoryStorage & Record<string, any>;
+interface Collection {
+	get(id: string): Promise<unknown>;
+	getMany(ids: string[]): Promise<Map<string, unknown>>;
+	put(id: string, data: unknown): Promise<void>;
+	putMany(items: Array<{ id: string; data: unknown }>): Promise<void>;
+	deleteMany(ids: string[]): Promise<number>;
+	query(options: unknown): Promise<{ items: Array<{ id: string; data: unknown }>; hasMore: boolean; cursor?: string }>;
+	updateIf(id: string, args: UpdateIfArgsLike): Promise<{ applied: boolean }>;
+}
+type Store = Record<"event_configs" | "ticket_types" | "occurrences" | "bookings", Collection> &
+	Record<string, Collection>;
 
-/** Read the counted documents for a request and reserve against `target`. */
+const input = (r: { input?: unknown }): Input => (r.input ?? {}) as Input;
+const store = (ctx: PluginContext) => ctx.storage as unknown as Store;
+
+/** Reads made before reserving: event config, occurrence, ticket types (one getMany). */
+const READS = 3;
+/** The design target per invocation (R22). */
+const TARGET_CALLS = 8;
+
+/**
+ * Read the counted documents for a request and reserve against `target`, within the budget left
+ * after the reads (`maxCalls` overrides it, for tests that are not about the budget).
+ */
 async function readAndReserve(ctx: PluginContext, i: Input, target: CounterStorage) {
 	const s = store(ctx);
 	const lines = (i.lines ?? []) as Line[];
@@ -35,13 +55,16 @@ async function readAndReserve(ctx: PluginContext, i: Input, target: CounterStora
 		s.ticket_types.getMany([...new Set(lines.map((l) => l.ticketTypeId))]) as Promise<Map<string, Counted>>,
 	]);
 	if (!event) return { ok: false, code: "NOT_FOUND" };
-	const plan = planReservation({
-		eventId,
-		event,
-		...(occurrenceId ? { occurrenceId, occurrence: occurrence ?? undefined } : {}),
-		ticketTypes,
-		lines,
-	});
+	const plan = planReservation(
+		{
+			eventId,
+			event,
+			...(occurrenceId ? { occurrenceId, occurrence: occurrence ?? undefined } : {}),
+			ticketTypes,
+			lines,
+		},
+		{ maxCalls: typeof i.maxCalls === "number" ? i.maxCalls : TARGET_CALLS - READS },
+	);
 	if (!plan.ok) return { ok: false, ...plan.error };
 	const r = await reserve(target, plan.value);
 	if (r.ok) return { ok: true, steps: r.value.map(({ collection, id, qty }) => ({ collection, id, qty })) };
@@ -54,10 +77,10 @@ function failing(ctx: PluginContext, failAt: number | undefined): CounterStorage
 	const s = store(ctx);
 	let n = 0;
 	const wrap = (name: keyof CounterStorage) => ({
-		updateIf: async (id: string, args: Parameters<CounterStorage["ticket_types"]["updateIf"]>[1]) => {
+		updateIf: async (id: string, args: UpdateIfArgsLike) => {
 			const inc = args.delta?.reserved && "inc" in args.delta.reserved;
 			if (inc && ++n === failAt) throw new Error("injected failure");
-			return s[name].updateIf(id, args as never);
+			return s[name].updateIf(id, args);
 		},
 	});
 	return { ticket_types: wrap("ticket_types"), occurrences: wrap("occurrences"), event_configs: wrap("event_configs") };

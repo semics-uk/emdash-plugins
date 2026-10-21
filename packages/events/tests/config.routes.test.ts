@@ -70,6 +70,50 @@ describe("private config routes (EV-FR-02, EV-FR-03)", () => {
 		expect(after.occurrences).toHaveLength(2);
 	});
 
+	it("EV-FR-02 clearing an optional field on a stored document stores null, read back as absent", async () => {
+		const { budget } = await setup();
+		await budget.invokeRoute("config/save", {
+			...input,
+			config: { ...input.config, salesEnd: "2026-12-01T10:00:00Z" },
+		});
+		const first = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		expect(first.config).toMatchObject({ salesEnd: "2026-12-01T10:00:00.000Z" });
+		const cleared = await budget.invokeRoute("config/save", {
+			...input,
+			ticketTypes: first.ticketTypes,
+			occurrences: first.occurrences,
+		});
+		expectWithinBudget(cleared, { calls: 8 });
+		expect((cleared.value as Body).ok).toBe(true);
+		const after = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		expect((after.config as { salesEnd?: unknown }).salesEnd ?? null).toBeNull();
+		// An unchanged resubmission writes nothing beyond the three reads.
+		const again = await budget.invokeRoute("config/save", {
+			...input,
+			ticketTypes: after.ticketTypes,
+			occurrences: after.occurrences,
+		});
+		expect((again.value as Body).ok).toBe(true);
+		expect(again.calls.map((c) => c.method)).toEqual(expect.arrayContaining(["get", "query", "query"]));
+		expect(again.calls).toHaveLength(3);
+	});
+
+	it("EV-NFR-03 a save that would need more than 8 bridge calls is refused before writing", async () => {
+		const { budget } = await setup();
+		const many = Array.from({ length: 6 }, (_, i) => ({ startsAt: `2026-12-0${i + 1}T18:00:00Z`, capacity: 50 }));
+		await budget.invokeRoute("config/save", { ...input, occurrences: many });
+		const first = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		const r = await budget.invokeRoute("config/save", {
+			...input,
+			ticketTypes: first.ticketTypes,
+			occurrences: first.occurrences?.map((o) => ({ ...o, capacity: 40 })),
+		});
+		expectWithinBudget(r, { calls: 8 });
+		expect(r.value).toMatchObject({ ok: false, issues: [{ path: "input", code: "TOO_MANY_CHANGES" }] });
+		const after = (await budget.invokeRoute("config/get", { eventId: "entry_1" })).value as Body;
+		expect(after.occurrences?.map((o) => o.capacity)).toEqual([50, 50, 50, 50, 50, 50]);
+	});
+
 	it("EV-FR-02 rejects invalid input with codes and writes nothing", async () => {
 		const { budget } = await setup();
 		const bad = await budget.invokeRoute("config/save", {

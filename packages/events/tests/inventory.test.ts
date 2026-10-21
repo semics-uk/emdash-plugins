@@ -29,7 +29,10 @@ async function seedEvent(opts: { event: number; occurrence?: number; types: Reco
 	await seed("event_configs", [{ id: "e1", data: { status: "on_sale", currency: "GBP", ...c(opts.event) } }]);
 	if (opts.occurrence !== undefined) {
 		await seed("occurrences", [
-			{ id: "occ_1", data: { eventId: "e1", startsAt: "2026-12-05T18:00:00.000Z", status: "open", ...c(opts.occurrence) } },
+			{
+				id: "occ_1",
+				data: { eventId: "e1", startsAt: "2026-12-05T18:00:00.000Z", status: "open", ...c(opts.occurrence) },
+			},
 		]);
 	}
 	await seed(
@@ -42,6 +45,23 @@ async function seedEvent(opts: { event: number; occurrence?: number; types: Reco
 }
 
 const read = async (collection: string, id: string) => (await host.storage<Counted>(collection).get(id)) as Counted;
+
+/**
+ * Run every request concurrently, at most `width` in flight: each still races the others, but a
+ * loaded machine cannot queue one past the host's 30 s per-invocation wall-time limit.
+ */
+async function parallel(inputs: unknown[], width = 50): Promise<Reply[]> {
+	const out: Reply[] = new Array(inputs.length);
+	let next = 0;
+	const lane = async () => {
+		while (next < inputs.length) {
+			const i = next++;
+			out[i] = (await host.invokeRoute("probe/reserve", inputs[i])) as Reply;
+		}
+	};
+	await Promise.all(Array.from({ length: width }, lane));
+	return out;
+}
 
 /** Small deterministic PRNG (mulberry32), so a failing property run can be replayed. */
 function rng(seed: number) {
@@ -68,9 +88,11 @@ describe("inventory on D1 (EV-FR-04, EV-NFR-03, R3)", () => {
 			if (lines.length === 0) lines.push({ ticketTypeId: ids[Math.floor(random() * 3)] as string, qty: 1 });
 			// One in five requests fails at a random forward step (1 = first ticket type).
 			const failAt = random() < 0.2 ? 1 + Math.floor(random() * (lines.length + 2)) : undefined;
-			return { eventId: "e1", occurrenceId: "occ_1", lines, failAt };
+			// Two ticket types + occurrence + event is 4 steps (7 calls worst case): over the 8-call
+			// target with the 3 reads, inside the hard limit of 10. This test is about correctness.
+			return { eventId: "e1", occurrenceId: "occ_1", lines, failAt, maxCalls: 7 };
 		});
-		const replies = (await Promise.all(requests.map((r) => host.invokeRoute("probe/reserve", r)))) as Reply[];
+		const replies = await parallel(requests);
 
 		const expected: Record<string, number> = { e1: 0, occ_1: 0, tt_a: 0, tt_b: 0, tt_c: 0 };
 		replies.forEach((reply, i) => {
@@ -104,28 +126,25 @@ describe("inventory on D1 (EV-FR-04, EV-NFR-03, R3)", () => {
 
 	it("EV-NFR-03 with one binding counter, 200 parallel single-seat requests sell exactly its capacity", async () => {
 		await seedEvent({ event: 1000, types: { tt_a: 50 } });
-		const replies = (await Promise.all(
-			Array.from({ length: 200 }, () =>
-				host.invokeRoute("probe/reserve", { eventId: "e1", lines: [{ ticketTypeId: "tt_a", qty: 1 }] }),
-			),
-		)) as Reply[];
+		const replies = await parallel(
+			Array.from({ length: 200 }, () => ({ eventId: "e1", lines: [{ ticketTypeId: "tt_a", qty: 1 }] })),
+		);
 		expect(replies.filter((r) => r.ok)).toHaveLength(50);
 		expect(replies.filter((r) => r.code === "SOLD_OUT")).toHaveLength(150);
 		expect((await read("ticket_types", "tt_a")).reserved).toBe(50);
 		expect((await read("event_configs", "e1")).reserved).toBe(50);
 	});
 
-	it("R3 injected failure between steps leaves counters unchanged after compensation", async () => {
-		await seedEvent({ event: 70, occurrence: 60, types: { tt_a: 30, tt_b: 25 } });
+	it("R3 injected failure between steps leaves counters unchanged after compensation, within budget", async () => {
+		await seedEvent({ event: 70, occurrence: 60, types: { tt_a: 30 } });
 		const budget = withBudget(host);
-		for (const failAt of [2, 3, 4]) {
+		// Three steps (ticket type → occurrence → event); failing the last is the worst case:
+		// 3 reads + 3 reservation calls + 2 compensations = 8.
+		for (const failAt of [1, 2, 3]) {
 			const r = await budget.invokeRoute("probe/reserve", {
 				eventId: "e1",
 				occurrenceId: "occ_1",
-				lines: [
-					{ ticketTypeId: "tt_a", qty: 2 },
-					{ ticketTypeId: "tt_b", qty: 1 },
-				],
+				lines: [{ ticketTypeId: "tt_a", qty: 2 }],
 				failAt,
 			});
 			expectWithinBudget(r, TARGET);
@@ -133,7 +152,6 @@ describe("inventory on D1 (EV-FR-04, EV-NFR-03, R3)", () => {
 		}
 		for (const [collection, id] of [
 			["ticket_types", "tt_a"],
-			["ticket_types", "tt_b"],
 			["occurrences", "occ_1"],
 			["event_configs", "e1"],
 		] as const) {
@@ -141,16 +159,13 @@ describe("inventory on D1 (EV-FR-04, EV-NFR-03, R3)", () => {
 		}
 	});
 
-	it("EV-FR-04 sold out returns SOLD_OUT within budget, and a full reservation fits it too", async () => {
+	it("EV-FR-04 sold out returns SOLD_OUT within budget, and a reservation fits it too", async () => {
 		await seedEvent({ event: 10, occurrence: 10, types: { tt_a: 5, tt_b: 5 } });
 		const budget = withBudget(host);
 		const ok = await budget.invokeRoute("probe/reserve", {
 			eventId: "e1",
 			occurrenceId: "occ_1",
-			lines: [
-				{ ticketTypeId: "tt_a", qty: 5 },
-				{ ticketTypeId: "tt_b", qty: 4 },
-			],
+			lines: [{ ticketTypeId: "tt_b", qty: 4 }],
 		});
 		expectWithinBudget(ok, TARGET);
 		expect(ok.value).toMatchObject({ ok: true });
@@ -163,7 +178,23 @@ describe("inventory on D1 (EV-FR-04, EV-NFR-03, R3)", () => {
 		expect(soldOut.value).toMatchObject({ ok: false, code: "SOLD_OUT", collection: "ticket_types", id: "tt_b" });
 		// The answer came from the documents read: no counter write was attempted.
 		expect(soldOut.calls.filter((call) => call.method === "updateIf")).toEqual([]);
-		expect((await read("event_configs", "e1")).reserved).toBe(9);
+		expect((await read("event_configs", "e1")).reserved).toBe(4);
+	});
+
+	it("EV-NFR-03 an order whose worst case would break the 8-call target is refused before any write", async () => {
+		await seedEvent({ event: 10, occurrence: 10, types: { tt_a: 5, tt_b: 5 } });
+		const budget = withBudget(host);
+		const r = await budget.invokeRoute("probe/reserve", {
+			eventId: "e1",
+			occurrenceId: "occ_1",
+			lines: [
+				{ ticketTypeId: "tt_a", qty: 1 },
+				{ ticketTypeId: "tt_b", qty: 1 },
+			],
+		});
+		expectWithinBudget(r, TARGET);
+		expect(r.value).toMatchObject({ ok: false, code: "BAD_REQUEST", reason: "TOO_MANY_LINES" });
+		expect(r.calls.filter((call) => call.method === "updateIf")).toEqual([]);
 	});
 
 	it("R3 drift repair recomputes reserved (and sold) from live bookings within budget", async () => {
@@ -226,7 +257,11 @@ describe("config/save leaves counters to the inventory module (EV-FR-03, R3)", (
 	it("R3 a reservation committed between config/save's read and its write is not lost", async () => {
 		const id = await savedTicketType();
 		const r = (await host.invokeRoute("probe/config-save-race", {
-			input: { eventId: "e1", config: { ...config, capacity: 90 }, ticketTypes: [{ id, name: "Std", priceMinor: 1500, capacity: 60 }] },
+			input: {
+				eventId: "e1",
+				config: { ...config, capacity: 90 },
+				ticketTypes: [{ id, name: "Std", priceMinor: 1500, capacity: 60 }],
+			},
 			race: { eventId: "e1", lines: [{ ticketTypeId: id, qty: 3 }] },
 		})) as { saved: { ok: boolean }; raced: Reply };
 		expect(r.raced).toMatchObject({ ok: true });

@@ -5,6 +5,11 @@
  * `STORAGE_COLLECTIONS` mirrors it and a test fails if they drift. Every document stays under
  * 512 KiB (spike S4). Collection names must match `^[a-z][a-z0-9_]*$` (manifest schema), so the
  * BUILD-PLAN's camelCase names are snake_case here: `event_configs`, `ticket_types`, `promo_codes`. Timestamps are ISO 8601 UTC strings; money is integer minor units.
+ *
+ * Counted documents (event configs, occurrences, ticket types) are edited with a guarded `updateIf`
+ * merge, which cannot remove a key, so an optional field cleared in the admin is stored as `null`:
+ * readers treat `null` as absent. Their `reserved`/`sold` counters are written only by
+ * `src/domain/inventory.ts`.
  */
 
 /** A single-field index, or a composite index (order matters for ordering queries). */
@@ -66,13 +71,13 @@ export interface EventConfigDoc {
 	capacity: number;
 	reserved: number;
 	sold: number;
-	salesStart?: string;
-	salesEnd?: string;
+	salesStart?: string | null;
+	salesEnd?: string | null;
 	currency: string;
 	questions: EventQuestion[];
 	signature: { required: boolean; templateId?: string; mode: SignatureMode };
 	waitlistEnabled: boolean;
-	recurrence?: string;
+	recurrence?: string | null;
 	/** Set when the entry was permanently deleted while it still had bookings. */
 	orphaned?: boolean;
 }
@@ -82,7 +87,7 @@ export type OccurrenceStatus = "open" | "closed" | "cancelled";
 export interface OccurrenceDoc {
 	eventId: string;
 	startsAt: string;
-	endsAt?: string;
+	endsAt?: string | null;
 	capacity: number;
 	reserved: number;
 	sold: number;
@@ -96,10 +101,10 @@ export interface TicketTypeDoc {
 	capacity: number;
 	reserved: number;
 	sold: number;
-	minPerOrder?: number;
-	maxPerOrder?: number;
-	salesStart?: string;
-	salesEnd?: string;
+	minPerOrder?: number | null;
+	maxPerOrder?: number | null;
+	salesStart?: string | null;
+	salesEnd?: string | null;
 	/** Hidden types are unlocked only by an `unlock` promo code. */
 	hidden: boolean;
 	sort: number;

@@ -1,12 +1,17 @@
 import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
-import { type ExistingState, validateConfigInput } from "../domain/config";
+import { type ConfigIssue, type ExistingState, validateConfigInput } from "../domain/config";
+import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
  * Private (admin) config routes: `config/get` and `config/save` (EV-FR-02, EV-FR-03). Thin adapters
  * over `validateConfigInput`; at most 8 bridge calls per invocation.
+ *
+ * `config/save` never rewrites a stored counted document: the counters belong to the inventory
+ * module, and a reservation may land between this route's read and its write. Existing documents
+ * get a guarded `updateIf` of their changed fields only; new ones are created with zero counters.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 type Ctx = PluginContext;
@@ -19,8 +24,12 @@ interface Collection {
 	putMany(items: Array<{ id: string; data: unknown }>): Promise<void>;
 	deleteMany(ids: string[]): Promise<number>;
 	query(o: unknown): Promise<{ items: Array<{ id: string; data: unknown }> }>;
-	updateIf(id: string, args: unknown): Promise<{ applied: boolean }>;
+	updateIf(id: string, args: UpdateIfArgsLike): Promise<{ applied: boolean }>;
 }
+
+/** Bridge-call target for one invocation (R22); `load` makes 3 of them. */
+const MAX_SAVE_CALLS = 8;
+const LOAD_CALLS = 3;
 
 /** The storage collections `config/save` touches (an injectable seam for the race tests). */
 export interface ConfigStorage {
@@ -69,12 +78,75 @@ export async function saveConfig(storage: ConfigStorage, input: unknown, newId: 
 	const result = validateConfigInput(eventId, input, existing, newId);
 	if (!result.ok) return badRequest(result.error);
 	const v = result.value;
-	// Known race: this rewrites reserved/sold read above; the inventory task should guard counters.
-	await storage.event_configs.put(eventId, v.config);
-	if (v.ticketTypes.length) await storage.ticket_types.putMany(v.ticketTypes);
-	if (v.occurrences.length) await storage.occurrences.putMany(v.occurrences);
-	if (v.deleteTicketTypeIds.length) await storage.ticket_types.deleteMany(v.deleteTicketTypeIds);
-	if (v.deleteOccurrenceIds.length) await storage.occurrences.deleteMany(v.deleteOccurrenceIds);
+
+	// Plan: edits of stored documents (one guarded call each, only if something changed),
+	// retirements before deletes (one call each, plus one deleteMany), creations (one putMany).
+	type Edit = { collection: Collection; id: string; stored: object; next: { capacity: number }; path: string };
+	const edits: Edit[] = [];
+	if (state.config) {
+		edits.push({
+			collection: storage.event_configs,
+			id: eventId,
+			stored: state.config,
+			next: v.config,
+			path: "config",
+		});
+	}
+	const split = <T extends { capacity: number }>(
+		name: "ticketTypes" | "occurrences",
+		collection: Collection,
+		items: Array<{ id: string; data: T }>,
+		stored: ReadonlyMap<string, T>,
+	) =>
+		items.filter((item, index) => {
+			const prior = stored.get(item.id);
+			if (prior) edits.push({ collection, id: item.id, stored: prior, next: item.data, path: `${name}[${index}]` });
+			return !prior;
+		});
+	const newTicketTypes = split("ticketTypes", storage.ticket_types, v.ticketTypes, existing.ticketTypes);
+	const newOccurrences = split("occurrences", storage.occurrences, v.occurrences, existing.occurrences);
+	const changed = edits.filter((e) => counterlessChanges(e.stored, e.next) !== null);
+	const deletes = [
+		{ name: "ticketTypes", collection: storage.ticket_types, ids: v.deleteTicketTypeIds },
+		{ name: "occurrences", collection: storage.occurrences, ids: v.deleteOccurrenceIds },
+	].filter((d) => d.ids.length > 0);
+	const calls =
+		LOAD_CALLS +
+		(state.config ? 0 : 1) +
+		changed.length +
+		deletes.reduce((n, d) => n + d.ids.length + 1, 0) +
+		(newTicketTypes.length > 0 ? 1 : 0) +
+		(newOccurrences.length > 0 ? 1 : 0);
+	if (calls > MAX_SAVE_CALLS) return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
+
+	// 1. Edits, guarded on what is reserved at write time (EV-FR-03).
+	const outcomes = await Promise.all(changed.map((e) => updateCountedFields(e.collection, e.id, e.stored, e.next)));
+	const conflicts = changed
+		.filter((_, i) => outcomes[i] === "conflict")
+		.map((e): ConfigIssue => {
+			const cut = e.next.capacity < (e.stored as { capacity: number }).capacity;
+			return cut
+				? { path: `${e.path}.capacity`, code: "CAPACITY_BELOW_RESERVED" }
+				: { path: `${e.path}.id`, code: "UNKNOWN_ID" };
+		});
+	if (conflicts.length > 0) return badRequest(conflicts);
+
+	// 2. Deletes: close each document to reservations first; one that took a seat meanwhile stays.
+	const inUse: ConfigIssue[] = [];
+	await Promise.all(
+		deletes.map(async (d) => {
+			const retired = await Promise.all(d.ids.map((id) => retireCounted(d.collection, id)));
+			const ids = d.ids.filter((_, i) => retired[i]);
+			if (ids.length > 0) await d.collection.deleteMany(ids);
+			if (ids.length < d.ids.length) inUse.push({ path: d.name, code: "ITEM_IN_USE" });
+		}),
+	);
+	if (inUse.length > 0) return badRequest(inUse);
+
+	// 3. Creations, with zero counters.
+	if (!state.config) await storage.event_configs.put(eventId, v.config);
+	if (newTicketTypes.length > 0) await storage.ticket_types.putMany(newTicketTypes);
+	if (newOccurrences.length > 0) await storage.occurrences.putMany(newOccurrences);
 	return { ok: true, eventId };
 }
 

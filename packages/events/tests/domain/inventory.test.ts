@@ -216,7 +216,8 @@ describe("reserve (EV-FR-04, R3)", () => {
 				{ ticketTypeId: "tt_a", qty: 1 },
 				{ ticketTypeId: "tt_b", qty: 1 },
 			]);
-			const fail = (id: string, args: unknown) => id === failing && "inc" in (args as { delta: { reserved: object } }).delta.reserved;
+			const fail = (id: string, args: unknown) =>
+				id === failing && "inc" in (args as { delta: { reserved: object } }).delta.reserved;
 			s.ticket_types.failOn = fail;
 			s.occurrences.failOn = fail;
 			s.event_configs.failOn = fail;
@@ -372,17 +373,18 @@ describe("drift repair (R3, EV-NFR-03)", () => {
 		s.event_configs.docs.set("e1", { ...counter(20, 9) });
 		const bookings = [bk("held", [["tt_a", 2]]), bk("confirmed", [["tt_b", 1]])];
 		let reads = 0;
+		const counted = <T>(value: T) => {
+			reads++;
+			return value;
+		};
+		const listing = (c: FakeCollection) => ({ items: [...c.docs].map(([id, data]) => ({ id, data })), hasMore: false });
 		const storage = {
 			...s,
 			event_configs: Object.assign(s.event_configs, {
-				get: async (id: string) => (reads++, s.event_configs.docs.get(id) ?? null),
+				get: async (id: string) => counted(s.event_configs.docs.get(id) ?? null),
 			}),
-			ticket_types: Object.assign(s.ticket_types, {
-				query: async () => (reads++, { items: [...s.ticket_types.docs].map(([id, data]) => ({ id, data })), hasMore: false }),
-			}),
-			occurrences: Object.assign(s.occurrences, {
-				query: async () => (reads++, { items: [...s.occurrences.docs].map(([id, data]) => ({ id, data })), hasMore: false }),
-			}),
+			ticket_types: Object.assign(s.ticket_types, { query: async () => counted(listing(s.ticket_types)) }),
+			occurrences: Object.assign(s.occurrences, { query: async () => counted(listing(s.occurrences)) }),
 			bookings: {
 				query: async (o: { where: { eventId: string; status: { in: string[] } } }) => {
 					reads++;
@@ -410,7 +412,9 @@ describe("drift repair (R3, EV-NFR-03)", () => {
 		for (const id of ["tt_a", "tt_b"]) s.ticket_types.docs.set(id, { eventId: "e1", ...counter(10, 1) });
 		const storage = {
 			...s,
-			event_configs: Object.assign(s.event_configs, { get: async (id: string) => s.event_configs.docs.get(id) ?? null }),
+			event_configs: Object.assign(s.event_configs, {
+				get: async (id: string) => s.event_configs.docs.get(id) ?? null,
+			}),
 			ticket_types: Object.assign(s.ticket_types, {
 				query: async () => ({ items: [...s.ticket_types.docs].map(([id, data]) => ({ id, data })), hasMore: false }),
 			}),
