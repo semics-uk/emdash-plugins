@@ -89,4 +89,11 @@ describe("canonicalSnapshot (ES-FR-03)", () => {
 		expect(await sha256Hex("")).toBe("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 		expect(await sha256Hex("abc")).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
 	});
+
+	it("ES-FR-07 hashes bytes as given (the signed PDF's pdfSha256)", async () => {
+		const abc = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
+		expect(await sha256Hex(new Uint8Array([0x61, 0x62, 0x63]))).toBe(abc);
+		// One raw byte 0xff is not the UTF-8 encoding of U+00FF.
+		expect(await sha256Hex(new Uint8Array([0xff]))).not.toBe(await sha256Hex("ÿ"));
+	});
 });
