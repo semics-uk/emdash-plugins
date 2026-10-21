@@ -539,7 +539,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -553,7 +553,7 @@
 			"unblocks": [
 				"T024"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T024": {
 			"file": "T024-e-sign-signing-ceremony-public-routes.md",
@@ -988,7 +988,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1004,7 +1004,7 @@
 				"T048",
 				"T055"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T048": {
 			"file": "T048-events-checkout-continue-route.md",
@@ -2246,18 +2246,19 @@
 			"T106"
 		],
 		"ready": [
-			"T023",
 			"T028",
 			"T029",
 			"T043",
 			"T046",
-			"T047",
 			"T051",
 			"T053",
 			"T072",
 			"T111"
 		],
-		"in-progress": [],
+		"in-progress": [
+			"T023",
+			"T047"
+		],
 		"review": [],
 		"done": [
 			"T000",

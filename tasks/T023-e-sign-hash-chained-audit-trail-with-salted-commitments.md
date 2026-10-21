@@ -4,7 +4,7 @@ title: "E-sign: hash-chained audit trail with salted commitments"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T022]

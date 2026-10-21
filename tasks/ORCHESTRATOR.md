@@ -26,7 +26,7 @@ in full; the per-package `CONTEXT.md` files summarise them.
 2. Check free memory first (`vm_stat`; the owner runs other things, including a VM). Run at most **2**
    agents at once (3 only when memory is plentiful), at most one per package (shared-library tasks in separate files may
    share), and only **one** that runs the playground (workerd binds ports from 18788).
-3. Launch: `Agent` with `subagent_type: general-purpose`, `model` from the task (`opus`/`sonnet`),
+3. Mark the task `status: in-progress` on main and commit (the board reads it), then launch: `Agent` with `subagent_type: general-purpose`, `model` from the task (`opus`/`sonnet`),
    `isolation: worktree`, `run_in_background: true`. Prompt template:
 
    > You are a task agent in /Users/semics/code/semics/emdash-plugins (isolated worktree). Implement
