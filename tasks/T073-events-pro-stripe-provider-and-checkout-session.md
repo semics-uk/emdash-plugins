@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Pro build only
+- [ ] On webhook confirmation: count `sold` (`confirmSold`), flip `pending` attendees to `valid`, queue `confirm-<bookingId>`; plug in through `PaymentStep` (T048)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
