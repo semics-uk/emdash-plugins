@@ -397,7 +397,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -412,7 +412,7 @@
 			"unblocks": [
 				"T025"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T017": {
 			"file": "T017-shared-template-rendering-and-canonical-snapshots.md",
@@ -2255,7 +2255,6 @@
 			"T012",
 			"T013",
 			"T015",
-			"T016",
 			"T021",
 			"T029",
 			"T043",
@@ -2282,6 +2281,7 @@
 			"T010",
 			"T011",
 			"T014",
+			"T016",
 			"T017",
 			"T018",
 			"T020",
