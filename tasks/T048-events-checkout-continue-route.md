@@ -4,7 +4,7 @@ title: "Events: checkout continue route"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T047]
