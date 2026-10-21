@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No open Severity 1 or 2 findings
+- [ ] Route errors set the HTTP status from `toRouteError().status` (T021/T022 return the error body with 200)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

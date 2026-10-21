@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Nonces expire via sweep
+- [ ] T022 already verifies intents in `public/envelopes/from-intent`; add the 102-vector route tests, the nonce sweep (`nonces/<cid>.<nonce>`, ISO `expiresAt`) and the "available to integrations" template flag (any active template is accepted today)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

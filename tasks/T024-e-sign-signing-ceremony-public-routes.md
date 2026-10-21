@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Public routes declare methods and body limits
+- [ ] Status changes only through `transitionEnvelope` (T022, `src/domain/state.ts`)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

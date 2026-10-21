@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Verifier is exported for the certificate and tests
 - [ ] Collection name is `audit_events` (storage keys must match `^[a-z][a-z0-9_]*$`)
+- [ ] Audit events for envelope create and send (T022 writes none)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

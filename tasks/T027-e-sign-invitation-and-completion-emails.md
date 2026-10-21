@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Templates snapshot-tested
 - [ ] Emails go through the shared outbox (T015): declare `OUTBOX_COLLECTION` (add an `outbox` collection to the manifest), adapt storage to `OutboxStorage`, `drainOutbox` from the cron tick; delivery is at-least-once
+- [ ] `envelopes/send` (T022) emails the signing token; handle `delivery: "email"` intents (private send never returns the token)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
