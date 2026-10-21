@@ -70,6 +70,14 @@ export const continueInputSchema = z.strictObject({
 	),
 });
 
+/** The `public/booking` and `public/booking/cancel` body: the booking ref and access token only. */
+export const bookingAccessSchema = z.strictObject({
+	bookingRef: continueInputSchema.shape.bookingRef,
+	accessToken: continueInputSchema.shape.accessToken,
+});
+
+export type BookingAccessInput = z.output<typeof bookingAccessSchema>;
+
 export type ContinueInput = z.output<typeof continueInputSchema>;
 
 export interface InputIssue {
@@ -79,6 +87,10 @@ export interface InputIssue {
 
 export function parseReserveInput(raw: unknown): Result<ReserveInput, InputIssue[]> {
 	return parseWith(reserveInputSchema, raw);
+}
+
+export function parseBookingAccessInput(raw: unknown): Result<BookingAccessInput, InputIssue[]> {
+	return parseWith(bookingAccessSchema, raw);
 }
 
 export function parseContinueInput(raw: unknown): Result<ContinueInput, InputIssue[]> {

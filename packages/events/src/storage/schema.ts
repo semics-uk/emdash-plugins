@@ -169,6 +169,8 @@ export interface BookingDoc {
 	releaseClaimedAt?: string | null;
 	/** When the hold expired. */
 	expiredAt?: string;
+	/** When the booking was cancelled. */
+	cancelledAt?: string;
 	/** When checkout confirmed the booking. */
 	confirmedAt?: string;
 	buyer: { name: string; email: string };

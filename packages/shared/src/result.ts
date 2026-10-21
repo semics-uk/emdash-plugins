@@ -56,6 +56,7 @@ export const ERROR_CODES = Object.freeze({
 	SALES_CLOSED: def(409, "Sales for this event are closed."),
 	BOOKING_TOKEN_INVALID: def(404, "Not found."),
 	BOOKING_TOKEN_EXPIRED: def(401, "This booking link has expired."),
+	CANCEL_NOT_ALLOWED: def(409, "This booking can no longer be cancelled online."),
 
 	// --- e-sign ---
 	ENVELOPE_NOT_FOUND: def(404, "Document not found."),

@@ -106,6 +106,14 @@
 				"min": 15,
 				"max": 120
 			},
+			"cancelCutoffHours": {
+				"type": "number",
+				"label": "Self-service cancel cutoff (hours before start)",
+				"description": "Buyers can cancel a confirmed booking up to this many hours before the event starts.",
+				"default": 24,
+				"min": 0,
+				"max": 720
+			},
 			"currency": {
 				"type": "string",
 				"label": "Default currency",
