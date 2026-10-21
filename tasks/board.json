@@ -302,7 +302,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -317,7 +317,7 @@
 				"T060",
 				"T063"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T013": {
 			"file": "T013-shared-rate-limiting-and-turnstile-verification.md",
@@ -2251,7 +2251,6 @@
 			"T106"
 		],
 		"ready": [
-			"T012",
 			"T013",
 			"T015",
 			"T022",
@@ -2279,6 +2278,7 @@
 			"T009",
 			"T010",
 			"T011",
+			"T012",
 			"T014",
 			"T016",
 			"T017",
