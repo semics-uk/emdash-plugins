@@ -16,6 +16,7 @@
 		"verify": "pnpm run typecheck && pnpm run test:coverage"
 	},
 	"devDependencies": {
+		"@emdash-cms/blocks": "1.2.0",
 		"@emdash-cms/plugin-cli": "0.13.3",
 		"@emdash-cms/plugin-test": "0.2.8",
 		"@vitest/coverage-v8": "4.1.11",
