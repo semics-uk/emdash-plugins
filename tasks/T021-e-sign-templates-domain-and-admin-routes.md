@@ -4,7 +4,7 @@ title: "E-sign: templates domain and admin routes"
 phase: 1
 package: esign
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T020, T017, T014]
