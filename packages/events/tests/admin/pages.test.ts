@@ -31,7 +31,7 @@ function world(settings: Settings = MAPPED, schemas = SCHEMAS) {
 	s.event_configs.set("ev1", {
 		status: "on_sale",
 		capacity: 100,
-		reserved: 12,
+		reserved: 52,
 		sold: 40,
 		currency: "GBP",
 		questions: [],
@@ -92,6 +92,7 @@ function world(settings: Settings = MAPPED, schemas = SCHEMAS) {
 		},
 		now: NOW,
 		pluginId: "semics-events",
+		origin: "https://site.test",
 		newId: () => "new_id",
 	};
 	return { s, deps };

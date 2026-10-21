@@ -16,7 +16,7 @@ async function setup() {
 	await r.fixtures.plugin.storage("event_configs", "ev1", {
 		status: "on_sale",
 		capacity: 100,
-		reserved: 12,
+		reserved: 52,
 		sold: 40,
 		currency: "GBP",
 		questions: [],
@@ -50,6 +50,47 @@ describe("admin pages in the host (EV-FR-11)", () => {
 		for (const page of ["/setup", "/bookings", "/attendees", "/events"]) {
 			const res = await r.admin.loadPage(page);
 			expect(res.blocks?.length, page).toBeGreaterThan(0);
+		}
+	});
+
+	it("EV-FR-11 the drill-down screens validate too: attendees, editor, search, save", async () => {
+		const { r } = await setup();
+		await r.fixtures.plugin.storage("ticket_types", "tt_a", {
+			eventId: "ev1",
+			name: "Standard",
+			priceMinor: 1500,
+			capacity: 80,
+			reserved: 0,
+			sold: 0,
+			hidden: false,
+			sort: 0,
+		});
+		expect((await r.admin.act("/attendees", "attendees.open", { value: "ev1" })).blocks?.length).toBeGreaterThan(0);
+		expect((await r.admin.act("/events", "events.edit", { value: "ev1" })).blocks?.length).toBeGreaterThan(0);
+		const search = await r.admin.submit("/bookings", "bookings.search", { q: "REF1", status: "" });
+		expect(JSON.stringify(search.blocks)).toContain("Ada Lovelace");
+		const saved = await r.admin.submit("/events", "event.save", {
+			eventId: "ev1",
+			status: "on_sale",
+			"capacity:tt_a": 90,
+			"price:tt_a": "15.00",
+		});
+		expect(JSON.stringify(saved.blocks)).toContain("Saved");
+	});
+
+	it("EV-FR-11 admin actions stay within the bridge-call budget in the sandbox", async () => {
+		const { budget } = await setup();
+		const interactions = [
+			{ type: "page_load", page: "/setup" },
+			{ type: "page_load", page: "/bookings" },
+			{ type: "page_load", page: "widget:sales" },
+			{ type: "block_action", action_id: "attendees.open", value: "ev1" },
+			{ type: "form_submit", action_id: "attendees.checkin_code", values: { eventId: "ev1", code: "CODE-ADA" } },
+			{ type: "form_submit", action_id: "attendees.search", values: { eventId: "ev1", q: "lovelace" } },
+		];
+		for (const i of interactions) {
+			const res = await budget.invokeRoute("admin", i);
+			expectWithinBudget(res, { calls: 8 });
 		}
 	});
 

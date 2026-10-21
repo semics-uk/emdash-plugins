@@ -45,7 +45,7 @@ function eventIdOf(input: unknown): string | null {
 	return typeof id === "string" && id.length > 0 && id.length <= 200 ? id : null;
 }
 
-async function load(eventId: string, storage: ConfigStorage) {
+export async function loadEventState(eventId: string, storage: ConfigStorage) {
 	const where = { eventId };
 	const [config, tts, occs] = await Promise.all([
 		storage.event_configs.get(eventId) as Promise<EventConfigDoc | null>,
@@ -65,11 +65,19 @@ const byName = (a: { data: unknown }, b: { data: unknown }) => {
 	return x.sort - y.sort || (x.name < y.name ? -1 : x.name > y.name ? 1 : 0);
 };
 
+export type EventState = Awaited<ReturnType<typeof loadEventState>>;
+
 /** `config/save`: validate against stored state, then write. Returns the route's response body. */
-export async function saveConfig(storage: ConfigStorage, input: unknown, newId: () => string): Promise<unknown> {
+export async function saveConfig(
+	storage: ConfigStorage,
+	input: unknown,
+	newId: () => string,
+	/** State the caller just loaded (the admin editor), so the save does not read it again. */
+	preloaded?: EventState,
+): Promise<unknown> {
 	const eventId = eventIdOf(input);
 	if (!eventId) return badRequest();
-	const state = await load(eventId, storage);
+	const state = preloaded ?? (await loadEventState(eventId, storage));
 	const existing: ExistingState = {
 		config: state.config,
 		ticketTypes: new Map(state.ticketTypes.map((i) => [i.id, i.data as TicketTypeDoc])),
@@ -195,7 +203,7 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 		handler: (async (routeCtx, ctx) => {
 			const eventId = eventIdOf(routeCtx.input);
 			if (!eventId) return badRequest();
-			const state = await load(eventId, configStorage(ctx));
+			const state = await loadEventState(eventId, configStorage(ctx));
 			if (!state.config) return toRouteError("NOT_FOUND").body;
 			const { catalog: _derived, ...config } = state.config;
 			return {

@@ -1,6 +1,8 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
 import { runCron, scheduleSweeper } from "./cron/sweep";
+import { ADMIN_ROUTES } from "./routes/admin";
+import { ATTENDEE_ROUTES } from "./routes/attendees";
 import { CONFIG_ROUTES } from "./routes/config";
 import { PUBLIC_ROUTES } from "./routes/public";
 
@@ -22,6 +24,8 @@ const plugin: SandboxedPlugin = {
 			},
 		},
 		...CONFIG_ROUTES,
+		...ADMIN_ROUTES,
+		...ATTENDEE_ROUTES,
 		...PUBLIC_ROUTES,
 	},
 };

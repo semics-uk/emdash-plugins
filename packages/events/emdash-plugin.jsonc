@@ -50,6 +50,14 @@
 	},
 
 	"admin": {
+		// Block Kit pages and widget, answered by the private `admin` route (src/admin/pages.ts).
+		"pages": [
+			{ "path": "/bookings", "label": "Bookings", "icon": "ticket" },
+			{ "path": "/attendees", "label": "Attendees", "icon": "users" },
+			{ "path": "/events", "label": "Event editor", "icon": "calendar" },
+			{ "path": "/setup", "label": "Setup check", "icon": "gear" }
+		],
+		"widgets": [{ "id": "sales", "title": "Ticket sales", "size": "half" }],
 		// Secret fields are encrypted with EMDASH_ENCRYPTION_KEY (spike S8); saving one without it fails.
 		"settingsSchema": {
 			"eventsCollection": {
