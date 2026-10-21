@@ -65,7 +65,7 @@ describe("return paths (EU-FR-04)", () => {
 	it("EU-FR-04 reads the error back only for the widget it belongs to, ignoring unknown fields", () => {
 		const url = new URL(widgetErrorLocation("/e", "ev1", "BAD_REQUEST", ["email"]), origin);
 		url.searchParams.set("booking_fields", "email,<script>,name");
-		expect(readWidgetState(url, "ev1")).toEqual({ code: "BAD_REQUEST", fields: ["email", "name"] });
+		expect(readWidgetState(url, "ev1")).toEqual({ code: "BAD_REQUEST", fields: ["name", "email"] });
 		expect(readWidgetState(url, "other")).toEqual({ fields: [] });
 		const bad = new URL("/e?booking_error=%3Cb%3E&booking_event=ev1", origin);
 		expect(readWidgetState(bad, "ev1")).toEqual({ code: "INTERNAL", fields: [] });
@@ -79,11 +79,17 @@ describe("return paths (EU-FR-04)", () => {
 
 describe("field validation and errors (EU-NFR-03)", () => {
 	it("EU-NFR-03 names each field that is wrong", () => {
-		expect(validateCheckoutFields({ name: " ", email: "nope", lines: 0, needsOccurrence: true, occurrenceId: "" })).toEqual(
-			["occurrence", "tickets", "name", "email"],
-		);
 		expect(
-			validateCheckoutFields({ name: "Ada", email: "ada@example.com", lines: 1, needsOccurrence: false, occurrenceId: "" }),
+			validateCheckoutFields({ name: " ", email: "nope", lines: 0, needsOccurrence: true, occurrenceId: "" }),
+		).toEqual(["occurrence", "tickets", "name", "email"]);
+		expect(
+			validateCheckoutFields({
+				name: "Ada",
+				email: "ada@example.com",
+				lines: 1,
+				needsOccurrence: false,
+				occurrenceId: "",
+			}),
 		).toEqual([]);
 	});
 

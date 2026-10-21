@@ -1,0 +1,46 @@
+---
+// e2e-only page (T055): the events UI components with fixed data, for states the seeded site
+// can't reach yet: Turnstile on (Cloudflare's always-pass test site key), a ticket pass (the
+// booking route doesn't return check-in codes yet) and a signed calendar link (T050 signs them).
+import AddToCalendar from "@semics-tech/emdash-events/astro/AddToCalendar.astro";
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
+import TicketPass from "@semics-tech/emdash-events/astro/TicketPass.astro";
+
+export const prerender = false;
+
+const TURNSTILE_TEST_SITE_KEY = "1x00000000000000000000AA";
+const exp = Math.floor(Date.now() / 1000) + 600;
+const signedQuery = new URLSearchParams({ ref: "ABCDEFGHJK", exp: String(exp), sig: "e2e-signature" }).toString();
+const data = {
+	eventId: "e2e-turnstile",
+	status: "on_sale" as const,
+	currency: "GBP",
+	ticketTypes: [
+		{ id: "tt_e2e_standard", name: "Standard", priceMinor: 1500, available: 10, maxPerOrder: 4 },
+		{ id: "tt_e2e_gone", name: "Early bird", priceMinor: 1000, available: 0 },
+	],
+	occurrences: [
+		{ id: "occ_1", startsAt: "2030-03-14T18:30:00.000Z" },
+		{ id: "occ_2", startsAt: "2030-03-15T18:30:00.000Z", available: 0 },
+	],
+	timezone: "Europe/London",
+};
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Events UI components</title>
+	</head>
+	<body>
+		<main>
+			<h1>Events UI components</h1>
+			<BookingWidget event="e2e-turnstile" data={data} turnstileSiteKey={TURNSTILE_TEST_SITE_KEY} />
+			<h2>Ticket</h2>
+			<TicketPass name="<b>Grace</b> Hopper" code="K7Q2-M9XD" ticket="Standard" event="London Community Meetup" status="valid" />
+			<AddToCalendar signedQuery={signedQuery} />
+		</main>
+	</body>
+</html>

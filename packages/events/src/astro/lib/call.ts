@@ -24,9 +24,16 @@ export interface PublicRouteContext {
 	fetch?: typeof fetch;
 }
 
+export interface PublicRouteIssue {
+	path: string;
+	code: string;
+}
+
 export interface PublicRouteError {
 	code: string;
 	message: string;
+	/** Input validation issues, when the route reported them (`BAD_REQUEST`). */
+	issues?: PublicRouteIssue[];
 }
 
 export type PublicRouteResult<T> =
@@ -120,8 +127,23 @@ function buildRequest(origin: string, pluginId: string, method: string, path: st
 	});
 }
 
+/** A sandboxed route's own refusal (`{ ok: false, error, issues? }`), which the host wraps as a success. */
+function refusal(data: unknown): PublicRouteError | undefined {
+	if (!data || typeof data !== "object") return undefined;
+	const body = data as { ok?: unknown; error?: { code?: unknown; message?: unknown }; issues?: unknown };
+	if (body.ok !== false || typeof body.error?.code !== "string") return undefined;
+	return {
+		code: body.error.code,
+		message: typeof body.error.message === "string" ? body.error.message : "Request failed",
+		...(Array.isArray(body.issues) ? { issues: body.issues as PublicRouteIssue[] } : {}),
+	};
+}
+
 function toResult<T>(envelope: Envelope, via: "in-process" | "fetch"): PublicRouteResult<T> {
-	if (envelope.success === true) return { ok: true, data: envelope.data as T, via };
+	if (envelope.success === true) {
+		const refused = refusal(envelope.data);
+		return refused ? { ok: false, error: refused, via } : { ok: true, data: envelope.data as T, via };
+	}
 	const code = typeof envelope.error?.code === "string" ? envelope.error.code : "ROUTE_CALL_FAILED";
 	const message = typeof envelope.error?.message === "string" ? envelope.error.message : "Request failed";
 	return { ok: false, error: { code, message }, via };

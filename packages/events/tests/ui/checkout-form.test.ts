@@ -201,7 +201,7 @@ describe("handleCheckoutForm (EU-FR-05, EU-FR-06)", () => {
 			const second = host(reserved, done);
 			await handleCheckoutForm({ locals: first.locals, url }, form(back), {});
 			await handleCheckoutForm({ locals: second.locals, url }, form(back), {});
-			const keyOf = (h: typeof first) => (h.seen[0]?.body as { idempotencyKey: string }).idempotencyKey;
+			const keyOf = (h: typeof first) => (h.seen[0]?.body as { idempotencyKey?: string } | undefined)?.idempotencyKey;
 			expect(keyOf(first)).toBe(KEY);
 			expect(keyOf(second)).toBe(KEY);
 		});

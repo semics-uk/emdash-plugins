@@ -1,0 +1,61 @@
+---
+// <TicketPass>: one attendee's ticket with the check-in code as text (EU-FR-07). The QR code is
+// Pro. The code is grouped in fours for reading aloud; screen readers get it character by character.
+interface Props {
+	name: string;
+	code: string;
+	ticket?: string;
+	event?: string;
+	status?: string;
+}
+
+const { name, code, ticket, event, status } = Astro.props;
+const spoken = code.replace(/[^A-Za-z0-9]/g, "").split("").join(" ");
+---
+<article class="semics-events semics-ticket-pass" data-testid="ticket-pass" data-status={status}>
+	{event && <p class="semics-pass-event">{event}</p>}
+	<h3 class="semics-pass-name">{name}</h3>
+	{ticket && <p class="semics-pass-ticket">{ticket}</p>}
+	<p class="semics-pass-code-label">Check-in code</p>
+	<p class="semics-pass-code">
+		<span aria-hidden="true" data-testid="ticket-code">{code}</span>
+		<span class="semics-visually-hidden">{spoken}</span>
+	</p>
+	{status && status !== "valid" && <p class="semics-pass-status">{status}</p>}
+</article>
+
+<style>
+	.semics-ticket-pass {
+		box-sizing: border-box;
+		max-inline-size: 24rem;
+		padding: 1rem;
+		border: 2px dashed var(--events-border, #6b6b6b);
+		border-radius: var(--events-radius, 6px);
+		background: var(--events-bg, #ffffff);
+		color: var(--events-fg, #1a1a1a);
+		overflow-wrap: anywhere;
+	}
+	.semics-ticket-pass p,
+	.semics-ticket-pass h3 {
+		margin: 0 0 0.25rem;
+	}
+	.semics-pass-event,
+	.semics-pass-ticket,
+	.semics-pass-code-label {
+		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-pass-code {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+		font-size: 1.75rem;
+		letter-spacing: 0.1em;
+		font-weight: 700;
+	}
+	.semics-visually-hidden {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+</style>

@@ -20,11 +20,16 @@
 		},
 		"./astro": "./src/astro/index.js",
 		"./astro/checkout-endpoint": "./src/astro/checkout-endpoint.ts",
-		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro"
+		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro",
+		"./astro/BookingWidget.astro": "./src/astro/BookingWidget.astro",
+		"./astro/BookingStatus.astro": "./src/astro/BookingStatus.astro",
+		"./astro/TicketPass.astro": "./src/astro/TicketPass.astro",
+		"./astro/AddToCalendar.astro": "./src/astro/AddToCalendar.astro"
 	},
 	"files": [
 		"dist",
 		"src/astro",
+		"src/client",
 		"emdash-plugin.jsonc"
 	],
 	"scripts": {

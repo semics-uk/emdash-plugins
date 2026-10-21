@@ -3,23 +3,17 @@
 // only ever in the HttpOnly cookie the checkout endpoint set, and goes to the core in POST bodies.
 import { pluginId } from "virtual:semics-events/config";
 
+import AddToCalendar from "./AddToCalendar.astro";
+import BookingStatus from "./BookingStatus.astro";
 import { callPublicRoute } from "./lib/call";
 import { bookingCookieName } from "./lib/checkout-form";
+import type { BookingView } from "./lib/widget";
+import TicketPass from "./TicketPass.astro";
 
 export const prerender = false;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
-
-interface Booking {
-	bookingRef: string;
-	status: string;
-	lines: Array<{ ticketTypeId: string; qty: number }>;
-	totals: { totalMinor: number; currency: string };
-	attendees: Array<{ name: string; status: string }>;
-	canCancel: boolean;
-	cancelBy?: string;
-}
 
 const MESSAGES: Record<string, string> = {
 	SOLD_OUT: "Sorry, those tickets are sold out.",
@@ -53,10 +47,10 @@ if (ref && token && Astro.request.method === "POST") {
 	}
 }
 
-let booking: Booking | undefined;
+let booking: BookingView | undefined;
 let missing = false;
 if (ref && token) {
-	const result = await callPublicRoute<Booking>(ctx, {
+	const result = await callPublicRoute<BookingView>(ctx, {
 		method: "POST",
 		path: "public/booking",
 		pluginId,
@@ -67,9 +61,7 @@ if (ref && token) {
 } else if (ref) {
 	missing = true;
 }
-
-const money = (minor: number, currency: string) =>
-	new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(minor / 100);
+const passes = booking && !cancelled && booking.status === "confirmed" ? booking.attendees.filter((a) => a.code) : [];
 ---
 <!doctype html>
 <html lang="en">
@@ -86,24 +78,18 @@ const money = (minor: number, currency: string) =>
 			{notice && <p role="alert" data-testid="booking-notice" data-code={errorCode}>{notice}</p>}
 			{
 				booking ? (
-					<section data-testid="booking-details" data-status={booking.status}>
-						<p>
-							Reference <strong data-testid="booking-ref">{booking.bookingRef}</strong>
-						</p>
-						<p data-testid="booking-status">{cancelled ? "cancelled" : booking.status}</p>
-						<ul>
-							{booking.lines.map((line) => (
-								<li>{line.qty} x {line.ticketTypeId}</li>
-							))}
-						</ul>
-						<p>Total {money(booking.totals.totalMinor, booking.totals.currency)}</p>
-						{booking.canCancel && !cancelled && (
-							<form method="post" action={`/booking?ref=${ref}`}>
-								<input type="hidden" name="intent" value="cancel" />
-								<button type="submit">Cancel booking</button>
-							</form>
+					<>
+						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} />
+						{passes.length > 0 && (
+							<section aria-labelledby="semics-passes-title">
+								<h2 id="semics-passes-title">Tickets</h2>
+								{passes.map((a) => (
+									<TicketPass name={a.name} code={a.code ?? ""} status={a.status} />
+								))}
+							</section>
 						)}
-					</section>
+						{!cancelled && booking.status === "confirmed" && <AddToCalendar signedQuery={booking.calendar?.query} />}
+					</>
 				) : missing ? (
 					<p data-testid="booking-missing">
 						We could not find that booking in this browser. Open the link from the device you booked with.

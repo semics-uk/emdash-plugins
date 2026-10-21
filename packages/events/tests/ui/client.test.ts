@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { formatMinor, freshKey, orderTotalMinor, validateBooking } from "../../src/client/booking";
 import { IDEMPOTENCY_KEY_PATTERN, validateCheckoutFields } from "../../src/astro/lib/widget";
+import { formatMinor, freshKey, orderTotalMinor, validateBooking } from "../../src/client/booking";
 
 describe("booking client script (EU-FR-04, EU-NFR-03)", () => {
 	it("EU-FR-04 makes a new key for every attempt, in the shape reserve accepts", () => {
@@ -15,7 +14,13 @@ describe("booking client script (EU-FR-04, EU-NFR-03)", () => {
 			{ name: " ", email: "nope", lines: 0, needsOccurrence: true, occurrenceId: "" },
 			{ name: "Ada", email: "ada@example.com", lines: 2, needsOccurrence: false, occurrenceId: "" },
 			{ name: "Ada", email: "ada@", lines: 1, needsOccurrence: true, occurrenceId: "occ1" },
-			{ name: "x".repeat(201), email: `${"a".repeat(250)}@example.com`, lines: 1, needsOccurrence: false, occurrenceId: "" },
+			{
+				name: "x".repeat(201),
+				email: `${"a".repeat(250)}@example.com`,
+				lines: 1,
+				needsOccurrence: false,
+				occurrenceId: "",
+			},
 		];
 		for (const input of cases) expect(validateBooking(input)).toEqual(validateCheckoutFields(input));
 		expect(validateBooking(cases[0] as (typeof cases)[0])).toEqual(["occurrence", "tickets", "name", "email"]);

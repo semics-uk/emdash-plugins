@@ -1,7 +1,9 @@
 ---
 import { decodeSlug, getEmDashEntry } from "emdash";
 import { PortableText } from "emdash/ui";
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
 import Base from "../../layouts/Base.astro";
+import { bookingFixture } from "../../utils/booking-fixture";
 
 const slug = decodeSlug(Astro.params.slug);
 const { entry: event, cacheHint } = slug
@@ -16,6 +18,7 @@ if (Astro.cache?.enabled && cacheHint) Astro.cache.set(cacheHint);
 // biome-ignore lint/suspicious/noExplicitAny: the events collection is not in the generated types
 const data = event.data as Record<string, any>;
 const startsAt = new Date(data.starts_at);
+const booking = bookingFixture(slug ?? "", data.id, data.timezone);
 ---
 
 <Base
@@ -33,5 +36,6 @@ const startsAt = new Date(data.starts_at);
 		</p>
 		{data.venue && <p data-testid="event-venue">{data.venue}</p>}
 		<PortableText value={data.body} />
+		{booking && <BookingWidget event={data.id} data={booking} />}
 	</article>
 </Base>

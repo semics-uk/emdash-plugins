@@ -1,0 +1,334 @@
+---
+// <BookingWidget event={entryId} />: a plain form that posts to `/_events/checkout` (works with no
+// JavaScript), enhanced by `src/client/booking.ts`. Loads the event's ticket types from
+// `public/event` unless the page passes them as `data`. All text is rendered as text (Astro escapes
+// every expression; nothing here injects raw HTML).
+import { pluginId } from "virtual:semics-events/config";
+
+import { callPublicRoute } from "./lib/call";
+import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
+import {
+	anchorId,
+	ERROR_MESSAGES,
+	errorMessage,
+	FIELD_MESSAGES,
+	formatMoney,
+	newIdempotencyKey,
+	type PublicEvent,
+	readWidgetState,
+	safeReturnTo,
+	type WidgetField,
+} from "./lib/widget";
+
+interface Props {
+	/** The event's content entry id. */
+	event: string;
+	/** The `public/event` answer, when the page already has it. */
+	data?: PublicEvent;
+	heading?: string;
+	/** Overrides the site key from `public/event`. */
+	turnstileSiteKey?: string;
+	locale?: string;
+}
+
+const { event: eventId, heading = "Book tickets", locale = "en-GB" } = Astro.props;
+let data = Astro.props.data;
+if (!data) {
+	const result = await callPublicRoute<PublicEvent>(Astro, {
+		path: "public/event",
+		pluginId,
+		body: { eventId },
+	});
+	if (result.ok) data = result.data;
+}
+
+const id = anchorId(eventId);
+const siteKey = Astro.props.turnstileSiteKey ?? data?.turnstileSiteKey ?? "";
+const state = readWidgetState(Astro.url, eventId);
+const returnTo = safeReturnTo(`${Astro.url.pathname}${Astro.url.search}`, Astro.url.origin) ?? "";
+const occurrences = data?.occurrences ?? [];
+const ticketTypes = data?.ticketTypes ?? [];
+const onSale = data?.status === "on_sale" && ticketTypes.length > 0;
+const bad = (field: WidgetField) => state.fields.includes(field);
+const errId = (field: WidgetField) => `${id}-${field}-error`;
+const invalid = (field: WidgetField) => (bad(field) ? "true" : undefined);
+const formAlert = state.code ? errorMessage(state.code) : "";
+const when = (iso: string) => {
+	const options = { dateStyle: "full", timeStyle: "short" } as const;
+	try {
+		return new Intl.DateTimeFormat(locale, { ...options, timeZone: data?.timezone ?? "UTC" }).format(new Date(iso));
+	} catch {
+		return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(new Date(iso));
+	}
+};
+---
+<section id={id} class="semics-events semics-booking-widget" aria-labelledby={`${id}-title`} data-testid="booking-widget">
+	<h2 id={`${id}-title`}>{heading}</h2>
+	{
+		!onSale ? (
+			<p data-testid="booking-unavailable">Booking is not available for this event right now.</p>
+		) : (
+			<form
+				method="post"
+				action={CHECKOUT_PATH}
+				data-semics-booking
+				data-currency={data?.currency}
+				data-locale={locale}
+				data-turnstile={siteKey ? "on" : undefined}
+				data-turnstile-message={siteKey ? "Please complete the security check." : undefined}
+			>
+				<p class="semics-form-alert" role="alert" data-form-alert hidden={!formAlert}>{formAlert}</p>
+				<input type="hidden" name="eventId" value={eventId} />
+				<input type="hidden" name="returnTo" value={returnTo} />
+				<input type="hidden" name="idempotencyKey" value={newIdempotencyKey()} />
+
+				{occurrences.length > 0 && (
+					<div class="semics-field">
+						<input type="hidden" name="needsOccurrence" value="1" />
+						<label for={`${id}-occurrence`}>Date</label>
+						<select
+							id={`${id}-occurrence`}
+							name="occurrenceId"
+							required
+							data-field="occurrence"
+							aria-invalid={invalid("occurrence")}
+							aria-describedby={errId("occurrence")}
+						>
+							<option value="">Choose a date</option>
+							{occurrences.map((o) => (
+								<option value={o.id} disabled={o.available === 0}>
+									{when(o.startsAt)}
+									{o.available === 0 ? " (sold out)" : ""}
+								</option>
+							))}
+						</select>
+						<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={FIELD_MESSAGES.occurrence}>
+							{bad("occurrence") ? FIELD_MESSAGES.occurrence : ""}
+						</p>
+					</div>
+				)}
+
+				<fieldset class="semics-tickets" data-field="tickets" aria-invalid={invalid("tickets")} aria-describedby={errId("tickets")}>
+					<legend>Tickets</legend>
+					{ticketTypes.map((t) => {
+						const soldOut = t.available === 0;
+						const max = Math.min(t.maxPerOrder ?? 50, t.available ?? 50, 50);
+						return (
+							<div class="semics-ticket">
+								<label for={`${id}-qty-${t.id}`}>
+									<span class="semics-ticket-name">{t.name}</span>
+									<span class="semics-ticket-price">{formatMoney(t.priceMinor, data?.currency ?? "GBP", locale)}</span>
+									{soldOut && <span class="semics-ticket-soldout">Sold out</span>}
+								</label>
+								<input
+									id={`${id}-qty-${t.id}`}
+									type="number"
+									inputmode="numeric"
+									name={`${QTY_PREFIX}${t.id}`}
+									value="0"
+									min="0"
+									max={String(max)}
+									disabled={soldOut}
+									data-price-minor={String(t.priceMinor)}
+								/>
+							</div>
+						);
+					})}
+					<p class="semics-field-error" id={errId("tickets")} data-error-for="tickets" data-message={FIELD_MESSAGES.tickets}>
+						{bad("tickets") ? FIELD_MESSAGES.tickets : ""}
+					</p>
+				</fieldset>
+
+				<div class="semics-field">
+					<label for={`${id}-name`}>Your name</label>
+					<input
+						id={`${id}-name`}
+						name="name"
+						type="text"
+						autocomplete="name"
+						required
+						maxlength="200"
+						data-field="name"
+						aria-invalid={invalid("name")}
+						aria-describedby={errId("name")}
+					/>
+					<p class="semics-field-error" id={errId("name")} data-error-for="name" data-message={FIELD_MESSAGES.name}>
+						{bad("name") ? FIELD_MESSAGES.name : ""}
+					</p>
+				</div>
+
+				<div class="semics-field">
+					<label for={`${id}-email`}>Email</label>
+					<input
+						id={`${id}-email`}
+						name="email"
+						type="email"
+						autocomplete="email"
+						required
+						maxlength="254"
+						data-field="email"
+						aria-invalid={invalid("email")}
+						aria-describedby={errId("email")}
+					/>
+					<p class="semics-field-error" id={errId("email")} data-error-for="email" data-message={FIELD_MESSAGES.email}>
+						{bad("email") ? FIELD_MESSAGES.email : ""}
+					</p>
+				</div>
+
+				<p class="semics-total" data-total data-testid="booking-total" hidden aria-live="polite">
+					Total <strong data-total-value></strong>
+				</p>
+
+				{siteKey && (
+					<>
+						<div class="cf-turnstile" data-sitekey={siteKey}></div>
+						<noscript>
+							<p class="semics-needs-js" data-testid="booking-needs-js">
+								This booking form uses a security check that needs JavaScript. Please turn JavaScript on to
+								book, or contact the organiser.
+							</p>
+						</noscript>
+						<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+					</>
+				)}
+
+				<button type="submit" disabled={siteKey ? true : undefined}>Book</button>
+			</form>
+		)
+	}
+</section>
+
+<script>
+	import "../client/booking.ts";
+</script>
+
+<style>
+	.semics-booking-widget {
+		--_fg: var(--events-fg, #1a1a1a);
+		--_muted: var(--events-muted, #4a4a4a);
+		--_bg: var(--events-bg, #ffffff);
+		--_border: var(--events-border, #6b6b6b);
+		--_accent: var(--events-accent, #0b57d0);
+		--_accent-fg: var(--events-accent-fg, #ffffff);
+		--_error: var(--events-error, #b3261e);
+		--_radius: var(--events-radius, 6px);
+		box-sizing: border-box;
+		max-inline-size: 36rem;
+		padding: 1rem;
+		border: 1px solid var(--_border);
+		border-radius: var(--_radius);
+		background: var(--_bg);
+		color: var(--_fg);
+		overflow-wrap: anywhere;
+	}
+	.semics-booking-widget *,
+	.semics-booking-widget *::before,
+	.semics-booking-widget *::after {
+		box-sizing: border-box;
+	}
+	.semics-booking-widget h2 {
+		margin: 0 0 0.75rem;
+		font-size: 1.25rem;
+	}
+	.semics-booking-widget form {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.75rem;
+	}
+	.semics-tickets {
+		margin: 0;
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--_border);
+		border-radius: var(--_radius);
+		min-inline-size: 0;
+	}
+	.semics-ticket {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding-block: 0.25rem;
+	}
+	.semics-ticket label {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0 0.5rem;
+		flex: 1 1 10rem;
+		min-inline-size: 0;
+	}
+	.semics-ticket-price,
+	.semics-ticket-soldout {
+		color: var(--_muted);
+	}
+	.semics-ticket input {
+		inline-size: 5rem;
+	}
+	.semics-field {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.25rem;
+	}
+	.semics-field select {
+		inline-size: 100%;
+	}
+	.semics-booking-widget input,
+	.semics-booking-widget select,
+	.semics-booking-widget button {
+		font: inherit;
+		min-block-size: 2.75rem;
+		max-inline-size: 100%;
+	}
+	.semics-booking-widget input,
+	.semics-booking-widget select {
+		padding: 0.375rem 0.5rem;
+		border: 1px solid var(--_border);
+		border-radius: var(--_radius);
+		background: var(--_bg);
+		color: var(--_fg);
+	}
+	.semics-booking-widget [aria-invalid="true"] {
+		border-color: var(--_error);
+		outline: 1px solid var(--_error);
+	}
+	.semics-field-error,
+	.semics-form-alert {
+		margin: 0;
+		color: var(--_error);
+	}
+	.semics-field-error:empty {
+		display: none;
+	}
+	.semics-form-alert {
+		padding: 0.5rem 0.75rem;
+		border: 1px solid var(--_error);
+		border-radius: var(--_radius);
+	}
+	.semics-needs-js {
+		margin: 0;
+		font-weight: 600;
+	}
+	.semics-total {
+		margin: 0;
+	}
+	.semics-booking-widget button {
+		justify-self: start;
+		padding: 0.5rem 1.5rem;
+		border: 0;
+		border-radius: var(--_radius);
+		background: var(--_accent);
+		color: var(--_accent-fg);
+		cursor: pointer;
+	}
+	.semics-booking-widget button:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+	.semics-booking-widget :focus-visible {
+		outline: 3px solid var(--_accent);
+		outline-offset: 2px;
+	}
+	[hidden] {
+		display: none !important;
+	}
+</style>

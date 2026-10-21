@@ -1,0 +1,43 @@
+---
+// <AddToCalendar>: a link to the core's calendar file (EU-FR-08). For a booking, pass the
+// short-lived signed query the core issued (`signedQuery`); the access token is never in the URL,
+// and an unsigned or expired query renders nothing. For an event, pass `event` (public data, no
+// signature). The download is a plain link, so it works without JavaScript.
+import { pluginId } from "virtual:semics-events/config";
+
+import { bookingCalendarHref, eventCalendarHref } from "./lib/widget";
+
+interface Props {
+	signedQuery?: string;
+	event?: string;
+	label?: string;
+}
+
+const { signedQuery, event, label = "Add to calendar" } = Astro.props;
+const href = signedQuery
+	? bookingCalendarHref({ pluginId, query: signedQuery, now: Date.now() })
+	: event
+		? eventCalendarHref(pluginId, event)
+		: undefined;
+---
+{
+	href && (
+		<a class="semics-events semics-add-to-calendar" href={href} download="event.ics" rel="nofollow" data-testid="add-to-calendar">
+			{label} <span class="semics-ics-hint">(.ics file)</span>
+		</a>
+	)
+}
+
+<style>
+	.semics-add-to-calendar {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		min-block-size: 2.75rem;
+		color: var(--events-accent, #0b57d0);
+		text-decoration: underline;
+	}
+	.semics-ics-hint {
+		color: var(--events-muted, #4a4a4a);
+	}
+</style>

@@ -64,6 +64,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.
+- UI (T055): `<BookingWidget event>` posts a plain form to `/_events/checkout` (`returnTo`,
+  `idempotencyKey`, `qty:<ticketTypeId>`); refusals before a booking exists go back to the widget as
+  `?booking_error=&booking_fields=&booking_event=` (no typed values in URLs). `src/client/booking.ts`
+  (no imports, budget 15 KB gz) mirrors `validateCheckoutFields` from `src/astro/lib/widget.ts`.
+  Sandboxed routes answer refusals as `{ ok: false }` inside a success envelope; `callPublicRoute`
+  turns that into an error. The widget expects `public/event` in the `PublicEvent` shape (T046), the
+  booking page shows passes for attendees with a `code` and a calendar link from `calendar.query`
+  (signed by the core, T050). Never use `set:html` or HTML sinks (a test checks).
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 
