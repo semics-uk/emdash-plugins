@@ -66,3 +66,9 @@ random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes af
 `pdf: "pending" | "ready"`, `download`) and `envelopes/get`).
 `public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
 Budget: from-intent and submit are at 9 bridge calls (others ≤ 8).
+
+UI (T029-T030): `/sign/[token]` = `SignPage.astro` → `handleSign` (`src/astro/lib/sign.ts`) → `<SigningCeremony>`.
+The snapshot is rendered only via `lib/markdown.ts` (allowlisted tree, `{text}` output, http(s)/mailto links; 100%
+branches). The page's CSP is `ceremonyCsp()`: only the inlined `src/client/ceremony.js` (plain JS, `?raw`) and
+`CEREMONY_CSS`, by hash; any new client script must be added there. Pad strokes go in the hidden
+`signatureStrokes` input as `{ v, w, h, strokes }` and are normalised to 0-1 points for `public/submit`.
