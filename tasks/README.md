@@ -45,7 +45,24 @@ dependency is not Done; the board check fails if it is.
 - Domain logic is pure and lives in `src/domain/`; routes are thin adapters. Unit tests cover the
   domain; host tests cover the adapter.
 - Every route and cron test asserts its platform budget with the T007 harness (≤ 10 bridge calls,
-  CPU ceiling) until Cloudflare staging (T110) measures the real limits.
+  CPU ceiling) until Cloudflare staging (T110) measures the real limits. Usage, in any test that
+  runs under `emdashPluginTest()` (add `@semics-tech/shared` as a devDependency):
+
+  ```ts
+  import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
+
+  const budget = withBudget(await createPluginTestHost()); // or a createPluginRuntimeTestHost()
+  const result = await budget.invokeRoute("book", { slotId }); // also invokeHook("cron", event)
+  expect(result.value).toEqual(/* what the route returns; rethrows if the route threw */);
+  expectWithinBudget(result); // defaults: 10 bridge calls and 50 ms CPU per invocation
+  // Anything else that reaches the sandbox (admin actions, scheduled.run(), routes.request()):
+  expectWithinBudget(await budget.measure("cron sweep", () => runtime.scheduled.run()));
+  ```
+
+  `result.calls` lists each bridge call (`storage.get items k0`, `kv.set`, `http.fetch`, `log.info`,
+  ...); a batch method such as `getMany` is one call. The CPU figure is time inside the sandbox minus
+  time waiting on the bridge: a local proxy, not Cloudflare's meter. The harness is test-only; runtime
+  code never imports it (checked by `packages/shared/tests/testing-boundary.test.ts`).
 - Every public route has tests for: bad input, missing or wrong token, rate limit, and a response
   containing no one else's data.
 - Time and randomness are injected, never read directly in domain code, so tests are deterministic.

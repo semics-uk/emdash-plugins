@@ -1,4 +1,4 @@
-import type { SandboxedPlugin } from "emdash/plugin";
+import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 /** Deterministic pure-CPU workload: `rounds` xorshift steps. Returns a checksum so it can't be elided. */
 function spin(rounds: number): number {
@@ -9,6 +9,13 @@ function spin(rounds: number): number {
 		x ^= x << 5;
 	}
 	return x >>> 0;
+}
+
+/** The fixture's one declared storage collection. */
+function items(ctx: PluginContext) {
+	const collection = ctx.storage.items;
+	if (!collection) throw new Error("fixture storage collection 'items' is not declared");
+	return collection;
 }
 
 function count(input: unknown): number {
@@ -34,7 +41,7 @@ const plugin: SandboxedPlugin = {
 		gets: {
 			handler: async ({ input }, ctx) => {
 				const n = count(input);
-				for (let i = 0; i < n; i++) await ctx.storage.items.get(`k${i}`);
+				for (let i = 0; i < n; i++) await items(ctx).get(`k${i}`);
 				return { n };
 			},
 		},
@@ -42,7 +49,7 @@ const plugin: SandboxedPlugin = {
 		parallel: {
 			handler: async ({ input }, ctx) => {
 				const n = count(input);
-				await Promise.all(Array.from({ length: n }, (_, i) => ctx.storage.items.get(`p${i}`)));
+				await Promise.all(Array.from({ length: n }, (_, i) => items(ctx).get(`p${i}`)));
 				return { n };
 			},
 		},
@@ -50,7 +57,7 @@ const plugin: SandboxedPlugin = {
 		batch: {
 			handler: async ({ input }, ctx) => {
 				const ids = Array.from({ length: count(input) }, (_, i) => `b${i}`);
-				const found = await ctx.storage.items.getMany(ids);
+				const found = await items(ctx).getMany(ids);
 				return { found: found.size };
 			},
 		},
@@ -59,7 +66,7 @@ const plugin: SandboxedPlugin = {
 			handler: async (_routeCtx, ctx) => {
 				await ctx.settings.get("greeting");
 				await ctx.kv.get("counter");
-				await ctx.storage.items.put("m1", { ok: true });
+				await items(ctx).put("m1", { ok: true });
 				ctx.log.info("mixed done");
 				return { ok: true };
 			},
