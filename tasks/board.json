@@ -587,7 +587,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -602,7 +602,7 @@
 				"T026",
 				"T033"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T026": {
 			"file": "T026-e-sign-hash-verification-route.md",
@@ -625,7 +625,7 @@
 				"T032",
 				"T033"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T027": {
 			"file": "T027-e-sign-invitation-and-completion-emails.md",
@@ -2189,7 +2189,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T026",
 			"T030",
 			"T031",
 			"T032",
@@ -2242,6 +2241,7 @@
 			"T106"
 		],
 		"ready": [
+			"T026",
 			"T027",
 			"T028",
 			"T029",
@@ -2253,7 +2253,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T025",
 			"T048"
 		],
 		"review": [],
@@ -2282,6 +2281,7 @@
 			"T022",
 			"T023",
 			"T024",
+			"T025",
 			"T040",
 			"T041",
 			"T042",
