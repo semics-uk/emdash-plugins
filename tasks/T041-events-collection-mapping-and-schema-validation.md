@@ -4,7 +4,7 @@ title: "Events: collection mapping and schema validation"
 phase: 2
 package: events
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T040]
@@ -25,9 +25,9 @@ Settings map the events collection and its fields; `schema:read` validation prod
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] Valid mapping passes
-- [ ] Missing field produces a named banner message
-- [ ] Mapping to a non-existent collection fails
+- [x] Valid mapping passes
+- [x] Missing field produces a named banner message
+- [x] Mapping to a non-existent collection fails
 
 ## Implementation (green, then refactor)
 
@@ -35,11 +35,17 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Banner text tested
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Banner text tested
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 pnpm --filter @semics-tech/emdash-events verify
 ```
+
+## Notes
+
+- `validateMapping(mapping, schemas)` in `src/domain/mapping.ts` is pure. The caller (admin page or settings-save route, later tasks) reads collections via `schema:read` and passes `{ slug: { fields } }`; no `schema:read` call is wired yet.
+- Start and timezone fields are required; end and venue may be blank. Banner texts are asserted verbatim in `tests/domain/mapping.test.ts`.
+- Branch was fast-forwarded to main to pick up T040. Playground e2e not run; no workerd started.
