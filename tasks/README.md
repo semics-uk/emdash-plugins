@@ -69,14 +69,15 @@ dependency is not Done; the board check fails if it is.
   containing no one else's data.
 - Time and randomness are injected, never read directly in domain code, so tests are deterministic.
 - Coverage: 90% lines for `src/domain/**` and `packages/shared/**`; 100% branches for security
-  modules (tokens, HMAC, licence, audit chain, sanitiser).
+  modules (tokens, HMAC, licence, audit chain, sanitiser). Enforced on CI (`CI` set); local
+  `pnpm verify` skips coverage to save memory, and `pnpm --filter <pkg> test:coverage` runs it on demand.
 - No snapshot test without a human-readable assertion beside it.
 
 ## Definition of Done
 
 - [ ] Every "Tests first" test exists, was seen failing, and now passes
 - [ ] Acceptance criteria all checked
-- [ ] `pnpm verify` green: Biome, typecheck, tests with coverage thresholds, `emdash-plugin validate`, builds, board check
+- [ ] `pnpm verify` green: Biome, typecheck, tests (coverage thresholds on CI), `emdash-plugin validate`, builds, board check
 - [ ] Budget assertions present for every new route or cron job
 - [ ] Manifest unchanged, or the change is a deliberate, documented trust-contract change (major version after 1.0)
 - [ ] Changeset added for any published package that changed

@@ -1,6 +1,7 @@
 import { emdashPluginTest } from "@emdash-cms/plugin-test/config";
 import { configDefaults, defineConfig } from "vitest/config";
 import { coverageConfig } from "../../vitest.coverage.mjs";
+import { machineLimits } from "../../vitest.limits.mjs";
 
 const sharedFixture = "tests/fixtures/shared-plugin";
 // Same manifest as the real plugin (symlink) plus probe routes that drive storage and fetch.
@@ -14,6 +15,7 @@ const testTimeout = 120_000;
 // @semics-tech/shared (host proof); the contract probe (real manifest, storage/fetch routes); and a plain Node project that checks build output.
 export default defineConfig({
 	test: {
+		...machineLimits,
 		coverage: coverageConfig(),
 		projects: [
 			{

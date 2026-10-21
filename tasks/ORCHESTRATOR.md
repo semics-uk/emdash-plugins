@@ -23,7 +23,8 @@ in full; the per-package `CONTEXT.md` files summarise them.
 ## The loop
 
 1. `node scripts/tasks.mjs` → Ready list. Pick by critical path first (printed in `tasks/BOARD.md`).
-2. Run at most **3** agents at once, at most one per package (shared-library tasks in separate files may
+2. Check free memory first (`vm_stat`; the owner runs other things, including a VM). Run at most **2**
+   agents at once (3 only when memory is plentiful), at most one per package (shared-library tasks in separate files may
    share), and only **one** that runs the playground (workerd binds ports from 18788).
 3. Launch: `Agent` with `subagent_type: general-purpose`, `model` from the task (`opus`/`sonnet`),
    `isolation: worktree`, `run_in_background: true`. Prompt template:
@@ -69,6 +70,9 @@ in full; the per-package `CONTEXT.md` files summarise them.
 - `isolation: worktree` can start an agent on an old commit: every prompt now begins with "rebase main
   and install first". Land with `land.sh` (`scripts/orchestrator/land.sh <agent-id> <T###>`; it rebases, auto-resolves the shared
   `src/index.ts` export list, marks done, merges, installs, regenerates the board).
+- Test runs are the biggest memory user: vitest holds a machine-wide lock (one suite at a time across
+  worktrees), at most 2 workers, coverage only on CI. Never run your own `pnpm verify` while an agent's
+  run is going; it just queues behind the lock.
 - CPU budgets are wall-time estimates; on a busy machine they warn (≤ 4x) instead of failing. Stop
   finished agents' leftover background jobs (TaskStop) so they don't load the machine.
 - Agents sometimes skip the "ready for review" commit; check `status:` and the checkboxes before landing.

@@ -1,6 +1,7 @@
 import { emdashPluginTest } from "@emdash-cms/plugin-test/config";
 import { configDefaults, defineConfig } from "vitest/config";
 import { coverageConfig } from "../../vitest.coverage.mjs";
+import { machineLimits } from "../../vitest.limits.mjs";
 
 const budgetFixture = "tests/fixtures/budget-plugin";
 // Cold workerd starts and plugin builds are slow when several packages verify in parallel.
@@ -10,6 +11,7 @@ const testTimeout = 120_000;
 // fixture plugin through the Worker Loader sandbox host (tests/**/*.host.test.ts).
 export default defineConfig({
 	test: {
+		...machineLimits,
 		coverage: coverageConfig({
 			allSource: true,
 			strictBranches: ["src/tokens.ts", "src/hmac.ts", "src/pairing.ts", "src/licence.ts", "src/gate.ts"],

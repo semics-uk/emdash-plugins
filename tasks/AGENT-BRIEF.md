@@ -17,6 +17,18 @@ export NVM_DIR="$HOME/.nvm"; . "$NVM_DIR/nvm.sh"; nvm use 24.21.0
 corepack pnpm@10.23.0 install --offline --reporter=silent || corepack pnpm@10.23.0 install --reporter=silent
 ```
 
+## Memory: one test run at a time
+
+The machine runs other things and workerd sandboxes are memory-hungry.
+
+- Every `vitest run` takes a machine-wide lock (`scripts/test-lock.mjs`) shared by all worktrees, so a
+  second run prints "Waiting for another test run…" and waits. That is normal: don't kill it, don't
+  start another run meanwhile, and never background a test run and start a second one.
+- Vitest uses at most 2 workers (`vitest.limits.mjs`). Don't raise it.
+- Local `pnpm verify` skips coverage (CI enforces the thresholds). To check a coverage threshold you
+  touched, run that package's `test:coverage` once.
+- Prefer running the one test file you are working on; run `pnpm verify` once, at the end.
+
 ## Keep output small (it costs tokens every time you read it)
 
 - `pnpm verify` is quiet: one line per passing gate; a failing gate prints its last 200 lines and the

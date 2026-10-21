@@ -1,6 +1,7 @@
 import { emdashPluginTest } from "@emdash-cms/plugin-test/config";
 import { configDefaults, defineConfig } from "vitest/config";
 import { coverageConfig } from "../../vitest.coverage.mjs";
+import { machineLimits } from "../../vitest.limits.mjs";
 
 const sharedFixture = "tests/fixtures/shared-plugin";
 const storageFixture = "tests/fixtures/storage-probe";
@@ -12,6 +13,7 @@ const testTimeout = 120_000;
 // indexes and the network allow-list; and a plain Node project that checks build output.
 export default defineConfig({
 	test: {
+		...machineLimits,
 		coverage: coverageConfig(),
 		projects: [
 			{
