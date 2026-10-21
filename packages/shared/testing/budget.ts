@@ -21,6 +21,8 @@
  * on bridge calls. It is a local proxy for Cloudflare's CPU-time limit, not the real meter.
  */
 
+import { availableParallelism, loadavg } from "node:os";
+
 /** One round trip from the sandbox to the host bridge. */
 export interface BridgeCall {
 	/** Bridge area: storage, kv, settings, content, http, email, log, cron, media, ... */
@@ -305,9 +307,30 @@ function formatCall(call: BridgeCall, index: number): string {
  * Assert every invocation in `result` stayed within `limits` (default: the platform budget).
  * The error names the invocation and lists each bridge call it made.
  */
+/** How strictly the CPU limit is enforced; bridge-call limits are always strict. */
+export type CpuEnforcement = "strict" | "lenient";
+
+/** Up to this multiple of the CPU limit, a lenient run warns instead of failing. */
+const LENIENT_CPU_FACTOR = 4;
+
+/**
+ * The CPU figure is sandbox wall time minus bridge waits (workerd has no CPU clock), so a loaded
+ * machine inflates it. Strict on CI, with `SEMICS_STRICT_CPU=1`, or when the 1-minute load average
+ * is below the core count; lenient otherwise.
+ */
+export function cpuEnforcement(
+	env: Record<string, string | undefined> = process.env,
+	load: number = loadavg()[0] ?? 0,
+	cores: number = availableParallelism(),
+): CpuEnforcement {
+	if (env.SEMICS_STRICT_CPU === "1" || env.CI) return "strict";
+	return load < cores ? "strict" : "lenient";
+}
+
 export function expectWithinBudget(
 	result: Pick<BudgetResult, "invocations"> & { label?: string },
 	limits: BudgetLimits = PLATFORM_BUDGET,
+	{ enforcement = cpuEnforcement() }: { enforcement?: CpuEnforcement } = {},
 ): void {
 	const label = result.label ?? "invocation";
 	const problems: string[] = [];
@@ -320,7 +343,12 @@ export function expectWithinBudget(
 			);
 		}
 		if (limits.cpuMs !== undefined && usage.cpuMs > limits.cpuMs) {
-			problems.push(`${name} used CPU ${usage.cpuMs.toFixed(1)} ms (limit ${limits.cpuMs} ms)`);
+			const message = `${name} used CPU ${usage.cpuMs.toFixed(1)} ms (limit ${limits.cpuMs} ms)`;
+			if (enforcement === "lenient" && usage.cpuMs <= limits.cpuMs * LENIENT_CPU_FACTOR) {
+				console.warn(`${message}; not failing because the machine is busy (set SEMICS_STRICT_CPU=1 to enforce)`);
+			} else {
+				problems.push(message);
+			}
 		}
 	});
 	if (problems.length > 0) {
