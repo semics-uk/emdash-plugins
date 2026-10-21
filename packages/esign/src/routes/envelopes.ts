@@ -41,6 +41,7 @@ import { masterKeyBytes } from "../domain/master-key";
 import type { ArtifactChunkDoc } from "../domain/pdf";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { type TemplateDoc, versionDocId } from "../domain/templates";
+import { outboxReport, queueInvitation } from "../emails/outbox";
 import { downloadLink } from "./download";
 
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
@@ -209,10 +210,11 @@ async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	if (!canTransition(envelope.status, "sent")) return fail("ENVELOPE_CLOSED");
 	const { templateId, templateVersion } = envelope;
-	const [docs, days] = await Promise.all([
+	const [docs, all] = await Promise.all([
 		templates.getMany([templateId, versionDocId(templateId, templateVersion)]),
-		ctx.settings.get<number>("expiryDays"),
+		ctx.settings.list(),
 	]);
+	const settings = Object.fromEntries(all.map((s) => [s.key, s.value]));
 	// The head must still be active; the content comes from the pinned version document.
 	const template = pickTemplateVersion(
 		docs.get(templateId),
@@ -224,14 +226,21 @@ async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	const sent = await sendEnvelope(id, envelope, template.value, {
 		now: new Date().toISOString(),
 		tokenHash: await hashToken(token),
-		expiryDays: expiryDays(days),
+		expiryDays: expiryDays(settings.expiryDays),
 	});
 	if (!sent.ok) return Array.isArray(sent.error) ? badRequest(sent.error) : fail("ENVELOPE_CLOSED");
 	await snapshots.putMany(sent.value.chunks);
 	const moved = await transitionEnvelope(envelopes, id, "draft", "sent", sent.value.envelope);
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
-	// The token goes out in the invitation email (T027); it is never returned or stored.
-	await insertSigner(signers, sent.value.signer, token);
+	// The token goes out in the invitation email (T027); it is never returned.
+	const stored = await insertSigner(signers, sent.value.signer, token);
+	await queueInvitation(ctx, {
+		signerId: sent.value.signer.id,
+		envelope: moved.value,
+		token: stored,
+		senderSetting: settings.senderName,
+		now: Date.now(),
+	});
 	// Only the winner of the guarded draft → sent update gets here, so at most one `sent` event.
 	await appendAudit(ctx, id, moved.value, sentAuditEvent(moved.value, "admin"));
 	return { ok: true, envelope: view(id, moved.value) };
@@ -282,6 +291,7 @@ export const ENVELOPE_ROUTES: Record<string, RouteDef> = {
 	"envelopes/send": { handler: send as Handler },
 	"envelopes/get": { handler: get as Handler },
 	"envelopes/list": { handler: list as Handler },
+	"outbox/status": { handler: (async (_r, ctx) => ({ ok: true, ...(await outboxReport(ctx)) })) as Handler },
 };
 
 // --- public/envelopes/from-intent ---
@@ -387,6 +397,16 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		return winner ? reuse(signers, id, winner, deps.random) : fail("INTERNAL");
 	}
 	const stored = await insertSigner(signers, sent.value.signer, token, deps.random);
+	if (sent.value.envelope.delivery === "email") {
+		// The only place the token exists besides the hash: queued for the cron drain (1 call).
+		await queueInvitation(ctx, {
+			signerId: sent.value.signer.id,
+			envelope: sent.value.envelope,
+			token: stored,
+			senderSetting: settings.senderName,
+			now: nowMs,
+		});
+	}
 	// This request won the create-only envelope write, so it alone opens the chain: one putMany.
 	const opening = [createdAuditEvent(draft.value, "integration"), sentAuditEvent(sent.value.envelope, "integration")];
 	await stores(ctx).audit_events.putMany(await initialAuditEvents(id, opening, piiSalt));

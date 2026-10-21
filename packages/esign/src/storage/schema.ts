@@ -12,6 +12,7 @@ export const COLLECTIONS = [
 	"audit_events",
 	"clients",
 	"nonces",
+	"outbox",
 ] as const;
 
 export type CollectionName = (typeof COLLECTIONS)[number];
@@ -34,4 +35,6 @@ export const STORAGE_DECLARATIONS: Readonly<Record<CollectionName, StorageDeclar
 	audit_events: { indexes: ["envelopeId", ["envelopeId", "seq"]] },
 	clients: { indexes: ["createdAt"], uniqueIndexes: ["clientId"] },
 	nonces: { indexes: ["expiresAt"], uniqueIndexes: ["nonce"] },
+	// The email outbox (shared T015): mail waiting for the cron drain.
+	outbox: { indexes: [["status", "nextAttemptAt"]] },
 };

@@ -27,7 +27,8 @@
 		"artifacts": { "indexes": ["envelopeId", ["envelopeId", "kind"]] },
 		"audit_events": { "indexes": ["envelopeId", ["envelopeId", "seq"]] },
 		"clients": { "indexes": ["createdAt"], "uniqueIndexes": ["clientId"] },
-		"nonces": { "indexes": ["expiresAt"], "uniqueIndexes": ["nonce"] }
+		"nonces": { "indexes": ["expiresAt"], "uniqueIndexes": ["nonce"] },
+		"outbox": { "indexes": [["status", "nextAttemptAt"]] }
 	},
 	"admin": {
 		"settingsSchema": {

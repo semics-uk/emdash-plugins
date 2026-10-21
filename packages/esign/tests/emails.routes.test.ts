@@ -11,7 +11,7 @@ import {
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { pdfTaskName } from "../src/cron/pdf";
-import { OUTBOX_TASK } from "../src/emails/outbox";
+import { OUTBOX_TASK, outboxReport, runOutboxJob } from "../src/emails/outbox";
 
 /** R22: target ≤ 8, hard limit 10. Send and the PDF job each gain one outbox write. */
 const TARGET = { calls: 8, cpuMs: 50 };
@@ -116,8 +116,9 @@ describe("ES-FR-10 invitation emails", () => {
 	});
 
 	it("the recurring drain is scheduled on activation", async () => {
-		await setup();
-		await host().restart();
+		const { budget } = await setup();
+		const r = await budget.invokeHook("plugin:activate", {});
+		expectWithinBudget(r, { calls: 1, cpuMs: 50 });
 		const names = (await host().inspect.scheduledTasks()).map((t) => t.name);
 		expect(names).toContain(OUTBOX_TASK);
 	});
@@ -128,7 +129,29 @@ describe("ES-FR-10 invitation emails", () => {
 		await call(budget, "envelopes/send", { id }, ONE_MORE);
 		const status = await call(budget, "outbox/status", {});
 		expect(status).toMatchObject({ ok: true, pending: 1, failed: 0 });
-		expect(["ok", "no_transport"]).toContain(status.state);
+		expect(status.state).toBe("ok"); // the test host has a transport
+	});
+
+	it("no transport: the report says so, and a drain sends nothing and leaves mail pending", async () => {
+		const rows = new Map<string, OutboxRow>([
+			["a", { message: { to: "a@x.test", subject: "s", text: "t" }, status: "pending" }],
+		]);
+		const ctx = {
+			email: undefined,
+			storage: {
+				outbox: {
+					put: async () => {},
+					putMany: async () => {},
+					query: async (o: { where?: { status?: string } }) => ({
+						items: [...rows].filter(([, r]) => r.status === o.where?.status).map(([id, data]) => ({ id, data })),
+					}),
+				},
+			},
+			log: { error: () => {} },
+		} as unknown as Parameters<typeof outboxReport>[0];
+		expect(await outboxReport(ctx)).toEqual({ state: "no_transport", pending: 1, failed: 0 });
+		expect(await runOutboxJob({ name: OUTBOX_TASK, scheduledAt: "" }, ctx)).toBe(true);
+		expect(await runOutboxJob({ name: "other", scheduledAt: "" }, ctx)).toBe(false);
 	});
 });
 

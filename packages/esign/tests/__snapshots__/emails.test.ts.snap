@@ -1,0 +1,37 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`ES-FR-10 email templates > completion: snapshot 1`] = `
+{
+  "html": "<p>Hello Ada Lovelace,</p>
+<p>Thank you. &quot;Waiver&quot; for Acme Theatre is now signed.</p>
+<p><a href="https://site.test/_emdash/api/plugins/semics-esign/public/download?e=x&amp;exp=1&amp;sig=y">Download your signed copy</a> (the link works for a short time only).</p>",
+  "subject": "Signed: Waiver",
+  "text": "Hello Ada Lovelace,
+
+Thank you. "Waiver" for Acme Theatre is now signed.
+Download your signed copy here (the link works for a short time only):
+https://site.test/_emdash/api/plugins/semics-esign/public/download?e=x&exp=1&sig=y
+",
+  "to": "ada@example.com",
+}
+`;
+
+exports[`ES-FR-10 email templates > invitation: snapshot 1`] = `
+{
+  "html": "<p>Hello Ada Lovelace,</p>
+<p>Acme Theatre has asked you to review and sign &quot;Waiver&quot; electronically. This request expires on 4 November 2026.</p>
+<p><a href="https://site.test/sign/abc-DEF_123">Review and sign the document</a></p>
+<p>This link is personal to you. Please do not forward it.</p>",
+  "subject": "Acme Theatre asks you to sign: Waiver",
+  "text": "Hello Ada Lovelace,
+
+Acme Theatre has asked you to review and sign "Waiver" electronically. This request expires on 4 November 2026.
+
+Open this link to read the document and sign:
+https://site.test/sign/abc-DEF_123
+
+This link is personal to you. Please do not forward it.
+",
+  "to": "ada@example.com",
+}
+`;
