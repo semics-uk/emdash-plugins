@@ -4,7 +4,7 @@ title: "Events: booking configs, ticket types and occurrences"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T041, T018]
