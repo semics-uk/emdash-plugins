@@ -20,6 +20,9 @@ const TARGET = { calls: 8, cpuMs: 50 };
  * inside the hard limit of 10 (R22). See the T023 notes.
  */
 const INTENT_TARGET = { calls: 9, cpuMs: 50 };
+/** T027: send also queues the invitation (one outbox put); an email-delivery intent likewise. */
+const SEND_TARGET = { calls: 9, cpuMs: 50 };
+const EMAIL_INTENT_TARGET = { calls: 10, cpuMs: 50 };
 
 let runtime: PluginRuntimeTestHost | undefined;
 const originalKey = process.env.EMDASH_ENCRYPTION_KEY;
@@ -49,9 +52,19 @@ async function createTemplate(budget: BudgetedHost, body = BODY): Promise<string
 	return r.template.id;
 }
 
-async function call(budget: BudgetedHost, route: string, input: unknown): Promise<Body> {
+async function call(budget: BudgetedHost, route: string, input: unknown, limit?: "email"): Promise<Body> {
 	const r = await budget.invokeRoute(route, input);
-	expectWithinBudget(r, route === "public/envelopes/from-intent" ? INTENT_TARGET : TARGET);
+	const email = (input as { intent?: unknown } | undefined)?.intent !== undefined && limit === "email";
+	expectWithinBudget(
+		r,
+		route === "public/envelopes/from-intent"
+			? email
+				? EMAIL_INTENT_TARGET
+				: INTENT_TARGET
+			: route === "envelopes/send"
+				? SEND_TARGET
+				: TARGET,
+	);
 	return r.value as Body;
 }
 
@@ -340,9 +353,14 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 
 	it("ES-FR-02 email delivery returns no signing token", async () => {
 		const { budget, templateId } = await setupIntegration();
-		const r = await call(budget, "public/envelopes/from-intent", {
-			intent: await sign(payload(templateId, { delivery: "email" })),
-		});
+		const r = await call(
+			budget,
+			"public/envelopes/from-intent",
+			{
+				intent: await sign(payload(templateId, { delivery: "email" })),
+			},
+			"email",
+		);
 		expect(r).toMatchObject({ ok: true, status: "sent" });
 		expect(r.signingToken).toBeUndefined();
 	});
