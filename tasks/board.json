@@ -421,7 +421,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -434,7 +434,7 @@
 			"unblocks": [
 				"T021"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T018": {
 			"file": "T018-shared-money-time-zones-and-calendar-files.md",
@@ -506,7 +506,7 @@
 				"T022",
 				"T028"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T022": {
 			"file": "T022-e-sign-envelopes-snapshots-and-status-machine.md",
@@ -2189,7 +2189,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T021",
 			"T022",
 			"T023",
 			"T024",
@@ -2257,7 +2256,7 @@
 			"T013",
 			"T015",
 			"T016",
-			"T017",
+			"T021",
 			"T029",
 			"T043",
 			"T044",
@@ -2283,6 +2282,7 @@
 			"T010",
 			"T011",
 			"T014",
+			"T017",
 			"T018",
 			"T020",
 			"T040",
