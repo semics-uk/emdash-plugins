@@ -121,7 +121,10 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 			const lastError = (e instanceof Error ? e.message : String(e)).slice(0, 300);
 			if (attempts >= OUTBOX_MAX_ATTEMPTS) {
 				gaveUp++;
-				updates.push({ id, data: { ...data, message: scrubMessage(data.message), status: "failed", attempts, lastError } });
+				updates.push({
+					id,
+					data: { ...data, message: scrubMessage(data.message), status: "failed", attempts, lastError },
+				});
 			} else {
 				failed++;
 				updates.push({ id, data: { ...data, attempts, lastError, nextAttemptAt: opts.now + backoffMs(attempts) } });

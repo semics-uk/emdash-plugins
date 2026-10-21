@@ -4,7 +4,7 @@ title: "Outbox scrubs sent mail; from-intent headroom"
 phase: 1
 package: shared
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T027]
@@ -31,10 +31,10 @@ of 10 bridge calls; bring it back to at most 9 (for example by folding the outbo
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] After a successful drain, the stored row has no body, HTML or payload, and no string in it contains the signing token
-- [ ] A row that gives up (`failed`) is scrubbed the same way and keeps `lastError`
-- [ ] The drain's call count is unchanged (1 query + sends + 1 putMany)
-- [ ] `from-intent` with `delivery: "email"` stays within 9 bridge calls; inline stays within 9
+- [x] After a successful drain, the stored row has no body, HTML or payload, and no string in it contains the signing token
+- [x] A row that gives up (`failed`) is scrubbed the same way and keeps `lastError`
+- [x] The drain's call count is unchanged (1 query + sends + 1 putMany)
+- [x] `from-intent` with `delivery: "email"` stays within 9 bridge calls; inline stays within 9
 
 ## Implementation (green, then refactor)
 
@@ -42,8 +42,8 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] Events confirmations (T048/T050 queue only ids) are unaffected
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] Events confirmations (T048/T050 queue only ids) are unaffected
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
@@ -51,3 +51,10 @@ Write these tests before any implementation and confirm they fail for the right 
 corepack pnpm@10.23.0 --filter @semics-tech/shared exec vitest run tests/outbox.test.ts
 corepack pnpm@10.23.0 --filter @semics-tech/emdash-esign exec vitest run tests/emails.routes.test.ts
 ```
+
+## Notes
+
+- `drainOutbox` rewrites `sent` and `failed` rows with `scrubMessage` (keeps `to`, `subject`, `kind` if present; drops text, HTML and any extra field such as a payload) inside its existing `putMany`; call count unchanged. A row that will retry keeps its body. Events confirmations queue only ids and are unaffected.
+- from-intent: the create-only envelope write now goes first; the existing-envelopes `query` only runs when that write loses. Fresh intent: 8 calls inline, 9 email. Replay: 7 (inline reuse adds a token rotation). The snapshot write now happens after the envelope write, by the winner only.
+- Trade-off for the reviewer: a retry after a declined/voided/expired envelope for the same ref pays the failed first write plus the read: 10 inline (asserted), 11 with email delivery, over the hard limit of 10 and not asserted. Needs a follow-up that saves one more call on that path.
+- Nothing to fold the outbox put into: each storage collection is its own bridge call, so the saving came from dropping the read instead.

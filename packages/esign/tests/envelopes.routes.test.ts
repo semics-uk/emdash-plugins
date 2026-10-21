@@ -347,7 +347,9 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		const first = await call(budget, "public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
 		const stored = await runtime?.inspect.storage.get<Record<string, unknown>>("envelopes", first.envelopeId as string);
 		await runtime?.fixtures.plugin.storage("envelopes", first.envelopeId as string, { ...stored, status: "declined" });
-		const retried = await budget.invokeRoute("public/envelopes/from-intent", { intent: await sign(payload(templateId)) });
+		const retried = await budget.invokeRoute("public/envelopes/from-intent", {
+			intent: await sign(payload(templateId)),
+		});
 		expectWithinBudget(retried, RETRY_INTENT_TARGET);
 		const next = retried.value as Body;
 		expect(next).toMatchObject({ ok: true, status: "sent" });
