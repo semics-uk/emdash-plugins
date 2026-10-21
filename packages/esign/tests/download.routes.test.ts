@@ -119,8 +119,9 @@ async function download(budget: BudgetedHost, url: string): Promise<Raw> {
 }
 
 const bytesOf = (raw: Raw) => {
-	const value = raw.body?.value;
-	return value instanceof Uint8Array ? value : new Uint8Array(Object.values(value ?? {}) as number[]);
+	expect(raw.body?.kind).toBe("bytes");
+	expect(raw.body?.value).toBeInstanceOf(Uint8Array);
+	return raw.body?.value as Uint8Array;
 };
 
 const errorOf = (raw: Raw) => {

@@ -13,6 +13,7 @@ import {
 	newPiiSalt,
 	purgePersonal,
 	verifyAuditChain,
+	writeAuditEvents,
 } from "../src/domain/audit";
 
 const ENV = "env1";
@@ -320,5 +321,29 @@ describe("ES-FR-05 concurrent appends never fork the chain (CAS)", () => {
 		expect(r).toMatchObject({ ok: true, value: { seq: 1 } });
 		expect(calls).toBe(2);
 		expect((await verifyAuditChain(ENV, ordered(store))).ok).toBe(true);
+	});
+});
+
+describe("ES-FR-05 batch writes (writeAuditEvents)", () => {
+	it("ES-FR-05 writes the first event create-only and the rest with one putMany", async () => {
+		const store = memoryStore();
+		const batches: number[] = [];
+		const batchStore = {
+			...store,
+			async putMany(items: Array<{ id: string; data: AuditEventDoc }>) {
+				batches.push(items.length);
+				for (const { id, data } of items) store.rows.set(id, data);
+			},
+		};
+		const docs = await initialAuditEvents(ENV, [input(0), input(1), input(2)], SALT);
+		expect(await writeAuditEvents(batchStore, [])).toBe(true);
+		expect(await writeAuditEvents(batchStore, docs.slice(0, 1))).toBe(true);
+		expect(batches).toEqual([]);
+		// The first position is taken now: nothing more is written.
+		expect(await writeAuditEvents(batchStore, docs)).toBe(false);
+		expect(store.rows.size).toBe(1);
+		expect(await writeAuditEvents(batchStore, docs.slice(1))).toBe(true);
+		expect(batches).toEqual([1]);
+		expect(store.rows.size).toBe(3);
 	});
 });
