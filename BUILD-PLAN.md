@@ -684,7 +684,7 @@ https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
 | D4 | E-sign legal scope | **US (ESIGN/UETA) + UK/EU (eIDAS SES), reviewed by a lawyer before 1.0.** Defaults: booking data kept 12 months after the event, signed records 7 years, both configurable |
 | D5 | Pro pricing and billing | **Decided by the management agent (2026-10-10):** per site per year. Events Pro $79, E-sign Pro $79, Suite Pro $129, agency (10 sites) $349; 40% off the first year for the first 100 customers; Paddle as merchant of record |
 | D6 | Pro licence terms | **Decided by the management agent (2026-10-10):** one key per production hostname (local and preview hosts free), a year of updates and support, perpetual use of versions released in the term, 30-day refund, commercial licence (modify for own use, no redistribution), data never locked |
-- **D7 (T020):** Storage collection keys must match `^[a-z][a-z0-9_]*$`, so E-sign's audit collection is `audit_events` (was `auditEvents`). Any future multi-word collection uses snake_case. The sandbox test host does not enforce unique indexes; tests assert the declaration instead.
+| D7 | Storage collection names (T020) | Keys must match `^[a-z][a-z0-9_]*$`, so E-sign's audit collection is `audit_events` (was `auditEvents`). Any future multi-word collection uses snake_case. The sandbox test host does not enforce unique indexes; tests assert the declaration instead. |
 
 ## 13. Editions and licensing
 
