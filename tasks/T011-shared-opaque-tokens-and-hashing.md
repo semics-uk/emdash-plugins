@@ -4,7 +4,7 @@ title: "Shared: opaque tokens and hashing"
 phase: 1
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T003]
