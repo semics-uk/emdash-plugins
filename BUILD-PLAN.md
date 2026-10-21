@@ -272,7 +272,7 @@ needed then, but drop it if PDF support slips past 1.0.)
 | `signers` | envelopeId, order, role, name, email, status, tokenHash, otp {hash, expiresAt, attempts}, consentAt, signature {kind `typed/drawn`, typedName, strokes[]}, fieldValues, signedAt, ip, ua, geo, `piiSalt` | `envelopeId`, `email`; unique `tokenHash` |
 | `artifacts` | envelopeId, kind `signed_pdf`, chunk index, data (base64), `pdfSha256` | `envelopeId` |
 | `snapshots` | envelopeId, contentType, chunk index, data (base64 chunks if large), sha256 | `envelopeId` |
-| `auditEvents` | envelopeId, seq, type, at, actor, ip, ua, data, prevHash, hash | `["envelopeId","seq"]` |
+| `audit_events` | envelopeId, seq, type, at, actor, ip, ua, data, prevHash, hash | `["envelopeId","seq"]` |
 | `clients` | name, clientId, createdAt, lastUsedAt, revokedAt (secret kept in an encrypted setting/KV; see Spike S8) | unique `clientId` |
 | `nonces` (or KV with TTL sweep) | intent nonce, expiresAt | `expiresAt` |
 
@@ -294,7 +294,7 @@ needed then, but drop it if PDF support slips past 1.0.)
    it matches a completed envelope's `pdfSha256` (no PII).
 5. **Audit chain and retention:** audit events hash **salted commitments** of personal fields
    (`SHA256(piiSalt ‖ value)`), not the raw values. The retention job can then delete names,
-   emails and IPs from `signers`/`auditEvents` without breaking chain verification. Signed records
+   emails and IPs from `signers`/`audit_events` without breaking chain verification. Signed records
    (`artifacts`, the chain, commitments) have their own retention period, separate from booking
    data and longer by default.
 
@@ -762,3 +762,4 @@ while the e-sign side of the protocol stays free, so any other system can integr
   copying rather than prevent it. The product is the updates, support and fixes.
 - **Repos:** the public repo stays wholly MIT. Pro code lives in a private repo that depends on the
   published Free packages.
+- **D7 (T020):** Storage collection keys must match `^[a-z][a-z0-9_]*$`, so E-sign's audit collection is `audit_events` (was `auditEvents`). Any future multi-word collection uses snake_case. The sandbox test host does not enforce unique indexes; tests assert the declaration instead.

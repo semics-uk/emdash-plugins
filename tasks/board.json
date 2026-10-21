@@ -467,7 +467,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -481,7 +481,7 @@
 			"unblocks": [
 				"T021"
 			],
-			"column": "ready"
+			"column": "done"
 		},
 		"T021": {
 			"file": "T021-e-sign-templates-domain-and-admin-routes.md",
@@ -2245,7 +2245,6 @@
 			"T014",
 			"T017",
 			"T018",
-			"T020",
 			"T029",
 			"T040",
 			"T053"
@@ -2262,7 +2261,8 @@
 			"T006",
 			"T008",
 			"T009",
-			"T010"
+			"T010",
+			"T020"
 		],
 		"blocked": [
 			"T110"

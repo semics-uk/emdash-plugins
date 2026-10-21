@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] State machine has one source of truth used by routes and cron
+- [ ] Replaces the T020 stub handler for `public/envelopes/from-intent`; snapshot writes stay ≤ 512 KiB per document (chunk if needed); audit collection is `audit_events`
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

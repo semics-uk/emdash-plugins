@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Verifier is exported for the certificate and tests
+- [ ] Collection name is `audit_events` (storage keys must match `^[a-z][a-z0-9_]*$`)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

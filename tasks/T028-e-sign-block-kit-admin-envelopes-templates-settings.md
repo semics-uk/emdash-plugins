@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Pages declared in manifest
+- [ ] Settings page shows the `encryptionKeyStatus()` banner (`src/domain/encryption-key.ts`) when `EMDASH_ENCRYPTION_KEY` is missing; saving a secret maps `isEncryptionKeyMissingError` to that banner
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

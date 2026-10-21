@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Certificate lists every audit event and the final hash
+- [ ] Signed PDF stored in `artifacts` as 256 KiB base64 chunks (each document ≤ 512 KiB); replaces the `public/download` stub
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
