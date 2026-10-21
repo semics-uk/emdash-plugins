@@ -1111,7 +1111,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1126,7 +1126,7 @@
 			"unblocks": [
 				"T056"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T053": {
 			"file": "T053-events-ui-integration-call-helper-and-booking-page-route.md",
@@ -2288,7 +2288,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T052",
 			"T113"
 		],
 		"review": [],
@@ -2330,6 +2329,7 @@
 			"T047",
 			"T048",
 			"T049",
+			"T052",
 			"T053",
 			"T055",
 			"T070",
@@ -2339,11 +2339,12 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T052",
-		"T056",
-		"T057",
-		"T063",
-		"T064",
+		"T028",
+		"T033",
+		"T034",
+		"T060",
+		"T061",
+		"T062",
 		"T065",
 		"T066",
 		"T067",
