@@ -731,7 +731,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -744,7 +744,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T032": {
 			"file": "T032-e-sign-ui-verify-page.md",
@@ -1111,7 +1111,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1126,7 +1126,7 @@
 			"unblocks": [
 				"T056"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T053": {
 			"file": "T053-events-ui-integration-call-helper-and-booking-page-route.md",
@@ -2278,17 +2278,17 @@
 		],
 		"ready": [
 			"T028",
-			"T031",
 			"T032",
 			"T043",
 			"T046",
 			"T050",
 			"T051",
-			"T052",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
+			"T031",
+			"T052",
 			"T113"
 		],
 		"review": [],

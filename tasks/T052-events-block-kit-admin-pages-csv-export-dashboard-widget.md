@@ -4,7 +4,7 @@ title: "Events: Block Kit admin pages, CSV export, dashboard widget"
 phase: 2
 package: events
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: M
 depends_on: [T048, T014]
