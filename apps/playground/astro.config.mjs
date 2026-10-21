@@ -6,6 +6,9 @@ import { sqlite } from "emdash/db";
 import semicsEvents from "@semics-tech/emdash-events";
 import { eventsIntegration } from "@semics-tech/emdash-events/integration";
 import { eventsUi } from "@semics-tech/emdash-events/ui";
+import semicsEsign from "@semics-tech/emdash-esign";
+import { esignIntegration } from "@semics-tech/emdash-esign/integration";
+import { esignUi } from "@semics-tech/emdash-esign/ui";
 
 export default defineConfig({
 	output: "server",
@@ -19,6 +22,7 @@ export default defineConfig({
 	integrations: [
 		react(),
 		eventsIntegration(),
+		esignIntegration(),
 		emdash({
 			database: sqlite({ url: "file:./data.db" }),
 			storage: local({
@@ -26,8 +30,8 @@ export default defineConfig({
 				baseUrl: "/_emdash/api/media/file",
 			}),
 			sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
-			sandboxed: [semicsEvents],
-			plugins: [eventsUi()],
+			sandboxed: [semicsEvents, semicsEsign],
+			plugins: [eventsUi(), esignUi()],
 		}),
 	],
 	devToolbar: { enabled: false },

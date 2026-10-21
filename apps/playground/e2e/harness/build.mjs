@@ -16,4 +16,5 @@ function run(args) {
 }
 
 run(["--filter", "@semics-tech/emdash-events", "build"]);
+run(["--filter", "@semics-tech/emdash-esign", "build"]);
 run(["exec", "astro", "build"]);

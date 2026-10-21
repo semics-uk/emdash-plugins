@@ -26,6 +26,7 @@ export default defineConfig({
 						...configDefaults.exclude,
 						"tests/shared-bundle*.test.ts",
 						"tests/storage-host.test.ts",
+						"tests/ui/*.build.test.ts",
 						"tests/fixtures/**",
 					],
 				},
@@ -37,6 +38,9 @@ export default defineConfig({
 			{
 				plugins: [emdashPluginTest({ dir: storageFixture })],
 				test: { name: "storage-host", testTimeout, include: ["tests/storage-host.test.ts"] },
+			},
+			{
+				test: { name: "ui-build", environment: "node", include: ["tests/ui/*.build.test.ts"] },
 			},
 			{
 				test: {

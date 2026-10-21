@@ -9,15 +9,29 @@
 			"import": "./dist/index.mjs",
 			"types": "./dist/index.d.mts"
 		},
-		"./sandbox": "./dist/plugin.mjs"
+		"./sandbox": "./dist/plugin.mjs",
+		"./ui": {
+			"import": "./dist/ts/ui/index.js",
+			"types": "./dist/ts/ui/index.d.ts"
+		},
+		"./integration": {
+			"import": "./dist/ts/integration/index.js",
+			"types": "./dist/ts/integration/index.d.ts"
+		},
+		"./astro": "./src/astro/index.js",
+		"./astro/SignPage.astro": "./src/astro/SignPage.astro",
+		"./astro/VerifyPage.astro": "./src/astro/VerifyPage.astro",
+		"./client": "./src/client/index.ts"
 	},
 	"files": [
 		"dist",
+		"src/astro",
+		"src/client",
 		"emdash-plugin.jsonc"
 	],
 	"scripts": {
 		"validate": "emdash-plugin validate",
-		"build": "emdash-plugin build",
+		"build": "emdash-plugin build && tsc -p tsconfig.ui.json",
 		"dev": "emdash-plugin dev",
 		"typecheck": "tsc --noEmit",
 		"test:coverage": "vitest run --coverage --reporter=dot",
