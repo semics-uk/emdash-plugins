@@ -17,9 +17,8 @@ import type { CronEvent, PluginContext } from "emdash/plugin";
 import { type AuditEventDoc, finalEnvelopeHash, verifyAuditChain } from "../domain/audit";
 import { joinSnapshot } from "../domain/envelopes";
 import { pdfChunks, renderSignedPdf } from "../domain/pdf";
-import { queueCompletion } from "../emails/outbox";
-import { downloadLink } from "../routes/download";
 import { stores } from "../routes/envelopes";
+import { scheduleCompletionEmail } from "./completion-email";
 
 export const PDF_TASK_PREFIX = "signed-pdf-";
 /** Re-arms after which a job whose chain never settles gives up (and logs). */
@@ -97,16 +96,9 @@ export async function generateSignedPdf(
 		},
 	});
 	if (!recorded.applied) return "skipped";
-	// Only the job that recorded the PDF queues the email, so it goes out once. Link key read (1,
-	// +2 the first time it is created), sender setting (1), queue write (1).
-	const link = await downloadLink(ctx, envelopeId, options.now);
-	await queueCompletion(ctx, {
-		envelopeId,
-		envelope,
-		downloadUrl: link.url,
-		senderSetting: await ctx.settings.get("senderName"),
-		now: options.now,
-	});
+	// Only the job that recorded the PDF schedules the email, so it goes out once. It is a task of
+	// its own (one call here) so this job stays at 7 calls.
+	await scheduleCompletionEmail(ctx.cron, envelopeId, options.now);
 	return "stored";
 }
 

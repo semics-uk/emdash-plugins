@@ -10,6 +10,7 @@ import {
 } from "@semics-tech/shared";
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import { completionTaskName } from "../src/cron/completion-email";
 import { pdfTaskName } from "../src/cron/pdf";
 import { OUTBOX_TASK, outboxReport, runOutboxJob } from "../src/emails/outbox";
 
@@ -219,7 +220,12 @@ describe("ES-FR-10 from-intent delivery", () => {
 		const { budget, templateId } = await integration();
 		const first = await intent(templateId, { delivery: "email" });
 		await call(budget, "public/envelopes/from-intent", { intent: first }, LIMIT);
-		await call(budget, "public/envelopes/from-intent", { intent: await intent(templateId, { delivery: "email" }) }, LIMIT);
+		await call(
+			budget,
+			"public/envelopes/from-intent",
+			{ intent: await intent(templateId, { delivery: "email" }) },
+			LIMIT,
+		);
 		expect(await outbox()).toHaveLength(1);
 	});
 });
@@ -255,7 +261,13 @@ describe("ES-FR-10 completion email", () => {
 			data: { envelopeId: id, attempt: 0 },
 			scheduledAt: new Date().toISOString(),
 		});
-		expectWithinBudget(job, LIMIT);
+		expectWithinBudget(job, TARGET);
+		const mailTask = await budget.invokeHook("cron", {
+			name: completionTaskName(id),
+			data: { envelopeId: id },
+			scheduledAt: new Date().toISOString(),
+		});
+		expectWithinBudget(mailTask, TARGET);
 
 		const rows = await outbox();
 		expect(rows).toHaveLength(2);

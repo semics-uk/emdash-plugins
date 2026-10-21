@@ -48,6 +48,8 @@ function sample(collection: CollectionName, n: number): Doc {
 			return { name: `Client ${n}`, clientId: `cid${n}`, createdAt: iso };
 		case "nonces":
 			return { nonce: `n${n}`, expiresAt: iso };
+		case "outbox":
+			return { status: n === 1 ? "pending" : "sent", nextAttemptAt: n };
 	}
 }
 

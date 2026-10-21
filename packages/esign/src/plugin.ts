@@ -1,4 +1,5 @@
 import type { SandboxedPlugin } from "emdash/plugin";
+import { runCompletionEmailJob } from "./cron/completion-email";
 import { runPdfJob } from "./cron/pdf";
 import { runOutboxJob, scheduleOutbox } from "./emails/outbox";
 import { CEREMONY_HANDLERS } from "./routes/ceremony";
@@ -14,6 +15,7 @@ const plugin: SandboxedPlugin = {
 		"plugin:activate": async (_event, ctx) => scheduleOutbox(ctx),
 		cron: async (event, ctx) => {
 			if (await runOutboxJob(event, ctx)) return;
+			if (await runCompletionEmailJob(event, ctx)) return;
 			await runPdfJob(event, ctx);
 		},
 	},

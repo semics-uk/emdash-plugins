@@ -34,8 +34,8 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (c) => HTML_ESCA
 const oneLine = (value: string) => value.replace(/\s*[\r\n]+\s*/g, " ");
 
 const PLACEHOLDER = /\{\{(\w+)\}\}/g;
-function fill(template: string, values: Record<string, string>, escape: (v: string) => string): string {
-	return template.replace(PLACEHOLDER, (_all, key: string) => escape(values[key] ?? ""));
+function fill(template: string, values: Record<string, string>, encode: (v: string) => string): string {
+	return template.replace(PLACEHOLDER, (_all, key: string) => encode(values[key] ?? ""));
 }
 
 const MONTHS = [
