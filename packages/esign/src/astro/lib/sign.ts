@@ -87,7 +87,8 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 			path: "public/decline",
 			body: { token, ...(reason ? { reason } : {}) },
 		});
-		if (!result.ok) return { kind: "ready", session, errorCode: result.error.code, message: message(result.error.code) };
+		if (!result.ok)
+			return { kind: "ready", session, errorCode: result.error.code, message: message(result.error.code) };
 		const returnUrl = safeReturnUrl(result.data.returnUrl);
 		return returnUrl ? { kind: "declined", returnUrl } : { kind: "declined" };
 	}
@@ -156,7 +157,11 @@ export async function handleVerify(ctx: PublicRouteContext, form: FormData | nul
 	if (!form) return { kind: "form" };
 	const sha256 = text(form, "sha256").toLowerCase();
 	if (!SHA256_HEX.test(sha256)) {
-		return { kind: "error", code: "BAD_REQUEST", message: "Enter the 64 hexadecimal characters of the document's SHA-256." };
+		return {
+			kind: "error",
+			code: "BAD_REQUEST",
+			message: "Enter the 64 hexadecimal characters of the document's SHA-256.",
+		};
 	}
 	const result = await callPublicRoute<VerifyData>(ctx, { method: "POST", path: "public/verify", body: { sha256 } });
 	if (!result.ok) return { kind: "error", code: result.error.code, message: message(result.error.code) };

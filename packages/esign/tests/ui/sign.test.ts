@@ -111,7 +111,13 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 			"public/session": () =>
 				++calls === 1
 					? ready
-					: { ok: true, state: "closed", status: "completed", pdf: "ready", download: { url: "/d?e=1", expiresAt: "x" } },
+					: {
+							ok: true,
+							state: "closed",
+							status: "completed",
+							pdf: "ready",
+							download: { url: "/d?e=1", expiresAt: "x" },
+						},
 			"public/submit": { ok: true, status: "completed" },
 		});
 		const view = await handleSign(h.ctx, TOKEN, form(signForm));
