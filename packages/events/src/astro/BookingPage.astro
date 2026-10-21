@@ -1,0 +1,117 @@
+---
+// Injected at `/booking` by the integration. The booking ref is in the URL; the access token is
+// only ever in the HttpOnly cookie the checkout endpoint set, and goes to the core in POST bodies.
+import { pluginId } from "virtual:semics-events/config";
+
+import { callPublicRoute } from "./lib/call";
+import { bookingCookieName } from "./lib/checkout-form";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+interface Booking {
+	bookingRef: string;
+	status: string;
+	lines: Array<{ ticketTypeId: string; qty: number }>;
+	totals: { totalMinor: number; currency: string };
+	attendees: Array<{ name: string; status: string }>;
+	canCancel: boolean;
+	cancelBy?: string;
+}
+
+const MESSAGES: Record<string, string> = {
+	SOLD_OUT: "Sorry, those tickets are sold out.",
+	SALES_CLOSED: "Ticket sales for this event are closed.",
+	HOLD_EXPIRED: "Your hold on these tickets expired. Please start again.",
+	PAYMENT_FAILED: "Payment could not be started. Your tickets are held for a short time.",
+	CANCEL_NOT_ALLOWED: "This booking can no longer be cancelled online.",
+	BAD_REQUEST: "Please choose at least one ticket and fill in your name and email.",
+};
+
+const url = Astro.url;
+const rawRef = url.searchParams.get("ref") ?? "";
+const ref = /^[0-9A-HJKMNP-TV-Z]{10}$/.test(rawRef) ? rawRef : "";
+const errorCode = url.searchParams.get("error") ?? "";
+let notice = errorCode ? (MESSAGES[errorCode] ?? "Something went wrong. Please try again.") : "";
+const token = ref ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
+const ctx = { locals: Astro.locals, url };
+
+let cancelled = false;
+if (ref && token && Astro.request.method === "POST") {
+	const form = await Astro.request.formData().catch(() => new FormData());
+	if (form.get("intent") === "cancel") {
+		const result = await callPublicRoute(ctx, {
+			method: "POST",
+			path: "public/booking/cancel",
+			pluginId,
+			body: { bookingRef: ref, accessToken: token },
+		});
+		if (result.ok) cancelled = true;
+		else notice = MESSAGES[result.error.code] ?? "We could not cancel this booking.";
+	}
+}
+
+let booking: Booking | undefined;
+let missing = false;
+if (ref && token) {
+	const result = await callPublicRoute<Booking>(ctx, {
+		method: "POST",
+		path: "public/booking",
+		pluginId,
+		body: { bookingRef: ref, accessToken: token },
+	});
+	if (result.ok) booking = result.data;
+	else missing = true;
+} else if (ref) {
+	missing = true;
+}
+
+const money = (minor: number, currency: string) =>
+	new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(minor / 100);
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Your booking</title>
+	</head>
+	<body>
+		<main class="semics-booking" data-testid="booking-page">
+			<h1>Your booking</h1>
+			{notice && <p role="alert" data-testid="booking-notice" data-code={errorCode}>{notice}</p>}
+			{
+				booking ? (
+					<section data-testid="booking-details" data-status={booking.status}>
+						<p>
+							Reference <strong data-testid="booking-ref">{booking.bookingRef}</strong>
+						</p>
+						<p data-testid="booking-status">{cancelled ? "cancelled" : booking.status}</p>
+						<ul>
+							{booking.lines.map((line) => (
+								<li>{line.qty} x {line.ticketTypeId}</li>
+							))}
+						</ul>
+						<p>Total {money(booking.totals.totalMinor, booking.totals.currency)}</p>
+						{booking.canCancel && !cancelled && (
+							<form method="post" action={`/booking?ref=${ref}`}>
+								<input type="hidden" name="intent" value="cancel" />
+								<button type="submit">Cancel booking</button>
+							</form>
+						)}
+					</section>
+				) : missing ? (
+					<p data-testid="booking-missing">
+						We could not find that booking in this browser. Open the link from the device you booked with.
+					</p>
+				) : !notice ? (
+					<p data-testid="booking-empty">Add your booking reference to view it.</p>
+				) : null
+			}
+		</main>
+	</body>
+</html>

@@ -2,9 +2,11 @@
 	"extends": "./tsconfig.json",
 	"compilerOptions": {
 		"noEmit": false,
+		"allowImportingTsExtensions": false,
 		"declaration": true,
-		"outDir": "dist/ui",
-		"rootDir": "src/ui"
+		"rewriteRelativeImportExtensions": true,
+		"outDir": "dist/ts",
+		"rootDir": "src"
 	},
-	"include": ["src/ui/**/*"]
+	"include": ["src/ui/**/*", "src/integration/**/*"]
 }

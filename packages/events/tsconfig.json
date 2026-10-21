@@ -5,6 +5,7 @@
 		"moduleResolution": "bundler",
 		"strict": true,
 		"esModuleInterop": true,
+		"allowImportingTsExtensions": true,
 		"verbatimModuleSyntax": true,
 		"skipLibCheck": true,
 		"types": []

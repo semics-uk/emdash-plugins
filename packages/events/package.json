@@ -11,10 +11,16 @@
 		},
 		"./sandbox": "./dist/plugin.mjs",
 		"./ui": {
-			"import": "./dist/ui/index.js",
-			"types": "./dist/ui/index.d.ts"
+			"import": "./dist/ts/ui/index.js",
+			"types": "./dist/ts/ui/index.d.ts"
 		},
-		"./astro": "./src/astro/index.js"
+		"./integration": {
+			"import": "./dist/ts/integration/index.js",
+			"types": "./dist/ts/integration/index.d.ts"
+		},
+		"./astro": "./src/astro/index.js",
+		"./astro/checkout-endpoint": "./src/astro/checkout-endpoint.ts",
+		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro"
 	},
 	"files": [
 		"dist",
