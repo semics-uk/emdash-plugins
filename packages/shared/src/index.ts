@@ -12,6 +12,7 @@ export function sharedVersion(): string {
 export * from "./blockkit";
 export * from "./ics";
 export * from "./money";
+export * from "./pdf";
 export * from "./result";
 export * from "./template";
 export * from "./time";

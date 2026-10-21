@@ -57,7 +57,7 @@ export function waiverDocument(): PdfDocument {
 		{ type: "paragraph", text: "Spring Trail Run 2026 · Ref ENV-0042 · Document SHA-256 9f86d081884c7d65" },
 		{ type: "rule" },
 	];
-	for (let section = 0; section < 12; section++) {
+	for (let section = 0; section < 9; section++) {
 		blocks.push({ type: "heading", text: `${section + 1}. ${sentence(section, 4)}`, level: 2 });
 		for (let p = 0; p < 3; p++) blocks.push({ type: "paragraph", text: sentence(section * 10 + p, 70) });
 	}

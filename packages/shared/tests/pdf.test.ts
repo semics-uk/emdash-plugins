@@ -12,8 +12,8 @@ const MARGIN = 56;
 /** PLATFORM_BUDGET.cpuMs (testing/budget.ts needs the workerd sandbox, so it is not imported here; R27). */
 const LOCAL_CPU_CEILING_MS = 50;
 
-async function sha256(bytes: Uint8Array): Promise<string> {
-	const digest = await crypto.subtle.digest("SHA-256", bytes as Uint8Array<ArrayBuffer>);
+async function sha256(bytes: Uint8Array<ArrayBuffer>): Promise<string> {
+	const digest = await crypto.subtle.digest("SHA-256", bytes);
 	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
@@ -76,7 +76,9 @@ describe("T016 PDF writer: structure (ES-FR-07)", () => {
 		try {
 			const file = join(dir, "waiver.pdf");
 			writeFileSync(file, renderPdf(waiverDocument()));
-			expect(execFileSync("qpdf", ["--check", file], { encoding: "utf8" })).toMatch(/No syntax or stream encoding errors/);
+			expect(execFileSync("qpdf", ["--check", file], { encoding: "utf8" })).toMatch(
+				/No syntax or stream encoding errors/,
+			);
 		} finally {
 			rmSync(dir, { recursive: true, force: true });
 		}
@@ -93,7 +95,20 @@ describe("T016 PDF writer: structure (ES-FR-07)", () => {
 			page: { width: 300.123456, height: 400, margin: 20.000001 },
 			blocks: [
 				{ type: "spacer", height: 0.0000001 },
-				{ type: "signature", strokes: { w: 1, h: 1, strokes: [[[0, 0], [1e-9, -1e-9], [1, 1]]] } },
+				{
+					type: "signature",
+					strokes: {
+						w: 1,
+						h: 1,
+						strokes: [
+							[
+								[0, 0],
+								[1e-9, -1e-9],
+								[1, 1],
+							],
+						],
+					},
+				},
 			],
 		};
 		// The parser rejects exponent-form numbers and -0 in content streams.
@@ -112,7 +127,7 @@ describe("T016 PDF writer: text and wrapping (ES-FR-07)", () => {
 
 	it("measures with the Helvetica metrics", () => {
 		expect(measureText("Hello", 10)).toBeCloseTo(22.78, 2);
-		expect(measureText("Hello", 10, "bold")).toBeCloseTo(25, 2);
+		expect(measureText("Hello", 10, "bold")).toBeCloseTo(24.45, 2);
 		expect(measureText("Hello", 10, "italic")).toBe(measureText("Hello", 10));
 		expect(measureText("é", 1000)).toBe(556);
 	});
@@ -129,7 +144,12 @@ describe("T016 PDF writer: text and wrapping (ES-FR-07)", () => {
 		expect(extracted).toContain("crème brûlée");
 		// The over-long word is broken across lines but no character is lost.
 		expect(page.text.map((t) => t.text).join("")).toContain(longWord.slice(0, 20));
-		expect(page.text.map((t) => t.text).join("").replace(/\s/g, "")).toContain(longWord);
+		expect(
+			page.text
+				.map((t) => t.text)
+				.join("")
+				.replace(/\s/g, ""),
+		).toContain(longWord);
 		// Lines go down the page.
 		const ys = page.text.map((t) => t.y);
 		expect([...ys].sort((a, b) => b - a)).toEqual(ys);
@@ -200,13 +220,21 @@ describe("T016 PDF writer: text and wrapping (ES-FR-07)", () => {
 
 describe("T016 PDF writer: tables (ES-FR-07)", () => {
 	it("renders a header row, wraps cells within their columns and repeats the header on new pages", () => {
-		const rows = Array.from({ length: 80 }, (_, i) => [`2026-10-21 09:${i}`, "signed", `détail ${"x".repeat(i % 7)} `.repeat(6)]);
+		const rows = Array.from({ length: 80 }, (_, i) => [
+			`2026-10-21 09:${i}`,
+			"signed",
+			`détail ${"x".repeat(i % 7)} `.repeat(6),
+		]);
 		const pdf = parsePdf(
 			renderPdf({
 				blocks: [
 					{
 						type: "table",
-						columns: [{ header: "Time", width: 1 }, { header: "Event", width: 1 }, { header: "Détails", width: 3 }],
+						columns: [
+							{ header: "Time", width: 1 },
+							{ header: "Event", width: 1 },
+							{ header: "Détails", width: 3 },
+						],
 						rows,
 					},
 				],
@@ -230,7 +258,9 @@ describe("T016 PDF writer: tables (ES-FR-07)", () => {
 	it("splits a row taller than a page, pads short rows and defaults column widths", () => {
 		const tall = "word ".repeat(1500);
 		const pdf = parsePdf(
-			renderPdf({ blocks: [{ type: "table", columns: [{ header: "A" }, { header: "B" }], rows: [[tall], ["x", "y"]] }] }),
+			renderPdf({
+				blocks: [{ type: "table", columns: [{ header: "A" }, { header: "B" }], rows: [[tall], ["x", "y"]] }],
+			}),
 		);
 		expect(pdf.pages.length).toBeGreaterThan(1);
 		for (const page of pdf.pages) expectWithinMargins(page);
@@ -262,7 +292,18 @@ describe("T016 PDF writer: drawn signatures (ES-FR-07)", () => {
 						type: "signature",
 						width: 200,
 						height: 50,
-						strokes: { v: 1, w: 400, h: 100, strokes: [[{ x: 0, y: 0 }, { x: 400, y: 100 }], [[200, 50]]] },
+						strokes: {
+							v: 1,
+							w: 400,
+							h: 100,
+							strokes: [
+								[
+									{ x: 0, y: 0 },
+									{ x: 400, y: 100 },
+								],
+								[[200, 50]],
+							],
+						},
 					},
 				],
 			}),
@@ -289,7 +330,18 @@ describe("T016 PDF writer: drawn signatures (ES-FR-07)", () => {
 						strokes: {
 							w: 0,
 							h: Number.NaN,
-							strokes: [[], [[Number.NaN, 1], [1, Number.POSITIVE_INFINITY]], [[1, 2], [3, 4]], "bad" as never],
+							strokes: [
+								[],
+								[
+									[Number.NaN, 1],
+									[1, Number.POSITIVE_INFINITY],
+								],
+								[
+									[1, 2],
+									[3, 4],
+								],
+								"bad" as never,
+							],
 						},
 					},
 					{ type: "signature", strokes: { w: 10, h: 10, strokes: "nope" as never } },
@@ -324,5 +376,77 @@ describe("T016 PDF writer: budget (ES-NFR-01, Spike S5 local proxy)", () => {
 		}
 		samples.sort((a, b) => a - b);
 		expect(samples[2]).toBeLessThan(LOCAL_CPU_CEILING_MS);
+	});
+});
+
+describe("T016 PDF writer: input hardening (ES-FR-07)", () => {
+	it("writes non-ASCII metadata as UTF-16 and drops an invalid creation date", () => {
+		const pdf = parsePdf(
+			renderPdf({
+				info: {
+					title: "Zoë’s waiver",
+					author: "",
+					subject: "s",
+					keywords: "k",
+					creator: "c",
+					creationDate: new Date(Number.NaN),
+				},
+				blocks: [],
+			}),
+		);
+		expect(pdf.info).toContain("/Title <FEFF005A006F00EB201900730020007700610069007600650072>");
+		expect(pdf.info).not.toContain("/Author");
+		expect(pdf.info).toContain("/Subject (s) /Keywords (k) /Creator (c)");
+		expect(pdf.info).not.toContain("CreationDate");
+	});
+
+	it("accepts per-side margins and falls back when the page or margins are unusable", () => {
+		const custom = parsePdf(
+			renderPdf({ page: { margin: { left: 100, top: 30 } }, blocks: [{ type: "paragraph", text: "x" }] }),
+		);
+		expect(custom.pages[0]?.text[0]?.x).toBe(100);
+		const tiny = parsePdf(
+			renderPdf({ page: { width: 100, height: -5, margin: 60 }, blocks: [{ type: "paragraph", text: "y" }] }),
+		);
+		expect(tiny.pages[0]?.width).toBe(100);
+		expect(tiny.pages[0]?.height).toBe(A4.height);
+		expect(tiny.pages[0]?.text[0]?.x).toBe(14);
+	});
+
+	it("ignores unknown blocks, tolerates missing fields and pulls out-of-pad points onto the box edge", () => {
+		const pdf = parsePdf(
+			renderPdf({
+				blocks: [
+					null as never,
+					{ type: "nope" } as never,
+					{ type: "heading", text: 42 as never, level: 7 as never },
+					{ type: "paragraph", text: undefined as never, font: "bold", size: -1 },
+					{ type: "table", columns: [], rows: [] },
+					{ type: "table", columns: [{ header: "H" }], rows: ["bad" as never] },
+					{ type: "spacer", height: Number.NaN },
+					{
+						type: "signature",
+						width: 300,
+						height: 60,
+						strokes: {
+							w: 10,
+							h: 10,
+							strokes: [
+								[
+									[-5, -5],
+									[50, 50],
+								],
+							],
+						},
+					},
+				],
+			}),
+		);
+		const page = pdf.pages[0] as ParsedPage;
+		expect(page.text.map((t) => t.text)).toEqual(["42", "H"]);
+		const [from, to] = page.ops.filter((o) => o.op === "m" || o.op === "l").map((o) => o.operands as number[]);
+		expect(from?.[0]).toBe(MARGIN);
+		expect(to?.[0]).toBe(MARGIN + 60);
+		expect((from?.[1] as number) - (to?.[1] as number)).toBe(60);
 	});
 });
