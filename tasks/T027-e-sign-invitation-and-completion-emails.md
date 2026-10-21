@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Templates snapshot-tested
+- [ ] Emails go through the shared outbox (T015): declare `OUTBOX_COLLECTION` (add an `outbox` collection to the manifest), adapt storage to `OutboxStorage`, `drainOutbox` from the cron tick; delivery is at-least-once
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

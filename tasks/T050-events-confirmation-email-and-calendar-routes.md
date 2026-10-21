@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Snapshots in 3 zones
+- [ ] Emails go through the shared outbox (T015): declare `OUTBOX_COLLECTION`, adapt `ctx.storage.outbox` to `OutboxStorage`, `drainOutbox` from the cron tick; delivery is at-least-once
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

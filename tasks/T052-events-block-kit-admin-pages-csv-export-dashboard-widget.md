@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Within budget
 - [ ] Settings page calls `validateMapping` (`src/domain/mapping.ts`) with the `schema:read` collections and renders its `banner`; shows the T040 `encryptionKeyStatus` banner too
 - [ ] Admin pages built with the `@semics-tech/shared` Block Kit builders (T014), not raw JSON; banners via `notices([...])`
+- [ ] The editor submits only changed items to `config/save` (bulk edits hit `TOO_MANY_CHANGES` beyond 8 calls, T044)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
