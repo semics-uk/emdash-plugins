@@ -50,6 +50,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   outbox row marks the side effects done, so a replay writes nothing) and steps a paid one to
   `awaiting_payment` through a `PaymentStep` seam that Free leaves empty (`PAYMENT_FAILED`). The
   status graph and next-step rule live in `src/domain/booking-state.ts`.
+- Booking status and cancel (`src/routes/booking.ts`, T049): `{ bookingRef, accessToken }` in the POST
+  body; unknown ref and wrong token are the same `NOT_FOUND`. Cancel claims (`releaseClaimedAt`),
+  releases seats, then moves to `cancelled`, then queues `cancel-<bookingId>`. Held bookings may always
+  be abandoned; confirmed ones until `cancelCutoffHours` (setting, default 24) before the occurrence
+  start (`src/domain/cancel-policy.ts`), else `CANCEL_NOT_ALLOWED`. Counters over the budget are left
+  to drift repair.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.

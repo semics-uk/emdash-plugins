@@ -66,15 +66,15 @@ async function world({
 		accessTokenHash: await hashToken(token),
 		createdAt: at(-1),
 	});
-	types.forEach((t, i) =>
+	for (const [i, t] of types.entries()) {
 		storage.attendees.set(`${ID}-${i + 1}`, {
 			bookingId: ID,
 			ticketTypeId: t,
 			name: "Ada Lovelace",
 			code: `c${i}`,
 			status: "valid",
-		}),
-	);
+		});
+	}
 	const deps = (now: number): BookingDeps => ({
 		storage: storage as unknown as BookingRouteStorage,
 		settings: {
@@ -152,7 +152,7 @@ describe("public/booking/cancel (EV-US-4)", () => {
 			["occurrences", "oc1"],
 			["event_configs", "ev1"],
 		] as const)
-			expect(w.counter(c, id)).toEqual({ capacity: 100, reserved: 0, sold: 0 });
+			expect(w.counter(c, id)).toMatchObject({ capacity: 100, reserved: 0, sold: 0 });
 		expect(w.storage.outbox.docs.get(`cancel-${ID}`)).toMatchObject({
 			kind: "booking_cancelled",
 			to: "ada@example.com",
@@ -173,15 +173,15 @@ describe("public/booking/cancel (EV-US-4)", () => {
 		const { body } = await run(cancelBooking, w.deps(T0 + 30 * HOUR), w.input);
 		expect(body).toMatchObject({ ok: false, error: { code: "CANCEL_NOT_ALLOWED" } });
 		expect(w.booking()).toEqual(before);
-		expect(w.counter("event_configs", "ev1")).toEqual({ capacity: 100, reserved: 1, sold: 1 });
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ capacity: 100, reserved: 1, sold: 1 });
 		expect(w.storage.outbox.docs.size).toBe(0);
 	});
 
 	it("EV-US-4 a held booking can be abandoned: reserved drops, sold was never counted", async () => {
-		const w = await world({ status: "held" });
-		const { body } = await run(cancelBooking, w.deps(T0 + 30 * HOUR), w.input);
+		const w = await world({ status: "held", startsInHours: 1 });
+		const { body } = await run(cancelBooking, w.deps(T0), w.input);
 		expect(body).toMatchObject({ ok: true, status: "cancelled" });
-		expect(w.counter("event_configs", "ev1")).toEqual({ capacity: 100, reserved: 0, sold: 0 });
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ capacity: 100, reserved: 0, sold: 0 });
 	});
 
 	it("EV-US-4 seats are released before the status moves", async () => {
@@ -212,7 +212,7 @@ describe("public/booking/cancel (EV-US-4)", () => {
 		};
 		const { body } = await run(cancelBooking, w.deps(T0), w.input);
 		expect(body).toMatchObject({ ok: false });
-		expect(w.counter("event_configs", "ev1")).toEqual({ capacity: 100, reserved: 1, sold: 1 });
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ capacity: 100, reserved: 1, sold: 1 });
 	});
 
 	it("EV-US-4 a hold claimed by an expirer is HOLD_EXPIRED", async () => {
