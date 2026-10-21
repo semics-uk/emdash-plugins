@@ -1,5 +1,5 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": { "types": [] },
-	"include": ["src/**/*", "tests/**/*", "vitest.config.ts"]
+	"include": ["src/**/*", "testing/**/*", "tests/**/*", "vitest.config.ts"]
 }

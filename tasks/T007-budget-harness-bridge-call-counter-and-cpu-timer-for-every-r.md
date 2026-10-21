@@ -4,7 +4,7 @@ title: "Budget harness: bridge-call counter and CPU timer for every route test"
 phase: 0
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T003]

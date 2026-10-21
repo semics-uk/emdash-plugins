@@ -6,7 +6,8 @@
 	"description": "Pure helpers shared by the semics EmDash plugins. Source-only: the plugin bundler inlines it.",
 	"license": "MIT",
 	"exports": {
-		".": "./src/index.ts"
+		".": "./src/index.ts",
+		"./testing": "./testing/budget.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",
@@ -15,7 +16,10 @@
 		"verify": "pnpm run typecheck && pnpm run test:coverage"
 	},
 	"devDependencies": {
+		"@emdash-cms/plugin-cli": "0.13.3",
+		"@emdash-cms/plugin-test": "0.2.8",
 		"@vitest/coverage-v8": "4.1.11",
+		"emdash": "1.2.0",
 		"typescript": "^5.9.0",
 		"vitest": "^4.1.0"
 	}
