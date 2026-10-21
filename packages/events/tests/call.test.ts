@@ -118,6 +118,30 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 			via: "fetch",
 		});
 	});
+	it("EU-NFR-03 treats a route's own { ok: false } answer as an error, keeping its validation issues", async () => {
+		// Sandboxed routes answer refusals in the body; the host wraps that in a success envelope.
+		const handler = vi.fn<Handler>(async () => ({
+			success: true,
+			data: {
+				ok: false,
+				error: { code: "BAD_REQUEST", message: "Bad request" },
+				issues: [{ path: "buyer.email", code: "invalid_format" }],
+			},
+		}));
+
+		const result = await callPublicRoute({ locals: localsWith(handler), url }, { method: "POST", path: "public/x" });
+
+		expect(result).toEqual({
+			ok: false,
+			error: {
+				code: "BAD_REQUEST",
+				message: "Bad request",
+				issues: [{ path: "buyer.email", code: "invalid_format" }],
+			},
+			via: "in-process",
+		});
+	});
+
 	it("refuses to put token-like fields in a GET query string (R10)", async () => {
 		const handler = vi.fn<Handler>(async () => ({ success: true, data: {} }));
 		for (const key of ["token", "accessToken", "receipt", "secret", "t"]) {

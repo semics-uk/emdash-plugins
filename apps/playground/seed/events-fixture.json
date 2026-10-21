@@ -1,0 +1,10 @@
+{
+	"london-meetup": {
+		"currency": "GBP",
+		"capacity": 100,
+		"ticketTypes": {
+			"tt_london_general": { "name": "General admission", "priceMinor": 0, "capacity": 50, "maxPerOrder": 6 },
+			"tt_london_helper": { "name": "Volunteer <helper>", "priceMinor": 0, "capacity": 5, "maxPerOrder": 1 }
+		}
+	}
+}

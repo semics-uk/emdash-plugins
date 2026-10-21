@@ -119,4 +119,91 @@ describe("handleCheckoutForm (EU-FR-05, EU-FR-06)", () => {
 		expect(out).toEqual({ location: "/booking?error=BAD_REQUEST" });
 		expect(empty.seen).toHaveLength(0);
 	});
+
+	it("EU-FR-05 a refusal the route answers in its body is a refusal, not a booking", async () => {
+		// Sandboxed routes answer `{ ok: false }` inside a success envelope.
+		const h = host({ success: true, data: { ok: false, error: { code: "SOLD_OUT", message: "Sold out" } } }, done);
+		const out = await handleCheckoutForm({ locals: h.locals, url }, form(goodForm), {});
+		expect(out).toEqual({ location: "/booking?error=SOLD_OUT" });
+		expect(h.seen).toHaveLength(1);
+	});
+
+	describe("returning to the widget (EU-FR-04, EU-NFR-03)", () => {
+		const back = { ...goodForm, returnTo: "/events/spring?x=1" };
+
+		it("EU-NFR-03 sends field errors back to the widget without calling the core", async () => {
+			const h = host(reserved, done);
+			const out = await handleCheckoutForm(
+				{ locals: h.locals, url },
+				form({ ...back, name: "  ", email: "nope", "qty:general": "0" }),
+				{},
+			);
+			const loc = new URL(out.location, url);
+			expect(loc.pathname).toBe("/events/spring");
+			expect(loc.searchParams.get("x")).toBe("1");
+			expect(loc.searchParams.get("booking_error")).toBe("BAD_REQUEST");
+			expect(loc.searchParams.get("booking_fields")).toBe("tickets,name,email");
+			expect(loc.searchParams.get("booking_event")).toBe("ev1");
+			expect(out.cookie).toBeUndefined();
+			expect(h.seen).toHaveLength(0);
+			// Nothing the buyer typed goes into the URL.
+			expect(out.location).not.toContain("nope");
+		});
+
+		it("EU-NFR-03 maps reserve's validation issues to the widget's fields", async () => {
+			const h = host(
+				{
+					success: true,
+					data: {
+						ok: false,
+						error: { code: "BAD_REQUEST", message: "Bad request" },
+						issues: [{ path: "buyer.email", code: "invalid_format" }],
+					},
+				},
+				done,
+			);
+			const out = await handleCheckoutForm({ locals: h.locals, url }, form(back), {});
+			const loc = new URL(out.location, url);
+			expect(loc.searchParams.get("booking_error")).toBe("BAD_REQUEST");
+			expect(loc.searchParams.get("booking_fields")).toBe("email");
+		});
+
+		it("EU-FR-04 sends a refusal made before any booking exists back to the widget with its code", async () => {
+			const h = host({ success: false, error: { code: "SOLD_OUT", message: "Sold out" } }, done);
+			const out = await handleCheckoutForm({ locals: h.locals, url }, form(back), {});
+			const loc = new URL(out.location, url);
+			expect(loc.pathname).toBe("/events/spring");
+			expect(loc.searchParams.get("booking_error")).toBe("SOLD_OUT");
+			expect(loc.searchParams.has("booking_fields")).toBe(false);
+			expect(out.cookie).toBeUndefined();
+			expect(h.seen).toHaveLength(1);
+		});
+
+		it("EU-NFR-05 ignores a return path that leaves the site", async () => {
+			const h = host({ success: false, error: { code: "SOLD_OUT", message: "Sold out" } }, done);
+			const out = await handleCheckoutForm(
+				{ locals: h.locals, url },
+				form({ ...goodForm, returnTo: "https://evil.example/x" }),
+				{},
+			);
+			expect(out).toEqual({ location: "/booking?error=SOLD_OUT" });
+		});
+
+		it("EU-FR-04 still finishes on the booking page once the booking exists", async () => {
+			const h = host(reserved, done);
+			const out = await handleCheckoutForm({ locals: h.locals, url }, form(back), {});
+			expect(out.location).toBe("/booking?ref=ABCDEFGHJK");
+			expect(out.cookie?.value).toBe(TOKEN);
+		});
+
+		it("EU-FR-04 forwards the form's idempotency key unchanged, so a resubmit reuses it", async () => {
+			const first = host(reserved, done);
+			const second = host(reserved, done);
+			await handleCheckoutForm({ locals: first.locals, url }, form(back), {});
+			await handleCheckoutForm({ locals: second.locals, url }, form(back), {});
+			const keyOf = (h: typeof first) => (h.seen[0]?.body as { idempotencyKey: string }).idempotencyKey;
+			expect(keyOf(first)).toBe(KEY);
+			expect(keyOf(second)).toBe(KEY);
+		});
+	});
 });

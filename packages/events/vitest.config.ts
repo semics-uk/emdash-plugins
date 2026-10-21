@@ -31,6 +31,7 @@ export default defineConfig({
 						"tests/inventory.test.ts",
 						"tests/holds.test.ts",
 						"tests/manifest.test.ts",
+						"tests/ui/*.build.test.ts",
 						"tests/fixtures/**",
 					],
 				},
@@ -54,6 +55,9 @@ export default defineConfig({
 			},
 			{
 				test: { name: "manifest", environment: "node", testTimeout, include: ["tests/manifest.test.ts"] },
+			},
+			{
+				test: { name: "ui-build", environment: "node", include: ["tests/ui/*.build.test.ts"] },
 			},
 			{
 				test: {
