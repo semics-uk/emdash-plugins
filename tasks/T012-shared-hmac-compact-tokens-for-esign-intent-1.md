@@ -4,7 +4,7 @@ title: "Shared: HMAC compact tokens for esign-intent/1"
 phase: 1
 package: shared
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T008, T011]
