@@ -27,10 +27,17 @@ export interface OutboxMessage {
 	readonly html?: string;
 }
 
+/** What a `sent` or `failed` row keeps of its message: the body, HTML and any payload are dropped (R32). */
+export interface ScrubbedMessage {
+	readonly to: string;
+	readonly subject: string;
+	readonly kind?: string;
+}
+
 export type OutboxStatus = "pending" | "sent" | "failed";
 
 export interface OutboxRecord {
-	readonly message: OutboxMessage;
+	readonly message: OutboxMessage | ScrubbedMessage;
 	readonly status: OutboxStatus;
 	readonly attempts: number;
 	readonly nextAttemptAt: number;
@@ -50,6 +57,15 @@ export interface OutboxStorage {
 
 export interface OutboxEmail {
 	send(message: OutboxMessage): Promise<unknown>;
+}
+
+/**
+ * Keeps only `to`, `subject` and `kind`. Queued bodies can carry credentials (E-sign's clear-text
+ * signing token), so a row that is done is rewritten without them in the same `putMany` (R32).
+ */
+export function scrubMessage(message: OutboxMessage | ScrubbedMessage): ScrubbedMessage {
+	const kind = (message as ScrubbedMessage).kind;
+	return { to: message.to, subject: message.subject, ...(typeof kind === "string" ? { kind } : {}) };
 }
 
 export async function enqueueEmail(
@@ -97,14 +113,15 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 	for (const { id, data } of items.slice(0, cap)) {
 		const attempts = data.attempts + 1;
 		try {
-			await opts.email.send(data.message);
+			await opts.email.send(data.message as OutboxMessage);
 			sent++;
-			updates.push({ id, data: { ...data, status: "sent", attempts, sentAt: opts.now } });
+			const message = scrubMessage(data.message);
+			updates.push({ id, data: { ...data, message, status: "sent", attempts, sentAt: opts.now } });
 		} catch (e) {
 			const lastError = (e instanceof Error ? e.message : String(e)).slice(0, 300);
 			if (attempts >= OUTBOX_MAX_ATTEMPTS) {
 				gaveUp++;
-				updates.push({ id, data: { ...data, status: "failed", attempts, lastError } });
+				updates.push({ id, data: { ...data, message: scrubMessage(data.message), status: "failed", attempts, lastError } });
 			} else {
 				failed++;
 				updates.push({ id, data: { ...data, attempts, lastError, nextAttemptAt: opts.now + backoffMs(attempts) } });
