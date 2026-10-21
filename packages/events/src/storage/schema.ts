@@ -135,6 +135,10 @@ export interface BookingDoc {
 	status: BookingStatus;
 	holdExpiresAt?: string;
 	holdCeilingAt?: string;
+	/** Set by the expirer that claimed this hold (T045); writers of held bookings guard on it being `null`. */
+	releaseClaimedAt?: string | null;
+	/** When the hold expired. */
+	expiredAt?: string;
 	buyer: { name: string; email: string };
 	/** The buyer's email, denormalised to the top level because indexes read top-level fields. */
 	email: string;

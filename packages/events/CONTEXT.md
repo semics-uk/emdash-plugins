@@ -33,7 +33,11 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   earlier steps on a miss (R3). Only `src/domain/inventory.ts` writes counters.
 - Holds: 15 min free, 35 min paid (Stripe's 30-min minimum), extended per step to a 60-min ceiling.
   `sweep-holds` (every 5 min) is the source of truth; one-shot `hold-<ref>` cron tasks only accelerate
-  (max 10 due tasks per tick).
+  (max 10 due tasks per tick). `src/domain/holds.ts` (`startHold`, `extendHold`, expiry) and
+  `src/cron/sweep.ts` (T045). Expiry claims a booking by setting `releaseClaimedAt`, releases, then
+  moves it to `expired`; any other writer that changes a held booking (confirm, cancel, extend,
+  draft → held) must guard its `updateIf` on `releaseClaimedAt: null` (and the status it read), and
+  treat a miss as "hold lapsed". Checkout schedules the accelerator with `scheduleHoldTask`.
 - Checkout is two calls: `public/checkout/reserve` then `public/checkout/continue`, each ≤ 10 bridge
   calls (assert with the T007 budget harness).
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses

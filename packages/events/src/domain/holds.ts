@@ -99,9 +99,7 @@ export function stepTarget(now: number, { paid }: { paid: boolean }, settings: H
 }
 
 /** The hold fields of a booking, plus the expiry claim (absent and `null` both mean unclaimed). */
-export type HoldFields = Pick<BookingDoc, "status" | "holdExpiresAt" | "holdCeilingAt"> & {
-	releaseClaimedAt?: string | null;
-};
+export type HoldFields = Pick<BookingDoc, "status" | "holdExpiresAt" | "holdCeilingAt" | "releaseClaimedAt">;
 
 export type ExtendError = { code: "NOT_HELD" } | { code: "HOLD_LAPSED" };
 

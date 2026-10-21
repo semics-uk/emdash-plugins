@@ -138,7 +138,8 @@ export async function sweepHolds({
 	}
 	const outcomes = await expireBookings(storage, plan.planned, now);
 	calls += expiryCalls(plan.planned) + extraCalls(outcomes, plan.planned);
-	state.dirty = addDirty(state.dirty ?? [], dirtyEvents(outcomes));
+	const uncertain = dirtyEvents(outcomes);
+	if (uncertain.length > 0) state.dirty = addDirty(state.dirty ?? [], uncertain);
 	if (continued && cron) {
 		await cron.schedule(SWEEP_MORE_TASK, { schedule: iso(now) });
 		calls++;
@@ -179,6 +180,7 @@ export async function sweepHolds({
 	}
 
 	if (!state.repair) delete state.repair;
+	if (state.dirty?.length === 0) delete state.dirty;
 	if (JSON.stringify(state) !== before) {
 		await kv.compareAndSet(SWEEP_STATE_KEY, stored?.revision ?? null, state).catch(() => undefined);
 		calls++;
@@ -215,7 +217,7 @@ export async function expireHoldTask(
 	{ storage, kv, cron, now }: SweepDeps,
 	bookingId: string,
 ): Promise<HoldTaskResult> {
-	const booking = (await storage.bookings.get(bookingId)) as (BookingDoc & { releaseClaimedAt?: string | null }) | null;
+	const booking = (await storage.bookings.get(bookingId)) as BookingDoc | null;
 	if (!booking) return "ignored";
 	if (!expiryAction(booking, now)) {
 		const expires = Date.parse(booking.holdExpiresAt ?? "");
