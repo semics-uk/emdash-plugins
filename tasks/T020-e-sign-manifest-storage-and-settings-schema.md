@@ -4,7 +4,7 @@ title: "E-sign: manifest, storage and settings schema"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T003, T010]

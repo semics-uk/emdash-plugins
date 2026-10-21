@@ -3,11 +3,13 @@ import { configDefaults, defineConfig } from "vitest/config";
 import { coverageConfig } from "../../vitest.coverage.mjs";
 
 const sharedFixture = "tests/fixtures/shared-plugin";
+const storageFixture = "tests/fixtures/storage-probe";
 // Cold workerd starts and plugin builds are slow when several packages verify in parallel.
 const testTimeout = 120_000;
 
-// Three projects: the real plugin in workerd; a test-only fixture plugin that imports
-// @semics-tech/shared (host proof); and a plain Node project that checks build output.
+// Four projects: the real plugin in workerd; a test-only fixture plugin that imports
+// @semics-tech/shared (host proof); a fixture that shares the real manifest and probes storage
+// indexes and the network allow-list; and a plain Node project that checks build output.
 export default defineConfig({
 	test: {
 		coverage: coverageConfig(),
@@ -17,12 +19,21 @@ export default defineConfig({
 				test: {
 					name: "core",
 					testTimeout,
-					exclude: [...configDefaults.exclude, "tests/shared-bundle*.test.ts", "tests/fixtures/**"],
+					exclude: [
+						...configDefaults.exclude,
+						"tests/shared-bundle*.test.ts",
+						"tests/storage-host.test.ts",
+						"tests/fixtures/**",
+					],
 				},
 			},
 			{
 				plugins: [emdashPluginTest({ dir: sharedFixture })],
 				test: { name: "shared-host", testTimeout, include: ["tests/shared-bundle.test.ts"] },
+			},
+			{
+				plugins: [emdashPluginTest({ dir: storageFixture })],
+				test: { name: "storage-host", testTimeout, include: ["tests/storage-host.test.ts"] },
 			},
 			{
 				test: {
