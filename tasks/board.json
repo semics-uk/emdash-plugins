@@ -1182,7 +1182,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -1201,7 +1201,7 @@
 				"T065",
 				"T077"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T056": {
 			"file": "T056-events-end-to-end-and-concurrency-proof.md",
@@ -2265,12 +2265,12 @@
 			"T050",
 			"T051",
 			"T052",
-			"T055",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T027"
+			"T027",
+			"T055"
 		],
 		"review": [],
 		"done": [

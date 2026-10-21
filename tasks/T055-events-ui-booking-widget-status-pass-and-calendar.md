@@ -4,7 +4,7 @@ title: "Events UI: booking widget, status, pass and calendar"
 phase: 2
 package: events
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: L
 depends_on: [T053, T047, T048, T049]
