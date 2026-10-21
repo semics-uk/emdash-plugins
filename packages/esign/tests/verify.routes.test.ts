@@ -24,12 +24,6 @@ const TOKEN = "t".repeat(43);
 
 type Body = Record<string, unknown> & { ok: boolean; error?: { code: string } };
 
-interface Raw {
-	status: number;
-	headers: Array<[string, string]>;
-	body: { kind: "bytes" | "text"; value: Uint8Array | string } | null;
-}
-
 interface Sent {
 	budget: BudgetedHost;
 	id: string;
