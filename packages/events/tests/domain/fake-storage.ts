@@ -47,6 +47,16 @@ export class FakeCollection {
 		return this.docs.get(id) ?? null;
 	}
 
+	async getMany(ids: string[]) {
+		meter.calls++;
+		return new Map(ids.filter((id) => this.docs.has(id)).map((id) => [id, this.docs.get(id)] as const));
+	}
+
+	async deleteMany(ids: string[]) {
+		meter.calls++;
+		return ids.filter((id) => this.docs.delete(id)).length;
+	}
+
 	async query(options: {
 		where?: Record<string, unknown>;
 		orderBy?: Record<string, "asc" | "desc">;
