@@ -85,8 +85,14 @@ describe("sweep-holds on D1 (EV-FR-06, EV-US-2, R1, R22, R23)", () => {
 		await seedEvent("e1", 7);
 		await seedEvent("e2", 5);
 		await seed("bookings", [
-			...Array.from({ length: 7 }, (_, n) => ({ id: `a${n}`, data: bookingDoc("e1", n, { holdExpiresAt: at(-30 + n) }) })),
-			...Array.from({ length: 5 }, (_, n) => ({ id: `b${n}`, data: bookingDoc("e2", n, { holdExpiresAt: at(-20 + n) }) })),
+			...Array.from({ length: 7 }, (_, n) => ({
+				id: `a${n}`,
+				data: bookingDoc("e1", n, { holdExpiresAt: at(-30 + n) }),
+			})),
+			...Array.from({ length: 5 }, (_, n) => ({
+				id: `b${n}`,
+				data: bookingDoc("e2", n, { holdExpiresAt: at(-20 + n) }),
+			})),
 		]);
 		const budget = withBudget(host);
 		let ticks = 0;
@@ -139,7 +145,9 @@ describe("sweep-holds on D1 (EV-FR-06, EV-US-2, R1, R22, R23)", () => {
 		const budget = withBudget(host);
 		// ≤ 16 in flight: every one-shot, plus sweeps, all at once.
 		const results = await Promise.all([
-			...Array.from({ length: 12 }, (_, n) => budget.invokeRoute("probe/hold-task", { bookingId: `r${n}`, now: at(0) })),
+			...Array.from({ length: 12 }, (_, n) =>
+				budget.invokeRoute("probe/hold-task", { bookingId: `r${n}`, now: at(0) }),
+			),
 			budget.invokeRoute("probe/sweep", { now: at(0) }),
 			budget.invokeRoute("probe/sweep", { now: at(0) }),
 		]);

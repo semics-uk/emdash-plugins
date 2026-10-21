@@ -107,7 +107,8 @@ export class FakeKv {
 
 	async getVersioned<T>(key: string) {
 		meter.calls++;
-		return (this.values.get(key) as { value: T; revision: string } | undefined) ?? null;
+		const v = this.values.get(key);
+		return v ? { value: structuredClone(v.value) as T, revision: v.revision } : null;
 	}
 
 	async compareAndSet(key: string, expected: string | null, value: unknown) {

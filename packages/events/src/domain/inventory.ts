@@ -215,12 +215,24 @@ export function release(storage: CounterStorage, refs: CounterRef[], { sold = fa
  * Returns the refs it could not restore.
  */
 export function restore(storage: CounterStorage, refs: CounterRef[]): Promise<CounterRef[]> {
-	throw new Error("T045: not implemented");
+	return eachRef(refs, (ref) =>
+		storage[ref.collection].updateIf(ref.id, {
+			where: { reserved: { gte: 0 } },
+			delta: { reserved: { inc: ref.qty } },
+		}),
+	);
 }
 
 /** Sum refs that name the same counted document (one guarded write each, R22). Pure. */
 export function mergeRefs(refs: Iterable<CounterRef>): CounterRef[] {
-	throw new Error("T045: not implemented");
+	const merged = new Map<string, CounterRef>();
+	for (const ref of refs) {
+		const key = keyOf(ref.collection, ref.id);
+		const m = merged.get(key);
+		if (m) m.qty += ref.qty;
+		else merged.set(key, strip(ref));
+	}
+	return [...merged.values()];
 }
 
 /** Count a booking's reserved seats as sold (on confirm). Returns the refs it could not count. */
@@ -421,7 +433,64 @@ export async function repairStep(
 	now: number,
 	maxCalls: number,
 ): Promise<RepairStepResult> {
-	throw new Error("T045: not implemented");
+	let calls = 0;
+	let j: RepairJob = { ...job };
+	const result = (next: RepairJob | null, fixed = { repaired: [] as DriftFix[], conflicted: [] as DriftFix[] }) => ({
+		job: next,
+		calls,
+		...fixed,
+	});
+
+	if (!j.snapshot && !j.fixes) {
+		if (maxCalls < REPAIR_SNAPSHOT_CALLS) return result(j);
+		const where = { eventId: j.eventId };
+		const [config, tts, occs] = await Promise.all([
+			storage.event_configs.get(j.eventId),
+			storage.ticket_types.query({ where, limit: 100 }),
+			storage.occurrences.query({ where, limit: 100 }),
+		]);
+		calls += REPAIR_SNAPSHOT_CALLS;
+		if (!config) return result(null);
+		j = {
+			eventId: j.eventId,
+			at: now,
+			snapshot: [
+				snap("event_configs", j.eventId, config),
+				...tts.items.map((i) => snap("ticket_types", i.id, i.data)),
+				...occs.items.map((i) => snap("occurrences", i.id, i.data)),
+			],
+			tally: [],
+		};
+	}
+
+	while (!j.fixes) {
+		if (calls >= maxCalls) return result(j);
+		const page = await storage.bookings.query({
+			where: { eventId: j.eventId, status: { in: [...LIVE_BOOKING_STATUSES, "draft"] } },
+			limit: 100,
+			...(j.cursor ? { cursor: j.cursor } : {}),
+		});
+		calls++;
+		const tally: Tally = new Map(j.tally ?? []);
+		const pageTally = tallyBookings(
+			page.items.map((i) => i.data as BookingLike),
+			j.at ?? now,
+		);
+		for (const [key, t] of pageTally) {
+			const acc = tally.get(key) ?? { reserved: 0, sold: 0 };
+			tally.set(key, { reserved: acc.reserved + t.reserved, sold: acc.sold + t.sold });
+		}
+		j =
+			page.hasMore && page.cursor
+				? { ...j, tally: [...tally], cursor: page.cursor }
+				: { eventId: j.eventId, fixes: planDriftRepair(j.snapshot ?? [], tally) };
+	}
+
+	const writable = j.fixes.slice(0, Math.max(0, maxCalls - calls));
+	const rest = j.fixes.slice(writable.length);
+	const fixed = await applyDriftRepair(storage, writable);
+	calls += writable.length;
+	return result(rest.length > 0 ? { eventId: j.eventId, fixes: rest } : null, fixed);
 }
 
 // --- admin edits of counted documents (config/save) ------------------------------------------------

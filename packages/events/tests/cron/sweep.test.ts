@@ -140,7 +140,7 @@ describe("sweep-holds (EV-FR-06, R22, R23)", () => {
 		};
 		const r = await sweepHolds(w.deps(T0 + 10 * MIN));
 		expect(r.conflicted).toBeGreaterThan(0);
-		expect((w.kv.values.get(SWEEP_STATE_KEY)?.value as SweepState).dirty).toContain("e2");
+		expect((w.kv.values.get(SWEEP_STATE_KEY)?.value as SweepState | undefined)?.dirty).toContain("e2");
 	});
 
 	it("R23 an idle sweep with nothing to sell reads and stops; without a cron it never continues", async () => {
@@ -176,7 +176,7 @@ describe("hold-<ref> one-shots (EV-FR-06, R23)", () => {
 		expect(await expireHoldTask(w.deps(T0, { cron: undefined }), "b1")).toBe("ignored");
 		w.storage.bookings.set("b2", booking("e1", 2, { releaseClaimedAt: at(-5) }));
 		expect(await expireHoldTask(w.deps(T0), "b2")).toBe("closed");
-		expect((w.kv.values.get(SWEEP_STATE_KEY)?.value as SweepState).dirty).toEqual(["e1"]);
+		expect((w.kv.values.get(SWEEP_STATE_KEY)?.value as SweepState | undefined)?.dirty).toEqual(["e1"]);
 	});
 
 	it("EV-FR-06 the cron hook dispatches by name; activation schedules the */5 sweeper", async () => {

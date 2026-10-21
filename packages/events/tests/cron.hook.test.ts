@@ -19,7 +19,7 @@ describe("sweep-holds in the shipped plugin (EV-FR-06, R23)", () => {
 		await runtime.actions.plugin.activate();
 		const tasks = await runtime.inspect.scheduledTasks();
 		expect(tasks).toEqual(
-			expect.arrayContaining([expect.objectContaining({ task_name: "sweep-holds", schedule: "*/5 * * * *" })]),
+			expect.arrayContaining([expect.objectContaining({ name: "sweep-holds", schedule: "*/5 * * * *" })]),
 		);
 	});
 

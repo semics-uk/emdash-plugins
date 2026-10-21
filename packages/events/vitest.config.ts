@@ -45,7 +45,12 @@ export default defineConfig({
 			},
 			{
 				plugins: [emdashPluginTest({ dir: inventoryFixture })],
-				test: { name: "inventory", testTimeout, hookTimeout: testTimeout, include: ["tests/inventory.test.ts", "tests/holds.test.ts"] },
+				test: {
+					name: "inventory",
+					testTimeout,
+					hookTimeout: testTimeout,
+					include: ["tests/inventory.test.ts", "tests/holds.test.ts"],
+				},
 			},
 			{
 				test: { name: "manifest", environment: "node", testTimeout, include: ["tests/manifest.test.ts"] },

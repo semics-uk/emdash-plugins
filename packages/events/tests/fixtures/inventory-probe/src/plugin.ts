@@ -1,5 +1,6 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
-
+import { expireHoldTask, type SweepDeps, type SweepStorage, sweepHolds } from "../../../../src/cron/sweep";
+import { extendHold, type HoldFields } from "../../../../src/domain/holds";
 import {
 	type CounterStorage,
 	planReservation,
@@ -7,8 +8,6 @@ import {
 	reserve,
 	type UpdateIfArgsLike,
 } from "../../../../src/domain/inventory";
-import { expireHoldTask, type SweepDeps, type SweepStorage, sweepHolds } from "../../../../src/cron/sweep";
-import { extendHold, type HoldFields } from "../../../../src/domain/holds";
 import { CONFIG_ROUTES, type ConfigStorage, saveConfig } from "../../../../src/routes/config";
 
 const sweepDeps = (ctx: PluginContext, i: Record<string, unknown>): SweepDeps => ({
@@ -121,7 +120,10 @@ const plugin: SandboxedPlugin = {
 		"probe/sweep": {
 			handler: async (r, ctx) => {
 				const i = input(r);
-				return sweepHolds({ ...sweepDeps(ctx, i), ...(typeof i.maxCalls === "number" ? { maxCalls: i.maxCalls } : {}) });
+				return sweepHolds({
+					...sweepDeps(ctx, i),
+					...(typeof i.maxCalls === "number" ? { maxCalls: i.maxCalls } : {}),
+				});
 			},
 		},
 		"probe/hold-task": {

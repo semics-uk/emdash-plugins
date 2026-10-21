@@ -105,7 +105,9 @@ describe("extensions (EV-US-2, R1)", () => {
 		expect(planExtension({ ...base, releaseClaimedAt: at(0) }, T0, T0 + MIN)).toMatchObject({
 			error: { code: "HOLD_LAPSED" },
 		});
-		expect(planExtension({ ...base, status: "confirmed" }, T0, T0 + MIN)).toMatchObject({ error: { code: "NOT_HELD" } });
+		expect(planExtension({ ...base, status: "confirmed" }, T0, T0 + MIN)).toMatchObject({
+			error: { code: "NOT_HELD" },
+		});
 		expect(planExtension({ ...base, holdExpiresAt: undefined }, T0, T0 + MIN)).toMatchObject({
 			error: { code: "NOT_HELD" },
 		});
@@ -172,7 +174,11 @@ describe("expiry (EV-FR-06, R3)", () => {
 	it("EV-FR-06 expires a batch: claims, one release per document, moves", async () => {
 		const s = seededStore(3);
 		for (let n = 0; n < 3; n++) s.bookings.set(`b${n}`, held(n));
-		const { planned } = planExpiries([...s.bookings.docs].map(([id, data]) => ({ id, data })), T0, 8);
+		const { planned } = planExpiries(
+			[...s.bookings.docs].map(([id, data]) => ({ id, data })),
+			T0,
+			8,
+		);
 		meter.calls = 0;
 		const out = await expireBookings(s, planned, T0);
 		expect(meter.calls).toBe(expiryCalls(planned));
@@ -185,7 +191,8 @@ describe("expiry (EV-FR-06, R3)", () => {
 
 	it("R3 two expirers racing on the same holds release each seat once", async () => {
 		const s = seededStore(4);
-		for (let n = 0; n < 2; n++) s.bookings.set(`b${n}`, held(n, { lines: [{ ticketTypeId: "tt_a", qty: 2, unitPriceMinor: 0 }] }));
+		for (let n = 0; n < 2; n++)
+			s.bookings.set(`b${n}`, held(n, { lines: [{ ticketTypeId: "tt_a", qty: 2, unitPriceMinor: 0 }] }));
 		const items = [...s.bookings.docs].map(([id, data]) => ({ id, data }));
 		const a = planExpiries(items, T0, 8).planned;
 		const b = planExpiries(items, T0, 8).planned;
@@ -233,7 +240,11 @@ describe("expiry (EV-FR-06, R3)", () => {
 		s.bookings.set("b1", held(1));
 		s.bookings.failOn = (_m, id, args) =>
 			id === "b1" && (args as { set?: { releaseClaimedAt?: string } }).set?.releaseClaimedAt !== undefined;
-		const { planned } = planExpiries([...s.bookings.docs].map(([id, data]) => ({ id, data })), T0, 8);
+		const { planned } = planExpiries(
+			[...s.bookings.docs].map(([id, data]) => ({ id, data })),
+			T0,
+			8,
+		);
 		const out = await expireBookings(s, planned, T0);
 		expect(out.map((o) => [o.id, o.outcome, o.dirty])).toEqual([
 			["b0", "expired", true],
