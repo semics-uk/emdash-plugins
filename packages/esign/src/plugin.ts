@@ -1,10 +1,15 @@
 import type { SandboxedPlugin } from "emdash/plugin";
+import { ENVELOPE_ROUTES, fromIntent } from "./routes/envelopes";
 import { publicRoutes } from "./routes/public";
 import { TEMPLATE_ROUTES } from "./routes/templates";
 
 /** Sandboxed plugin entry. Route handlers are filled in by the tasks that own each route. */
 const plugin: SandboxedPlugin = {
-	routes: { ...publicRoutes(), ...TEMPLATE_ROUTES },
+	routes: {
+		...publicRoutes({ "public/envelopes/from-intent": (routeCtx, ctx) => fromIntent(routeCtx.input, ctx) }),
+		...TEMPLATE_ROUTES,
+		...ENVELOPE_ROUTES,
+	},
 };
 
 export default plugin;

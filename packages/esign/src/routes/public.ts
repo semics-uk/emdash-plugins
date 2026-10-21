@@ -1,5 +1,5 @@
 import { toRouteError } from "@semics-tech/shared";
-import type { RouteEntry } from "emdash/plugin";
+import type { RouteEntry, RouteHandler } from "emdash/plugin";
 
 /** The complete v1 public route list (BUILD-PLAN §3.2); part of the frozen trust contract. */
 export interface PublicRouteSpec {
@@ -30,14 +30,15 @@ async function notImplemented(): Promise<unknown> {
 	return toRouteError({ code: "NOT_FOUND" }).body;
 }
 
-export function publicRoutes(): Record<string, RouteEntry> {
+/** Every public route; `handlers` supplies the implemented ones, the rest stay stubs. */
+export function publicRoutes(handlers: Readonly<Record<string, RouteHandler>> = {}): Record<string, RouteEntry> {
 	const routes: Record<string, RouteEntry> = {};
 	for (const spec of PUBLIC_ROUTES) {
 		routes[spec.name] = {
 			public: true,
 			methods: [...spec.methods],
 			request: spec.maxBytes === undefined ? { body: spec.body } : { body: spec.body, maxBytes: spec.maxBytes },
-			handler: notImplemented,
+			handler: handlers[spec.name] ?? notImplemented,
 		};
 	}
 	return routes;

@@ -75,7 +75,8 @@ describe("ES public routes equal the PRD list (T020)", () => {
 
 	it("returns a not-implemented error through the shared registry from every stub", async () => {
 		host = await createPluginTestHost();
-		for (const [name] of PRD_PUBLIC_ROUTES) {
+		const implemented = new Set(["public/envelopes/from-intent"]);
+		for (const [name] of PRD_PUBLIC_ROUTES.filter(([n]) => !implemented.has(n))) {
 			const result = (await host.invokeRoute(name, {})) as { ok: boolean; error: { code: string; message: string } };
 			expect(result.ok, name).toBe(false);
 			expect(result.error.code, name).toBe("NOT_FOUND");
