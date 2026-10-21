@@ -4,7 +4,7 @@ title: "E-sign UI: descriptor and injected pages"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T004, T006]

@@ -682,7 +682,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -698,7 +698,7 @@
 				"T031",
 				"T032"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T030": {
 			"file": "T030-e-sign-ui-ceremony-component-with-sanitised-rendering.md",
@@ -2281,7 +2281,6 @@
 		],
 		"ready": [
 			"T028",
-			"T029",
 			"T043",
 			"T046",
 			"T050",
@@ -2291,6 +2290,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T029",
 			"T113"
 		],
 		"review": [],
