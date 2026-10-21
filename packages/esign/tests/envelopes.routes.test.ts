@@ -277,7 +277,10 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 			[{ intent: "nope" }, "TOKEN_MALFORMED"],
 			[{ intent: await sign(payload(templateId, { cid: "cl_unknown01" })) }, "CLIENT_UNKNOWN"],
 			[{ intent: await sign(payload(templateId), "another-master-key-0123456789abcdef") }, "TOKEN_INVALID"],
-			[{ intent: await sign(payload(templateId, { returnUrl: "https://evil.example/booking" })) }, "RETURN_URL_NOT_ALLOWED"],
+			[
+				{ intent: await sign(payload(templateId, { returnUrl: "https://evil.example/booking" })) },
+				"RETURN_URL_NOT_ALLOWED",
+			],
 			[{ intent: await sign(payload("missing-template")) }, "TEMPLATE_NOT_FOUND"],
 			[{ intent: await sign(payload(templateId, { tplVersion: 9 })) }, "TEMPLATE_NOT_FOUND"],
 			[{ intent: await sign(payload(templateId, { prefill: {} })) }, "BAD_REQUEST"],
@@ -285,7 +288,9 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		for (const [input, code] of cases) {
 			const r = await call(budget, "public/envelopes/from-intent", input);
 			expect(r, code).toMatchObject({ ok: false, error: { code } });
-			expect(Object.keys(r).sort(), code).toEqual(["error", "ok"].concat(code === "BAD_REQUEST" ? ["issues"] : []).sort());
+			expect(Object.keys(r).sort(), code).toEqual(
+				["error", "ok"].concat(code === "BAD_REQUEST" ? ["issues"] : []).sort(),
+			);
 		}
 		expect(await runtime?.inspect.storage.list("envelopes")).toHaveLength(0);
 		await runtime?.fixtures.plugin.storage("clients", CID, {

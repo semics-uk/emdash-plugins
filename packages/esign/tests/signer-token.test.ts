@@ -1,4 +1,4 @@
-import { hashToken } from "@semics-tech/shared";
+import { generateToken, hashToken } from "@semics-tech/shared";
 import { describe, expect, it } from "vitest";
 import type { SignerDoc } from "../src/domain/envelopes";
 import { masterKeyBytes } from "../src/domain/master-key";
@@ -19,11 +19,18 @@ const build = (tokenHash: string): SignerDoc => ({
 let seed = 0;
 const random = (n: number) => new Uint8Array(n).fill(++seed);
 
+async function signer() {
+	const token = generateToken(random);
+	return { token, signer: { id: "e1:s1", data: build(await hashToken(token)) } };
+}
+
 describe("ES-FR-02 signer token stored as hash only", () => {
 	it("ES-FR-02 returns the token once and stores only its SHA-256", async () => {
 		const puts: Array<{ id: string; data: SignerDoc }> = [];
 		const store: SignerStore = { put: async (id, data) => void puts.push({ id, data }) };
-		const token = await insertSigner(store, "e1:s1", build, random);
+		const first = await signer();
+		const token = await insertSigner(store, first.signer, first.token, random);
+		expect(token).toBe(first.token);
 		expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
 		expect(puts).toHaveLength(1);
 		expect(puts[0]?.data.tokenHash).toBe(await hashToken(token));
@@ -39,7 +46,9 @@ describe("ES-FR-02 signer token stored as hash only", () => {
 				if (failures-- > 0) throw new Error("D1_ERROR: UNIQUE constraint failed: index 'uidx_signers_tokenHash'");
 			},
 		};
-		const token = await insertSigner(store, "e1:s1", build, random);
+		const first = await signer();
+		const token = await insertSigner(store, first.signer, first.token, random);
+		expect(token).not.toBe(first.token);
 		expect(hashes).toHaveLength(2);
 		expect(hashes[0]).not.toBe(hashes[1]);
 		expect(hashes[1]).toBe(await hashToken(token));
@@ -51,7 +60,8 @@ describe("ES-FR-02 signer token stored as hash only", () => {
 				throw new Error("UNIQUE constraint failed: index 'uidx_x'");
 			},
 		};
-		await expect(insertSigner(always, "e1:s1", build, random)).rejects.toThrow(/UNIQUE/);
+		const a = await signer();
+		await expect(insertSigner(always, a.signer, a.token, random)).rejects.toThrow(/UNIQUE/);
 		let calls = 0;
 		const broken: SignerStore = {
 			put: async () => {
@@ -59,7 +69,7 @@ describe("ES-FR-02 signer token stored as hash only", () => {
 				throw new Error("disk on fire");
 			},
 		};
-		await expect(insertSigner(broken, "e1:s1", build, random)).rejects.toThrow("disk on fire");
+		await expect(insertSigner(broken, a.signer, a.token, random)).rejects.toThrow("disk on fire");
 		expect(calls).toBe(1);
 	});
 });

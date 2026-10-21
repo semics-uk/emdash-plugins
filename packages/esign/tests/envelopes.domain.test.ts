@@ -163,7 +163,8 @@ describe("ES-FR-02 snapshot and docSha256", () => {
 		}
 		const shuffled = [...chunks].reverse().map((c) => c.data);
 		expect(joinSnapshot(shuffled)).toBe(text);
-		expect(joinSnapshot(chunks.slice(1).map((c) => c.data))).not.toBe(text);
+		expect(joinSnapshot(chunks.slice(1).map((c) => c.data))).toBeNull();
+		expect(joinSnapshot([])).toBeNull();
 	});
 
 	it("never splits a surrogate pair across chunks", () => {
@@ -180,7 +181,7 @@ describe("ES-FR-02 send", () => {
 		const r = await send(draft());
 		if (!r.ok) throw new Error(JSON.stringify(r.error));
 		const { envelope, chunks, signer } = r.value;
-		const text = joinSnapshot(chunks.map((c) => c.data));
+		const text = joinSnapshot(chunks.map((c) => c.data)) ?? "";
 		expect(envelope.docSha256).toBe(await sha256Hex(canonicalSnapshot(text)));
 		expect(envelope).toMatchObject({
 			status: "sent",

@@ -1,25 +1,388 @@
-/** Envelope routes (ES-FR-02, ES-FR-03). Red-phase stub. */
-import type { RandomBytes } from "@semics-tech/shared";
-import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
-import type { SignerDoc } from "../domain/envelopes";
+/**
+ * Envelope routes (ES-FR-02, ES-FR-03): thin adapters over `domain/envelopes` and `domain/state`.
+ *
+ * Private (admin): `envelopes/create` (draft), `envelopes/send` (freeze + signer), `envelopes/get`,
+ * `envelopes/list`. Public: `public/envelopes/from-intent` (verify an `esign-intent/1` token, then
+ * create and send, or return the envelope for its `(cid, ref)`; protocol §8.1).
+ *
+ * Every status change goes through `transitionEnvelope` (or, for an envelope created already sent,
+ * through `sendEnvelope`'s `draft → sent` check), so the table in `domain/state.ts` is the one
+ * source of truth for routes and cron jobs. Each handler stays at ≤ 8 bridge calls (R22).
+ */
+import {
+	deriveClientSecret,
+	type EsignClient,
+	generateToken,
+	hashToken,
+	type RandomBytes,
+	toRouteError,
+	verifyIntentToken,
+} from "@semics-tech/shared";
+import type { PluginContext, RouteHandler, SandboxedPlugin } from "emdash/plugin";
+import {
+	buildDraft,
+	draftFromIntent,
+	type EnvelopeDoc,
+	type EnvelopeIssue,
+	envelopeIdForRef,
+	existingForRef,
+	joinSnapshot,
+	parseDraftInput,
+	pickTemplateVersion,
+	type SignerDoc,
+	type SnapshotChunkDoc,
+	sendEnvelope,
+} from "../domain/envelopes";
+import { masterKeyBytes } from "../domain/master-key";
+import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
+import { type TemplateDoc, versionDocId } from "../domain/templates";
 
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
+type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
+
+// --- storage access (the slice of StorageCollection each handler uses) ---
+
+interface Collection<T> {
+	get(id: string): Promise<T | null>;
+	getMany(ids: string[]): Promise<Map<string, T>>;
+	put(id: string, data: T): Promise<void>;
+	putMany(items: Array<{ id: string; data: T }>): Promise<void>;
+	compareAndSet(id: string, expectedRevision: string | null, data: T): Promise<{ applied: boolean }>;
+	updateIf(
+		id: string,
+		args: { where: Record<string, unknown>; set?: Partial<T> },
+	): Promise<{ applied: true; data: T } | { applied: false }>;
+	query(o: {
+		where?: Record<string, unknown>;
+		orderBy?: Record<string, "asc" | "desc">;
+		limit?: number;
+	}): Promise<{ items: Array<{ id: string; data: T }> }>;
+}
+
+interface ClientDoc {
+	clientId: string;
+	revokedAt?: string | null;
+	returnUrlAllowlist?: unknown;
+}
+
+interface NonceDoc {
+	nonce: string;
+	cid: string;
+	expiresAt: string;
+}
+
+interface Stores {
+	envelopes: Collection<EnvelopeDoc>;
+	signers: Collection<SignerDoc>;
+	snapshots: Collection<SnapshotChunkDoc>;
+	templates: Collection<TemplateDoc>;
+	clients: Collection<ClientDoc>;
+	nonces: Collection<NonceDoc>;
+}
+
+const stores = (ctx: PluginContext) => ctx.storage as unknown as Stores;
+
+// --- helpers ---
+
+const obj = (input: unknown): Record<string, unknown> =>
+	typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
+
+const badRequest = (issues?: readonly EnvelopeIssue[]) => ({
+	...toRouteError("BAD_REQUEST").body,
+	...(issues ? { issues } : {}),
+});
+
+const fail = (code: Parameters<typeof toRouteError>[0]) => toRouteError(code).body;
+
+function idOf(input: unknown): string | null {
+	const id = obj(input).id;
+	return typeof id === "string" && id.length > 0 && id.length <= 200 ? id : null;
+}
+
+const DEFAULT_EXPIRY_DAYS = 30;
+
+function expiryDays(value: unknown): number {
+	return Number.isSafeInteger(value) && (value as number) >= 1 && (value as number) <= 365
+		? (value as number)
+		: DEFAULT_EXPIRY_DAYS;
+}
+
+/** D1 rejects a duplicate on a unique index with this message (R26). */
+export function isUniqueViolation(error: unknown): boolean {
+	return error instanceof Error && error.message.includes("UNIQUE constraint failed");
+}
+
+const TOKEN_ATTEMPTS = 3;
+
+/**
+ * Runs `write(tokenHash)` and, if the store rejects the hash as a duplicate (unique `tokenHash`,
+ * R26), retries with a fresh token. Returns the token whose hash was stored.
+ */
+async function withUniqueToken<T>(
+	token: string,
+	random: RandomBytes | undefined,
+	write: (tokenHash: string) => Promise<T>,
+): Promise<{ token: string; value: T }> {
+	let current = token;
+	for (let attempt = 1; ; attempt++) {
+		try {
+			return { token: current, value: await write(await hashToken(current)) };
+		} catch (error) {
+			if (!isUniqueViolation(error) || attempt >= TOKEN_ATTEMPTS) throw error;
+			current = generateToken(random);
+		}
+	}
+}
 
 export interface SignerStore {
 	put(id: string, data: SignerDoc): Promise<void>;
 }
 
+/**
+ * Stores the signer with `tokenHash = SHA-256(token)` and returns the token, which is never stored.
+ * On a duplicate hash it retries with a fresh token.
+ */
 export async function insertSigner(
-	_signers: SignerStore,
-	_id: string,
-	_build: (tokenHash: string) => SignerDoc,
-	_random?: RandomBytes,
+	signers: SignerStore,
+	signer: { id: string; data: SignerDoc },
+	token: string,
+	random?: RandomBytes,
 ): Promise<string> {
-	throw new Error("not implemented");
+	const { token: stored } = await withUniqueToken(token, random, (tokenHash) =>
+		signers.put(signer.id, { ...signer.data, tokenHash }),
+	);
+	return stored;
 }
 
-export async function fromIntent(_input: unknown, _ctx: PluginContext): Promise<unknown> {
-	throw new Error("not implemented");
+const view = (id: string, doc: EnvelopeDoc) => ({ id, ...doc });
+const summary = (id: string, { snapshot: _s, fieldValues: _f, ...rest }: EnvelopeDoc) => ({ id, ...rest });
+
+// --- private routes ---
+
+async function create(routeCtx: { input?: unknown }, ctx: PluginContext) {
+	const fields = parseDraftInput(routeCtx.input);
+	if (!fields.ok) return badRequest(fields.error);
+	const { templateId, templateVersion } = fields.value;
+	const { templates, envelopes } = stores(ctx);
+	const docs = await templates.getMany(
+		templateVersion === undefined ? [templateId] : [templateId, versionDocId(templateId, templateVersion)],
+	);
+	const template = pickTemplateVersion(
+		docs.get(templateId),
+		templateVersion === undefined ? undefined : docs.get(versionDocId(templateId, templateVersion)),
+		templateVersion,
+	);
+	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
+	const draft = buildDraft(fields.value, template.value, { now: new Date().toISOString() });
+	if (!draft.ok) return badRequest(draft.error);
+	const id = crypto.randomUUID();
+	await envelopes.put(id, draft.value);
+	return { ok: true, envelope: view(id, draft.value) };
 }
 
-export const ENVELOPE_ROUTES: Record<string, RouteDef> = {};
+async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
+	const id = idOf(routeCtx.input);
+	if (!id) return badRequest();
+	const { envelopes, templates, snapshots, signers } = stores(ctx);
+	const envelope = await envelopes.get(id);
+	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
+	if (!canTransition(envelope.status, "sent")) return fail("ENVELOPE_CLOSED");
+	const { templateId, templateVersion } = envelope;
+	const [docs, days] = await Promise.all([
+		templates.getMany([templateId, versionDocId(templateId, templateVersion)]),
+		ctx.settings.get<number>("expiryDays"),
+	]);
+	// The head must still be active; the content comes from the pinned version document.
+	const template = pickTemplateVersion(
+		docs.get(templateId),
+		docs.get(versionDocId(templateId, templateVersion)),
+		templateVersion,
+	);
+	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
+	const token = generateToken();
+	const sent = await sendEnvelope(id, envelope, template.value, {
+		now: new Date().toISOString(),
+		tokenHash: await hashToken(token),
+		expiryDays: expiryDays(days),
+	});
+	if (!sent.ok) return Array.isArray(sent.error) ? badRequest(sent.error) : fail("ENVELOPE_CLOSED");
+	await snapshots.putMany(sent.value.chunks);
+	const moved = await transitionEnvelope(envelopes, id, "draft", "sent", sent.value.envelope);
+	if (!moved.ok) return fail("ENVELOPE_CLOSED");
+	// The token goes out in the invitation email (T027); it is never returned or stored.
+	await insertSigner(signers, sent.value.signer, token);
+	return { ok: true, envelope: view(id, moved.value) };
+}
+
+async function get(routeCtx: { input?: unknown }, ctx: PluginContext) {
+	const id = idOf(routeCtx.input);
+	if (!id) return badRequest();
+	const { envelopes, snapshots, signers } = stores(ctx);
+	const envelope = await envelopes.get(id);
+	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
+	const [chunks, people] = await Promise.all([
+		envelope.snapshot ? snapshots.getMany(envelope.snapshot.ids) : Promise.resolve(new Map<string, SnapshotChunkDoc>()),
+		envelope.signerIds.length > 0 ? signers.getMany(envelope.signerIds) : Promise.resolve(new Map<string, SignerDoc>()),
+	]);
+	return {
+		ok: true,
+		envelope: view(id, envelope),
+		snapshot: envelope.snapshot ? joinSnapshot([...chunks.values()]) : null,
+		signers: [...people].map(([signerId, s]) => ({
+			id: signerId,
+			order: s.order,
+			name: s.name,
+			email: s.email,
+			status: s.status,
+		})),
+	};
+}
+
+const LIST_LIMIT = 100;
+
+async function list(routeCtx: { input?: unknown }, ctx: PluginContext) {
+	const status = obj(routeCtx.input).status;
+	if (status !== undefined && !isEnvelopeStatus(status)) return badRequest();
+	const { items } = await stores(ctx).envelopes.query({
+		...(status === undefined ? {} : { where: { status } }),
+		orderBy: { createdAt: "desc" },
+		limit: LIST_LIMIT,
+	});
+	return { ok: true, envelopes: items.map((i) => summary(i.id, i.data)) };
+}
+
+export const ENVELOPE_ROUTES: Record<string, RouteDef> = {
+	"envelopes/create": { handler: create as Handler },
+	"envelopes/send": { handler: send as Handler },
+	"envelopes/get": { handler: get as Handler },
+	"envelopes/list": { handler: list as Handler },
+};
+
+// --- public/envelopes/from-intent ---
+
+export interface FromIntentDeps {
+	/** Epoch milliseconds. */
+	now?: () => number;
+	random?: RandomBytes;
+}
+
+function allowlistOf(value: unknown): string[] | undefined {
+	return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined;
+}
+
+function siteOrigin(ctx: PluginContext): string | undefined {
+	try {
+		return new URL(ctx.site.url).origin;
+	} catch {
+		return undefined;
+	}
+}
+
+/**
+ * Protocol §8.1. Bridge calls: settings + client (2), nonce (1), template + existing envelopes (2),
+ * then snapshot, envelope and signer writes (3): 8 at most.
+ */
+export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
+	const nowMs = (deps.now ?? Date.now)();
+	const now = new Date(nowMs).toISOString();
+	const { envelopes, signers, snapshots, templates, clients, nonces } = stores(ctx);
+	let settings: Record<string, unknown> = {};
+
+	const getClient = async (cid: string): Promise<EsignClient | undefined> => {
+		const [all, found] = await Promise.all([
+			ctx.settings.list(),
+			clients.query({ where: { clientId: cid }, limit: 1 }),
+		]);
+		settings = Object.fromEntries(all.map((s) => [s.key, s.value]));
+		const key = masterKeyBytes(settings.integrationMasterKey);
+		const client = found.items[0]?.data;
+		if (!key || !client) return undefined;
+		return {
+			secret: await deriveClientSecret(key, cid),
+			revoked: client.revokedAt !== undefined && client.revokedAt !== null,
+			returnUrlAllowlist: allowlistOf(client.returnUrlAllowlist),
+		};
+	};
+
+	const consumeNonce = async (cid: string, nonce: string, expiresAt: number): Promise<boolean> => {
+		const id = `${cid}.${nonce}`;
+		try {
+			const doc = { nonce: id, cid, expiresAt: new Date(expiresAt * 1000).toISOString() };
+			return (await nonces.compareAndSet(id, null, doc)).applied;
+		} catch (error) {
+			if (isUniqueViolation(error)) return false;
+			throw error;
+		}
+	};
+
+	const verified = await verifyIntentToken({
+		token: obj(input).intent,
+		now: nowMs,
+		getClient,
+		consumeNonce,
+		siteOrigin: siteOrigin(ctx),
+	});
+	if (!verified.ok) return fail(verified.error);
+	const intent = verified.value;
+
+	const versionId = intent.tplVersion === undefined ? undefined : versionDocId(intent.tpl, intent.tplVersion);
+	const [docs, previous] = await Promise.all([
+		templates.getMany(versionId === undefined ? [intent.tpl] : [intent.tpl, versionId]),
+		envelopes.query({ where: { clientId: intent.cid, externalRef: intent.ref }, limit: LIST_LIMIT }),
+	]);
+	const template = pickTemplateVersion(
+		docs.get(intent.tpl),
+		versionId === undefined ? undefined : docs.get(versionId),
+		intent.tplVersion,
+	);
+	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
+
+	const current = existingForRef(previous.items);
+	if (current) return reuse(signers, current.id, current.data, deps.random);
+
+	const draft = draftFromIntent(intent, template.value, { now });
+	if (!draft.ok) return badRequest(draft.error);
+	const id = await envelopeIdForRef(intent.cid, intent.ref, previous.items.length + 1);
+	const token = generateToken(deps.random);
+	const sent = await sendEnvelope(id, draft.value, template.value, {
+		now,
+		tokenHash: await hashToken(token),
+		expiryDays: expiryDays(settings.expiryDays),
+	});
+	if (!sent.ok) return Array.isArray(sent.error) ? badRequest(sent.error) : fail("INTERNAL");
+	// Chunk ids are hash-addressed, so a racing intent can't overwrite this snapshot; the
+	// create-only envelope write decides which of two racing intents for the pair wins.
+	await snapshots.putMany(sent.value.chunks);
+	const created = await envelopes.compareAndSet(id, null, sent.value.envelope);
+	if (!created.applied) {
+		const winner = await envelopes.get(id);
+		return winner ? reuse(signers, id, winner, deps.random) : fail("INTERNAL");
+	}
+	const stored = await insertSigner(signers, sent.value.signer, token, deps.random);
+	return response(id, sent.value.envelope, stored);
+}
+
+function response(id: string, envelope: EnvelopeDoc, token: string | undefined) {
+	return {
+		ok: true,
+		envelopeId: id,
+		status: envelope.status,
+		...(token !== undefined && envelope.delivery === "inline" ? { signingToken: token } : {}),
+	};
+}
+
+/**
+ * Idempotent return for an existing `(cid, ref)` envelope. Only the token hash is stored, so an
+ * inline signer who has not signed yet gets a fresh token (the previous one stops working).
+ */
+async function reuse(signers: Collection<SignerDoc>, id: string, envelope: EnvelopeDoc, random?: RandomBytes) {
+	const signerId = envelope.signerIds[0];
+	const awaiting = envelope.status === "sent" || envelope.status === "in_progress";
+	if (envelope.delivery !== "inline" || !awaiting || signerId === undefined) return response(id, envelope, undefined);
+	const rotated = await withUniqueToken(generateToken(random), random, (tokenHash) =>
+		signers.updateIf(signerId, { where: { status: "pending" }, set: { tokenHash } }),
+	);
+	return response(id, envelope, rotated.value.applied ? rotated.token : undefined);
+}
+
+export const fromIntentHandler: RouteHandler = (routeCtx, ctx) => fromIntent(routeCtx.input, ctx);
