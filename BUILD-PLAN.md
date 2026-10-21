@@ -447,11 +447,11 @@ any re-planning after the spikes.
 
 | ID | Question | Method | Fallback if negative |
 |---|---|---|---|
-| S1 | Do `ctx.storage/kv/content` bridge calls count toward **10 subrequests**? | Deploy a probe plugin to CF staging that loops storage gets and records the failure point | Checkout is already split into `reserve` + `continue`. Further fallback: aggressive batching (`getMany/putMany`), denormalised docs |
+| S1 | Do `ctx.storage/kv/content` bridge calls count toward **10 subrequests**? | Deploy a probe plugin to CF staging that loops storage gets and records the failure point | **Yes, every bridge call counts (T110).** Checkout is already split into `reserve` + `continue`; batching (`getMany/putMany`, one call each) and denormalised docs are mandatory, not a fallback |
 | S2 | Does `getPublicPluginApiRouteHandler` reach **sandboxed** public routes? | Playground SSR component calling a sandboxed public route | UI kits call routes over `fetch(Astro.url.origin + …)` server-side |
 | S3 | One-shot cron format, minimum interval, task limits | Read `core/src/plugins/cron.ts` + probe | Recurring 5-min sweeper only |
-| S4 | Max storage document size | Probe writes of increasing size | Chunk snapshots/PDFs across docs, or `media:write`. **Adopted by design:** cap every document at 512 KiB until T110 measures real D1 |
-| S5 | CPU of `pdf-mini` (5 pages + strokes) and of `pdf-lib` stamping | Benchmark in a Dynamic Worker | Render PDFs in `esign-ui` (native) and hash in core |
+| S4 | Max storage document size | Probe writes of increasing size | Chunk snapshots/PDFs across docs, or `media:write`. **Adopted by design:** cap every document at 512 KiB; T110 measured about 8 MiB on real D1 and kept the cap (R24) |
+| S5 | CPU of `pdf-mini` (5 pages + strokes) and of `pdf-lib` stamping | Benchmark in a Dynamic Worker | Render PDFs in `esign-ui` (native) and hash in core. **Not needed (T110):** a 5-page PDF with strokes plus SHA-256 is about 0.5 ms (R25) |
 | S6 | Can a native UI-only plugin register PT blocks whose data is served by a sandboxed plugin? | Playground | Ship components for manual use in templates and drop PT blocks |
 | S7 | Slug collision behaviour across publishers | Docs/registry source | Prefix slugs |
 | S8 | Does `ctx.settings.set()` on a non-schema key encrypt? (dynamic client secrets) | Code read + probe | **Negative.** Decision (orchestrator, 2026-10-11): one declared secret field `integrationMasterKey`; each client's secret is derived as `HMAC-SHA256(masterKey, "esign-client/1." + clientId)`, so any number of clients works without dynamic secrets. Revocation is a flag on the `clients` document; rotating the master key re-pairs every client. A hash-only store can't work because HMAC verification needs the secret itself |
@@ -563,6 +563,65 @@ any re-planning after the spikes.
   `portableTextBlocks`). The block data is not served by the core yet, so the "data from the
   sandboxed core" half is covered by S2 (`callPublicRoute`) plus T046; the PRDs keep the blocks.
 
+**Measured on Cloudflare (T110, 2026-10-21).** Probe Workers on the owner's Workers Paid account
+(`spikes/cloudflare`, raw numbers in `spikes/cloudflare/results/`). The host Worker runs the probe in a
+Worker Loader isolate the way `@emdash-cms/cloudflare` 1.2.0 runs a sandboxed plugin: a fresh loopback
+bridge binding per request (`ctx.exports.ProbeBridge({ props })`, same SQL as `PluginBridge`),
+`globalOutbound: null`, `limits: { cpuMs: 50, subRequests: 10 }` (EmDash's defaults), D1 in WEUR. Every
+`semics-probe-*` resource was deleted afterwards. The playground itself was not deployed (see T110 notes).
+- **S1 confirmed: every bridge call is one subrequest; the 11th throws (EV-NFR-01).** A no-op RPC,
+  a D1-backed `storageGet` and a `kvGet` each complete 10 calls and the 11th rejects with `Too many
+  subrequests by single Worker invocation`; the same for 40 calls in parallel (10 succeed). The D1 query
+  inside the bridge is not charged to the plugin (the no-op fails at the same point). An outbound
+  `fetch` counts the same way. `storageGetMany` of 40 ids is one call. The error is catchable, so a
+  route can still answer. With no `limits` passed, 40 calls succeed, so the cap is EmDash's
+  `subRequests: 10`, not a platform default. Stable across repeated requests on a cached isolate, and
+  inside `scheduled()` (every cron tick also stopped at 11).
+- **S4: real D1 stores about 8 MiB per document; the 512 KiB cap stays.** `storagePut` round-trips
+  64 KiB to 4 MiB; 8 MiB fails with `D1_ERROR: string or blob too big: SQLITE_TOOBIG`. Bisected: largest
+  payload stored 8,388,544 bytes, failure at 8,388,560 (JSON adds 11 bytes, the row a few dozen), i.e.
+  the same ~8 MiB row limit as local SQLite, not the 2 MB in Cloudflare's docs. 32 MiB fails earlier on
+  the RPC cap (`Serialized RPC arguments … limited to 32MiB`). Decision R24.
+- **Unique indexes are enforced on real D1.** With EmDash's exact DDL (`CREATE UNIQUE INDEX
+  uidx_plugin_<id>_<coll>_<field> ON _plugin_storage(plugin_id, collection, json_extract(data, '$.<field>'))`)
+  and its put SQL (`ON CONFLICT (plugin_id, collection, id) DO UPDATE`), a second document with the same
+  value under a different id fails with `D1_ERROR: UNIQUE constraint failed: index 'uidx_…':
+  SQLITE_CONSTRAINT`; updating the same id is fine; documents with the field missing or `null` never
+  collide; comparison is case-sensitive; the same value in another collection is fine; a `batch()`
+  containing a violating insert rolls back entirely. The in-memory test host does not enforce this.
+  Decision R26.
+- **S5 confirmed: PDFs fit in the core (EV-NFR-02).** Probe stand-in for the T016 writer (Helvetica
+  text, 60 lines a page, 6 strokes x 120 points, SHA-256 of the output) vs `pdf-lib` 1.17.1 (523 KB
+  bundle). Workers clocks only move on I/O, so CPU was read three ways: renders that fit under
+  `cpuMs: 50`, timings bracketed by no-op bridge calls, and sustained pass rates (20 runs each):
+
+  | Workload (warm isolate) | Cloudflare, per render | Node 24 `process.cpuUsage` (M-series) |
+  |---|---|---|
+  | pdf-mini 1 / 3 / 5 pages + SHA-256 | about 0.1 / 0.2 / 0.5 ms (5 pages x 100 in one invocation: 15/20 pass) | 0.58 / 0.57 / 0.87 ms |
+  | pdf-mini 5 pages, FlateDecode | about 0.7 ms (71 fit) | 2.7 ms |
+  | pdf-lib create 1 / 3 / 5 pages | about 0.4 / 1.5 / 3 ms; one 5-page create 20/20 | 4.3 / 5.7 / 11.3 ms |
+  | pdf-lib stamp strokes on 1 / 3 / 5 pages | about 3–9 ms; x4 20/20, x10 2/20, x30 0/20 | 17.1 / 13.2 / 12.4 ms |
+
+  A cold isolate (pdf-lib module parse included) also passed one render under 50 ms. **`cpuMs` is not a
+  hard per-invocation cut-off:** an isolate that has been idle or cheap can burst well past it (40
+  five-page stamps passed under `cpuMs: 50` and even `cpuMs: 5`; 160 failed with `Worker exceeded CPU
+  time limit.`; with `cpuMs: 1000` 160 passed), while back-to-back heavy calls are held close to 50 ms
+  (x10 stamps: 2/20). Design to 50 ms sustained and never rely on the burst. **Local CPU vs Cloudflare:**
+  Node's `process.cpuUsage()` on the dev machine reads 1.5–4x *higher* than Cloudflare for the same
+  workload (it also counts V8's GC and compiler threads), so the T007 harness's local CPU figure is a
+  conservative over-estimate and a local 50 ms ceiling is safe. Decisions R25, R27.
+- **Cron tick (Cloudflare `* * * * *`, the trigger `emdash doctor` recommends).** Plugin cron on
+  Cloudflare runs only from the site's Cron Trigger (`scheduled()` → `runScheduledTasks()` →
+  `cronExecutor.tick()`), so the tick interval is the trigger's. Measured: the trigger started firing
+  about 9 minutes after the first deploy (propagation); then 6 ticks exactly 60,000 ms apart by
+  `scheduledTime`, which sat at a fixed offset inside the minute (`hh:mm:51.757`, not `:00`), and the
+  handler started 0.9–2.4 s after `scheduledTime` (13.2 s on the first tick). No missed or doubled
+  ticks in that window (a short sample; a nightly run would widen it). So a one-shot task fires up to
+  about 62 s after its time, and the first tick after a deploy can be minutes late. Decision R23.
+- **Not measured:** the full playground on Cloudflare (Astro Cloudflare adapter, S2 on Worker Loader,
+  e2e) and the nightly staging workflow; both need `apps/playground/wrangler.jsonc` and a CI API token
+  and are left to a follow-up (T110 notes). Cron was sampled for 6 ticks only.
+
 **Resolved from docs (2026-10-09):**
 - `updateIf` guard fields don't need declared indexes, and guards compare against literal values
   only. Hence the single `reserved` counter.
@@ -666,6 +725,12 @@ any re-planning after the spikes.
 | R19 | Free Events manifest drops `api.stripe.com`; Pro adds it | Keeps the Free trust contract minimal (2026-10-10) |
 | R20 | Toolchain: Node 24.21.0 pinned per project (`.nvmrc`, pnpm `use-node-version`), pnpm 10.23, EmDash 1.2.0, plugin CLI 0.13.3 | `@emdash-cms/registry-verification` needs Node 24.15 or newer (2026-10-10) |
 | R21 | Publisher is the domain handle `semics.dev`; manifests carry the placeholder `did:plc:semicsdevplaceholder2222` until that handle resolves | `emdash-plugin init` resolves handles online; the real DID replaces the placeholder before the first publish (2026-10-10) |
+| R22 | Every bridge call is one subrequest and a sandboxed invocation (route, hook or cron tick) gets exactly 10; `getMany`/`putMany` are one each. Designs target ≤ 8 calls so a log or email call never tips a route over, and the T007 harness keeps asserting ≤ 10 as the real limit, not a proxy | T110 S1: the 11th call throws, in parallel too, inside `scheduled()` too (2026-10-21) |
+| R23 | Cron precision is the site's one-minute Cron Trigger plus 1–3 s: one-shots may fire up to ~62 s late and the first tick after a deploy can be minutes late, so hold expiry stays on the `*/5` sweeper with one-shots as an accelerator (S3 decision unchanged); each sweeper tick does a cursor batch within 10 calls | T110 cron tick (2026-10-21) |
+| R24 | Keep the 512 KiB per-document cap and the 256 KiB chunking of `artifacts`/`snapshots` | Real D1 takes ~8 MiB, but the docs promise 2 MB and parsing large JSON costs sandbox CPU (2026-10-21) |
+| R25 | Signed PDFs are rendered and hashed in the sandboxed core with the T016 writer; the `esign-ui` fallback is dropped. `pdf-lib` stays out of the Free core (523 KB bundle); Pro uploaded-PDF stamping (T094) may use it at most one stamp per invocation, budgeted in tests | T110 S5: ~0.5 ms for 5 pages + strokes + SHA-256; pdf-lib stamp 3–9 ms, x10 fails sustained (2026-10-21) |
+| R26 | `uniqueIndexes` may be relied on for duplicate prevention: D1 rejects a duplicate with `UNIQUE constraint failed: index 'uidx_…'`, which the core maps to a stable error code. Missing/`null` fields never collide, values are case-sensitive (normalise before storing). Tests fake the rejection because the in-memory test host doesn't enforce unique indexes | T110 unique-index probe on real D1 (2026-10-21) |
+| R27 | The T007 CPU ceiling stays 50 ms measured locally; it over-estimates Cloudflare CPU 1.5–4x, so it is conservative. Never rely on Cloudflare's CPU burst allowance | T110 S5: local `process.cpuUsage()` vs Cloudflare; `cpuMs` bursts past the limit on an idle isolate (2026-10-21) |
 
 ### Operating model (2026-10-10)
 

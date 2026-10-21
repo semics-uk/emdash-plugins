@@ -1,0 +1,26 @@
+{
+  "node": "v24.21.0",
+  "cpuMsPerRender": [
+    {
+      "pages": 1,
+      "miniPlusSha256": 0.578,
+      "miniCompressed": 1.064,
+      "pdflibCreate": 4.284,
+      "pdflibStamp": 17.139
+    },
+    {
+      "pages": 3,
+      "miniPlusSha256": 0.571,
+      "miniCompressed": 1.405,
+      "pdflibCreate": 5.728,
+      "pdflibStamp": 13.159
+    },
+    {
+      "pages": 5,
+      "miniPlusSha256": 0.869,
+      "miniCompressed": 2.707,
+      "pdflibCreate": 11.348,
+      "pdflibStamp": 12.422
+    }
+  ]
+}

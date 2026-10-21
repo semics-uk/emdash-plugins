@@ -1,0 +1,174 @@
+[
+  {
+    "mode": "rpc-noop",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-noop",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "rpc-d1",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-d1",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "rpc-kv",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-kv",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "rpc-d1",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "parallel": true,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-d1",
+      "parallel": true,
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "fetch-outbound",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "fetch-outbound",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "rpc-d1",
+    "limits": null,
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-d1",
+      "completed": 40,
+      "firstFailureAt": null,
+      "error": null
+    }
+  },
+  {
+    "mode": "fetch-outbound",
+    "limits": null,
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "fetch-outbound",
+      "completed": 40,
+      "firstFailureAt": null,
+      "error": null
+    }
+  },
+  {
+    "mode": "rpc-getmany",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "parallel": false,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-getmany",
+      "completed": 1,
+      "ids": 40,
+      "returned": 40,
+      "error": null
+    }
+  },
+  {
+    "mode": "rpc-d1",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "repeat": 1,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-d1",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "rpc-d1",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "repeat": 2,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-d1",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  },
+  {
+    "mode": "rpc-d1",
+    "limits": {
+      "cpuMs": 50,
+      "subRequests": 10
+    },
+    "repeat": 3,
+    "ok": true,
+    "status": 200,
+    "result": {
+      "mode": "rpc-d1",
+      "completed": 10,
+      "firstFailureAt": 11,
+      "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+    }
+  }
+]

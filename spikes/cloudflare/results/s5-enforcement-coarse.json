@@ -1,0 +1,62 @@
+[
+  {
+    "limits": "emdash",
+    "reps": 10,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "emdash",
+    "reps": 40,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "emdash",
+    "reps": 160,
+    "ok": false,
+    "error": "Error: Worker exceeded CPU time limit."
+  },
+  {
+    "limits": "custom&cpuMs=5",
+    "reps": 10,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "custom&cpuMs=5",
+    "reps": 40,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "custom&cpuMs=5",
+    "reps": 160,
+    "ok": false,
+    "error": "Error: Worker exceeded CPU time limit."
+  },
+  {
+    "limits": "none",
+    "reps": 10,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "none",
+    "reps": 40,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "none",
+    "reps": 160,
+    "ok": true,
+    "error": null
+  },
+  {
+    "limits": "none",
+    "reps": 640,
+    "ok": true,
+    "error": null
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "scheduledTime": "2026-10-21T14:38:51.757Z",
+    "lateMs": 13230,
+    "gapMs": null,
+    "s1": {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "mode": "rpc-d1",
+        "completed": 10,
+        "firstFailureAt": 11,
+        "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+      }
+    }
+  },
+  {
+    "scheduledTime": "2026-10-21T14:39:51.757Z",
+    "lateMs": 1717,
+    "gapMs": 60000,
+    "s1": {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "mode": "rpc-d1",
+        "completed": 10,
+        "firstFailureAt": 11,
+        "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+      }
+    }
+  },
+  {
+    "scheduledTime": "2026-10-21T14:40:51.757Z",
+    "lateMs": 2379,
+    "gapMs": 60000,
+    "s1": {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "mode": "rpc-d1",
+        "completed": 10,
+        "firstFailureAt": 11,
+        "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+      }
+    }
+  },
+  {
+    "scheduledTime": "2026-10-21T14:41:51.757Z",
+    "lateMs": 934,
+    "gapMs": 60000,
+    "s1": {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "mode": "rpc-d1",
+        "completed": 10,
+        "firstFailureAt": 11,
+        "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+      }
+    }
+  },
+  {
+    "scheduledTime": "2026-10-21T14:42:51.757Z",
+    "lateMs": 1023,
+    "gapMs": 60000,
+    "s1": {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "mode": "rpc-d1",
+        "completed": 10,
+        "firstFailureAt": 11,
+        "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+      }
+    }
+  },
+  {
+    "scheduledTime": "2026-10-21T14:43:51.757Z",
+    "lateMs": 1271,
+    "gapMs": 60000,
+    "s1": {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "mode": "rpc-d1",
+        "completed": 10,
+        "firstFailureAt": 11,
+        "error": "Error: Too many subrequests by single Worker invocation. To configure this limit, refer to https://developers.cloudflare.com/workers/wrangler/configuration/#limits"
+      }
+    }
+  }
+]

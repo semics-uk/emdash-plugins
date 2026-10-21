@@ -1,0 +1,51 @@
+[
+  {
+    "engine": "mini",
+    "pages": 5,
+    "reps": 1,
+    "passed": 20,
+    "of": 20
+  },
+  {
+    "engine": "mini",
+    "pages": 5,
+    "reps": 100,
+    "passed": 15,
+    "of": 20
+  },
+  {
+    "engine": "pdflib-create",
+    "pages": 5,
+    "reps": 1,
+    "passed": 20,
+    "of": 20
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 5,
+    "reps": 1,
+    "passed": 20,
+    "of": 20
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 5,
+    "reps": 4,
+    "passed": 20,
+    "of": 20
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 5,
+    "reps": 10,
+    "passed": 2,
+    "of": 20
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 5,
+    "reps": 30,
+    "passed": 0,
+    "of": 20
+  }
+]

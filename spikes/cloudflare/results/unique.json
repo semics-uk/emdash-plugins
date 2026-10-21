@@ -1,0 +1,39 @@
+{
+  "firstInsert": "ok",
+  "duplicateValueOtherId": "Error: D1_ERROR: UNIQUE constraint failed: index 'uidx_plugin_semics-probe_uq_email': SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_UNIQUE)",
+  "sameIdUpdate": "ok",
+  "missingField1": "ok",
+  "missingField2": "ok",
+  "nullField1": "ok",
+  "nullField2": "ok",
+  "caseDiffers": "ok",
+  "otherCollectionSameValue": "ok",
+  "batchWithViolation": "Error: D1_ERROR: UNIQUE constraint failed: index 'uidx_plugin_semics-probe_uq_email': SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_UNIQUE)",
+  "batchFirstRowPresent": false,
+  "rows": [
+    {
+      "id": "a",
+      "data": "{\"email\":\"x@example.com\",\"v\":2}"
+    },
+    {
+      "id": "c",
+      "data": "{\"other\":1}"
+    },
+    {
+      "id": "d",
+      "data": "{\"other\":2}"
+    },
+    {
+      "id": "e",
+      "data": "{\"email\":null}"
+    },
+    {
+      "id": "f",
+      "data": "{\"email\":null}"
+    },
+    {
+      "id": "g",
+      "data": "{\"email\":\"X@example.com\"}"
+    }
+  ]
+}

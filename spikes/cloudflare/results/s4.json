@@ -1,0 +1,117 @@
+{
+  "sizes": [
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 65536,
+        "jsonBytes": 65547,
+        "stored": true,
+        "readBack": 65536
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 524288,
+        "jsonBytes": 524299,
+        "stored": true,
+        "readBack": 524288
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 1048576,
+        "jsonBytes": 1048587,
+        "stored": true,
+        "readBack": 1048576
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 1900000,
+        "jsonBytes": 1900011,
+        "stored": true,
+        "readBack": 1900000
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 1999000,
+        "jsonBytes": 1999011,
+        "stored": true,
+        "readBack": 1999000
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 2000000,
+        "jsonBytes": 2000011,
+        "stored": true,
+        "readBack": 2000000
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 2097152,
+        "jsonBytes": 2097163,
+        "stored": true,
+        "readBack": 2097152
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 4194304,
+        "jsonBytes": 4194315,
+        "stored": true,
+        "readBack": 4194304
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 8388608,
+        "jsonBytes": 8388619,
+        "stored": false,
+        "error": "Error: D1_ERROR: string or blob too big: SQLITE_TOOBIG"
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 16777216,
+        "jsonBytes": 16777227,
+        "stored": false,
+        "error": "Error: D1_ERROR: string or blob too big: SQLITE_TOOBIG"
+      }
+    },
+    {
+      "ok": true,
+      "status": 200,
+      "result": {
+        "bytes": 33554432,
+        "jsonBytes": 33554443,
+        "stored": false,
+        "error": "Error: Serialized RPC arguments or return values are limited to 32MiB, but the size of this value was: 33554473 bytes."
+      }
+    }
+  ],
+  "largestStoredPayload": 8388544,
+  "firstFailingPayload": 8388560,
+  "jsonOverhead": 11
+}

@@ -1,0 +1,113 @@
+[
+  {
+    "engine": "mini",
+    "pages": 1,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 15367,
+    "maxRendersPerInvocationAt50ms": 768,
+    "approxMsPerRender": 0.07,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "mini",
+    "pages": 3,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 23516,
+    "maxRendersPerInvocationAt50ms": 256,
+    "approxMsPerRender": 0.2,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "mini",
+    "pages": 5,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 31884,
+    "maxRendersPerInvocationAt50ms": 256,
+    "approxMsPerRender": 0.2,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "pdflib-create",
+    "pages": 1,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 3785,
+    "maxRendersPerInvocationAt50ms": 128,
+    "approxMsPerRender": 0.39,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "pdflib-create",
+    "pages": 3,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 9629,
+    "maxRendersPerInvocationAt50ms": 32,
+    "approxMsPerRender": 1.56,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "pdflib-create",
+    "pages": 5,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 15460,
+    "maxRendersPerInvocationAt50ms": 16,
+    "approxMsPerRender": 3.13,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 1,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 16120,
+    "maxRendersPerInvocationAt50ms": 16,
+    "approxMsPerRender": 3.13,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 3,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 24283,
+    "maxRendersPerInvocationAt50ms": 4,
+    "approxMsPerRender": 12.5,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "pdflib-stamp",
+    "pages": 5,
+    "singleUnder50ms": true,
+    "coldUnder50ms": true,
+    "coldError": null,
+    "size": 32659,
+    "maxRendersPerInvocationAt50ms": 8,
+    "approxMsPerRender": 6.25,
+    "minCpuMsLimitForOneRender": 1
+  },
+  {
+    "engine": "mini",
+    "pages": 5,
+    "extra": "&compress=1",
+    "maxRendersPerInvocationAt50ms": 71
+  },
+  {
+    "engine": "mini",
+    "pages": 5,
+    "extra": "&strokes=20&points=400",
+    "maxRendersPerInvocationAt50ms": 64
+  }
+]

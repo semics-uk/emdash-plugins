@@ -54,16 +54,17 @@ test("S1: probe route records the subrequest failure point (EV-NFR-01)", { skip:
 });
 
 test("S4: storage document size limit on real D1", { skip: !run("s4") }, async () => {
-	const sizes = [64 * 1024, 512 * 1024, 1024 * 1024, 1_900_000, 1_999_000, 2_000_000, 2 * 1024 * 1024, 4 * 1024 * 1024];
+	const sizes = [64 * 1024, 512 * 1024, 1024 * 1024, 1_900_000, 1_999_000, 2_000_000, 2 * 1024 * 1024, 4 * 1024 * 1024, 8 * 1024 * 1024, 16 * 1024 * 1024, 32 * 1024 * 1024];
 	const out = [];
 	for (const bytes of sizes) out.push(await get(`/s4?bytes=${bytes}`));
 	// Bisect the largest payload that stores.
 	let lo = 64 * 1024;
-	let hi = 4 * 1024 * 1024;
-	for (const r of out) {
-		if (r.ok && r.result.stored) lo = Math.max(lo, r.result.bytes);
-		else hi = Math.min(hi, r.result?.bytes ?? hi);
+	let hi = null;
+	for (const [i, r] of out.entries()) {
+		if (r.ok && r.result.stored) lo = Math.max(lo, sizes[i]);
+		else hi = Math.min(hi ?? sizes[i], sizes[i]);
 	}
+	if (hi === null) hi = lo; // nothing failed up to the largest size tried
 	while (hi - lo > 16) {
 		const mid = Math.floor((lo + hi) / 2);
 		const r = await get(`/s4?bytes=${mid}`);
@@ -144,7 +145,7 @@ test("S5: PDF benchmark recorded for 1, 3 and 5 pages (EV-NFR-02)", { skip: !run
 				approxMsPerRender: reps > 0 ? +(50 / reps).toFixed(2) : null,
 				minCpuMsLimitForOneRender: cpu,
 			});
-			console.log(JSON.stringify(out.at(-1)));
+			save("s5.partial", out);
 		}
 	}
 	// Heavier signature (pdf-mini, compressed) for the 5-page waiver case.
@@ -156,6 +157,74 @@ test("S5: PDF benchmark recorded for 1, 3 and 5 pages (EV-NFR-02)", { skip: !run
 	for (const pages of [1, 3, 5]) {
 		assert.ok(out.find((r) => r.engine === "mini" && r.pages === pages && r.size > 0));
 	}
+});
+
+const median = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+
+test("S5: I/O-bracketed timings and CPU-limit enforcement (EV-NFR-02)", { skip: !run("s5t") }, async () => {
+	const out = [];
+	for (const engine of ["mini", "pdflib-create", "pdflib-stamp"]) {
+		for (const pages of [1, 3, 5]) {
+			for (const reps of [1, 10]) {
+				const samples = [];
+				for (let i = 0; i < 3; i++) {
+					const r = await get(
+						`/pdf?engine=${engine}&pages=${pages}&reps=${reps}&warm=1&timed=1&limits=none`,
+					);
+					assert.ok(r.ok, r.error);
+					const t = r.result;
+					samples.push(...t.workMs.map((w, j) => w - t.baselineMs[j]));
+				}
+				out.push({ engine, pages, reps, msPerRender: +(median(samples) / reps).toFixed(2), samples });
+			}
+		}
+	}
+	// Enforcement: the same heavy workload with and without { cpuMs: 50 }.
+	const heavy = "/pdf?engine=pdflib-stamp&pages=5&reps=40&warm=1";
+	const enforced = await get(`${heavy}&limits=emdash`);
+	const unlimited = await get(`${heavy}&limits=none`);
+	const enforcement = { enforced: { ok: enforced.ok, error: enforced.error ?? null }, unlimited: { ok: unlimited.ok } };
+	save("s5-timed", { out, enforcement });
+	assert.equal(enforced.ok, false, "40 pdf-lib stamps should exceed 50 ms CPU");
+});
+
+test("S5: where does { cpuMs } actually stop a sandboxed invocation", { skip: !run("cpu") }, async () => {
+	const out = [];
+	const repsList = (process.env.PROBE_REPS ?? "10,40,160,640").split(",").map(Number);
+	const limitSet = (process.env.PROBE_LIMITS ?? "emdash,custom&cpuMs=5,none").split(",");
+	for (const limits of limitSet) {
+		for (const reps of repsList) {
+			const r = await get(`/pdf?engine=pdflib-stamp&pages=5&reps=${reps}&warm=1&limits=${limits}`);
+			out.push({ limits, reps, ok: r.ok, error: r.error ?? null });
+			if (!r.ok) break;
+		}
+	}
+	save(`s5-enforcement${process.env.PROBE_TAG ?? ""}`, out);
+	assert.ok(out.length > 0);
+});
+
+test("S5: sustained pass rate under { cpuMs: 50 }", { skip: !run("sustain") }, async () => {
+	const out = [];
+	const cases = [
+		["mini", 5, 1],
+		["mini", 5, 100],
+		["pdflib-create", 5, 1],
+		["pdflib-stamp", 5, 1],
+		["pdflib-stamp", 5, 4],
+		["pdflib-stamp", 5, 10],
+		["pdflib-stamp", 5, 30],
+	];
+	for (const [engine, pages, reps] of cases) {
+		let ok = 0;
+		const n = 20;
+		for (let i = 0; i < n; i++) {
+			const r = await get(`/pdf?engine=${engine}&pages=${pages}&reps=${reps}&limits=emdash`);
+			if (r.ok) ok++;
+		}
+		out.push({ engine, pages, reps, passed: ok, of: n });
+	}
+	save("s5-sustained", out);
+	assert.ok(out.length === cases.length);
 });
 
 test("cron: tick log", { skip: !run("cron") }, async () => {
