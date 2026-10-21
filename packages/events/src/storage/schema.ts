@@ -1,2 +1,227 @@
-export const STORAGE_COLLECTIONS: Record<string, { indexes: unknown[]; uniqueIndexes: string[] }> = {};
-export const SECRET_SETTING_KEYS: readonly string[] = [];
+/**
+ * Typed storage collection names and document shapes (BUILD-PLAN 3.1).
+ *
+ * The manifest (`emdash-plugin.jsonc`) is the source of truth for what the host accepts;
+ * `STORAGE_COLLECTIONS` mirrors it and a test fails if they drift. Every document stays under
+ * 512 KiB (spike S4). Collection names must match `^[a-z][a-z0-9_]*$` (manifest schema), so the
+ * BUILD-PLAN's camelCase names are snake_case here: `event_configs`, `ticket_types`, `promo_codes`. Timestamps are ISO 8601 UTC strings; money is integer minor units.
+ */
+
+/** A single-field index, or a composite index (order matters for ordering queries). */
+export type IndexDef = string | readonly string[];
+
+export interface CollectionDef {
+	readonly indexes: readonly IndexDef[];
+	readonly uniqueIndexes: readonly string[];
+}
+
+export const STORAGE_COLLECTIONS = {
+	event_configs: { indexes: ["status", "salesEnd"], uniqueIndexes: [] },
+	occurrences: { indexes: [["eventId", "startsAt"], "startsAt", "status"], uniqueIndexes: [] },
+	ticket_types: { indexes: ["eventId"], uniqueIndexes: [] },
+	bookings: {
+		indexes: ["eventId", "status", "email", "createdAt", ["status", "holdExpiresAt"], ["eventId", "status"]],
+		uniqueIndexes: ["ref"],
+	},
+	// id = `<provider>:<sessionId>`: the document id is the webhook idempotency key.
+	payments: { indexes: ["bookingId"], uniqueIndexes: [] },
+	attendees: {
+		indexes: ["bookingId", "eventId", "email", ["eventId", "checkedInAt"]],
+		uniqueIndexes: ["code"],
+	},
+	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt"], uniqueIndexes: [] },
+	promo_codes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
+	outbox: { indexes: [["status", "nextAttemptAt"]], uniqueIndexes: [] },
+} as const satisfies Record<string, CollectionDef>;
+
+export type CollectionName = keyof typeof STORAGE_COLLECTIONS;
+
+export const COLLECTION_NAMES = Object.keys(STORAGE_COLLECTIONS) as CollectionName[];
+
+/** Settings declared with `type: "secret"` in `admin.settingsSchema`. */
+export const SECRET_SETTING_KEYS = ["turnstileSecretKey", "esignPairing"] as const;
+
+export type SecretSettingKey = (typeof SECRET_SETTING_KEYS)[number];
+
+export function paymentId(provider: string, sessionId: string): string {
+	return `${provider}:${sessionId}`;
+}
+
+// --- document shapes -------------------------------------------------------------------------
+
+export type EventStatus = "draft" | "on_sale" | "paused" | "closed" | "cancelled";
+export type SignatureMode = "each_attendee" | "buyer";
+
+export interface EventQuestion {
+	id: string;
+	label: string;
+	type: "text" | "select" | "checkbox";
+	required: boolean;
+	options?: string[];
+}
+
+/** Keyed by the content entry ID. */
+export interface EventConfigDoc {
+	status: EventStatus;
+	capacity: number;
+	reserved: number;
+	sold: number;
+	salesStart?: string;
+	salesEnd?: string;
+	currency: string;
+	questions: EventQuestion[];
+	signature: { required: boolean; templateId?: string; mode: SignatureMode };
+	waitlistEnabled: boolean;
+	recurrence?: string;
+	/** Set when the entry was permanently deleted while it still had bookings. */
+	orphaned?: boolean;
+}
+
+export type OccurrenceStatus = "open" | "closed" | "cancelled";
+
+export interface OccurrenceDoc {
+	eventId: string;
+	startsAt: string;
+	endsAt?: string;
+	capacity: number;
+	reserved: number;
+	sold: number;
+	status: OccurrenceStatus;
+}
+
+export interface TicketTypeDoc {
+	eventId: string;
+	name: string;
+	priceMinor: number;
+	capacity: number;
+	reserved: number;
+	sold: number;
+	minPerOrder?: number;
+	maxPerOrder?: number;
+	salesStart?: string;
+	salesEnd?: string;
+	/** Hidden types are unlocked only by an `unlock` promo code. */
+	hidden: boolean;
+	sort: number;
+}
+
+export type BookingStatus =
+	| "draft"
+	| "held"
+	| "awaiting_signature"
+	| "awaiting_payment"
+	| "confirmed"
+	| "expired"
+	| "cancelled"
+	| "refunded"
+	| "refunded_unavailable";
+
+export interface BookingLine {
+	ticketTypeId: string;
+	qty: number;
+	unitPriceMinor: number;
+}
+
+export interface BookingDoc {
+	/** Short public reference, unique. */
+	ref: string;
+	eventId: string;
+	occurrenceId?: string;
+	status: BookingStatus;
+	holdExpiresAt?: string;
+	holdCeilingAt?: string;
+	buyer: { name: string; email: string };
+	/** The buyer's email, denormalised to the top level because indexes read top-level fields. */
+	email: string;
+	lines: BookingLine[];
+	totals: { subtotalMinor: number; discountMinor: number; totalMinor: number; currency: string };
+	payment?: { provider: string; ref: string };
+	answers: Record<string, string>;
+	/** SHA-256 of the access token; the token itself is never stored. */
+	accessTokenHash: string;
+	createdAt: string;
+}
+
+export type PaymentStatus = "pending" | "paid" | "expired" | "refunded" | "partially_refunded";
+
+export interface PaymentDoc {
+	bookingId: string;
+	provider: string;
+	status: PaymentStatus;
+	amountMinor: number;
+	currency: string;
+	refundedMinor: number;
+	events: Array<{ type: string; at: string }>;
+}
+
+export type AttendeeStatus = "pending" | "valid" | "cancelled";
+
+export interface AttendeeDoc {
+	bookingId: string;
+	eventId: string;
+	occurrenceId?: string;
+	ticketTypeId: string;
+	name: string;
+	email: string;
+	/** Unique check-in code. */
+	code: string;
+	status: AttendeeStatus;
+	checkedInAt?: string;
+	signature?: {
+		envelopeId: string;
+		status: string;
+		docSha256?: string;
+		pdfSha256?: string;
+		signedBy?: "self" | "guardian" | "buyer";
+	};
+}
+
+export type WaitlistStatus = "waiting" | "offered" | "claimed" | "expired" | "cancelled";
+
+export interface WaitlistDoc {
+	eventId: string;
+	occurrenceId?: string;
+	email: string;
+	qty: number;
+	status: WaitlistStatus;
+	offerExpiresAt?: string;
+	createdAt: string;
+}
+
+export type PromoKind = "percent" | "fixed" | "unlock";
+
+export interface PromoCodeDoc {
+	/** Unique, stored upper-case. */
+	code: string;
+	eventId?: string;
+	kind: PromoKind;
+	amount: number;
+	maxUses?: number;
+	uses: number;
+	validFrom?: string;
+	validTo?: string;
+}
+
+export type OutboxStatus = "pending" | "sent" | "failed";
+
+export interface OutboxDoc {
+	kind: string;
+	to: string;
+	payload: Record<string, unknown>;
+	attempts: number;
+	nextAttemptAt: string;
+	status: OutboxStatus;
+}
+
+/** Document shape for each collection, for typed `ctx.storage` access in later tasks. */
+export interface CollectionDocs {
+	event_configs: EventConfigDoc;
+	occurrences: OccurrenceDoc;
+	ticket_types: TicketTypeDoc;
+	bookings: BookingDoc;
+	payments: PaymentDoc;
+	attendees: AttendeeDoc;
+	waitlist: WaitlistDoc;
+	promo_codes: PromoCodeDoc;
+	outbox: OutboxDoc;
+}

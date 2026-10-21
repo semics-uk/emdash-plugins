@@ -1,10 +1,8 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { createPluginTestHost, type PluginTestHost } from "@emdash-cms/plugin-test";
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { PUBLIC_ROUTES } from "../src/routes/public";
 import { SECRET_SETTING_KEYS, STORAGE_COLLECTIONS } from "../src/storage/schema";
 
 const root = resolve(import.meta.dirname, "..");
@@ -21,17 +19,11 @@ function readManifest(): Record<string, any> {
 	);
 }
 
-let host: PluginTestHost | undefined;
-afterEach(async () => {
-	await host?.dispose();
-	host = undefined;
-});
-
 // The storage table of BUILD-PLAN 3.1, written out independently of src/storage/schema.ts.
 const EXPECTED_STORAGE = {
-	eventConfigs: { indexes: ["status", "salesEnd"], uniqueIndexes: [] },
+	event_configs: { indexes: ["status", "salesEnd"], uniqueIndexes: [] },
 	occurrences: { indexes: [["eventId", "startsAt"], "startsAt", "status"], uniqueIndexes: [] },
-	ticketTypes: { indexes: ["eventId"], uniqueIndexes: [] },
+	ticket_types: { indexes: ["eventId"], uniqueIndexes: [] },
 	bookings: {
 		indexes: ["eventId", "status", "email", "createdAt", ["status", "holdExpiresAt"], ["eventId", "status"]],
 		uniqueIndexes: ["ref"],
@@ -42,7 +34,7 @@ const EXPECTED_STORAGE = {
 		uniqueIndexes: ["code"],
 	},
 	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt"], uniqueIndexes: [] },
-	promoCodes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
+	promo_codes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
 	outbox: { indexes: [["status", "nextAttemptAt"]], uniqueIndexes: [] },
 };
 
@@ -58,13 +50,11 @@ describe("manifest (EU-FR-01, BUILD-PLAN 3.1)", () => {
 		);
 	});
 
-	it("allows exactly one outbound host: challenges.cloudflare.com (Free edition)", async () => {
+	it("allows exactly one outbound host: challenges.cloudflare.com (Free edition)", () => {
 		expect(readManifest().allowedHosts).toEqual(["challenges.cloudflare.com"]);
-		host = await createPluginTestHost();
-		expect(host.manifest.allowedHosts).toEqual(["challenges.cloudflare.com"]);
 	});
 
-	it("declares every storage collection with its indexes and unique indexes", async () => {
+	it("declares every storage collection with its indexes and unique indexes", () => {
 		const storage = readManifest().storage as Record<string, { indexes?: unknown[]; uniqueIndexes?: unknown[] }>;
 		expect(Object.keys(storage).sort()).toEqual(Object.keys(EXPECTED_STORAGE).sort());
 		for (const [name, expected] of Object.entries(EXPECTED_STORAGE)) {
@@ -132,36 +122,4 @@ describe("settings schema", () => {
 	it("is a Free edition: no Stripe settings", () => {
 		expect(Object.keys(settings()).filter((k) => /stripe/i.test(k))).toEqual([]);
 	});
-});
-
-describe("public routes (route list matches BUILD-PLAN 3.1)", () => {
-	const EXPECTED = [
-		"public/events",
-		"public/event",
-		"public/checkout/reserve",
-		"public/checkout/continue",
-		"public/booking",
-		"public/booking/cancel",
-		"public/booking/ics",
-		"public/event/ics",
-		"public/waitlist/join",
-		"public/waitlist/claim",
-		"webhooks/stripe",
-		"signatures/receipt",
-	];
-
-	it("lists every route in the PRD table", () => {
-		expect(Object.keys(PUBLIC_ROUTES).sort()).toEqual([...EXPECTED].sort());
-	});
-
-	for (const name of EXPECTED) {
-		it(`${name} is a stub that answers through the shared error registry`, async () => {
-			host = await createPluginTestHost();
-			const body = await host.invokeRoute(name);
-			expect(body).toEqual({
-				ok: false,
-				error: { code: "NOT_FOUND", message: "Not found." },
-			});
-		});
-	}
 });

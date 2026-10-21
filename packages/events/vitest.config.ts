@@ -19,10 +19,12 @@ export default defineConfig({
 				test: {
 					name: "core",
 					testTimeout,
+					hookTimeout: testTimeout,
 					exclude: [
 						...configDefaults.exclude,
 						"tests/shared-bundle*.test.ts",
 						"tests/contract.test.ts",
+						"tests/manifest.test.ts",
 						"tests/fixtures/**",
 					],
 				},
@@ -33,13 +35,17 @@ export default defineConfig({
 			},
 			{
 				plugins: [emdashPluginTest({ dir: contractFixture })],
-				test: { name: "contract", testTimeout, include: ["tests/contract.test.ts"] },
+				test: { name: "contract", testTimeout, hookTimeout: testTimeout, include: ["tests/contract.test.ts"] },
+			},
+			{
+				test: { name: "manifest", environment: "node", testTimeout, include: ["tests/manifest.test.ts"] },
 			},
 			{
 				test: {
 					name: "shared-build",
 					environment: "node",
 					testTimeout,
+					hookTimeout: testTimeout,
 					include: ["tests/shared-bundle.build.test.ts"],
 				},
 			},

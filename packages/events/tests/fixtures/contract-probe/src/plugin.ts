@@ -46,7 +46,7 @@ const plugin: SandboxedPlugin = {
 		"probe/fetch": {
 			handler: async (r, ctx) => {
 				try {
-					const res = await ctx.http.fetch(String(input(r).url));
+					const res = await ctx.http!.fetch(String(input(r).url));
 					return { ok: true, status: res.status };
 				} catch (e) {
 					return { ok: false, error: String(e) };

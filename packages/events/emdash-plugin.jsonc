@@ -10,12 +10,126 @@
 	"description": "Events bookings and ticketing for EmDash",
 	"repo": "https://github.com/semics-uk/emdash-plugins",
 
-	// Trust contract — what runtime APIs the plugin asks for.
-	// Empty arrays mean no extra privileges beyond logging,
-	// KV, and route/hook registration. Changing these between
-	// releases requires a version bump because installed
-	// users have consented to the old contract.
-	"capabilities": [],
-	"allowedHosts": [],
-	"storage": {}
+	// Trust contract (Free edition, BUILD-PLAN 3.1 and 13). Changing these between releases
+	// requires a version bump because installed users have consented to the old contract.
+	//   content:read    resolve events, and veto deleting an event that has bookings (spike S9)
+	//   schema:read     validate the collection field mapping
+	//   email:send      booking confirmations, reminders, waitlist offers
+	//   network:request Cloudflare Turnstile verification, and nothing else
+	// Deliberately not requested: content:write, users:read.
+	"capabilities": ["content:read", "schema:read", "email:send", "network:request"],
+	"allowedHosts": ["challenges.cloudflare.com"],
+
+	// Keep in step with src/storage/schema.ts (a test compares them).
+	"storage": {
+		"event_configs": { "indexes": ["status", "salesEnd"] },
+		"occurrences": { "indexes": [["eventId", "startsAt"], "startsAt", "status"] },
+		"ticket_types": { "indexes": ["eventId"] },
+		"bookings": {
+			"indexes": ["eventId", "status", "email", "createdAt", ["status", "holdExpiresAt"], ["eventId", "status"]],
+			"uniqueIndexes": ["ref"]
+		},
+		// id = "<provider>:<sessionId>", which gives webhook idempotency; no unique index needed.
+		"payments": { "indexes": ["bookingId"] },
+		"attendees": {
+			"indexes": ["bookingId", "eventId", "email", ["eventId", "checkedInAt"]],
+			"uniqueIndexes": ["code"]
+		},
+		"waitlist": { "indexes": [["eventId", "status"], "offerExpiresAt"] },
+		"promo_codes": { "indexes": ["eventId"], "uniqueIndexes": ["code"] },
+		"outbox": { "indexes": [["status", "nextAttemptAt"]] }
+	},
+
+	"admin": {
+		// Secret fields are encrypted with EMDASH_ENCRYPTION_KEY (spike S8); saving one without it fails.
+		"settingsSchema": {
+			"eventsCollection": {
+				"type": "string",
+				"label": "Events collection",
+				"description": "Slug of the collection that holds your events.",
+				"default": "events"
+			},
+			"fieldStartsAt": {
+				"type": "string",
+				"label": "Start field",
+				"description": "Field that holds the start date and time.",
+				"default": "starts_at"
+			},
+			"fieldEndsAt": {
+				"type": "string",
+				"label": "End field",
+				"description": "Field that holds the end date and time.",
+				"default": "ends_at"
+			},
+			"fieldTimezone": {
+				"type": "string",
+				"label": "Timezone field",
+				"description": "Field that holds the IANA timezone, for example Europe/London.",
+				"default": "timezone"
+			},
+			"fieldVenue": {
+				"type": "string",
+				"label": "Venue field",
+				"description": "Field that holds the venue name or address.",
+				"default": "venue"
+			},
+			"holdMinutesFree": {
+				"type": "number",
+				"label": "Hold time, free tickets (minutes)",
+				"description": "How long a seat is held while a buyer completes a free checkout.",
+				"default": 15,
+				"min": 5,
+				"max": 60
+			},
+			"holdMinutesPaid": {
+				"type": "number",
+				"label": "Hold time, paid tickets (minutes)",
+				"description": "How long a seat is held during a paid checkout. Card processors need at least 30 minutes.",
+				"default": 35,
+				"min": 30,
+				"max": 60
+			},
+			"holdCeilingMinutes": {
+				"type": "number",
+				"label": "Maximum total hold (minutes)",
+				"description": "Each checkout step extends the hold, but never beyond this many minutes from the first hold.",
+				"default": 60,
+				"min": 15,
+				"max": 120
+			},
+			"currency": {
+				"type": "string",
+				"label": "Default currency",
+				"description": "Three-letter ISO 4217 code, for example GBP.",
+				"default": "GBP"
+			},
+			"turnstileSiteKey": {
+				"type": "string",
+				"label": "Turnstile site key",
+				"description": "Public site key of your Cloudflare Turnstile widget."
+			},
+			"turnstileSecretKey": {
+				"type": "secret",
+				"label": "Turnstile secret key",
+				"description": "Secret key used to verify bot checks. Stored encrypted."
+			},
+			"esignPairing": {
+				"type": "secret",
+				"label": "E-sign pairing string",
+				"description": "Pairing string from the e-sign plugin, for events that require signed waivers. Stored encrypted."
+			},
+			"retentionDays": {
+				"type": "number",
+				"label": "Keep booking data (days)",
+				"description": "Personal data of past events is erased after this many days.",
+				"default": 365,
+				"min": 30
+			},
+			"emailSenderName": {
+				"type": "string",
+				"label": "Email sender name",
+				"description": "Name shown on booking emails. Defaults to the site name."
+			}
+		}
+	}
 }

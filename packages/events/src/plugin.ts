@@ -1,5 +1,7 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { PUBLIC_ROUTES } from "./routes/public";
+
 /**
  * Sandboxed plugin entry. The explicit `SandboxedPlugin` annotation gives TypeScript per-hook /
  * per-route inference (`ctx` is `PluginContext` automatically; hook
@@ -13,6 +15,7 @@ const plugin: SandboxedPlugin = {
 				return { greeting: "hello", pluginId: ctx.plugin.id };
 			},
 		},
+		...PUBLIC_ROUTES,
 	},
 };
 
