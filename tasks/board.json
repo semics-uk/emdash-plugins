@@ -587,7 +587,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -602,7 +602,7 @@
 				"T026",
 				"T033"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T026": {
 			"file": "T026-e-sign-hash-verification-route.md",
@@ -2243,7 +2243,6 @@
 			"T106"
 		],
 		"ready": [
-			"T025",
 			"T027",
 			"T028",
 			"T029",
@@ -2255,6 +2254,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T025",
 			"T047"
 		],
 		"review": [],
