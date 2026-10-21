@@ -38,6 +38,8 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] No canvas raster is ever submitted
 - [ ] Pad output is `{ v, w, h, strokes }` with `[x, y]` points in pad coordinates (y down), the shape `renderPdf` signature blocks take (T016)
+- [ ] Pad writes `{ v, w, h, strokes }` JSON to the hidden `signatureStrokes` input in `[data-esign-pad-slot]` and fires a bubbling `input` event; its script is inlined and hashed (`assets.ts`, `ceremonyCsp`); typed name stays required (T030)
+- [ ] **Bug from T030:** `handleSign` calls the core under the default plugin id; make it use the integration's configured id (`virtual:semics-esign/config`) like the poll does, with a test using an `r_…` id
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

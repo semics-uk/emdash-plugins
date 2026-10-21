@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Runs in CI on Node
 - [ ] Playground fixture that creates and sends an envelope, so the e2e walks `/sign/[token]` → session → submit → signed PDF → `/verify` (T029 covers only the unknown-link and unmatched-hash states)
+- [ ] `public/session` exposes signer-fillable fields so the ceremony renders and posts them (T030 handles them only if present)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
