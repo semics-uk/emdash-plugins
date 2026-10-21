@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Within budget
 - [ ] Purge clears `personal` on audit events (`purgePersonal`, T023) and deletes the envelope `piiSalt` (R28); the chain still verifies
+- [ ] Retention keeps `artifacts` (the signed PDF is the signed record, T025)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

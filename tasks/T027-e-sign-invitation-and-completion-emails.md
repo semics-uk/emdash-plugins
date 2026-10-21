@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Emails go through the shared outbox (T015): declare `OUTBOX_COLLECTION` (add an `outbox` collection to the manifest), adapt storage to `OutboxStorage`, `drainOutbox` from the cron tick; delivery is at-least-once
 - [ ] `envelopes/send` (T022) emails the signing token; handle `delivery: "email"` intents (private send never returns the token)
 - [ ] Do not send inline from `public/envelopes/from-intent` (it is at 9 calls after T023): queue through the shared outbox and drain in cron
+- [ ] Completion email links the signed PDF via `downloadLink(ctx, id, now)` (T025) prefixed with the site URL
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

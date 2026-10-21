@@ -600,7 +600,8 @@
 			],
 			"unblocks": [
 				"T026",
-				"T033"
+				"T033",
+				"T112"
 			],
 			"column": "done"
 		},
@@ -2185,6 +2186,26 @@
 			],
 			"unblocks": [],
 			"column": "ready"
+		},
+		"T112": {
+			"file": "T112-e-sign-submit-race-path-within-the-call-limit.md",
+			"id": "T112",
+			"title": "E-sign: submit race path within the call limit",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T025"
+			],
+			"spec": [
+				"ES-FR-04",
+				"R22"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2253,7 +2274,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T048"
+			"T048",
+			"T112"
 		],
 		"review": [],
 		"done": [
