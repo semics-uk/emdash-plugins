@@ -10,6 +10,27 @@
 	"description": "Events bookings and ticketing for EmDash",
 	"repo": "https://github.com/semics-uk/emdash-plugins",
 
+	// Registry listing (T103): the package page's text and images. Not part of the trust contract.
+	// The images are made by apps/playground/e2e/t103-screenshots.spec.ts (T103_WRITE=1).
+	"name": "semics Events",
+	"keywords": ["events", "tickets", "bookings", "rsvp", "waitlist"],
+	"sections": {
+		"description": { "file": "listing/description.md" },
+		"installation": { "file": "listing/installation.md" },
+		"faq": { "file": "listing/faq.md" },
+		"security": { "file": "listing/security.md" }
+	},
+	"release": {
+		"artifacts": {
+			"icon": { "file": "listing/icon.png" },
+			"banner": { "file": "listing/banner.png" },
+			"screenshots": [
+				{ "file": "listing/screenshots/1-booking-form.png" },
+				{ "file": "listing/screenshots/2-events-list.png" }
+			]
+		}
+	},
+
 	// Trust contract (Free edition, BUILD-PLAN 3.1 and 13). Changing these between releases
 	// requires a version bump because installed users have consented to the old contract.
 	//   content:read    resolve events, and veto deleting an event that has bookings (spike S9)

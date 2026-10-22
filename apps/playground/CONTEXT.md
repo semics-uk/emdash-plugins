@@ -56,3 +56,6 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
   `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate
   with `--update-snapshots` if the CI font differs), `e2e/t055-booking-widget`.
+- `e2e/t103-screenshots.spec.ts` (T103): the registry listing images of both cores (icon, banner, screenshots). Every run
+  takes and size-checks them; `T103_WRITE=1` writes them to `packages/<core>/listing/` (commit the result).
+  `E2E_PORT` overrides the server port (default 4401) so a second checkout can run its own server.

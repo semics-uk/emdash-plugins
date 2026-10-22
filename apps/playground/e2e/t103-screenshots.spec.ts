@@ -28,11 +28,14 @@ function save(core: "events" | "esign", name: string, png: Buffer) {
 /** Width and height from a PNG's IHDR chunk. */
 const size = (png: Buffer) => ({ width: png.readUInt32BE(16), height: png.readUInt32BE(20) });
 
+/** A 1280x800 screenshot of `path`. */
 async function shoot(browser: Browser, path: string) {
 	const context = await browser.newContext({ viewport: SHOT, deviceScaleFactor: 1, colorScheme: "light" });
 	const page = await context.newPage();
 	await page.goto(path);
-	await page.waitForLoadState("networkidle");
+	await page.waitForLoadState("load");
+	// Let late content settle (fonts, the Turnstile box), without waiting on its network.
+	await page.waitForTimeout(1500);
 	const png = await page.screenshot();
 	await context.close();
 	expect(size(png)).toEqual(SHOT);
@@ -69,16 +72,15 @@ const banner = (colour: string, glyph: string, title: string, line: string) => `
 const EVENTS_BLUE = "#1f5fbf";
 const ESIGN_GREEN = "#17694a";
 
-test("T103 events listing: icon, banner and screenshots of the booking widget, the events list and a pass", async ({
+test("T103 events listing: icon, banner and screenshots of the booking widget and the events list", async ({
 	browser,
 }) => {
 	test.setTimeout(120_000);
 	save("events", "icon.png", await draw(browser, 256, 256, icon(EVENTS_BLUE, TICKET)));
 	const eventsBanner = banner(EVENTS_BLUE, TICKET, "semics Events", "Tickets, bookings and waitlists");
 	save("events", "banner.png", await draw(browser, 1280, 400, eventsBanner));
-	save("events", "screenshots/1-booking-form.png", await shoot(browser, "/events/london-meetup"));
+	save("events", "screenshots/1-booking-form.png", await shoot(browser, "/events/nyc-workshop"));
 	save("events", "screenshots/2-events-list.png", await shoot(browser, "/whats-on"));
-	save("events", "screenshots/3-ticket-pass.png", await shoot(browser, "/e2e/widgets"));
 });
 
 test("T103 esign listing: icon, banner and screenshots of the signing page, the signed state and /verify", async ({

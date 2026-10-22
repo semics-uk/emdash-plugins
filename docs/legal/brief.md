@@ -370,10 +370,11 @@ people; the integration tokens are signed with keys derived per client, never st
 
 - **The certificate also prints the minor's name.** The retention decision (R45) and the README list "name and IP" as what
   the certificate keeps. The code also prints the participant name (a minor's name in the guardian case) and, on the
-  PDF, any entered values. This brief follows the code. [C17]
+  PDF, any entered values. This brief follows the code. [C17] *Resolved (T103): the README, R45 and the operator
+  guide now say the same as the code.*
 - **Entered values stay in the signed PDF.** The README says the purge deletes "the values they entered". That is true of
   the stored signer record; the same values remain in the signed PDF's "Details entered by the signer" table until the
-  signed-records period ends. [C17][C18]
+  signed-records period ends. [C17][C18] *Resolved (T103): the README and the operator guide now say so.*
 - **OTP.** The settings screen describes OTP options as "Pro" settings. The Pro build implements them (T091, section 6);
   the Free build only enforces the flag on an envelope that already carries it. [C20][C35]
 - **`signer.viewed` on GET.** An earlier question (review T034, task T117) was whether a view should be recorded when a

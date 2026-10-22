@@ -40,6 +40,8 @@ export function steps(root) {
 			// single invocations past the host's 30 s wall-time limit.
 			...pnpm("-r", "--workspace-concurrency=1", "--filter", "./packages/**", "verify"),
 		},
+		// After the packages: the docs' snippets import their built entry points (T103).
+		{ name: "Docs: build, links, snippets and listings", ...pnpm("--filter", "docs", "verify") },
 		// Packs and audits what would be published (the packages were just built); publishes nothing.
 		{ name: "Release dry run (pack and audit)", ...pnpm("run", "release:dry-run") },
 		{ name: "Playground typecheck", ...pnpm("--filter", "playground", "typecheck") },

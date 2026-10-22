@@ -10,6 +10,28 @@
 	"description": "Simple electronic signatures for EmDash",
 	"repo": "https://github.com/semics-uk/emdash-plugins",
 
+	// Registry listing (T103): the package page's text and images. Not part of the trust contract.
+	// The images are made by apps/playground/e2e/t103-screenshots.spec.ts (T103_WRITE=1).
+	"name": "semics E-sign",
+	"keywords": ["e-signature", "esign", "contracts", "waivers", "audit trail"],
+	"sections": {
+		"description": { "file": "listing/description.md" },
+		"installation": { "file": "listing/installation.md" },
+		"faq": { "file": "listing/faq.md" },
+		"security": { "file": "listing/security.md" }
+	},
+	"release": {
+		"artifacts": {
+			"icon": { "file": "listing/icon.png" },
+			"banner": { "file": "listing/banner.png" },
+			"screenshots": [
+				{ "file": "listing/screenshots/1-signing-page.png" },
+				{ "file": "listing/screenshots/2-signed.png" },
+				{ "file": "listing/screenshots/3-verify.png" }
+			]
+		}
+	},
+
 	// Trust contract — what runtime APIs the plugin asks for.
 	// Empty arrays mean no extra privileges beyond logging,
 	// KV, and route/hook registration. Changing these between
