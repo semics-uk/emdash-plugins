@@ -17,11 +17,11 @@ runtime dependency would ship an unresolvable import.
   Reuse these instead of a local copy (bundle budget R42).
 
 Modules so far: `result.ts` (Result, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts` (T018),
-`tokens.ts` (T011: opaque tokens, `constantTimeEqual`, `signLink`/`verifyLink`), `hmac.ts` + `pairing.ts`
+`tokens.ts` (T011: opaque tokens, `constantTimeEqual`, `signLink`/`verifyLink`; `verifyToken(token, hash?)` compares against a decoy when the record has no hash, so pass `doc?.hash` and check the record after, T100), `hmac.ts` + `pairing.ts`
 (T012: `esign-intent/1` sign/verify per type, injected `consumeNonce`, `isReturnUrlAllowed`,
 `deriveClientSecret`), `blockkit.ts` (T014: typed builders, `notice`/`notices` banners), `template.ts` (T017:
 `renderTemplate`, `canonicalSnapshot`, `sha256Hex`), `pdf/` (T016: `renderPdf`, deterministic), `ratelimit.ts`
-(T013: `rateLimit(store, ip, now, opts)`, hashed IPs, 2 store calls) and `turnstile.ts` (T013: `verifyTurnstile`). Security
+(T013: `rateLimit(store, ip, now, opts)`, hashed IPs, 2 store calls; T100: values are `<count>:<window end s>` under `rl:`, and `sweepRateLimits(kv, now, max)` deletes ended ones, which both cores' retention passes run first, R61) and `turnstile.ts` (T013: `verifyTurnstile`). Security
 globs at 100% branches: `strictBranches` in `vitest.config.ts`. `outbox.ts` (T015: `enqueueEmail`, `drainOutbox` with per-tick cap, `outboxStatus`, `OUTBOX_COLLECTION`). `licence.ts` (T070: `semics1.` Ed25519 keys, `createLicenceVerifier(build)` with the
 public key, product and build date injected at build time, exempt local/preview hosts, `signLicence` for
 issuing) and `gate.ts` (T070: `gateProWork`/`gateProOperation`: no new Pro work without a key, in-flight

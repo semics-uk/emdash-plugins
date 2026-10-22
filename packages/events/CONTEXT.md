@@ -262,3 +262,10 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 `src/domain` pure logic (90% line coverage) · `src/routes` thin adapters · `src/storage/schema.ts`
 collection names and shapes · `src/admin` Block Kit · `src/cron` jobs · `tests/` (vitest projects:
 `core` in workerd, plus node projects for build checks).
+
+- Security review (T100, R61, R62, `tasks/reviews/security.md`): without a Turnstile secret the IP salt is the random
+  undeclared `ipSalt` setting (`botCheck` in `src/routes/reply.ts` stores it on the first public write, in the Turnstile
+  call's place), never the plugin id. The retention pass starts by sweeping ended `rl:` counters (3 a tick). Every route
+  that looks a booking up by ref calls `verifyToken(token, booking?.hash)` before checking the record (decoy hash). CSV
+  cells starting with full-width `＝＋－＠` are defused too. Messages of errors the core throws must stay fixed strings
+  (`scripts/security.test.mjs`). Backend 115.97 KiB of 116 after T100 (scaffold `hello` route removed).

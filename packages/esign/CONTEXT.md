@@ -223,3 +223,8 @@ and pages take `locale`, else `Astro.currentLocale`, else `en-GB`, and set `lang
 adds `pagesLabel`. The inlined scripts hold no text: `ceremony.js` reads the root's `data-messages` (`ceremony.`), `pad.js` the
 slot's (`pad.`, plurals by `Intl.PluralRules`), `verify.js` the file input's (`verify.`). The CSP hashes follow the files, so
 nothing else changes when a script does. Consent wording is the site's setting, not a message. See `docs/i18n.md`.
+
+Security review (T100, R61, R62, `tasks/reviews/security.md`): the retention pass starts with phase `rl`, sweeping ended
+rate-limit counters (the ceremony and verify limiters' hashed IPs; 3 a tick). `from-intent` stays without a rate limit
+(malformed 0 calls, unknown `cid` 2, tested). `src/astro/lib/markdown.ts` must import nothing (the core imports it for the
+signed PDF; `scripts/security.test.mjs`), and errors the core throws must stay fixed strings (same test). Backend 105.3 KiB.
