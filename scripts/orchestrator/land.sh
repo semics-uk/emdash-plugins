@@ -12,6 +12,7 @@ if ! $G rebase -q main 2>/dev/null; then
     U=$(git -C $W diff --name-only --diff-filter=U)
     # The task file is marked in-progress on main at launch; the branch's copy (status, ticks, Notes) wins.
     for f in ${(f)U}; do [[ "$f" == tasks/$T-*.md ]] && git -C $W checkout --theirs -- "$f" && git -C $W add "$f"; done
+    for f in ${(f)U}; do [[ "$f" == */CONTEXT.md ]] && python3 $M/scripts/orchestrator/merge-notes.py $W/$f && git -C $W add "$f"; done
     U=$(git -C $W diff --name-only --diff-filter=U)
     [[ -z "$U" ]] && { GIT_EDITOR=true $G rebase --continue >/dev/null 2>&1 && break; continue; }
     [[ "$U" == "packages/shared/src/index.ts" ]] || { echo "CONFLICT: $U"; exit 2; }
