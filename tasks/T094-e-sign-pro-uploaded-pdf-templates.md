@@ -4,7 +4,7 @@ title: "E-sign Pro: uploaded PDF templates"
 phase: 6
 package: esign
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: L
 depends_on: [T067, T110, T071]

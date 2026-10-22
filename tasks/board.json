@@ -1946,7 +1946,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -1959,7 +1959,7 @@
 				"Spike S5"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T095": {
 			"file": "T095-e-sign-pro-bulk-send.md",
@@ -2411,7 +2411,6 @@
 			"T082",
 			"T083",
 			"T086",
-			"T094",
 			"T096",
 			"T100",
 			"T101",
@@ -2420,7 +2419,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T084"
+			"T084",
+			"T094"
 		],
 		"review": [],
 		"done": [
