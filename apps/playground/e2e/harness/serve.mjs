@@ -8,6 +8,7 @@ import { rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { applyEsignFixtures } from "./esign-fixture.mjs";
 import { applyBookingFixtures } from "./fixtures.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
@@ -27,6 +28,7 @@ if (seed.status !== 0) {
 	process.exit(seed.status ?? 1);
 }
 applyBookingFixtures(root);
+applyEsignFixtures(root);
 
 const server = spawn(process.execPath, [resolve(root, "dist/server/entry.mjs")], {
 	cwd: root,

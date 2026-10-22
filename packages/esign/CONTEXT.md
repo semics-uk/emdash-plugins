@@ -80,4 +80,6 @@ branches). The page's CSP is `ceremonyCsp()`: only the inlined `src/client/cerem
 `CEREMONY_CSS`, by hash; any new client script must be added there. Pad strokes go in the hidden
 `signatureStrokes` input as `{ v, w, h, strokes }` and are normalised to 0-1 points for `public/submit`.
 
+Verify + signed copy (T032): `/verify` = `VerifyPage.astro` → `<VerifyDocument>`; `src/client/verify.js` (inlined as `VERIFY_SCRIPT`, hashed with `VERIFY_CSS` into `verifyCsp()`, no `connect-src`) hashes a chosen/dropped PDF with WebCrypto and submits only `sha256`. `/signed/[token]` = `SignedCopyPage.astro` → `handleSignedCopy` (token POSTed to `public/session`, fresh `download` each visit); the completion email cron (`cron/completion-email.ts`) rotates the signer's token and links it (5 calls), never the 15-minute `downloadLink`.
+
 Pad (T031): `src/client/pad.js` (inlined, hashed as `PAD_SCRIPT`, second `script-src` hash) fills `[data-esign-pad-slot]` with a canvas, Undo and Clear and writes `{ v: 1, w: 600, h: 200, strokes }` (whole-pixel points, max 64 strokes / 1500 points) to `signatureStrokes`. `PublicRouteContext.pluginId` makes `handleSign` call the integration's configured core id.
