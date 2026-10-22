@@ -4,7 +4,7 @@ title: "E-sign: signed-copy token without rotating the signing token"
 phase: 1
 package: esign
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T033]
