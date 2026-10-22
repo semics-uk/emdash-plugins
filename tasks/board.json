@@ -1719,7 +1719,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1730,7 +1730,7 @@
 				"EV-US-6"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T082": {
 			"file": "T082-events-pro-qr-passes-and-mobile-check-in-screen.md",
@@ -2421,9 +2421,7 @@
 			"T103",
 			"T111"
 		],
-		"in-progress": [
-			"T081"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2495,6 +2493,7 @@
 			"T076",
 			"T077",
 			"T078",
+			"T081",
 			"T085",
 			"T087",
 			"T090",
