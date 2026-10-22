@@ -1412,7 +1412,7 @@
 			"phase": 3,
 			"package": "suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1425,7 +1425,7 @@
 			"unblocks": [
 				"T067"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T067": {
 			"file": "T067-phase-3-gate-integration-security-and-e2e.md",
@@ -1453,7 +1453,7 @@
 				"T096",
 				"T097"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T070": {
 			"file": "T070-licence-verification-and-pro-gating.md",
@@ -2358,7 +2358,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T067",
 			"T075",
 			"T078",
 			"T090",
@@ -2377,6 +2376,7 @@
 			"T106"
 		],
 		"ready": [
+			"T067",
 			"T076",
 			"T077",
 			"T080",
@@ -2388,7 +2388,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T066",
 			"T074"
 		],
 		"review": [],
@@ -2451,6 +2450,7 @@
 			"T063",
 			"T064",
 			"T065",
+			"T066",
 			"T070",
 			"T071",
 			"T072",
