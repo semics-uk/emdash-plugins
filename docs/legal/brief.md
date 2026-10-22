@@ -194,11 +194,24 @@ complete with signatures missing. [C34]
   page). The product records the typed name as entered by that person. It does not check that the typed name is the
   name the sender supplied, that the email belongs to the named person, or that the person is who they say.
   The 256-bit token is the only credential for the signing page; there is no CAPTCHA on the ceremony. [C4][C20]
-- **Pro edition: email one-time code is not built.** The settings (`otpDefault`, `otpContractTemplates`) and two public
-  routes (`public/otp/send`, `public/otp/verify`) are declared, but the routes are placeholders that return a not-found
-  error, and the task for it (T091) has not been done. Nothing in the current product sends or checks a code, so the
-  brief makes no claim of one. When built, it will prove control of the same inbox a second time; it will still not be
-  identity verification. [C20]
+- **Pro edition: an email one-time code (T091).** This is the only identity step above control of the signing link,
+  and it is Pro only (the Free routes `public/otp/send` and `public/otp/verify` are placeholders that return a not-found
+  error). When an envelope needs a code, the signer asks for one on the signing page; the site emails a six-digit code to
+  the address the sender entered, and the signer must type it before the signature is accepted. The code is random, is
+  stored only as a salted hash, expires after 10 minutes, allows 5 wrong tries, can be re-sent after 30 seconds (at most
+  5 an hour), and the requests are also limited per visitor address. Each signer of an envelope with several signers
+  verifies their own code. A successful check is recorded as an `otp.verified` audit event (method `email`, time, IP and
+  user agent; never the code), and the certificate shows "Email one-time code verified" for that signer. What it proves is
+  that the person signing could read the inbox of the address the sender gave, at that moment, in addition to holding
+  the link. It is not identity verification: it does not show who the person is, that the address belongs to the named
+  person, or that the inbox is not shared. Who needs a code: the sender may ask for one per envelope; otherwise the
+  "Require email code by default" setting (`otpDefault`, off by default) applies to every new envelope the sender sends,
+  and "Require email code for contract templates" (`otpContractTemplates`, on by default) applies to templates that are
+  not offered to integrations (waivers started from Events are signed on the owner's site and are not asked for a code
+  unless the default is on). The requirement is fixed when the envelope is sent; changing a setting later does not
+  change envelopes already sent. A site without a valid Pro licence sends new envelopes without a code. If the site goes
+  back to Free, an envelope that needs a code cannot be signed until Pro is back (Free refuses it rather than skip the
+  check). The code is emailed straight from the signing request, not through the outbox, and nothing logs it. [C20][C35]
 - **Guardian and buyer capacities** are labels chosen by the sender. The product does not check that a person is a
   parent or guardian, or is who the sender says. [C21]
 - There is no signer authentication beyond this, no ID document check, and no check against sanctions or age.
@@ -312,8 +325,8 @@ people; the integration tokens are signed with keys derived per client, never st
 - **Entered values stay in the signed PDF.** The README says the purge deletes "the values they entered". That is true of
   the stored signer record; the same values remain in the signed PDF's "Details entered by the signer" table until the
   signed-records period ends. [C17][C18]
-- **OTP.** The settings screen describes OTP options as "Pro" settings, which can read as if the feature exists. The code
-  and the task board show it is not built. [C20]
+- **OTP.** The settings screen describes OTP options as "Pro" settings. The Pro build implements them (T091, section 6);
+  the Free build only enforces the flag on an envelope that already carries it. [C20][C35]
 - **`signer.viewed` on GET.** An earlier question (review T034, task T117) was whether a view should be recorded when a
   mail scanner fetches the page. The code now records a view only on the first submit (sign or decline). [C6]
 - The `Free`/`Pro` split is described in the build plan; this brief describes the Free code and treats Pro features as
@@ -352,8 +365,9 @@ people; the integration tokens are signed with keys derived per client, never st
    Is that enough for an SES, or should the certificate say plainly that integrity depends on the host? Is the current
    certificate wording ("Anyone holding this PDF can check these values on the verify page") fair?
 10. **Identity assurance.** Is "control of an email inbox" a fair basis for a waiver or low-value agreement? Should the
-    product say, in the ceremony or on the certificate, that the identity of the signer is not verified? What would an
-    email OTP add, once built, that should be reflected in the wording?
+    product say, in the ceremony or on the certificate, that the identity of the signer is not verified? The Pro email
+    OTP (section 6) proves access to the inbox a second time and is shown on the certificate as "Email one-time code
+    verified": is that wording fair, and should it say more or less?
 11. **Notice to other adults.** The buyer enters other attendees' email addresses and E-sign emails them. Who must give
     these people privacy notice, and what should the invitation say? Does the 10-per-booking limit address spam
     sufficiently?
@@ -369,7 +383,7 @@ people; the integration tokens are signed with keys derived per client, never st
 
 ## 14. Changes since last review
 
-None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090.)
+None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; and the Pro email one-time code in section 6, T091.)
 
 ## 15. Code references
 
@@ -392,7 +406,7 @@ None. This is the first issue. (Added before review: section 5.5, several signer
 [C17] `packages/esign/src/domain/pdf.ts`, `signedPdfDocument`, `entriesBlocks`, `renderSignedPdf`, `CAPACITY`; `packages/esign/CONTEXT.md` (T025).
 [C18] `packages/esign/src/cron/retention.ts`, header comment ("Until the records period ends the signed PDF, snapshot and chain keep what they printed"); `packages/esign/README.md`, "Retention (operators)"; BUILD-PLAN section 12, R45.
 [C19] `packages/esign/src/routes/verify.ts`; `packages/esign/src/astro/VerifyDocument.astro`; `packages/esign/CONTEXT.md` (T032: hashing in the browser, only `sha256` submitted).
-[C20] `packages/esign/src/routes/public.ts` (`public/otp/send` and `public/otp/verify` declared; `notImplemented` handler returns `NOT_FOUND`); `packages/esign/emdash-plugin.jsonc`, `otpDefault`, `otpContractTemplates`; `tasks/BOARD.md` (T091 not done); BUILD-PLAN section 12, R29 (no Turnstile on the ceremony).
+[C20] `packages/esign/src/routes/public.ts` (`public/otp/send` and `public/otp/verify` declared; `notImplemented` handler returns `NOT_FOUND`); `packages/esign/emdash-plugin.jsonc`, `otpDefault`, `otpContractTemplates`; BUILD-PLAN section 12, R29 (no Turnstile on the ceremony).
 [C21] `packages/esign/src/domain/envelopes.ts`, `SignerCapacity`, `SignerInput.participant`; `docs/protocol/esign-intent-v1.md` section 5.1 (`as`, `participant`).
 [C22] `docs/protocol/esign-intent-v1.md` sections 1, 5.1 (issuer rules, waiver modes, prefill, return URL), 5.2; `packages/events/CONTEXT.md`, "Waivers (Pro)".
 [C23] BUILD-PLAN section 12, R48; `docs/protocol/esign-intent-v1.md` section 5.1, "Issuer rules".
@@ -407,3 +421,4 @@ None. This is the first issue. (Added before review: section 5.5, several signer
 [C32] `packages/esign/emdash-plugin.jsonc` (declared capabilities and hosts); `packages/events/CONTEXT.md` and BUILD-PLAN section 3 (Stripe in the Pro edition only).
 [C33] `packages/esign/src/astro/lib/csp.ts`; `packages/esign/src/routes/ceremony.ts` (rate limit, `TOKEN_IN_QUERY`); `packages/esign/src/domain/clients.ts` and `docs/protocol/esign-intent-v1.md` section 12 (keys derived per client).
 [C34] `packages/esign/src/seams.ts` and `packages/esign/src/routes/ceremony.ts` (`ceremonyHandlers`, per-signer `signer.viewed` and `signer.declined`, Free refuses a several-signer submit); `packages/esign/src/domain/pdf.ts`, `signedPdfDocument` (every signer); `packages/esign/CONTEXT.md`, "Several signers (T090)". The routing itself is in the Pro edition.
+[C35] `packages/esign/src/routes/ceremony.ts` (`OTP_REQUIRED`, session `otp`), `src/domain/pdf.ts` (certificate line); Pro repo `packages/esign-pro/src/domain/otp.ts`, `src/otp/routes.ts`, `src/otp/stamp.ts` (rules, routes, who needs a code).

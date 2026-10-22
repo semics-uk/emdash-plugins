@@ -175,3 +175,14 @@ writes nothing (a downgrade never completes a half-signed envelope, R44 principl
 signed record. `SIGNING_OUT_OF_TURN` is the shared code for a sequential signer whose turn has not come. Pro mails every
 message to a signer under the outbox id `invite-<signerId>` (invitation, reminder, completion), so erasure covers them.
 E-sign Free backend after T090: 104.6 KiB of 112 (R47).
+
+Email one-time code (T091, ES-FR-16; the code itself is Pro, Free only enforces it). An envelope may carry `otp: true`; a signer
+carries `otpVerifiedAt`. Free `public/submit` refuses `envelope.otp && !signer.otpVerifiedAt` (`OTP_REQUIRED`, 403, after the
+expiry check, no extra call, nothing written) and `public/session` answers `otp: "required" | "verified"` for such an envelope,
+so a downgrade never lets an unverified signer through (the Free `public/otp/*` routes stay `NOT_FOUND` stubs, so such an
+envelope waits for Pro, as T090's does). `onEnvelopeSend(fn)` (`seams.ts`, `routes/envelopes.ts`) lets an edition stamp fields on
+an envelope as `envelopes/send` freezes it, from the settings that route already read (Pro stamps `otp`). The certificate adds
+"Identity check: Email one-time code verified" per signer with `otpVerifiedAt`. The sign page (`lib/sign.ts`, `SigningCeremony.astro`)
+shows "Email me a code" and a code box instead of the signing form while `session.otp === "required"` (intents `otp-send` and
+`otp-verify`; the code only in the POST body); UI messages for `OTP_*` codes live in `MESSAGES`. Shared adds `OTP_REQUIRED`; Pro's
+other codes (`OTP_INVALID`, `OTP_EXPIRED`, `OTP_LOCKED`, `OTP_WAIT`, `OTP_SEND_FAILED`, `OTP_NOT_REQUIRED`) are built by Pro.
