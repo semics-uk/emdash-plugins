@@ -37,7 +37,13 @@ function sample(collection: CollectionName, n: number): Doc {
 				pdfSha256: `p${n}`,
 			};
 		case "signers":
-			return { envelopeId: `env${n}`, email: `s${n}@example.com`, tokenHash: `hash${n}`, copyTokenHash: `copy${n}`, order: 0 };
+			return {
+				envelopeId: `env${n}`,
+				email: `s${n}@example.com`,
+				tokenHash: `hash${n}`,
+				copyTokenHash: `copy${n}`,
+				order: 0,
+			};
 		case "artifacts":
 			return { envelopeId: `env${n}`, kind: "signed_pdf", chunk: 0, data: "AAAA" };
 		case "snapshots":
