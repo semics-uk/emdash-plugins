@@ -4,7 +4,7 @@ title: "E-sign UI: verify page"
 phase: 1
 package: esign
 edition: free
-status: in-progress
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T029, T026]
