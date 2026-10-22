@@ -1922,7 +1922,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1937,7 +1937,7 @@
 				"T101",
 				"T102"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T094": {
 			"file": "T094-e-sign-pro-uploaded-pdf-templates.md",
@@ -2070,7 +2070,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T102": {
 			"file": "T102-translations-and-right-to-left-layouts.md",
@@ -2093,7 +2093,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T103": {
 			"file": "T103-docs-site-operator-guides-and-registry-listings.md",
@@ -2404,8 +2404,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T101",
-			"T102",
 			"T106"
 		],
 		"ready": [
@@ -2418,12 +2416,13 @@
 			"T095",
 			"T096",
 			"T100",
+			"T101",
+			"T102",
 			"T103",
 			"T111"
 		],
 		"in-progress": [
-			"T081",
-			"T093"
+			"T081"
 		],
 		"review": [],
 		"done": [
@@ -2501,6 +2500,7 @@
 			"T090",
 			"T091",
 			"T092",
+			"T093",
 			"T097",
 			"T104",
 			"T105",
@@ -2517,9 +2517,7 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T093",
-		"T101",
-		"T106"
+		"T084"
 	],
-	"criticalWeight": 4
+	"criticalWeight": 3
 }
