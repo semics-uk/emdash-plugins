@@ -163,6 +163,30 @@ hash, and whether the audit chain verifies and ends in the recorded final hash. 
 envelope ids. It is rate limited per IP. After the signed-records period ends the record is deleted and any hash
 answers "not matched". [C19]
 
+### 5.5 Several signers (Pro)
+
+The Pro edition can send one document to 2 to 10 signers, either in parallel (all are invited at once and may sign in any
+order) or in sequence (each signer is invited only after the one before has signed, and a signer cannot sign out of turn).
+Everything in sections 3 to 5.4 holds for **each** signer separately:
+
+- each has their own personal link and 256-bit token (only its hash is stored), their own two tick boxes, typed name or
+  drawing, entered values, consent version and wording hash, IP address and user agent;
+- each signer's events are their own entries in the envelope's one audit chain, marked with the signer's position:
+  `signer.invited` (when their link was sent, with their name and email as salted commitments), `signer.viewed` (their
+  first submit of the page), `signer.consented` and `signer.signed` (at the time they signed), or `signer.declined`;
+- the envelope completes, and `envelope.completed` and the final hash are written, only once every signer has signed. A
+  decline by any signer closes the envelope for everyone; a signature given before that stays on the chain as evidence;
+- the signed PDF shows every signer's signature and entered values, and the certificate repeats the per-signer facts of
+  section 5.3 for each signer in signing order ("Signer 1", "Signer 2", ...); the audit trail names the signer of each
+  event ("signer 2"). Every signer gets the completion email with their own signed-copy link.
+
+A signature is written to the signer's record when they submit and to the audit chain by a background job a moment later
+(at most about a minute), with the time they signed. Automatic reminders (Pro) email a pending signer every
+`reminderCadenceDays` (at most five times, never after expiry) with a fresh link that replaces the earlier one, and each
+reminder is a `reminder.sent` audit event. If a site switches back to the Free edition, an envelope with several signers is
+left exactly as it is: views and declines are still recorded, but Free refuses to take further signatures, so it cannot
+complete with signatures missing. [C34]
+
 ## 6. Identity assurance
 
 - **Free edition: email link only.** The sender enters the signer's name and email. The signer is whoever can open the
@@ -345,7 +369,7 @@ people; the integration tokens are signed with keys derived per client, never st
 
 ## 14. Changes since last review
 
-None. This is the first issue.
+None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090.)
 
 ## 15. Code references
 
@@ -382,3 +406,4 @@ None. This is the first issue.
 [C31] `packages/esign/emdash-plugin.jsonc`, `retentionPersonalDataMonths` (default 12, 1-120), `retentionSignedRecordsYears` (default 7, 1-50); BUILD-PLAN section 12, D4.
 [C32] `packages/esign/emdash-plugin.jsonc` (declared capabilities and hosts); `packages/events/CONTEXT.md` and BUILD-PLAN section 3 (Stripe in the Pro edition only).
 [C33] `packages/esign/src/astro/lib/csp.ts`; `packages/esign/src/routes/ceremony.ts` (rate limit, `TOKEN_IN_QUERY`); `packages/esign/src/domain/clients.ts` and `docs/protocol/esign-intent-v1.md` section 12 (keys derived per client).
+[C34] `packages/esign/src/seams.ts` and `packages/esign/src/routes/ceremony.ts` (`ceremonyHandlers`, per-signer `signer.viewed` and `signer.declined`, Free refuses a several-signer submit); `packages/esign/src/domain/pdf.ts`, `signedPdfDocument` (every signer); `packages/esign/CONTEXT.md`, "Several signers (T090)". The routing itself is in the Pro edition.

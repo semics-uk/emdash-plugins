@@ -9,12 +9,7 @@ import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash
 import { hashToken, sha256Hex } from "@semics-tech/shared";
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-	type AuditEventDoc,
-	extendAuditChain,
-	finalEnvelopeHash,
-	verifyAuditChain,
-} from "../src/domain/audit";
+import { type AuditEventDoc, extendAuditChain, finalEnvelopeHash, verifyAuditChain } from "../src/domain/audit";
 import { type ArtifactChunkDoc, joinPdf } from "../src/domain/pdf";
 import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 

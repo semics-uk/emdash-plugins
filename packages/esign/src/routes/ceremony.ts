@@ -203,7 +203,8 @@ async function consentSettings(ctx: PluginContext, withMasterKey: boolean) {
 const isExpired = (envelope: EnvelopeDoc, now: string) => envelope.expiresAt !== null && envelope.expiresAt <= now;
 
 /** The signer's order in an envelope with several signers (T090), else undefined (one signer: events as before). */
-const orderOf = (envelope: EnvelopeDoc, signer: SignerDoc) => (envelope.signerIds.length > 1 ? signer.order : undefined);
+const orderOf = (envelope: EnvelopeDoc, signer: SignerDoc) =>
+	envelope.signerIds.length > 1 ? signer.order : undefined;
 
 /**
  * A validated signature in an envelope with several signers (T090), for the edition that routes them
@@ -290,9 +291,8 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		// The first view: only the winner of the guarded update records it.
 		let first = false;
 		if (envelope.status === "sent") {
-			first = (
-				await transitionEnvelope(envelopes, signer.data.envelopeId, "sent", "in_progress", { updatedAt: now })
-			).ok;
+			first = (await transitionEnvelope(envelopes, signer.data.envelopeId, "sent", "in_progress", { updatedAt: now }))
+				.ok;
 			if (first) status = "in_progress";
 		}
 		// Several signers (T090): each signer's own first view, once, guarded on their signer document (+1 call).

@@ -159,3 +159,19 @@ completes first wins (the guarded update loses; nothing is audited). Reminders a
 `findForErasure` finds drafts by email; it queries `signers` and `envelopes` in parallel (2 calls) and reads the envelopes only
 for signer hits it did not already get. Decline and void need nothing more (T024/T028/T117).
 E-sign Free backend after T092: 103.9 KiB of 104 (admin notices go through `note/info/warn/error`, `toEnvelopes()`/`openEnvelope()`).
+
+Several signers (T090, ES-FR-15; the routing is Pro, Free only keeps such envelopes safe). An envelope has 2-10
+`signerIds` (`<id>:s<order>`, signer 1 is also `envelope.signer`) and `routing: "parallel" | "sequential"`. Free, generically:
+`public/session` records each signer's own first view once (guarded `viewedAt` on the signer, +1 call: 9 for the view that
+also opens the envelope), `signer.viewed`/`signer.declined` carry `data.signer = order` (only when there are several, so
+one-signer hashes are unchanged; `signerData` in `domain/signing.ts`); a decline by any signer closes the envelope; a signer
+who signed an open envelope gets `state: "closed", status: "in_progress"`, which the sign page shows as waiting (SU-FR-11:
+`SignView` `waiting`, and `signed` with `waiting: true` when submit answers `status: "in_progress"`); the signed-PDF job
+`getMany`s every signer and `signedPdfDocument({ signers })` prints each one's signature, entries ("Details entered by
+<name>") and certificate group ("Signer 1", "Signer 2"; one signer keeps the old layout and bytes) and "signer N" as the
+actor of their events. `public/submit` on such an envelope stops after the settings read: Free answers `ENVELOPE_CLOSED` and
+writes nothing (a downgrade never completes a half-signed envelope, R44 principle); a Pro build passes a step to
+`ceremonyHandlers(step)` (`src/seams.ts`) and gets `{ envelopeId, envelope, signer, set, now }`, `set` being the signer's
+signed record. `SIGNING_OUT_OF_TURN` is the shared code for a sequential signer whose turn has not come. Pro mails every
+message to a signer under the outbox id `invite-<signerId>` (invitation, reminder, completion), so erasure covers them.
+E-sign Free backend after T090: 104.6 KiB of 112 (R47).
