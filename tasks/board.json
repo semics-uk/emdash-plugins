@@ -1211,7 +1211,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1228,7 +1228,7 @@
 			"unblocks": [
 				"T057"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T057": {
 			"file": "T057-phase-2-gate-review-and-budgets.md",
@@ -2275,12 +2275,12 @@
 		],
 		"ready": [
 			"T043",
-			"T056",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T033"
+			"T033",
+			"T056"
 		],
 		"review": [],
 		"done": [
