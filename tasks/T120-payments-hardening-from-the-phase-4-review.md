@@ -4,7 +4,7 @@ title: "Payments: hardening from the Phase 4 review"
 phase: 6
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T078]
