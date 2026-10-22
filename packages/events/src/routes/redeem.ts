@@ -37,8 +37,6 @@ export interface RedeemDeps {
 	now: number;
 }
 
-const DECOY_HASH = "0".repeat(64);
-
 function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[] {
 	const input = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
 	const extra = Object.keys(input).filter((k) => k !== "bookingRef" && k !== "code");
@@ -60,7 +58,7 @@ export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = fa
 	const found = items[0];
 	const booking = found?.data as BookingDoc | undefined;
 	const stored = booking?.redeemHash ?? undefined;
-	const matches = await verifyToken(code, stored ?? DECOY_HASH);
+	const matches = await verifyToken(code, stored);
 	const live = Date.parse(booking?.redeemExpiresAt ?? "") > deps.now;
 	const offer = booking?.status === "held" ? booking.waitlistId : undefined;
 	if (!found || !booking || !stored || !matches || !live || (claim && !offer)) return fail("NOT_FOUND");

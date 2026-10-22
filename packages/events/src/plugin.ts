@@ -61,12 +61,6 @@ const plugin: SandboxedPlugin = {
 		},
 	},
 	routes: {
-		hello: {
-			handler: async (_routeCtx, ctx) => {
-				ctx.log.info("hello route called", { pluginId: ctx.plugin.id });
-				return { greeting: "hello", pluginId: ctx.plugin.id };
-			},
-		},
 		...CONFIG_ROUTES,
 		...ADMIN_ROUTES,
 		...ATTENDEE_ROUTES,

@@ -108,9 +108,6 @@ function waitingRefs(b: BookingDoc, items: Item[]): string[] {
 	return unsigned.slice(0, MAX_WAITING_REFS).map((i) => `${b.ref}:${i.id.slice(i.id.lastIndexOf("-") + 1)}`);
 }
 
-/** A token hash no real token matches, so an unknown ref pays for a check like a wrong token. */
-const DECOY_HASH = "0".repeat(64);
-
 /** Calls cancel keeps for everything but the counters: query, config, settings, claim, move, outbox. */
 const CANCEL_FIXED_CALLS = 6;
 
@@ -125,7 +122,8 @@ async function authenticate(deps: BookingDeps, raw: unknown): Promise<Found | { 
 	const { items } = await deps.storage.bookings.query({ where: { ref: parsed.value.bookingRef }, limit: 1 });
 	const found = items[0];
 	const booking = found?.data as BookingDoc | undefined;
-	const valid = await verifyToken(parsed.value.accessToken, booking?.accessTokenHash ?? DECOY_HASH);
+	// An unknown ref pays for a check like a wrong token (verifyToken's decoy).
+	const valid = await verifyToken(parsed.value.accessToken, booking?.accessTokenHash);
 	if (!found || !booking || !valid) return { error: fail("NOT_FOUND") };
 	return { id: found.id, booking };
 }

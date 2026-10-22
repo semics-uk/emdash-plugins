@@ -8,10 +8,9 @@ afterEach(async () => {
 	host = undefined;
 });
 
-describe("hello route", () => {
-	it("returns a greeting through the sandbox host", async () => {
+describe("scaffold route (T057 review F14, T100)", () => {
+	it("the template's hello route is gone before the route list freezes", async () => {
 		host = await createPluginTestHost();
-		const result = await host.invokeRoute("hello");
-		expect(result).toEqual({ greeting: "hello", pluginId: "semics-events" });
+		await expect(host.invokeRoute("hello")).rejects.toThrow();
 	});
 });
