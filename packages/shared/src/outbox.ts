@@ -118,7 +118,10 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 			const message = scrubMessage(data.message);
 			updates.push({ id, data: { ...data, message, status: "sent", attempts, sentAt: opts.now } });
 		} catch (e) {
-			const lastError = (e instanceof Error ? e.message : String(e)).slice(0, 300);
+			// A provider may echo the message: keep no link, code or token from it (T100).
+			const lastError = (e instanceof Error ? e.message : String(e))
+				.replace(/\S*:\/\/\S*|[\w-]{20,}/g, "…")
+				.slice(0, 300);
 			if (attempts >= OUTBOX_MAX_ATTEMPTS) {
 				gaveUp++;
 				updates.push({

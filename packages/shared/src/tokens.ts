@@ -58,9 +58,13 @@ export function constantTimeEqual(a: string, b: string): boolean {
 	return diff === 0;
 }
 
-/** True when `token` hashes to `storedHash` (as produced by `hashToken`). */
-export async function verifyToken(token: string, storedHash: string): Promise<boolean> {
-	return constantTimeEqual(await hashToken(token), storedHash);
+/**
+ * True when `token` hashes to `storedHash` (as produced by `hashToken`). Without a stored hash (an
+ * unknown record) the token is still hashed and compared, so the lookup's outcome does not show in
+ * the timing (T100).
+ */
+export async function verifyToken(token: string, storedHash: string | null | undefined): Promise<boolean> {
+	return constantTimeEqual(await hashToken(token), storedHash ?? "0".repeat(64));
 }
 
 export interface SignLinkInput {
