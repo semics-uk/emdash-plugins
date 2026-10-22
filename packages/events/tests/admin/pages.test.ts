@@ -404,3 +404,83 @@ describe("dashboard widget (EV-US-7)", () => {
 		expect(find(out.blocks, "meter")).toBeUndefined();
 	});
 });
+
+describe("deletion on request (EV-FR-20, T087)", () => {
+	const act = (deps: AdminDeps, action_id: string, value: unknown) =>
+		handleAdmin(deps, { type: "block_action", action_id, value });
+	const past = (s: ReturnType<typeof world>["s"]) => {
+		s.event_configs.set("ev_past", {
+			status: "closed",
+			reserved: 1,
+			sold: 1,
+			info: { startsAt: iso(NOW - 30 * 86_400_000), endsAt: null },
+		});
+		s.bookings.set("bk_old", {
+			ref: "OLD1",
+			eventId: "ev_past",
+			status: "confirmed",
+			email: "ada@example.com",
+			buyer: { name: "Ada Lovelace", email: "ada@example.com" },
+			totals: { totalMinor: 1500, currency: "GBP" },
+			answers: { diet: "none" },
+			ipHash: "ip",
+			createdAt: iso(NOW - 60 * 86_400_000),
+		});
+		s.attendees.set("bk_old-1", {
+			bookingId: "bk_old",
+			eventId: "ev_past",
+			ticketTypeId: "tt_a",
+			name: "Ada Lovelace",
+			email: "ada@example.com",
+			code: "CODE-OLD",
+			status: "valid",
+		});
+	};
+
+	it("the bookings page offers the deletion form", async () => {
+		const { deps } = world();
+		const out = await load(deps, "/bookings");
+		expect(json(out.blocks)).toContain("retention.preview");
+	});
+
+	it("a search previews, then a confirmed delete erases personal fields, keeps counts and live bookings", async () => {
+		const w = world();
+		past(w.s);
+		const preview = await handleAdmin(w.deps, {
+			type: "form_submit",
+			action_id: "retention.preview",
+			values: { target: "ada@example.com" },
+		});
+		expect(json(preview.blocks)).toContain("retention.erase");
+		expect(json(preview.blocks)).toContain("confirm");
+		meter.calls = 0;
+		const out = await act(w.deps, "retention.erase", "ada@example.com");
+		expect(meter.calls).toBeLessThanOrEqual(8);
+		expect(w.s.bookings.docs.get("bk_old")).toMatchObject({
+			email: "",
+			buyer: { name: "", email: "" },
+			ipHash: null,
+			status: "confirmed",
+			totals: { totalMinor: 1500 },
+		});
+		// The fixture's other booking has no known event date, so it counts as live and stays.
+		expect(w.s.bookings.docs.get("bk_1")).toMatchObject({ email: "ada@example.com" });
+		expect(w.s.attendees.docs.get("bk_old-1")).toMatchObject({ name: "", email: "" });
+		expect(w.s.event_configs.docs.get("ev_past")).toMatchObject({ reserved: 1, sold: 1 });
+		expect(json(out.blocks)).toContain("Deleted personal data of 1 booking");
+		expect(json(out.blocks)).toContain("live booking was kept");
+	});
+
+	it("a booking reference works, and an unknown one offers no delete", async () => {
+		const w = world();
+		past(w.s);
+		const none = await handleAdmin(w.deps, {
+			type: "form_submit",
+			action_id: "retention.preview",
+			values: { target: "nope" },
+		});
+		expect(json(none.blocks)).not.toContain("retention.erase");
+		await act(w.deps, "retention.erase", "old1");
+		expect(w.s.bookings.docs.get("bk_old")?.erasedAt).toBeTruthy();
+	});
+});

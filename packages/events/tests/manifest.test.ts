@@ -44,7 +44,7 @@ const EXPECTED_STORAGE = {
 	},
 	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt"], uniqueIndexes: [] },
 	promo_codes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
-	outbox: { indexes: [["status", "nextAttemptAt"]], uniqueIndexes: [] },
+	outbox: { indexes: [["status", "nextAttemptAt"], "to"], uniqueIndexes: [] },
 };
 
 describe("manifest (EU-FR-01, BUILD-PLAN 3.1)", () => {

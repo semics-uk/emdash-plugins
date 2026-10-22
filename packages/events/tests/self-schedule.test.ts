@@ -55,12 +55,13 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 
 			const ran = await budget.measure("ensure tick", () => tick(r));
 			expectWithinBudget(ran, TARGET);
-			expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
+			expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds"]);
 			const tasks = await r.inspect.scheduledTasks();
 			expect(tasks).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({ name: "sweep-holds", schedule: "*/5 * * * *" }),
 					expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
+					expect.objectContaining({ name: "retention", schedule: "17 * * * *" }),
 				]),
 			);
 			expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
@@ -79,14 +80,14 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 		}
 	});
 
-	it("activation (registry installs) still schedules both crons; the ensure task then sets the flag once", async () => {
+	it("activation (registry installs) still schedules every cron; the ensure task then sets the flag once", async () => {
 		const { r, budget } = await setup();
 		const activated = await budget.measure("activate", () => r.actions.plugin.activate());
-		expect(activated.calls.filter(isSchedule)).toHaveLength(2);
-		expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
+		expect(activated.calls.filter(isSchedule)).toHaveLength(3);
+		expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds"]);
 		await budget.invokeRoute("public/events", {});
 		await tick(r);
-		expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
+		expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds"]);
 		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
 	});
 
