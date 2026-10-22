@@ -1,5 +1,5 @@
 import { generateToken, hashToken } from "@semics-tech/shared";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { holdTaskName } from "../../src/domain/holds";
 import {
@@ -83,6 +83,26 @@ const run = async (deps: ContinueDeps, input: unknown) => {
 	expect(calls).toBeLessThanOrEqual(CONTINUE_MAX_CALLS);
 	return { body, calls };
 };
+
+describe("checkout/continue unknown ref (T100, T057 review F10)", () => {
+	it("hashes the token for an unknown ref exactly as for a wrong token, and both are NOT_FOUND", async () => {
+		const w = await world();
+		const digest = vi.spyOn(crypto.subtle, "digest");
+		try {
+			const wrong = await run(w.deps(T0), { bookingRef: REF, accessToken: generateToken() });
+			const wrongDigests = digest.mock.calls.length;
+			digest.mockClear();
+			const unknown = await run(w.deps(T0), { bookingRef: "ZZZZZZZZZZ", accessToken: generateToken() });
+			expect(wrong.body).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
+			expect(unknown.body).toEqual(wrong.body);
+			expect(unknown.calls).toBe(wrong.calls);
+			expect(wrongDigests).toBe(1);
+			expect(digest.mock.calls.length).toBe(wrongDigests);
+		} finally {
+			digest.mockRestore();
+		}
+	});
+});
 
 describe("checkout/continue hold expiry and races (EV-FR-05)", () => {
 	it("EV-FR-05 an expired hold returns HOLD_EXPIRED and writes nothing", async () => {

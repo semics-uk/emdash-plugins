@@ -146,6 +146,16 @@ export class FakeKv {
 		this.values.set(key, { value: structuredClone(value), revision: String(++this.rev) });
 		return { applied: true };
 	}
+
+	async list(prefix: string) {
+		meter.calls++;
+		return [...this.values].filter(([k]) => k.startsWith(prefix)).map(([key, v]) => ({ key, value: v.value }));
+	}
+
+	async delete(key: string) {
+		meter.calls++;
+		return this.values.delete(key);
+	}
 }
 
 export class FakeCron {

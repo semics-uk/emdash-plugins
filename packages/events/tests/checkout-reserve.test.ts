@@ -310,8 +310,35 @@ describe("public/checkout/reserve (EV-FR-05)", () => {
 		expect(await bookings(s)).toEqual([]);
 	});
 
+	it("T100 without a Turnstile secret the IP hash is salted with a random site secret made by the first booking (T057 F6)", async () => {
+		const s = await setup({ turnstile: false, occurrences: true });
+		const big = () =>
+			order(s, {
+				turnstileToken: undefined,
+				occurrenceId: s.occurrenceId,
+				lines: [
+					{ ticketTypeId: s.types.Adult, qty: 1 },
+					{ ticketTypeId: s.types.Child, qty: 1 },
+				],
+			});
+		// The first booking also stores the salt: the worst-case order still fits 10 calls.
+		const first = await reserve(s, big());
+		expect(first.body).toMatchObject({ ok: true, status: "held" });
+		const salt = await s.runtime.inspect.setting<string>("ipSalt");
+		expect(salt).toMatch(/^[A-Za-z0-9_-]{43}$/);
+		const second = await reserve(s, big());
+		expect(second.body).toMatchObject({ ok: true, status: "held" });
+		expect(await s.runtime.inspect.setting<string>("ipSalt")).toBe(salt);
+		expect(second.result.calls.length).toBeLessThan(first.result.calls.length);
+		const hashes = (await bookings(s)).map((b) => b.data.ipHash);
+		expect(hashes).toEqual([await hashIp(IP, salt ?? ""), await hashIp(IP, salt ?? "")]);
+		expect(hashes).not.toContain(await hashIp(IP, "semics-events"));
+	});
+
 	it("EV-FR-06 schedules the hold accelerator when the budget has room (no Turnstile configured)", async () => {
 		const s = await setup({ turnstile: false });
+		// The site's first booking stores the IP salt (T100), which leaves no room for the accelerator.
+		await reserve(s, order(s, { turnstileToken: undefined }));
 		const { result, body } = await reserve(s, order(s, { turnstileToken: undefined }));
 		expect(body).toMatchObject({ ok: true });
 		expectWithinBudget(result, TARGET);

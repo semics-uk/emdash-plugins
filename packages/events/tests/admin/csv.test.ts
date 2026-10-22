@@ -19,6 +19,10 @@ describe("CSV export (EV-FR-11)", () => {
 		expect(csvCell('=HYPERLINK("http://x","y")')).toBe(`"'=HYPERLINK(""http://x"",""y"")"`);
 	});
 
+	it("EV-FR-11 defuses full-width formula signs, which some spreadsheet locales convert (T100, T057 F13)", () => {
+		for (const bad of ["＝1+1", "＋44", "－2+3", "＠SUM(A1)"]) expect(csvCell(bad), bad).toBe(`'${bad}`);
+	});
+
 	it("EV-FR-11 leaves numbers, booleans and empty values alone", () => {
 		expect(csvCell(-5)).toBe("-5");
 		expect(csvCell(12)).toBe("12");

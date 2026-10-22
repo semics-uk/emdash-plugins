@@ -1,3 +1,4 @@
+import { hashIp } from "@semics-tech/shared";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { type JoinDeps, joinWaitlist } from "../../src/routes/waitlist";
@@ -45,6 +46,7 @@ function world({
 	});
 	const kv = new Kv();
 	const fetched: string[] = [];
+	const saved = new Map<string, unknown>();
 	let ids = 0;
 	const deps = (over: Partial<JoinDeps> = {}): JoinDeps => ({
 		storage: storage as unknown as JoinDeps["storage"],
@@ -52,6 +54,10 @@ function world({
 			list: async () => {
 				meter.calls++;
 				return settings;
+			},
+			set: async (key: string, value: unknown) => {
+				meter.calls++;
+				saved.set(key, value);
 			},
 		},
 		kv,
@@ -62,14 +68,33 @@ function world({
 		},
 		ip: "203.0.113.5",
 		now: T0,
-		saltFallback: "semics-events",
 		newId: () => `wl_${++ids}`,
 		...over,
 	});
-	return { storage, kv, deps, fetched };
+	return { storage, kv, deps, fetched, saved };
 }
 
 const join = { eventId: "ev1", name: "Ada Lovelace", email: " Ada@Example.com ", qty: 2 };
+
+describe("public/waitlist/join IP salt (T100, T057 review F6)", () => {
+	it("without a Turnstile secret the limiter's IP hash uses the site's random salt, never the plugin id", async () => {
+		const w = world();
+		await joinWaitlist(w.deps(), join);
+		const salt = w.saved.get("ipSalt") as string;
+		expect(salt).toMatch(/^[A-Za-z0-9_-]{43}$/);
+		const keys = [...w.kv.values.keys()].join(" ");
+		expect(keys).toContain(await hashIp("203.0.113.5", salt));
+		expect(keys).not.toContain(await hashIp("203.0.113.5", "semics-events"));
+		expect(meter.calls).toBeLessThanOrEqual(8);
+	});
+
+	it("a stored salt is reused and not written again", async () => {
+		const w = world({ settings: [{ key: "ipSalt", value: "s".repeat(43) }] });
+		await joinWaitlist(w.deps(), join);
+		expect(w.saved.size).toBe(0);
+		expect([...w.kv.values.keys()].join(" ")).toContain(await hashIp("203.0.113.5", "s".repeat(43)));
+	});
+});
 
 describe("public/waitlist/join (EV-FR-16, EV-US-6)", () => {
 	it("EV-US-6 joins a sold-out event's waitlist within budget and answers nothing else", async () => {

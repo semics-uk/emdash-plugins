@@ -254,6 +254,18 @@ describe("retention job (EV-FR-20, R22)", () => {
 		expect(w.storage.bookings.docs.get("fresh")?.ipHash).toBeNull();
 	});
 
+	it("T100 ended rate-limit counters (hashed IPs, KV has no TTL) are deleted each pass; live ones stay", async () => {
+		const w = world();
+		const nowSec = Math.floor(NOW / 1000);
+		for (let i = 0; i < 9; i++) await w.kv.compareAndSet(`rl:waitlist:h${i}:1`, null, `1:${nowSec - 600}`);
+		await w.kv.compareAndSet("rl:waitlist:old:2", null, "3");
+		await w.kv.compareAndSet("rl:waitlist:live:3", null, `1:${nowSec + 300}`);
+		await w.kv.compareAndSet("events:link-key", null, "k");
+		await drain(w);
+		expect([...w.kv.values.keys()].filter((k) => k.startsWith("rl:"))).toEqual(["rl:waitlist:live:3"]);
+		expect(w.kv.values.has("events:link-key")).toBe(true);
+	});
+
 	it("a pass within a day of the last full one only does the cheap ip step", async () => {
 		const w = world();
 		await drain(w);
