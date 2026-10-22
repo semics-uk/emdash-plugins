@@ -1271,7 +1271,7 @@
 			"phase": 3,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1284,7 +1284,7 @@
 			"unblocks": [
 				"T061"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T061": {
 			"file": "T061-e-sign-accept-signing-intents.md",
@@ -1307,7 +1307,7 @@
 			"unblocks": [
 				"T062"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T062": {
 			"file": "T062-e-sign-receipts-receipt-lookup-and-template-catalogue.md",
@@ -2333,7 +2333,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T061",
 			"T062",
 			"T063",
 			"T064",
@@ -2368,6 +2367,7 @@
 			"T106"
 		],
 		"ready": [
+			"T061",
 			"T072",
 			"T081",
 			"T084",
@@ -2376,7 +2376,6 @@
 			"T117"
 		],
 		"in-progress": [
-			"T060",
 			"T071"
 		],
 		"review": [],
@@ -2433,6 +2432,7 @@
 			"T055",
 			"T056",
 			"T057",
+			"T060",
 			"T070",
 			"T110",
 			"T112",
