@@ -4,7 +4,7 @@ title: "Security review of both products"
 phase: 7
 package: repo
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T078, T087, T097]
