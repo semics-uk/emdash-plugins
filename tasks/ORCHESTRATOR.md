@@ -88,6 +88,6 @@ in full; the per-package `CONTEXT.md` files summarise them.
   run is going; it just queues behind the lock.
 - CPU budgets are wall-time estimates; on a busy machine they warn (≤ 4x) instead of failing. Stop
   finished agents' leftover background jobs (TaskStop) so they don't load the machine.
-- Bundle budgets (R42/R43): Free bundles ≤ 104 KiB (Free Events at 100.3 KiB after T087 — new Free Events
+- Bundle budgets (R42/R43/R47): Free bundles ≤ 112 KiB (Events 103.4, E-sign 103.9 KiB after T092 — new Free
   code must be offset by trimming); Pro bundles ≤ 256 KiB plus a cold-start CPU check.
 - Agents sometimes skip the "ready for review" commit; check `status:` and the checkboxes before landing.
