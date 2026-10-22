@@ -805,7 +805,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "review",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -820,7 +820,7 @@
 				"T071",
 				"T117"
 			],
-			"column": "review"
+			"column": "done"
 		},
 		"T040": {
 			"file": "T040-events-manifest-storage-and-settings-schema.md",
@@ -1284,7 +1284,7 @@
 			"unblocks": [
 				"T061"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T061": {
 			"file": "T061-e-sign-accept-signing-intents.md",
@@ -1497,7 +1497,7 @@
 				"T073",
 				"T104"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T072": {
 			"file": "T072-licence-issuing-worker.md",
@@ -2292,19 +2292,17 @@
 				"R29"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [
-			"T060",
 			"T061",
 			"T062",
 			"T064",
 			"T065",
 			"T066",
 			"T067",
-			"T071",
 			"T073",
 			"T074",
 			"T075",
@@ -2325,11 +2323,12 @@
 			"T103",
 			"T104",
 			"T105",
-			"T106",
-			"T117"
+			"T106"
 		],
 		"ready": [
+			"T060",
 			"T063",
+			"T071",
 			"T072",
 			"T080",
 			"T081",
@@ -2339,14 +2338,13 @@
 			"T085",
 			"T086",
 			"T087",
-			"T111"
+			"T111",
+			"T117"
 		],
 		"in-progress": [
 			"T043"
 		],
-		"review": [
-			"T034"
-		],
+		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -2381,6 +2379,7 @@
 			"T031",
 			"T032",
 			"T033",
+			"T034",
 			"T040",
 			"T041",
 			"T042",
@@ -2408,7 +2407,6 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T034",
 		"T060",
 		"T061",
 		"T062",
@@ -2419,5 +2417,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 14
+	"criticalWeight": 13
 }
