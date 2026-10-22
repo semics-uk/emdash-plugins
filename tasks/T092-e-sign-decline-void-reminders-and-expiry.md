@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Pro parts gated
+- [ ] Free expiry for unsigned `sent` envelopes (T097: today they never close, so retention never purges them); deletion by signer email also finds drafts (add an index if needed). E-sign Free is at 103.7 of 104 KiB — trim to fit
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

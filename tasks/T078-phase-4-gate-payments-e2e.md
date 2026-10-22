@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No open Severity 1 or 2
+- [ ] From T077: Pro returns `next: { type: "pay" }` for a waiver booking at `awaiting_payment` with signed attendees, also on a repeated continue, so "Pay now" works; prove the real Pro pay step with the Pro edition host end to end
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

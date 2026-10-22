@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] The Events operator guide says to trust client-IP headers (`trustedProxyHeaders`) only when a proxy in front overwrites them, since the UI forwards them as sent and the per-IP reserve limit depends on them; and that `security.allowedDomains` gives `Astro.url` the public host (EmDash turns `checkOrigin` off; the Events forms check Origin themselves) (T057 review F9)
 - [ ] Document that the "Tickets & booking" editor panel is scoped to the `events` collection in the manifest (T043); sites mapping another collection see it only there, and the admin Event editor page still works for any mapping. Check whether EmDash can scope a panel dynamically and record the answer
 - [ ] Site-owner Stripe setup for Events Pro (T074, Pro README): secret key scopes, webhook endpoint URL with the plugin id, the four event types, `stripeWebhookSecret`
+- [ ] Operator guide: carry over `packages/esign/README.md` "Retention (operators)" (T097, R45), including that the snapshot and certificate keep the signer's name and IP until the signed-records period ends
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
