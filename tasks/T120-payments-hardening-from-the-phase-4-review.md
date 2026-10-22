@@ -59,7 +59,7 @@ pnpm verify
   confirmed, no refund email (it would name the booking's total). Webhook path ≤ 7 calls.
 - **F5:** Pro `src/payments/reconcile.ts`, recurring `stripe-reconcile` (every 10 min), scheduled by Pro on
   `ensure-schedules` like `stripe-sweep` (Free's `RECURRING_TASKS` does not know Pro tasks, per the Pro README), so
-  the public change is only the flag bump to `cron:scheduled:v7` (shared `schedules.ts`; the E-sign self-schedule
+  the public change is only the flag bump to `cron:scheduled:v8` (v7 went to T090) (shared `schedules.ts`; the E-sign self-schedule
   test pins it). A record `pending` an hour after its session expired gets one `GET /v1/checkout/sessions/<id>`;
   paid → the webhook's guarded `paid` write, then the settle one-shot (or, when the tick has no room, the settle
   sweep 10 minutes later); expired → `expired`. ≤ 8 calls per tick (asserted), 1-2 records a tick, idle tick 2.
