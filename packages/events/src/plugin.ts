@@ -1,10 +1,4 @@
-import {
-	isPageLoad,
-	type RecurringTask,
-	runEnsureSchedulesJob,
-	scheduleTasks,
-	withScheduleCheck,
-} from "@semics-tech/shared";
+import { type RecurringTask, runEnsureSchedulesJob, scheduleTasks, withScheduleCheck } from "@semics-tech/shared";
 import type { SandboxedPlugin } from "emdash/plugin";
 
 import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
@@ -72,7 +66,6 @@ const plugin: SandboxedPlugin = {
 		...ATTENDEE_ROUTES,
 		...EDITOR_ROUTES,
 		...PUBLIC_ROUTES,
-		admin: withScheduleCheck(ADMIN_ROUTES.admin as RouteDef, isPageLoad),
 		"public/events": withScheduleCheck(PUBLIC_ROUTES["public/events"] as RouteDef),
 		"public/event": withScheduleCheck(PUBLIC_ROUTES["public/event"] as RouteDef),
 	},

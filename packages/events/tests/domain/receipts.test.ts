@@ -36,7 +36,16 @@ describe("receipt refs (EV-FR-12)", () => {
 	it("EV-FR-12 parses <bookingRef> and <bookingRef>:<seat>, and refuses anything else", () => {
 		expect(parseReceiptRef("ABCDEFGHJK")).toEqual({ bookingRef: "ABCDEFGHJK" });
 		expect(parseReceiptRef("ABCDEFGHJK:3")).toEqual({ bookingRef: "ABCDEFGHJK", seat: 3 });
-		for (const bad of ["", "ABCDEFGHJK:", "ABCDEFGHJK:0", "ABCDEFGHJK:01", "ABCDEFGHJK:x", "abcdefghjk", "ABC:1", "ABCDEFGHJK:1:2"]) {
+		for (const bad of [
+			"",
+			"ABCDEFGHJK:",
+			"ABCDEFGHJK:0",
+			"ABCDEFGHJK:01",
+			"ABCDEFGHJK:x",
+			"abcdefghjk",
+			"ABC:1",
+			"ABCDEFGHJK:1:2",
+		]) {
 			expect(parseReceiptRef(bad), bad).toBeNull();
 		}
 	});
@@ -93,7 +102,13 @@ describe("storing a receipt (SX-FR-04, §8.4 idempotent and monotonic)", () => {
 
 	it("SX-FR-04 among non-completed receipts a later `at` wins", () => {
 		const declined = receipt({ status: "declined", pdfSha256: null, finalHash: null });
-		const voided = receipt({ envelopeId: "env_2", status: "voided", pdfSha256: null, finalHash: null, at: declined.at + 60 });
+		const voided = receipt({
+			envelopeId: "env_2",
+			status: "voided",
+			pdfSha256: null,
+			finalHash: null,
+			at: declined.at + 60,
+		});
 		expect(mergeSignature(stored(declined), voided)).toEqual(stored(voided));
 		expect(mergeSignature(stored(voided), declined)).toBeNull();
 	});

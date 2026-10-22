@@ -12,7 +12,8 @@ import type { AttendeeDoc, BookingDoc } from "../storage/schema";
  * Check-in reads the attendee (1 call, or a query by `code`), reads its booking, and writes with
  * `updateIf` guarded on `checkedInAt: null`, so two scanners cannot both succeed; the loser is told
  * the first time. Cancelling a booking does not touch its attendees (T049), so check-in refuses
- * anyone whose booking is not `confirmed`. Undo clears the time (stored as `null`).
+ * anyone whose booking is not `confirmed`, and an attendee whose waiver is still pending (Pro,
+ * EV-FR-12). Undo clears the time (stored as `null`).
  *
  * Export is paged: one part is up to 100 attendees (one `attendees.query` plus one `bookings.getMany`),
  * with a cursor for the next part, so a large event never goes over the bridge-call budget.
@@ -35,11 +36,25 @@ export interface AttendeeStorage {
 
 export type CheckInTarget = { id: string } | { code: string };
 
-export type CheckInFailure = "NOT_FOUND" | "BOOKING_NOT_CONFIRMED" | "ATTENDEE_NOT_VALID" | "ALREADY_CHECKED_IN";
+export type CheckInFailure =
+	| "NOT_FOUND"
+	| "BOOKING_NOT_CONFIRMED"
+	| "WAIVER_PENDING"
+	| "ATTENDEE_NOT_VALID"
+	| "ALREADY_CHECKED_IN";
 
 export type CheckInResult =
 	| { ok: true; id: string; name: string; checkedInAt: string }
-	| { ok: false; reason: CheckInFailure; id?: string; name?: string; checkedInAt?: string; bookingStatus?: string };
+	| {
+			ok: false;
+			reason: CheckInFailure;
+			id?: string;
+			name?: string;
+			checkedInAt?: string;
+			bookingStatus?: string;
+			/** `WAIVER_PENDING` only: what a signing link for this attendee needs (EV-FR-12). */
+			waiver?: { attendee: AttendeeDoc; booking: BookingDoc };
+	  };
 
 export const EXPORT_PAGE_SIZE = 100;
 
@@ -67,6 +82,11 @@ export async function checkIn(
 	const booking = (await storage.bookings.get(doc.bookingId)) as BookingDoc | null;
 	if (booking?.status !== "confirmed") {
 		return { ok: false, reason: "BOOKING_NOT_CONFIRMED", ...who, bookingStatus: booking?.status ?? "missing" };
+	}
+	// A waiver booking confirms once the buyer has signed; other adults stay pending until their
+	// own receipt arrives, and are refused here with a signing link (EV-FR-12).
+	if (doc.status === "pending" && booking.waiver) {
+		return { ok: false, reason: "WAIVER_PENDING", ...who, waiver: { attendee: doc, booking } };
 	}
 	if (doc.status !== "valid") return { ok: false, reason: "ATTENDEE_NOT_VALID", ...who };
 	if (doc.checkedInAt) return { ok: false, reason: "ALREADY_CHECKED_IN", ...who, checkedInAt: doc.checkedInAt };

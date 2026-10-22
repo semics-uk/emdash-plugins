@@ -21,6 +21,7 @@
 		"./astro": "./src/astro/index.js",
 		"./astro/checkout-endpoint": "./src/astro/checkout-endpoint.ts",
 		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro",
+		"./astro/DoorSignPage.astro": "./src/astro/DoorSignPage.astro",
 		"./astro/BookingWidget.astro": "./src/astro/BookingWidget.astro",
 		"./astro/BookingBlock.astro": "./src/astro/BookingBlock.astro",
 		"./astro/EventList.astro": "./src/astro/EventList.astro",

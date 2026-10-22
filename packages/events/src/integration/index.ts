@@ -6,6 +6,12 @@ export interface EventsIntegrationOptions {
 	 * Registry installs get an `r_…` id: pass it here.
 	 */
 	pluginId?: string;
+	/**
+	 * The e-sign core's plugin id, when `semics-esign` runs on the same site (the suite passes it).
+	 * Enables the receipt lookup on the waiver return page and the door signing page
+	 * (`/_events/sign`); without it the door signing page says signing is not set up.
+	 */
+	esignPluginId?: string;
 }
 
 const VIRTUAL = "virtual:semics-events/config";
@@ -23,11 +29,16 @@ export interface EventsAstroIntegration {
 }
 
 /**
- * Astro integration: injects `POST /_events/checkout` (the no-JS checkout) and the `/booking`
- * page (`Referrer-Policy: no-referrer`). Add it to `integrations` beside `emdash()`.
+ * Astro integration: injects `POST /_events/checkout` (the no-JS checkout), the `/booking` page
+ * (also the waiver return page) and `/_events/sign` (door signing, EV-FR-12), all with
+ * `Referrer-Policy: no-referrer`. Add it to `integrations` beside `emdash()`.
  */
 export function eventsIntegration(options: EventsIntegrationOptions = {}): EventsAstroIntegration {
 	const pluginId = options.pluginId ?? EVENTS_PLUGIN_ID;
+	const config = [
+		`export const pluginId = ${JSON.stringify(pluginId)};`,
+		`export const esignPluginId = ${JSON.stringify(options.esignPluginId ?? null)};`,
+	].join("\n");
 	return {
 		name: "semics-events",
 		hooks: {
@@ -42,14 +53,18 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 					entrypoint: "@semics-tech/emdash-events/astro/BookingPage.astro",
 					prerender: false,
 				});
+				injectRoute({
+					pattern: "/_events/sign",
+					entrypoint: "@semics-tech/emdash-events/astro/DoorSignPage.astro",
+					prerender: false,
+				});
 				updateConfig({
 					vite: {
 						plugins: [
 							{
 								name: "semics-events-config",
 								resolveId: (id: string) => (id === VIRTUAL ? RESOLVED : undefined),
-								load: (id: string) =>
-									id === RESOLVED ? `export const pluginId = ${JSON.stringify(pluginId)};` : undefined,
+								load: (id: string) => (id === RESOLVED ? config : undefined),
 							},
 						],
 					},

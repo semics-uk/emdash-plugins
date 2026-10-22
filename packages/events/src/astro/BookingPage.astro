@@ -4,7 +4,11 @@
 // The emailed link (`?ref=&k=<one-time code>`, R34) renders an "Open my booking" button and
 // redeems nothing: only its POST swaps the code for a token, sets the cookie and redirects to
 // `?ref=` without `k`, so mail scanners that prefetch links cannot use the code up.
-import { pluginId } from "virtual:semics-events/config";
+// It is also the waiver return page (EV-FR-12): e-sign sends the signer back to `?ref=#receipt=`;
+// `src/client/receipt.ts` clears the fragment and posts the receipt here, which forwards it to the
+// core's `signatures/receipt` (no access token needed: the receipt is HMAC-signed) and redirects to
+// `?ref=&waiver=<outcome>`.
+import { esignPluginId, pluginId } from "virtual:semics-events/config";
 
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
@@ -17,6 +21,7 @@ import {
 	LINK_INVALID,
 	redeemBookingLink,
 } from "./lib/checkout-form";
+import { forwardReceipt } from "./lib/receipt";
 import type { BookingView } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
 
@@ -34,18 +39,30 @@ const MESSAGES: Record<string, string> = {
 	BAD_REQUEST: "Please choose at least one ticket and fill in your name and email.",
 	[LINK_INVALID]: "This booking link has expired or was already used. Open your booking on the device you booked with.",
 };
+const WAIVER_MESSAGES: Record<string, string> = {
+	signed: "Thank you: your waiver is signed.",
+	declined: "The waiver was declined, so this ticket is not valid yet. You can sign it from the booking again.",
+	voided: "This waiver was withdrawn. Please sign it again from the booking.",
+	expired: "The signing link expired. Please sign the waiver again from the booking.",
+	failed: "We could not record that signature. Please try again from the booking.",
+};
 
 const url = Astro.url;
 const rawRef = url.searchParams.get("ref") ?? "";
 const ref = /^[0-9A-HJKMNP-TV-Z]{10}$/.test(rawRef) ? rawRef : "";
 const errorCode = url.searchParams.get("error") ?? "";
-let notice = errorCode ? (MESSAGES[errorCode] ?? "Something went wrong. Please try again.") : "";
+const waiverNotice = WAIVER_MESSAGES[url.searchParams.get("waiver") ?? ""] ?? "";
+let notice = errorCode ? (MESSAGES[errorCode] ?? "Something went wrong. Please try again.") : waiverNotice;
 const code = url.searchParams.get("k") ?? "";
 const ctx = { locals: Astro.locals, url, request: Astro.request };
 // The cancel and redeem forms post here: refuse another site's posts (CSRF) before reading them.
 if (isCrossSiteRequest(Astro.request, url)) return crossSiteResponse();
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : undefined;
 
+if (form?.get("intent") === "receipt") {
+	const result = await forwardReceipt(ctx, { ref: rawRef, receipt: form.get("receipt") }, { pluginId, esignPluginId });
+	return Astro.redirect(result.location, 303);
+}
 if (form?.get("intent") === "redeem") {
 	const k = form.get("k");
 	const result = await redeemBookingLink(ctx, { ref: rawRef, code: typeof k === "string" ? k : "" }, { pluginId });
@@ -98,6 +115,10 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 	<body>
 		<main class="semics-booking" data-testid="booking-page">
 			<h1>Your booking</h1>
+			<form method="post" action={ref ? `/booking?ref=${ref}` : "/booking"} data-semics-fragment="receipt" hidden>
+				<input type="hidden" name="intent" value="receipt" />
+				<input type="hidden" name="receipt" value="" />
+			</form>
 			{notice && <p role="alert" data-testid="booking-notice" data-code={errorCode}>{notice}</p>}
 			{
 				opening ? (
@@ -129,5 +150,8 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 				) : null
 			}
 		</main>
+		<script>
+			import "../client/receipt.ts";
+		</script>
 	</body>
 </html>

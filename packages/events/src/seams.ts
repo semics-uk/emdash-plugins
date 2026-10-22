@@ -8,10 +8,18 @@
  *   `PAYMENT_FAILED`, and a booking's `waiver` is ignored.
  * - `editorTicketsRoute({ waivers })`: the "Tickets & booking" panel with a waiver availability
  *   check. Free shows required waivers as unavailable.
+ * - `signaturesReceiptRoute({ receipts })`: `signatures/receipt` with a receipt step that verifies
+ *   e-sign receipts and names the attendees a booking waits for; the core stores receipts and moves
+ *   the booking on (T064). Free declares the route as a stub that answers NOT_FOUND.
+ * - `adminRoute({ signingLink })`: the Block Kit admin with a signing link for attendees that
+ *   check-in refuses because their waiver is pending. Free refuses them without a link.
  */
 
+export type { SigningLink } from "./admin/pages";
 export type { WaiverAvailability, WaiverCheck } from "./admin/panel";
 export type { InputIssue } from "./domain/checkout";
+export type { ReceiptStatus, VerifiedReceipt } from "./domain/receipts";
+export { type AdminSteps, adminRoute } from "./routes/admin";
 export {
 	type ContinueSteps,
 	checkoutContinueRoute,
@@ -22,4 +30,5 @@ export {
 	type SigningRefusal,
 } from "./routes/checkout-continue";
 export { type EditorSteps, editorTicketsRoute } from "./routes/editor";
+export { type ReceiptAttendee, type ReceiptStep, type ReceiptSteps, signaturesReceiptRoute } from "./routes/receipt";
 export type { AttendeeDoc, BookingDoc, BookingWaiver, SignatureMode } from "./storage/schema";

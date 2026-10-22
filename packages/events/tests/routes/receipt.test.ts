@@ -62,7 +62,13 @@ async function world({
 	mode = "each_attendee",
 	seats = 3,
 	occurrence = false,
-}: { status?: string; priceMinor?: number; mode?: string; seats?: number; occurrence?: boolean } = {}) {
+}: {
+	status?: string;
+	priceMinor?: number;
+	mode?: string;
+	seats?: number;
+	occurrence?: boolean;
+} = {}) {
 	const storage = makeStore();
 	const counted = (capacity: number) => ({ capacity, reserved: seats, sold: 0 });
 	storage.event_configs.set("ev1", { status: "on_sale", ...counted(100) });
@@ -211,10 +217,7 @@ describe("signatures/receipt confirms a waiver booking (EV-FR-12, SX-FR-04)", ()
 	it("EV-FR-12 declined, voided and expired receipts are recorded; the attendee stays pending and the booking waits", async () => {
 		for (const status of ["declined", "voided", "expired"] as const) {
 			const w = await world();
-			const { body } = await run(
-				w.deps(T0 + MIN),
-				post(receipt({ status, pdfSha256: null, finalHash: null })),
-			);
+			const { body } = await run(w.deps(T0 + MIN), post(receipt({ status, pdfSha256: null, finalHash: null })));
 			expect(body, status).toMatchObject({ ok: true, status: "awaiting_signature", signature: { status } });
 			expect(w.attendee(1)).toMatchObject({ status: "pending", signature: { status, envelopeId: "env_1" } });
 			expect(w.storage.outbox.docs.size).toBe(0);
@@ -301,7 +304,8 @@ describe("signatures/receipt refuses forged, unknown and malformed receipts (SX-
 		const w = await world();
 		const { body } = await run(w.deps(T0 + MIN), post(receipt()));
 		const text = JSON.stringify(body);
-		for (const secret of ["ada@example.com", "Ada Lovelace", "CODE-1", H("a"), "env_1"]) expect(text).not.toContain(secret);
+		for (const secret of ["ada@example.com", "Ada Lovelace", "CODE-1", H("a"), "env_1"])
+			expect(text).not.toContain(secret);
 	});
 });
 
@@ -334,7 +338,14 @@ describe("signatures/receipt is idempotent (SX-FR-04, §8.4)", () => {
 		w.storage.attendees.set(`${ID}-1`, {
 			...w.attendee(1),
 			status: "valid",
-			signature: { envelopeId: "env_1", status: "completed", docSha256: H("a"), pdfSha256: H("b"), finalHash: H("c"), at: Math.floor(T0 / 1000) },
+			signature: {
+				envelopeId: "env_1",
+				status: "completed",
+				docSha256: H("a"),
+				pdfSha256: H("b"),
+				finalHash: H("c"),
+				at: Math.floor(T0 / 1000),
+			},
 		});
 		const { body } = await run(w.deps(T0 + MIN, { step: step([`${ID}-1`]) }), post(receipt()));
 		expect(body).toMatchObject({ ok: true, status: "confirmed" });
@@ -346,7 +357,15 @@ describe("signatures/receipt is idempotent (SX-FR-04, §8.4)", () => {
 		await run(w.deps(T0 + MIN), post(receipt()));
 		await run(
 			w.deps(T0 + 2 * MIN),
-			post(receipt({ envelopeId: "env_9", status: "declined", pdfSha256: null, finalHash: null, at: Math.floor(T0 / 1000) + 60 })),
+			post(
+				receipt({
+					envelopeId: "env_9",
+					status: "declined",
+					pdfSha256: null,
+					finalHash: null,
+					at: Math.floor(T0 / 1000) + 60,
+				}),
+			),
 		);
 		expect(w.attendee(1)).toMatchObject({ status: "valid", signature: { envelopeId: "env_1", status: "completed" } });
 	});

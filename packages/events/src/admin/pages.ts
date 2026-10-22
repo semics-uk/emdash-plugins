@@ -80,7 +80,21 @@ export interface AdminDeps {
 	/** Plugin id, for the CSV download link. */
 	pluginId: string;
 	newId: () => string;
+	/**
+	 * The Pro waiver step's signing link for an attendee refused at check-in with a pending waiver
+	 * (EV-FR-12): staff open it on their device and check the attendee in once they have signed.
+	 * Absent in the Free edition; `null` when no link can be made (no pairing).
+	 */
+	signingLink?: SigningLink;
 }
+
+/** Makes the signing link for an attendee whose waiver is pending (Pro seam, `adminRoute`). */
+export type SigningLink = (args: {
+	attendeeId: string;
+	attendee: AttendeeDoc;
+	booking: BookingDoc;
+	origin: string;
+}) => Promise<string | null>;
 
 export type AdminInteraction =
 	| { type: "page_load"; page: string }
@@ -448,6 +462,8 @@ const REFUSALS: Record<string, (r: { bookingStatus?: string; name?: string }) =>
 	NOT_FOUND: () => "No attendee has that code for this event.",
 	BOOKING_NOT_CONFIRMED: (r) =>
 		`The booking is not confirmed (it is ${r.bookingStatus ?? "unknown"}), so this ticket is not valid.`,
+	WAIVER_PENDING: (r) =>
+		`${r.name ?? "This attendee"} has not signed the waiver yet. Check them in once they have signed.`,
 	ATTENDEE_NOT_VALID: () => "This ticket is not valid yet: a waiver may still be pending, or it was cancelled.",
 };
 
@@ -458,6 +474,11 @@ async function doCheckIn(
 ): Promise<AdminResponse> {
 	const result = await checkIn(deps.storage, target, iso(deps.now), eventId);
 	let banner: NoticeInput;
+	const links: Block[] = [];
+	if (!result.ok && result.reason === "WAIVER_PENDING" && result.waiver && result.id && deps.signingLink) {
+		const url = await deps.signingLink({ attendeeId: result.id, ...result.waiver, origin: deps.origin });
+		if (url) links.push(actions([link("Open the signing page", { kind: "external", url })]));
+	}
 	if (result.ok) {
 		banner = { severity: "info", title: `Checked in: ${result.name}`, message: `At ${result.checkedInAt}.` };
 	} else if (result.reason === "ALREADY_CHECKED_IN") {
@@ -469,11 +490,11 @@ async function doCheckIn(
 	} else {
 		banner = {
 			severity: "error",
-			title: "Cannot check in",
+			title: result.reason === "WAIVER_PENDING" ? "Waiver not signed" : "Cannot check in",
 			message: REFUSALS[result.reason]?.(result) ?? "Check-in refused.",
 		};
 	}
-	return attendeesPage(deps, eventId, { extra: notices([banner]) });
+	return attendeesPage(deps, eventId, { extra: [...notices([banner]), ...links] });
 }
 
 // --- event editor -----------------------------------------------------------------------------

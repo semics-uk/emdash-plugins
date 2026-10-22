@@ -253,11 +253,18 @@ export interface AttendeeDoc {
 	/** Marked under 18 at checkout: the buyer signs the waiver as their guardian (R5). */
 	minor?: boolean;
 	checkedInAt?: string;
+	/**
+	 * The waiver receipt stored for this attendee (T064, esign-intent/1 §8.4): idempotent on the
+	 * envelope, and final once `completed`. `pdfSha256` is `null` until e-sign has the signed PDF.
+	 */
 	signature?: {
 		envelopeId: string;
 		status: string;
 		docSha256?: string;
-		pdfSha256?: string;
+		pdfSha256?: string | null;
+		finalHash?: string | null;
+		/** When the envelope entered `status` (epoch seconds, from the receipt). */
+		at?: number;
 		signedBy?: "self" | "guardian" | "buyer";
 	};
 }

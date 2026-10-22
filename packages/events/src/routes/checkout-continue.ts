@@ -42,7 +42,9 @@ import { badRequest, fail } from "./reply";
  * the `hold-<ref>` re-arm, then the provider's own calls.
  * The signature step (a booking with a `waiver`, Pro only): query, `settings.list` (shared with the
  * step, which reads the licence and pairing from it), `extendHold` → `awaiting_signature`,
- * attendees, the re-arm: 5 calls; the step mints its intents without bridge calls.
+ * attendees, the re-arm: 5 calls; the step mints its intents without bridge calls. Continuing a
+ * booking already awaiting signatures first reads its attendees (6), so seats whose receipts are
+ * in keep them (`signatures/receipt`, T064) and the step can skip those seats.
  *
  * Pro plugs in through `checkoutContinueRoute({ payment, signature })` (`src/seams.ts`); the
  * declared route is the Free one, with neither step.
@@ -62,7 +64,7 @@ export interface ContinueStorage extends CounterStorage {
 		query(options: { where: Where; limit: number }): Promise<{ items: Item[] }>;
 		updateIf(id: string, args: { where: Where; set?: Where }): Promise<{ applied: boolean }>;
 	};
-	attendees: { putMany(items: Item[]): Promise<void> };
+	attendees: { getMany(ids: string[]): Promise<Map<string, unknown>>; putMany(items: Item[]): Promise<void> };
 	outbox: { get(id: string): Promise<unknown>; put(id: string, data: unknown): Promise<void> };
 }
 
@@ -186,10 +188,23 @@ async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.url } };
 }
 
+/**
+ * A booking already awaiting signatures may have receipts in (T064): keep every stored attendee that
+ * has one (its signature, status and code) instead of the freshly planned document (1 call).
+ */
+async function keepSigned(storage: ContinueStorage, planned: Item[]): Promise<Item[]> {
+	const stored = await storage.attendees.getMany(planned.map((d) => d.id));
+	return planned.map((d) => {
+		const kept = stored.get(d.id) as AttendeeDoc | undefined;
+		return kept?.signature ? { id: d.id, data: kept } : d;
+	});
+}
+
 /** The Pro signature step: extend the hold, move to `awaiting_signature`, re-arm, return the intents. */
-async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, docs: Item[]): Promise<unknown> {
+async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: Item[]): Promise<unknown> {
 	const { storage, now, cron } = c.deps;
 	const settings = Object.fromEntries((await c.deps.settings.list()).map((e) => [e.key, e.value]));
+	const docs = b.status === "awaiting_signature" ? await keepSigned(storage, planned) : planned;
 	const attendees = docs as Array<{ id: string; data: AttendeeDoc }>;
 	const prepared = await step.prepare({ bookingId: c.id, booking: b, attendees, settings });
 	if (!prepared.ok) {

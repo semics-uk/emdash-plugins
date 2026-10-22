@@ -265,7 +265,10 @@ describe("attendees page and check-in (EV-US-5)", () => {
 
 	it("EV-FR-12 refuses an attendee whose waiver is pending and shows the signing link (Pro seam)", async () => {
 		const { deps, s } = world();
-		s.bookings.set("bk_1", { ...(s.bookings.docs.get("bk_1") as Doc), waiver: { templateId: "tpl", mode: "each_attendee" } });
+		s.bookings.set("bk_1", {
+			...(s.bookings.docs.get("bk_1") as Doc),
+			waiver: { templateId: "tpl", mode: "each_attendee" },
+		});
 		s.attendees.set("bk_1-1", { ...(s.attendees.docs.get("bk_1-1") as Doc), status: "pending" });
 		const asked: Doc[] = [];
 		const signingLink: NonNullable<AdminDeps["signingLink"]> = async (args) => {

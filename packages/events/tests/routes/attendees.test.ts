@@ -70,7 +70,10 @@ describe("check-in (EV-US-5)", () => {
 
 	it("EV-FR-12 refuses an attendee whose waiver is pending, with what the signing link needs", async () => {
 		const { s, storage } = world();
-		const booking = { ...(s.bookings.docs.get("bk_1") as object), waiver: { templateId: "tpl", mode: "each_attendee" } };
+		const booking = {
+			...(s.bookings.docs.get("bk_1") as object),
+			waiver: { templateId: "tpl", mode: "each_attendee" },
+		};
 		s.bookings.set("bk_1", booking);
 		s.attendees.set("bk_1-1", { ...(s.attendees.docs.get("bk_1-1") as object), status: "pending" });
 		const out = await checkIn(storage, { code: "CODE-ADA" }, iso(NOW));

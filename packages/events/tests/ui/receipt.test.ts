@@ -90,7 +90,9 @@ describe("forwardReceipt: POST to signatures/receipt (EV-FR-12, §8.4)", () => {
 		}
 		expect(malformed.seen).toEqual([]);
 		// A bad ref is dropped from the redirect.
-		expect((await forwardReceipt(malformed.ctx, { ref: "<x>", receipt: "" }, {})).location).toBe("/booking?waiver=failed");
+		expect((await forwardReceipt(malformed.ctx, { ref: "<x>", receipt: "" }, {})).location).toBe(
+			"/booking?waiver=failed",
+		);
 	});
 
 	it("SX-FR-04 with pdfSha256 still null, it asks e-sign's receipts/lookup and forwards the full receipt", async () => {
@@ -116,7 +118,11 @@ describe("forwardReceipt: POST to signatures/receipt (EV-FR-12, §8.4)", () => {
 
 	it("SX-FR-04 without the e-sign plugin id, or with the lookup still pending, it stops after the first post", async () => {
 		const answers = {
-			"semics-events signatures/receipt": okData({ status: "confirmed", signature: { status: "completed" }, lookup: "l" }),
+			"semics-events signatures/receipt": okData({
+				status: "confirmed",
+				signature: { status: "completed" },
+				lookup: "l",
+			}),
 			"semics-esign public/receipts/lookup": okData({ state: "pending", receipt: null }),
 		};
 		const a = host(answers);
@@ -133,7 +139,11 @@ describe("startDoorSigning: staff open the signing page at check-in (EV-FR-12)",
 
 	it("EV-FR-12 redeems the intent with e-sign in-process and goes to the signing page", async () => {
 		const h = host({
-			"semics-esign public/envelopes/from-intent": okData({ envelopeId: "env_1", status: "sent", signingToken: "tok_abc" }),
+			"semics-esign public/envelopes/from-intent": okData({
+				envelopeId: "env_1",
+				status: "sent",
+				signingToken: "tok_abc",
+			}),
 		});
 		const out = await startDoorSigning(h.ctx, INTENT, { esignPluginId: "semics-esign" });
 		expect(out).toEqual({ location: "/sign/tok_abc" });
@@ -143,14 +153,21 @@ describe("startDoorSigning: staff open the signing page at check-in (EV-FR-12)",
 	it("EV-FR-12 refuses without the e-sign plugin, with a malformed intent, or when e-sign gives no inline token", async () => {
 		const none = host({});
 		expect(await startDoorSigning(none.ctx, INTENT, {})).toEqual({ error: "ESIGN_NOT_CONFIGURED" });
-		expect(await startDoorSigning(none.ctx, "x", { esignPluginId: "semics-esign" })).toEqual({ error: "INTENT_INVALID" });
+		expect(await startDoorSigning(none.ctx, "x", { esignPluginId: "semics-esign" })).toEqual({
+			error: "INTENT_INVALID",
+		});
 		expect(none.seen).toEqual([]);
-		const email = host({ "semics-esign public/envelopes/from-intent": okData({ envelopeId: "e", status: "completed" }) });
+		const email = host({
+			"semics-esign public/envelopes/from-intent": okData({ envelopeId: "e", status: "completed" }),
+		});
 		expect(await startDoorSigning(email.ctx, INTENT, { esignPluginId: "semics-esign" })).toEqual({
 			error: "SIGNING_UNAVAILABLE",
 		});
 		const refused = host({
-			"semics-esign public/envelopes/from-intent": { success: true, data: { ok: false, error: { code: "TOKEN_EXPIRED" } } },
+			"semics-esign public/envelopes/from-intent": {
+				success: true,
+				data: { ok: false, error: { code: "TOKEN_EXPIRED" } },
+			},
 		});
 		expect(await startDoorSigning(refused.ctx, INTENT, { esignPluginId: "semics-esign" })).toEqual({
 			error: "TOKEN_EXPIRED",

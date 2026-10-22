@@ -1,0 +1,57 @@
+---
+// Injected at `/_events/sign` by the integration: the door signing page (EV-FR-12). Check-in refuses
+// an attendee whose waiver is pending and shows staff a link `/_events/sign#intent=<token>` (minted
+// by the Pro core for that attendee, signing for themselves). The intent stays in the fragment:
+// `src/client/receipt.ts` clears it and posts it here; this page redeems it with e-sign in-process
+// (`public/envelopes/from-intent`) and sends the browser to e-sign's signing page. Afterwards e-sign
+// returns to `/booking?ref=…#receipt=…`, which records the receipt.
+import { esignPluginId } from "virtual:semics-events/config";
+
+import { crossSiteResponse, isCrossSiteRequest } from "./lib/checkout-form";
+import { startDoorSigning } from "./lib/receipt";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const MESSAGES: Record<string, string> = {
+	ESIGN_NOT_CONFIGURED: "Signing is not set up on this site.",
+	INTENT_INVALID: "This signing link is not valid. Open it again from the check-in page.",
+	TOKEN_EXPIRED: "This signing link has expired. Open it again from the check-in page.",
+	TOKEN_REPLAYED: "This signing link was already used. Open it again from the check-in page.",
+	SIGNING_UNAVAILABLE: "This waiver cannot be signed here. It may already be signed.",
+};
+
+const ctx = { locals: Astro.locals, url: Astro.url, request: Astro.request };
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
+let error = "";
+if (Astro.request.method === "POST") {
+	const form = await Astro.request.formData().catch(() => new FormData());
+	const result = await startDoorSigning(ctx, form.get("intent"), { esignPluginId });
+	if ("location" in result) return Astro.redirect(result.location, 303);
+	error = MESSAGES[result.error] ?? "Signing could not be started. Open the link again from the check-in page.";
+}
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Sign the waiver</title>
+	</head>
+	<body>
+		<main class="semics-booking" data-testid="door-sign-page">
+			<h1>Sign the waiver</h1>
+			{error ? <p role="alert" data-testid="door-sign-error">{error}</p> : <p>Opening the signing page…</p>}
+			<form method="post" action="/_events/sign" data-semics-fragment="intent" hidden>
+				<input type="hidden" name="intent" value="" />
+			</form>
+		</main>
+		<script>
+			import "../client/receipt.ts";
+		</script>
+	</body>
+</html>
