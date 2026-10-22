@@ -59,7 +59,24 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 		)
 	}
 	{
-		view.kind === "signed" && (
+		view.kind === "waiting" && (
+			<section data-testid="sign-waiting">
+				<p>You have signed{view.title ? ` "${view.title}"` : " this document"}. We are waiting for the other signers.</p>
+				<p>When everyone has signed, you will get an email with a link to the signed copy.</p>
+			</section>
+		)
+	}
+	{
+		view.kind === "signed" && view.waiting && (
+			<section data-testid="sign-done" data-waiting>
+				<p>Thank you. Your signature has been recorded.</p>
+				<p>Other people still have to sign. When everyone has signed, you will get an email with a link to the signed copy.</p>
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+			</section>
+		)
+	}
+	{
+		view.kind === "signed" && !view.waiting && (
 			<section data-testid="sign-done" {...(pdfPending ? { "data-esign-poll": "", "data-token": token, "data-plugin": pluginId } : {})}>
 				<p>Thank you. Your signature has been recorded.</p>
 				<p data-esign-pdf aria-live="polite">

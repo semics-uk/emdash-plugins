@@ -65,6 +65,8 @@ export const ERROR_CODES = Object.freeze({
 	SIGNING_TOKEN_EXPIRED: def(401, "This signing link has expired."),
 	SESSION_REQUIRED: def(409, "Please reopen the signing page and try again."),
 	SIGNED_PDF_PENDING: def(409, "The signed document is still being prepared. Please try again in a minute."),
+	/** E-sign Pro sequential routing (T090): an earlier signer has not signed yet. */
+	SIGNING_OUT_OF_TURN: def(409, "Another signer has to sign first. You will get an email when it is your turn."),
 
 	// --- protocol (docs/protocol/esign-intent-v1.md §9; strings and statuses are verbatim) ---
 	TOKEN_TOO_LARGE: def(413, "The token is too large."),

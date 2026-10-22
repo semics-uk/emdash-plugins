@@ -52,16 +52,19 @@ export interface StoredPdf {
 export interface SignedPdfInput {
 	envelopeId: string;
 	envelope: Pick<EnvelopeDoc, "title" | "docSha256" | "completedAt" | "finalHash" | "signerFields">;
-	signer: Pick<
-		SignerDoc,
-		"name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion" | "consentSha256" | "fieldValues"
-	>;
+	/** Every signer in signing order: one in Free, several in a Pro envelope (T090). */
+	signers: ReadonlyArray<PdfSigner>;
 	/** The frozen snapshot text (its SHA-256 is `docSha256`). */
 	snapshot: string;
 	/** The whole audit chain in seq order, already verified against `head`. */
 	events: readonly AuditEventDoc[];
 	head: string;
 }
+
+export type PdfSigner = Pick<
+	SignerDoc,
+	"name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion" | "consentSha256" | "fieldValues"
+>;
 
 export const CERTIFICATE_WORDING =
 	"This certificate records how the document above was signed. It was signed with a simple " +
@@ -141,7 +144,7 @@ function snapshotBlocks(text: string): PdfBlock[] {
 	return out;
 }
 
-function signatureBlock(signer: SignedPdfInput["signer"]): PdfBlock {
+function signatureBlock(signer: PdfSigner): PdfBlock {
 	const signature = signer.signature;
 	const caption = [signer.name, `Signed ${utc(signer.signedAt)}`];
 	if (signature?.kind === "drawn" && signature.strokes) {
@@ -159,13 +162,13 @@ function signatureBlock(signer: SignedPdfInput["signer"]): PdfBlock {
  * The values the signer entered (T033 signer fields), labelled, in the sender's order: part of the
  * signed document, and covered by the signature hash (`bindSignature`). None declared: no block.
  */
-function entriesBlocks(input: SignedPdfInput): PdfBlock[] {
+function entriesBlocks(input: SignedPdfInput, signer: PdfSigner, many: boolean): PdfBlock[] {
 	const fields = input.envelope.signerFields ?? [];
 	if (fields.length === 0) return [];
-	const values = input.signer.fieldValues ?? {};
+	const values = signer.fieldValues ?? {};
 	return [
 		{ type: "spacer", height: 12 },
-		{ type: "heading", text: "Details entered by the signer", level: 2 },
+		{ type: "heading", text: `Details entered by ${many ? signer.name : "the signer"}`, level: 2 },
 		{
 			type: "table",
 			columns: [{ header: "Field" }, { header: "Value", width: 2 }],
@@ -176,20 +179,23 @@ function entriesBlocks(input: SignedPdfInput): PdfBlock[] {
 
 /** The PDF content (exposed for tests; `renderSignedPdf` renders it). */
 export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
-	const { envelope, signer, events, head, envelopeId } = input;
-	const signature = signer.signature;
+	const { envelope, signers, events, head, envelopeId } = input;
+	const many = signers.length > 1;
+	// One group of facts per signer, in signing order ("Signer 2" when there are several, T090).
 	const facts: string[][] = [
 		["Envelope", envelopeId],
 		["Document", envelope.title],
 		["Document SHA-256", envelope.docSha256 ?? ""],
-		["Signer", signer.name],
-		["Signing as", CAPACITY[signer.as] ?? signer.as],
-		...(signer.participant ? [["Participant", signer.participant.name]] : []),
-		["Signature", signature?.kind === "drawn" ? "Drawn" : "Typed"],
-		["Signature SHA-256", signature?.sha256 ?? ""],
-		["Consent version", signer.consentVersion ?? ""],
-		...(signer.consentSha256 ? [["Consent wording SHA-256", signer.consentSha256]] : []),
-		["Signed", utc(signer.signedAt)],
+		...signers.flatMap((signer, i) => [
+			[many ? `Signer ${i + 1}` : "Signer", signer.name],
+			["Signing as", CAPACITY[signer.as] ?? signer.as],
+			...(signer.participant ? [["Participant", signer.participant.name]] : []),
+			["Signature", signer.signature?.kind === "drawn" ? "Drawn" : "Typed"],
+			["Signature SHA-256", signer.signature?.sha256 ?? ""],
+			["Consent version", signer.consentVersion ?? ""],
+			...(signer.consentSha256 ? [["Consent wording SHA-256", signer.consentSha256]] : []),
+			["Signed", utc(signer.signedAt)],
+		]),
 		["Completed", utc(envelope.completedAt)],
 		["Audit events", String(events.length)],
 	];
@@ -197,7 +203,7 @@ export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
 		String(e.seq + 1),
 		utc(e.at),
 		e.type,
-		e.actor,
+		typeof e.data.signer === "number" ? `signer ${e.data.signer}` : e.actor,
 		e.personal?.ip ?? "",
 		e.hash.slice(0, 16),
 	]);
@@ -212,9 +218,11 @@ export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
 		blocks: [
 			{ type: "heading", text: envelope.title, level: 1 },
 			...snapshotBlocks(input.snapshot),
-			...entriesBlocks(input),
-			{ type: "spacer", height: 18 },
-			signatureBlock(signer),
+			...signers.flatMap((signer): PdfBlock[] => [
+				...entriesBlocks(input, signer, many),
+				{ type: "spacer", height: 18 },
+				signatureBlock(signer),
+			]),
 			{ type: "pageBreak" },
 			{ type: "heading", text: "Certificate of completion", level: 1 },
 			{ type: "paragraph", text: CERTIFICATE_WORDING },

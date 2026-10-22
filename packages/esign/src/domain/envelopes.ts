@@ -60,7 +60,8 @@ export interface EnvelopeDoc {
 	templateId: string;
 	templateVersion: number;
 	status: EnvelopeStatus;
-	routing: "parallel";
+	/** Several signers (E-sign Pro, T090): `sequential` invites each signer once the one before has signed. */
+	routing: "parallel" | "sequential";
 	delivery: Delivery;
 	clientId?: string;
 	externalRef?: string;
@@ -107,6 +108,8 @@ export interface SignerDoc {
 	/** SHA-256 of the signed-copy token the completion email links (R36); never opens a signing session. */
 	copyTokenHash?: string;
 	createdAt: string;
+	/** First view in an envelope with several signers (T090): each signer's `signer.viewed` is written once. */
+	viewedAt?: string;
 	/** Set by the signing ceremony (domain/signing.ts). Personal data: purged by retention. */
 	signature?: StoredSignature;
 	consentAt?: string;

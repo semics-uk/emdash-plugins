@@ -22,13 +22,16 @@
  *
  * Bridge calls (R22 target ≤ 8; the hard limit is 10):
  *  - session: limiter read (1), signer (1), envelope (1), snapshot and consent settings (2) = 5; the first
- *    view (`open`) adds the transition (1) and the audit head + create-only write (2) = 8; a wrong token
+ *    view (`open`) adds the transition (1) and the audit head + create-only write (2) = 8 (with several
+ *    signers, T090, each signer's guarded `viewedAt` write is +1: 9 for the view that also opens); a wrong token
  *    is the limiter read, the signer and copy-token lookups and the counter write = 4; a completed
  *    envelope is limiter, signer, envelope, download-link key (+ the master key for an integration) = 4-5;
  *  - submit: signer (1), envelope (1), settings (1), audit head (1), transition (1), signer update (1),
  *    audit first event + `putMany` of the rest (2), the signed-PDF one-shot (1) = 9 (T025: the PDF
  *    is rendered by that job, not here). The head is read before the transition so the envelope's
- *    `finalHash` (which covers the chain head) is written by that one update;
+ *    `finalHash` (which covers the chain head) is written by that one update. An envelope with several
+ *    signers (T090) stops after the settings read: Free refuses it (`ENVELOPE_CLOSED`, nothing written),
+ *    a Pro build hands the validated signature to its routing step (`ceremonyHandlers`);
  *  - decline: signer (1), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 7,
  *    plus the master key (1) for an integration's envelope = 8.
  *
@@ -199,6 +202,24 @@ async function consentSettings(ctx: PluginContext, withMasterKey: boolean) {
 
 const isExpired = (envelope: EnvelopeDoc, now: string) => envelope.expiresAt !== null && envelope.expiresAt <= now;
 
+/** The signer's order in an envelope with several signers (T090), else undefined (one signer: events as before). */
+const orderOf = (envelope: EnvelopeDoc, signer: SignerDoc) => (envelope.signerIds.length > 1 ? signer.order : undefined);
+
+/**
+ * A validated signature in an envelope with several signers (T090), for the edition that routes them
+ * (`ceremonyHandlers(step)`, `src/seams.ts`). `set` is the signer's signed record (status, signature,
+ * consent, entered values, ip, ua), as one signer's submit stores it.
+ */
+export interface SeveralSigners {
+	envelopeId: string;
+	envelope: EnvelopeDoc;
+	signer: Signed;
+	set: Partial<SignerDoc>;
+	now: string;
+}
+
+export type SeveralSignersStep = (ctx: PluginContext, args: SeveralSigners) => Promise<unknown>;
+
 /**
  * Writes `inputs` as the next events after the chain head (head read + create-only first write +
  * `putMany`). `prebuilt` is a batch the caller already chained from a head it read; if that head
@@ -264,14 +285,23 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	if (text === null) return fail("INTERNAL");
 
 	let status = envelope.status;
-	if (open && envelope.status === "sent") {
+	const order = orderOf(envelope, signer.data);
+	if (open) {
 		// The first view: only the winner of the guarded update records it.
-		const moved = await transitionEnvelope(envelopes, signer.data.envelopeId, "sent", "in_progress", {
-			updatedAt: now,
-		});
-		if (moved.ok) {
-			status = "in_progress";
-			const event = viewedAuditEvent(now, envelope.docSha256 ?? "", personalOf(routeCtx));
+		let first = false;
+		if (envelope.status === "sent") {
+			first = (
+				await transitionEnvelope(envelopes, signer.data.envelopeId, "sent", "in_progress", { updatedAt: now })
+			).ok;
+			if (first) status = "in_progress";
+		}
+		// Several signers (T090): each signer's own first view, once, guarded on their signer document (+1 call).
+		if (order !== undefined) {
+			first = (await stores(ctx).signers.updateIf(signer.id, { where: { viewedAt: null }, set: { viewedAt: now } }))
+				.applied;
+		}
+		if (first) {
+			const event = viewedAuditEvent(now, envelope.docSha256 ?? "", personalOf(routeCtx), order);
 			const appended = await appendAuditEvent(stores(ctx).audit_events, signer.data.envelopeId, event, {
 				salt: envelope.piiSalt,
 			});
@@ -298,7 +328,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 
 // --- public/submit ---
 
-async function submit(routeCtx: RouteInput, ctx: PluginContext) {
+async function submit(routeCtx: RouteInput, ctx: PluginContext, several?: SeveralSignersStep) {
 	if (tokenInUrl(routeCtx.request)) return fail("TOKEN_IN_QUERY");
 	const limiter = failureLimiter(ctx, routeCtx);
 	const token = tokenOf(routeCtx.input);
@@ -343,6 +373,21 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 		salt: envelope.piiSalt,
 	});
 	const who = personalOf(routeCtx);
+	const set: Partial<SignerDoc> = {
+		status: "signed",
+		signature,
+		consentAt: now,
+		consentVersion: consent.version,
+		consentSha256: consent.sha256,
+		signedAt: now,
+		fieldValues: given,
+		...who,
+	};
+	// Several signers (T090, a Pro build's routing): Free never completes such an envelope, so one left by a
+	// downgrade stays as it is until a Pro build signs it.
+	if (envelope.signerIds.length > 1) {
+		return several ? several(ctx, { envelopeId, envelope, signer, set, now }) : fail("ENVELOPE_CLOSED");
+	}
 	const inputs = signedAuditEvents({
 		at: now,
 		docSha256: envelope.docSha256,
@@ -362,19 +407,7 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 		updatedAt: now,
 	});
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
-	await signers.updateIf(signer.id, {
-		where: { status: "pending" },
-		set: {
-			status: "signed",
-			signature,
-			consentAt: now,
-			consentVersion: consent.version,
-			consentSha256: consent.sha256,
-			signedAt: now,
-			fieldValues: fields.value.fieldValues,
-			...who,
-		},
-	});
+	await signers.updateIf(signer.id, { where: { status: "pending" }, set });
 	// Only `in_progress` envelopes get here and the transition above is the single arbiter, so the head
 	// cannot have moved: one create-only write, no rebuild.
 	if (!(await writeAuditEvents(audit_events, planned))) throw new Error("audit chain contention");
@@ -421,7 +454,13 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 		ctx,
 		envelopeId,
 		envelope.piiSalt,
-		declinedAuditEvents({ at: now, docSha256: envelope.docSha256, hasReason: reason !== undefined, who }),
+		declinedAuditEvents({
+			at: now,
+			docSha256: envelope.docSha256,
+			hasReason: reason !== undefined,
+			who,
+			order: orderOf(envelope, signer.data),
+		}),
 	);
 	return {
 		ok: true,
@@ -435,8 +474,11 @@ const wrap =
 	(routeCtx, ctx) =>
 		handler(routeCtx as unknown as RouteInput, ctx);
 
-export const CEREMONY_HANDLERS: Record<string, RouteHandler> = {
+/** The ceremony routes; `several` signs an envelope with several signers (a Pro build's routing, T090). */
+export const ceremonyHandlers = (several?: SeveralSignersStep): Record<string, RouteHandler> => ({
 	"public/session": wrap(session),
-	"public/submit": wrap(submit),
+	"public/submit": wrap((routeCtx, ctx) => submit(routeCtx, ctx, several)),
 	"public/decline": wrap(decline),
-};
+});
+
+export const CEREMONY_HANDLERS = ceremonyHandlers();

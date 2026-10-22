@@ -16,7 +16,7 @@
 import { toIso } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import { type AuditEventDoc, finalEnvelopeHash, verifyAuditChain } from "../domain/audit";
-import { joinSnapshot } from "../domain/envelopes";
+import { joinSnapshot, type SignerDoc } from "../domain/envelopes";
 import { pdfChunks, renderSignedPdf } from "../domain/pdf";
 import { stores } from "../routes/envelopes";
 import { scheduleCompletionEmail } from "./completion-email";
@@ -54,11 +54,11 @@ export async function generateSignedPdf(
 	const envelope = await envelopes.get(envelopeId);
 	// After the retention purge the signer's details are gone: never render a PDF from what is left.
 	if (!envelope || envelope.status !== "completed" || envelope.pdfSha256 || envelope.personalPurgedAt) return "skipped";
-	const signerId = envelope.signerIds[0];
-	if (!signerId || !envelope.snapshot || !envelope.docSha256) return "skipped";
+	if (envelope.signerIds.length === 0 || !envelope.snapshot || !envelope.docSha256) return "skipped";
 
-	const [signer, chunks, chain] = await Promise.all([
-		signers.get(signerId),
+	// Every signer, in signing order (several in a Pro envelope, T090): one `getMany`.
+	const [people, chunks, chain] = await Promise.all([
+		signers.getMany(envelope.signerIds),
 		snapshots.getMany(envelope.snapshot.ids),
 		audit_events.query({ where: { envelopeId }, orderBy: { seq: "asc" }, limit: MAX_EVENTS }),
 	]);
@@ -69,7 +69,8 @@ export async function generateSignedPdf(
 		verified.ok &&
 		events.at(-1)?.type === "envelope.completed" &&
 		(await finalEnvelopeHash(envelope.docSha256, verified.value.head)) === envelope.finalHash;
-	if (!signer || signer.status !== "signed" || snapshot === null || !verified.ok || !settled) {
+	const all = envelope.signerIds.map((id) => people.get(id));
+	if (all.some((s) => s?.status !== "signed") || snapshot === null || !verified.ok || !settled) {
 		const attempt = options.attempt ?? 0;
 		if (attempt + 1 >= PDF_MAX_ATTEMPTS) {
 			ctx.log.error("signed PDF not generated: the envelope never settled", { envelopeId });
@@ -82,7 +83,7 @@ export async function generateSignedPdf(
 	const { bytes, sha256 } = await renderSignedPdf({
 		envelopeId,
 		envelope,
-		signer,
+		signers: all as SignerDoc[],
 		snapshot,
 		events,
 		head: verified.value.head,

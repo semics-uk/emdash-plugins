@@ -29,6 +29,8 @@ export interface SessionData {
 
 /** What submit and decline answer with besides `ok` (T062: `receipt` for an integration's envelope). */
 interface Done {
+	/** `completed`, or still open (`in_progress`) while other signers have to sign (T090). */
+	status?: string;
 	returnUrl?: string;
 	receipt?: string;
 }
@@ -124,7 +126,9 @@ export type SignView =
 			message?: string;
 	  }
 	| { kind: "closed"; status: string; title?: string; pdf?: "pending" | "ready"; download?: string; returnUrl?: string }
-	| { kind: "signed"; returnUrl?: string; download?: string; pdf?: "pending" | "ready" }
+	| { kind: "signed"; returnUrl?: string; download?: string; pdf?: "pending" | "ready"; waiting?: true }
+	/** SU-FR-11: this signer has signed; the envelope waits for the other signers (T090). */
+	| { kind: "waiting"; title?: string }
 	| { kind: "declined"; returnUrl?: string };
 
 export const MESSAGES: Record<string, string> = {
@@ -136,6 +140,7 @@ export const MESSAGES: Record<string, string> = {
 	TOKEN_IN_QUERY: "This link is not valid. Open the link from your email.",
 	SESSION_REQUIRED: "Please reload the page and try again.",
 	BAD_REQUEST: "Please check the form and try again.",
+	SIGNING_OUT_OF_TURN: "Another signer has to sign first. You will get an email when it is your turn.",
 	STROKES_TOO_LARGE: "Your drawn signature is too detailed. Clear it and sign again more simply.",
 };
 
@@ -184,6 +189,10 @@ const text = (form: FormData, key: string) => {
 };
 
 function closedView(session: SessionData): SignView {
+	// Signed, but the envelope is still open for the other signers (SU-FR-11).
+	if (session.status === "sent" || session.status === "in_progress") {
+		return { kind: "waiting", ...(session.title ? { title: session.title } : {}) };
+	}
 	const returnUrl = receiptReturnUrl(session);
 	return {
 		...(returnUrl ? { returnUrl } : {}),
@@ -270,6 +279,7 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 	const returnUrl = receiptReturnUrl(result.data);
 	return {
 		kind: "signed",
+		...(result.data.status && result.data.status !== "completed" ? { waiting: true as const } : {}),
 		...(returnUrl ? { returnUrl } : {}),
 		...(done?.download ? { download: done.download.url } : {}),
 		pdf: done?.pdf ?? "pending",

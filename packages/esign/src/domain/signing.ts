@@ -132,9 +132,18 @@ const requestPersonal = (who: RequestPersonal) => ({
 	...(who.ua === undefined ? {} : { ua: who.ua }),
 });
 
-/** `signer.viewed`: the first time the signer opens the document. */
-export function viewedAuditEvent(at: string, docSha256: string, who: RequestPersonal): AuditInput {
-	return { type: "signer.viewed", at, actor: "signer", data: { docSha256 }, personal: requestPersonal(who) };
+/** `{ signer: order }` in an envelope with several signers (T090), so the chain says whose event it is. */
+export const signerData = (order?: number): Record<string, number> => (order === undefined ? {} : { signer: order });
+
+/** `signer.viewed`: the first time the signer opens the document (`order` when there are several signers). */
+export function viewedAuditEvent(at: string, docSha256: string, who: RequestPersonal, order?: number): AuditInput {
+	return {
+		type: "signer.viewed",
+		at,
+		actor: "signer",
+		data: { docSha256, ...signerData(order) },
+		personal: requestPersonal(who),
+	};
 }
 
 /**
@@ -177,6 +186,8 @@ export function declinedAuditEvents(args: {
 	docSha256: string | null;
 	hasReason: boolean;
 	who: RequestPersonal;
+	/** The signer's order when the envelope has several signers (T090). */
+	order?: number;
 }): AuditInput[] {
 	const { at, docSha256, hasReason } = args;
 	return [
@@ -184,7 +195,7 @@ export function declinedAuditEvents(args: {
 			type: "signer.declined",
 			at,
 			actor: "signer",
-			data: { docSha256, hasReason },
+			data: { docSha256, hasReason, ...signerData(args.order) },
 			personal: requestPersonal(args.who),
 		},
 		{ type: "envelope.declined", at, actor: "system", data: { docSha256 } },
