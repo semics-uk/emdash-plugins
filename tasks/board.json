@@ -1160,7 +1160,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1174,7 +1174,7 @@
 			"unblocks": [
 				"T056"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T055": {
 			"file": "T055-events-ui-booking-widget-status-pass-and-calendar.md",
@@ -1228,7 +1228,7 @@
 			"unblocks": [
 				"T057"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T057": {
 			"file": "T057-phase-2-gate-review-and-budgets.md",
@@ -2233,7 +2233,6 @@
 	"columns": {
 		"backlog": [
 			"T034",
-			"T056",
 			"T057",
 			"T060",
 			"T061",
@@ -2276,12 +2275,12 @@
 		],
 		"ready": [
 			"T043",
+			"T056",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T033",
-			"T054"
+			"T033"
 		],
 		"review": [],
 		"done": [
@@ -2330,6 +2329,7 @@
 			"T051",
 			"T052",
 			"T053",
+			"T054",
 			"T055",
 			"T070",
 			"T110",
@@ -2339,11 +2339,11 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T054",
-		"T056",
-		"T057",
-		"T063",
-		"T064",
+		"T033",
+		"T034",
+		"T060",
+		"T061",
+		"T062",
 		"T065",
 		"T066",
 		"T067",
@@ -2351,5 +2351,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 16
+	"criticalWeight": 15
 }
