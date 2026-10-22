@@ -10,7 +10,7 @@ describe("the pages (EU-FR-09, T057)", () => {
 		expect(component).toContain('role="status"');
 		expect(component).toContain('aria-live="polite"');
 		expect(component).toContain("data-semics-payment");
-		expect(component).toContain("Check again");
+		expect(component).toContain('t("payment.checkAgain")'); // "Check again", from the tables since T102
 		expect(component).toContain('value="resume"');
 	});
 
