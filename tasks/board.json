@@ -1600,7 +1600,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1613,7 +1613,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T076": {
 			"file": "T076-events-pro-promo-codes-and-hidden-tickets.md",
@@ -2386,8 +2386,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T067",
-			"T075"
+			"T067"
 		],
 		"review": [],
 		"done": [
@@ -2455,6 +2454,7 @@
 			"T072",
 			"T073",
 			"T074",
+			"T075",
 			"T085",
 			"T087",
 			"T104",
