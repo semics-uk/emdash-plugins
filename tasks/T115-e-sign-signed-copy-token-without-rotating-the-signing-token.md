@@ -4,7 +4,7 @@ title: "E-sign: signed-copy token without rotating the signing token"
 phase: 1
 package: esign
 edition: free
-status: in-progress
+status: review
 model: sonnet-5.5
 size: S
 depends_on: [T033]
@@ -31,11 +31,11 @@ the signing token is never rotated at completion.
 
 Write these tests before any implementation and confirm they fail for the right reason.
 
-- [ ] After completion and the completion job, the original signing token still returns the closed state with a download link
-- [ ] The emailed copy token opens `/signed/<token>` and returns a fresh download link
-- [ ] A copy token cannot open a session for a non-completed envelope or submit anything
-- [ ] Re-running the completion job does not mint a second copy token once the email is queued
-- [ ] Budgets unchanged or lower; asserted with `expectWithinBudget`
+- [x] After completion and the completion job, the original signing token still returns the closed state with a download link
+- [x] The emailed copy token opens `/signed/<token>` and returns a fresh download link
+- [x] A copy token cannot open a session for a non-completed envelope or submit anything
+- [x] Re-running the completion job does not mint a second copy token once the email is queued
+- [x] Budgets unchanged or lower; asserted with `expectWithinBudget`
 
 ## Implementation (green, then refactor)
 
@@ -43,11 +43,16 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Acceptance criteria
 
-- [ ] The e2e journey (`apps/playground/e2e/esign.spec.ts`) checks the sign page shows the download link after submit
-- [ ] Meets the Definition of Done in `tasks/README.md`
+- [x] The e2e journey (`apps/playground/e2e/esign.spec.ts`) checks the sign page shows the download link after submit
+- [x] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
 
 ```sh
 corepack pnpm@10.23.0 --filter @semics-tech/emdash-esign exec vitest run tests/ceremony.routes.test.ts tests/emails.routes.test.ts
 ```
+
+## Notes
+
+- `signers.copyTokenHash` (non-unique index, also declared in `emdash-plugin.jsonc`) holds the copy token hash; `public/session` falls back to it after the signing-token lookup (one extra query only on that path) and refuses it unless the envelope is completed. `submit`/`decline` never look at it.
+- The re-run guard is the existing `complete-<id>` outbox row check. No client script change, so CSP hashes are untouched.
