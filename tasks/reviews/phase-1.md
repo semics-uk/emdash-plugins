@@ -15,7 +15,7 @@ Task T034 · reviewed 2026-10-22 · scope T020–T033, T112, T113, T115 (`packag
 
 ## Result
 
-No Severity 1. Four Severity 2, all fixed (commits `test(T034)` 86be49c / 8b244de, `fix(T034)` 4d1e8fe). Severity 3
+No Severity 1. Five Severity 2, all fixed test-first (findings 1-4 in 86be49c / 8b244de / 4d1e8fe; finding 22, CSRF, raised by the T057 review, in aedde7a and the following fix). Severity 3
 and 4 are filed as acceptance criteria on T097, T100, T105 and the new T116. Nothing open at Severity 1 or 2 in E-sign.
 
 ## Findings
@@ -26,6 +26,8 @@ and 4 are filed as acceptance criteria on T097, T100, T105 and the new T116. Not
 | 2 | 2 | ES-NFR-07 claims | Default consent wording "…my electronic signature has the same legal effect as a handwritten one" claims what eIDAS Art. 25(2) gives only to qualified signatures; the product must never claim more than SES | Fixed: "I agree to use electronic records and an electronic signature for this document." in the manifest default, `DEFAULT_CONSENT_WORDING` and the e2e fixture; a test checks consent and certificate wording for overclaims. Version left at `1` (pre-release, nothing signed in the field). Lawyer review still due (T105 criterion) |
 | 3 | 2 | Tamper evidence | Values the signer types into T033 signer fields were stored on the signer only: not in the signature hash, the audit chain or the signed PDF, so they could be changed afterwards undetected | Fixed: `bindSignature` hashes the values (key order) with the document and signature; the signed PDF prints them, labelled, before the signature block |
 | 4 | 2 | R28 retention | `signatureSha256` (in the chain, kept after the purge) was an unsalted hash of `[docSha256, kind, typedName, strokes]`: after the purge a typed name could be confirmed by guessing, exactly what deleting `piiSalt` is meant to prevent | Fixed with #3: the hash is `SHA256(piiSalt ‖ …)`, so it stops being checkable once the salt is deleted |
+| 22 | 2 | CSRF (from the T057 review) | EmDash 1.2 turns Astro's `security.checkOrigin` off and its own CSRF check covers only `/_emdash/api`, so the `/sign/[token]` sign and decline form posts and the `/verify` post were accepted from any site. Forging a signature still needs the token (it is in the path), but a page holding a leaked link could make the signer's own browser decline or sign, recording the signer's IP and user agent, and a cross-site `/verify` post spends the visitor's per-IP allowance | Fixed: local `isCrossSiteRequest` (`src/astro/lib/csrf.ts`, `Sec-Fetch-Site` first, then `Origin` against the page origin or the `Host` header, mirroring Events) runs before the form is read; a refused post gets `403`. `/signed/[token]` takes no posts |
+| 23 | 4 | Budget (from the T057 review) | Events' drain could log its give-up as an 11th call. E-sign's cannot: a full tick is query + 6 sends + `putMany` = 8, the log makes 9 | Regression test added (`tests/emails.test.ts`); no change |
 | 5 | 3 | Evidence quality | A GET of `/sign/[token]` performs the first view (`sent → in_progress`, `signer.viewed` with IP/UA). Mail scanners prefetch emailed links, so "Signer opened the document" can be a scanner | T116, T105 |
 | 6 | 3 | Consent record | `signer.consented` records `consentVersion` but not the wording; the version identifies the text only if the admin bumps it on every edit | T116 |
 | 7 | 3 | Audit actor | Admin events record `actor: "admin"`, not which user | T116 |
