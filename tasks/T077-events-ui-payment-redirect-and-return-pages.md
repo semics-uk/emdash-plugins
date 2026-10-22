@@ -4,7 +4,7 @@ title: "Events UI: payment redirect and return pages"
 phase: 4
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T073, T055, T071]
