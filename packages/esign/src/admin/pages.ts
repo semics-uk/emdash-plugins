@@ -22,10 +22,10 @@ import {
 import type { PluginContext } from "emdash/plugin";
 
 import type { AuditEventDoc } from "../domain/audit";
+import { masterKeyTooShort } from "../domain/clients";
 import { encryptionKeyStatus, isEncryptionKeyMissingError } from "../domain/encryption-key";
 import type { EnvelopeDoc, SignerDoc } from "../domain/envelopes";
 import { ENVELOPE_STATUSES, isEnvelopeStatus } from "../domain/state";
-import { masterKeyTooShort } from "../domain/clients";
 import { outboxReport } from "../emails/outbox";
 import { downloadLink } from "../routes/download";
 import { ENVELOPE_ROUTES, stores } from "../routes/envelopes";
@@ -728,7 +728,9 @@ async function saveSettings(deps: AdminDeps, input: Record<string, unknown>): Pr
 	const secretChanges = SECRET_SETTINGS.filter((s) => str(input[s.key], 500) !== "");
 	// T060: a typed master key must be at least 32 bytes (a generated one always is).
 	if (secretChanges.some((s) => s.key === "integrationMasterKey" && masterKeyTooShort(str(input[s.key], 500)))) {
-		problems.push("The integration master key must be at least 32 characters, or use Generate on the Integrations page.");
+		problems.push(
+			"The integration master key must be at least 32 characters, or use Generate on the Integrations page.",
+		);
 	}
 	if (problems.length > 0) return settingsView(values, secrets, notices([error("Not saved", problems.join(" "))]));
 	if (changes.length + secretChanges.length > MAX_SETTING_WRITES) {

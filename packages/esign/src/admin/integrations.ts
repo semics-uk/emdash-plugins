@@ -86,17 +86,19 @@ function view(key: unknown, clients: ClientDoc[], extra: Block[] = []): AdminRes
 				status: c.revokedAt ? "Revoked" : "Active",
 				...(c.revokedAt
 					? {}
-					: { revoke: button("client.revoke", "Revoke", {
-							style: "danger",
-							value: c.clientId,
-							confirm: {
-								title: "Revoke this client?",
-								text: "Its intents and receipts are refused from now on. This cannot be undone; create a new client to pair again.",
-								confirm: "Revoke client",
-								deny: "Keep",
+					: {
+							revoke: button("client.revoke", "Revoke", {
 								style: "danger",
-							},
-						}) }),
+								value: c.clientId,
+								confirm: {
+									title: "Revoke this client?",
+									text: "Its intents and receipts are refused from now on. This cannot be undone; create a new client to pair again.",
+									confirm: "Revoke client",
+									deny: "Keep",
+									style: "danger",
+								},
+							}),
+						}),
 			})),
 			pageActionId: "clients.page",
 			emptyText: "No clients yet.",
@@ -134,11 +136,7 @@ export async function generateKey(deps: AdminDeps): Promise<AdminResponse> {
 		await deps.ctx.settings.set("integrationMasterKey", next);
 	} catch (e) {
 		if (!isEncryptionKeyMissingError(e)) throw e;
-		return render(
-			deps,
-			key,
-			notices([error("Encryption key missing", encryptionKeyStatus(null).banner?.message)]),
-		);
+		return render(deps, key, notices([error("Encryption key missing", encryptionKeyStatus(null).banner?.message)]));
 	}
 	return render(deps, next, notices([{ severity: "info", title: "Master key generated" }]));
 }
@@ -185,6 +183,8 @@ export async function revokeClientAction(deps: AdminDeps, clientId: string): Pro
 	return render(
 		deps,
 		key,
-		notices([done ? { severity: "info", title: "Client revoked" } : error("Not revoked", "Unknown or already revoked.")]),
+		notices([
+			done ? { severity: "info", title: "Client revoked" } : error("Not revoked", "Unknown or already revoked."),
+		]),
 	);
 }

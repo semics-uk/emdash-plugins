@@ -198,16 +198,22 @@ describe("T060 Integrations page", () => {
 				prefill: {},
 				returnUrl: "https://events.example/booking/BK7Q2M",
 			};
-			return (await budget.invokeRoute("public/envelopes/from-intent", {
-				intent: await signEsignToken("intent", p, secret),
-			})).value;
+			return (
+				await budget.invokeRoute("public/envelopes/from-intent", {
+					intent: await signEsignToken("intent", p, secret),
+				})
+			).value;
 		};
 		// Accepted far enough to reach the template lookup (the template does not exist).
 		expect(await intent("nonce00000000000000001")).not.toMatchObject({
 			error: { code: expect.stringMatching(/CLIENT_/) },
 		});
 
-		const res = await budget.invokeRoute("admin", { type: "block_action", action_id: "client.revoke", value: clientId });
+		const res = await budget.invokeRoute("admin", {
+			type: "block_action",
+			action_id: "client.revoke",
+			value: clientId,
+		});
 		expectWithinBudget(res, TARGET);
 		const stored = ((await r.inspect.storage.list("clients")) as Row<ClientDoc>[])[0]?.data;
 		expect(stored?.revokedAt).toEqual(expect.any(String));
