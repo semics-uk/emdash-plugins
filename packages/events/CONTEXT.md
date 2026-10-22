@@ -63,6 +63,9 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `awaiting_payment` booking guarded on `{ status, releaseClaimedAt: null }` and sets `payment: { provider, ref }`;
   a late payment (R2) moves `expired` → `confirmed` (guarded on the read `releaseClaimedAt`, then cleared) after
   re-reserving from the config's `catalog`, or `expired` → `refunded_unavailable` after a refund.
+  T120: a wrong paid amount or currency is refunded, never confirmed (R49); Pro's `stripe-reconcile` asks Stripe
+  about stale `pending` records; a reserve with a code refused for the licence shows `PROMO_UNAVAILABLE`
+  (`promoRefusal` in `src/astro/lib/widget.ts`).
 - Booking status and cancel (`src/routes/booking.ts`, T049): `{ bookingRef, accessToken }` in the POST
   body; unknown ref and wrong token are the same `NOT_FOUND`. Cancel claims (`releaseClaimedAt`),
   releases seats, then moves to `cancelled`, then queues `cancel-<bookingId>`. Held bookings may always
