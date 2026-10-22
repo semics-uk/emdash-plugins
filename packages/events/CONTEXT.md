@@ -120,17 +120,21 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   that have a signature, +1 call). Guards: status + `releaseClaimedAt: null`. 8 calls to confirm a
   one-type booking (9 with an occurrence). The Free route stays the NOT_FOUND stub (bundle).
 - Check-in refuses `WAIVER_PENDING` (pending attendee on a waiver booking) after the booking check; the
-  admin page shows a link from the Pro `signingLink` seam: `/_events/sign#intent=<token>` (one inline
-  intent, 15 min). UI: `/booking` is the return page (`src/client/receipt.ts` moves `#receipt=` into a
+  admin page shows a link from the Pro `signingLink` seam: `/_events/sign#intent=<token>&lookup=<request>` (one inline
+  intent, 15 min, and the seat's lookup, 5 min). Without the seam (Free, also after a downgrade) waivers are not
+  enforced: such an attendee is checked in and `public/booking` shows their pass (R44, T119 F6). UI: `/booking` is the return page (`src/client/receipt.ts` moves `#receipt=` into a
   hidden form POST, clearing the hash; `forwardReceipt` in `src/astro/lib/receipt.ts` posts it to
   `signatures/receipt` and, with the integration's `esignPluginId`, asks e-sign's `public/receipts/lookup`
   once when `pdfSha256` was null); `/_events/sign` (`DoorSignPage.astro`) redeems the intent with e-sign
-  `public/envelopes/from-intent` and redirects to `/sign/<token>`.
-- Reconciliation and catalogue (T066): `public/booking` of a waiver booking `awaiting_signature` adds
+  `public/envelopes/from-intent` and redirects to `/sign/<token>`; an already completed envelope (signed by email,
+  receipt never posted) is looked up with the link's `lookup` and recorded ("check them in again", T119 F5).
+- Reconciliation and catalogue (T066): `public/booking` of a waiver booking `awaiting_signature` (or `confirmed`,
+  for its seats still `pending`: an emailed adult whose return page never ran, T119 F5) adds
   `waiver: { refs, lookups? }` (refs without a completed receipt, max 10; Pro's `bookingStatusRoute(lookups)`
   step signs an `esign-lookup/1` request per ref, +1 call for the settings). `public/event` adds `waiver: true`
-  only when `signature.required`. A `public/checkout/continue` retry without `attendees` on an
-  `awaiting_signature` booking keeps the stored attendees (never replans them in the buyer's name). The
+  only when `signature.required`. Once a waiver booking's intents are out (`awaiting_signature`, or
+  `awaiting_payment`), continue writes back its stored attendees (never replans them in the buyer's name, Free too)
+  and refuses `attendees` that re-describe a seat with `ATTENDEES_LOCKED` (T119 F6/F7; emailed adults ≤ 10, R48). The
   `BookingPage` runs the integration's `reconcile` module (the suite's) when the answer has `waiver.lookups`,
   then re-reads the booking. Editor panel (Pro): the `waivers` check may return `templates` (cached in KV
   `esign:catalog` by the Pro route `esign/catalog`) and `refresh()` (the link to the suite's

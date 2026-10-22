@@ -155,6 +155,10 @@ Issued by Events for one signature, redeemed by e-sign at `public/envelopes/from
 - Waiver mode `buyer`: one intent, `ref = <bookingRef>`, `as: "buyer"`, `signer` = the buyer.
 - A fresh nonce per intent. To retry a failed call, mint a new intent; idempotency on `(cid, ref)`
   (§8.1) returns the same envelope.
+- E-sign emails every `delivery: "email"` signer from the site, so an issuer bounds them (R48): Events
+  sends email intents only to the address the buyer entered for that seat, at most 10 per booking,
+  and never changes a seat's signer once its intents are out (a re-issued intent names the same
+  person, so it reuses the open envelope and sends no second invitation).
 
 `exp` bounds only when the intent can be redeemed. The envelope it creates has its own expiry
 (e-sign setting), which for `delivery: "email"` is usually days.

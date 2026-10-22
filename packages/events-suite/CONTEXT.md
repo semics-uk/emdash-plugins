@@ -37,7 +37,9 @@ bundles nothing new into the cores; it calls them through their public routes in
 
    After the last receipt (`waiver=signed`) `payOrLand` continues the booking again (no attendees) and follows a `pay` step (T077);
    anything else lands on `/booking`. The token for that comes from the `semics_waiver_access_<ref>` cookie (waiver path, set
-   when the flow goes to sign, cleared when it ends).
+   when the flow goes to sign, cleared when it leaves this page: last signer, a decline, or continue answering
+   `done`/`pay`/only email signers, T119 F13). Return paths resolving to `//host` are refused (`safeReturnPath`, F11).
+   A waiver refusal of the order (`WAIVER_EMAIL_REQUIRED`, `WAIVER_TOO_MANY_EMAILS`, R48) goes back to the widget with its message.
 3. Retry (T066, `intent=retry`): E-sign refusing an intent leaves the booking held and sends the browser to
    `/_events/waiver?ref=&error=SIGNING_UNAVAILABLE`, which shows a "Try again" form. It continues the booking
    again with the `semics_booking_<ref>` cookie and no `attendees` (Events keeps the stored ones; Pro skips
