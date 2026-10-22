@@ -87,8 +87,6 @@ async function calendarFile(page: Page, request: APIRequestContext): Promise<str
 	return res.text();
 }
 
-test.describe.configure({ mode: "serial" });
-
 test("Phase 2 journey: list → book → email (captured) → open from the email → ICS → cancel", async ({
 	browser,
 	request,
