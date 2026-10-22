@@ -256,3 +256,20 @@ describe("EV-US-1 event titles in admin lists (T052)", () => {
 		expect(text(attendees.blocks)).toContain("Winter Gala");
 	});
 });
+
+describe("EV-FR-17 editor panel recurrence", () => {
+	it("EV-FR-17 sets and clears the rule, and explains a refused one", async () => {
+		const { r, id } = await setup();
+		const refused = await r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", { recurrence: "FREQ=HOURLY" });
+		expect(text(refused.blocks)).toContain("Not saved");
+		expect(text(refused.blocks)).toContain("(config.recurrence)");
+		const saved = await r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", {
+			recurrence: "FREQ=MONTHLY;BYDAY=1FR",
+		});
+		expect(text(saved.blocks)).toContain("Saved");
+		expect((await rows("event_configs")).find((c) => c.id === id)?.data.recurrence).toBe("FREQ=MONTHLY;BYDAY=1FR");
+		const cleared = await r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", { recurrence: "" });
+		expect(text(cleared.blocks)).toContain("Saved");
+		expect((await rows("event_configs")).find((c) => c.id === id)?.data.recurrence ?? null).toBeNull();
+	});
+});

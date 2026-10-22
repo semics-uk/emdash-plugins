@@ -4,7 +4,7 @@ title: "Events: recurring events"
 phase: 5
 package: events
 edition: free
-status: blocked
+status: in-progress
 model: opus-5.5
 size: L
 depends_on: [T057, T018]

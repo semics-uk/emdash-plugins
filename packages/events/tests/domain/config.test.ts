@@ -257,3 +257,20 @@ describe("validateConfigInput (EV-FR-02, EV-FR-03)", () => {
 		expect(r.value.ticketTypes.map((t) => t.id)).toEqual(["fixed", "fixed"]);
 	});
 });
+
+describe("recurrence rule on the config (EV-FR-17)", () => {
+	it("EV-FR-17 keeps a rule in the subset and refuses one outside it", () => {
+		const r = validate({ config: { ...baseConfig, recurrence: "FREQ=WEEKLY;BYDAY=MO,TH;COUNT=10" } });
+		expect(r.ok && r.value.config.recurrence).toBe("FREQ=WEEKLY;BYDAY=MO,TH;COUNT=10");
+		for (const recurrence of ["FREQ=YEARLY", "FREQ=WEEKLY;BYSETPOS=1", "FREQ=DAILY;COUNT=2;UNTIL=20261231"]) {
+			expect(codes(issues({ config: { ...baseConfig, recurrence } }))).toEqual([
+				"config.recurrence:INVALID_RECURRENCE",
+			]);
+		}
+	});
+
+	it("EV-FR-17 an empty rule clears it", () => {
+		const r = validate({ config: { ...baseConfig, recurrence: "" } });
+		expect(r.ok && "recurrence" in r.value.config).toBe(false);
+	});
+});
