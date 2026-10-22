@@ -4,7 +4,7 @@ title: "E-sign: retention job"
 phase: 6
 package: esign
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T067]
