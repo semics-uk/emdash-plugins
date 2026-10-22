@@ -76,12 +76,12 @@ const COMPLETION_SUBJECT = "Signed: {{title}}";
 const COMPLETION_TEXT = `Hello {{name}},
 
 Thank you. "{{title}}" for {{sender}} is now signed.
-Download your signed copy here (the link works for a short time only):
+Get your signed copy here (the page issues a fresh download link each time):
 {{link}}
 `;
 const COMPLETION_HTML = `<p>Hello {{name}},</p>
 <p>Thank you. &quot;{{title}}&quot; for {{sender}} is now signed.</p>
-<p><a href="{{link}}">Download your signed copy</a> (the link works for a short time only).</p>`;
+<p><a href="{{link}}">Get your signed copy</a> (the page issues a fresh download link each time).</p>`;
 
 function build(
 	to: string,

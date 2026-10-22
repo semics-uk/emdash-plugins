@@ -1,14 +1,16 @@
 /**
  * The completion email (ES-FR-10): a one-shot cron task `completion-email-<envelopeId>` that the
  * signed-PDF job schedules once it has recorded the PDF. It makes the short-lived download link
- * (`downloadLink`, T025) and queues the email in the outbox, which the recurring drain then sends.
- * A separate task keeps the PDF job at 7 bridge calls; this one is envelope (1), sender setting
- * (1), link key (1, or 3 the first time it is created), outbox put (1): at most 6.
+ * `/signed/<token>` link and queues the email in the outbox, which the recurring drain then sends.
+ * Only the token's hash is stored, so the signer gets a fresh token (the invitation link stops
+ * working; it only showed "signed" by now) and the stable page issues a fresh download link on
+ * each visit (T032). A separate task keeps the PDF job at 7 bridge calls; this one is envelope (1),
+ * sender setting (1), queued row (1), token rotation (1), outbox put (1): 5.
  */
+import { generateToken } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import { queueCompletion } from "../emails/outbox";
-import { downloadLink } from "../routes/download";
-import { stores } from "../routes/envelopes";
+import { stores, withUniqueToken } from "../routes/envelopes";
 
 export const COMPLETION_TASK_PREFIX = "completion-email-";
 export const completionTaskName = (envelopeId: string) => `${COMPLETION_TASK_PREFIX}${envelopeId}`;
@@ -26,10 +28,21 @@ export function scheduleCompletionEmail(cron: CompletionCron | undefined, envelo
 
 /** Queues the email for a completed envelope whose PDF is stored. Returns whether it queued. */
 export async function queueCompletionEmail(ctx: PluginContext, envelopeId: string, now: number): Promise<boolean> {
-	const [envelope, sender] = await Promise.all([stores(ctx).envelopes.get(envelopeId), ctx.settings.get("senderName")]);
+	const [envelope, sender, queued] = await Promise.all([
+		stores(ctx).envelopes.get(envelopeId),
+		ctx.settings.get("senderName"),
+		stores(ctx).outbox.get(`complete-${envelopeId}`),
+	]);
 	if (!envelope || envelope.status !== "completed" || !envelope.pdfSha256) return false;
-	const link = await downloadLink(ctx, envelopeId, now);
-	await queueCompletion(ctx, { envelopeId, envelope, downloadUrl: link.url, senderSetting: sender, now });
+	// A repeated run must not rotate the token again: the mail already queued carries the live one.
+	if (queued) return false;
+	const signerId = envelope.signerIds[0];
+	if (signerId === undefined) return false;
+	const rotated = await withUniqueToken(generateToken(), undefined, (tokenHash) =>
+		stores(ctx).signers.updateIf(signerId, { where: { status: "signed" }, set: { tokenHash } }),
+	);
+	if (!rotated.value.applied) return false;
+	await queueCompletion(ctx, { envelopeId, envelope, token: rotated.token, senderSetting: sender, now });
 	return true;
 }
 

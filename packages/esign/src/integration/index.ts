@@ -23,7 +23,7 @@ export interface EsignAstroIntegration {
 }
 
 /**
- * Astro integration: injects the signing page `/sign/[token]` and the `/verify` page, both
+ * Astro integration: injects the signing page `/sign/[token]`, the signed-copy page `/signed/[token]` and `/verify`, all
  * server-rendered with `Referrer-Policy: no-referrer`. Add it to `integrations` beside `emdash()`.
  */
 export function esignIntegration(options: EsignIntegrationOptions = {}): EsignAstroIntegration {
@@ -35,6 +35,11 @@ export function esignIntegration(options: EsignIntegrationOptions = {}): EsignAs
 				injectRoute({
 					pattern: "/sign/[token]",
 					entrypoint: "@semics-tech/emdash-esign/astro/SignPage.astro",
+					prerender: false,
+				});
+				injectRoute({
+					pattern: "/signed/[token]",
+					entrypoint: "@semics-tech/emdash-esign/astro/SignedCopyPage.astro",
 					prerender: false,
 				});
 				injectRoute({

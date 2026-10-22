@@ -230,6 +230,19 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 	};
 }
 
+export type SignedCopyView = SignView | { kind: "unsigned" };
+
+/**
+ * The stable "get my signed copy" page (ES-US-6): the emailed signing token in the path, POSTed to
+ * `public/session`, which hands a signer of a completed envelope a fresh download link each time.
+ * The token is never logged or put in a URL.
+ */
+export async function handleSignedCopy(ctx: PublicRouteContext, token: string): Promise<SignedCopyView> {
+	const result = await callPublicRoute<SessionData>(ctx, { method: "POST", path: "public/session", body: { token } });
+	if (!result.ok) return { kind: "error", code: result.error.code, message: message(result.error.code) };
+	return result.data.state === "ready" ? { kind: "unsigned" } : closedView(result.data);
+}
+
 export interface VerifyData {
 	ok: true;
 	matched: boolean;

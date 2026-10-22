@@ -4,12 +4,12 @@ exports[`ES-FR-10 email templates > completion: snapshot 1`] = `
 {
   "html": "<p>Hello Ada Lovelace,</p>
 <p>Thank you. &quot;Waiver&quot; for Acme Theatre is now signed.</p>
-<p><a href="https://site.test/_emdash/api/plugins/semics-esign/public/download?e=x&amp;exp=1&amp;sig=y">Download your signed copy</a> (the link works for a short time only).</p>",
+<p><a href="https://site.test/_emdash/api/plugins/semics-esign/public/download?e=x&amp;exp=1&amp;sig=y">Get your signed copy</a> (the page issues a fresh download link each time).</p>",
   "subject": "Signed: Waiver",
   "text": "Hello Ada Lovelace,
 
 Thank you. "Waiver" for Acme Theatre is now signed.
-Download your signed copy here (the link works for a short time only):
+Get your signed copy here (the page issues a fresh download link each time):
 https://site.test/_emdash/api/plugins/semics-esign/public/download?e=x&exp=1&sig=y
 ",
   "to": "ada@example.com",

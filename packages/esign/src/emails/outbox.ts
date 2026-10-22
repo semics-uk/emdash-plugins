@@ -81,17 +81,21 @@ export function queueInvitation(
 	return enqueueEmail(outboxStorage(ctx), message, now, () => `invite-${signerId}`);
 }
 
-/** Queues the "signed" email with the (relative) download link made absolute: one storage call. */
+/**
+ * Queues the "signed" email: one storage call. It links the stable signed-copy page `/signed/<token>`
+ * (the signer's fresh token, ES-US-6), never the 15-minute download link. Like the invitation, the
+ * queued row holds the token in clear until the drain sends it and scrubs the row.
+ */
 export function queueCompletion(
 	ctx: PluginContext,
-	args: { envelopeId: string; envelope: EnvelopeDoc; downloadUrl: string; senderSetting: unknown; now: number },
+	args: { envelopeId: string; envelope: EnvelopeDoc; token: string; senderSetting: unknown; now: number },
 ): Promise<string> {
 	const input: CompletionInput = {
 		to: args.envelope.signer.email,
 		signerName: args.envelope.signer.name,
 		title: args.envelope.title,
 		sender: senderOf(ctx, args.senderSetting),
-		link: `${siteOrigin(ctx)}${args.downloadUrl}`,
+		link: `${siteOrigin(ctx)}/signed/${args.token}`,
 	};
 	return enqueueEmail(outboxStorage(ctx), completionEmail(input), args.now, () => `complete-${args.envelopeId}`);
 }

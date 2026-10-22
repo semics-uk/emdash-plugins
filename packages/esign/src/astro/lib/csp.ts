@@ -1,4 +1,4 @@
-import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT } from "./assets.ts";
+import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT, VERIFY_CSS, VERIFY_SCRIPT } from "./assets.ts";
 
 /**
  * The signing page's Content-Security-Policy (SU-NFR-02): nothing loads or runs but the package's
@@ -32,4 +32,25 @@ export function ceremonyCsp(): Promise<string> {
 			].join("; "),
 	);
 	return cached;
+}
+
+let cachedVerify: Promise<string> | undefined;
+
+/**
+ * The header value for the `/verify` page: only its own hashed script and style. The script has no
+ * network code, so there is no `connect-src` (it falls back to `default-src 'none'`); the form posts
+ * to the site, and the page cannot be framed.
+ */
+export function verifyCsp(): Promise<string> {
+	cachedVerify ??= Promise.all([cspSource(VERIFY_SCRIPT), cspSource(VERIFY_CSS)]).then(([script, style]) =>
+		[
+			"default-src 'none'",
+			`script-src ${script}`,
+			`style-src ${style}`,
+			"form-action 'self'",
+			"base-uri 'none'",
+			"frame-ancestors 'none'",
+		].join("; "),
+	);
+	return cachedVerify;
 }

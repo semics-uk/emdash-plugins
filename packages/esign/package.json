@@ -21,6 +21,8 @@
 		"./astro": "./src/astro/index.js",
 		"./astro/SignPage.astro": "./src/astro/SignPage.astro",
 		"./astro/SigningCeremony.astro": "./src/astro/SigningCeremony.astro",
+		"./astro/SignedCopyPage.astro": "./src/astro/SignedCopyPage.astro",
+		"./astro/VerifyDocument.astro": "./src/astro/VerifyDocument.astro",
 		"./astro/VerifyPage.astro": "./src/astro/VerifyPage.astro",
 		"./client": "./src/client/index.ts"
 	},

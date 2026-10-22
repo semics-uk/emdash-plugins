@@ -137,7 +137,7 @@ const TOKEN_ATTEMPTS = 3;
  * Runs `write(tokenHash)` and, if the store rejects the hash as a duplicate (unique `tokenHash`,
  * R26), retries with a fresh token. Returns the token whose hash was stored.
  */
-async function withUniqueToken<T>(
+export async function withUniqueToken<T>(
 	token: string,
 	random: RandomBytes | undefined,
 	write: (tokenHash: string) => Promise<T>,
