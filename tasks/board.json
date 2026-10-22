@@ -1968,7 +1968,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1979,7 +1979,7 @@
 				"ES-FR-20"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T096": {
 			"file": "T096-e-sign-pro-mcp-tools.md",
@@ -2420,8 +2420,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T084",
-			"T095"
+			"T084"
 		],
 		"review": [],
 		"done": [
@@ -2501,6 +2500,7 @@
 			"T091",
 			"T092",
 			"T093",
+			"T095",
 			"T097",
 			"T104",
 			"T105",
