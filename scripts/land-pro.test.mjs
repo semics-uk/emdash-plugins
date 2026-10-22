@@ -15,7 +15,10 @@ after(() => {
 });
 
 const git = (cwd, ...args) => {
-	const r = spawnSync("git", ["-c", "user.name=T", "-c", "user.email=t@example.test", ...args], { cwd, encoding: "utf8" });
+	const r = spawnSync("git", ["-c", "user.name=T", "-c", "user.email=t@example.test", ...args], {
+		cwd,
+		encoding: "utf8",
+	});
 	assert.equal(r.status, 0, r.stderr);
 	return r.stdout.trim();
 };
@@ -60,7 +63,11 @@ test("rebases onto a Pro main that moved on, then fast-forwards", () => {
 	git(pro, "commit", "-qm", "other work");
 	const r = land(env);
 	assert.equal(r.status, 0, r.stdout + r.stderr);
-	assert.deepEqual(git(pro, "log", "--format=%s", "main").split("\n"), ["feat(T999): pro feature", "other work", "init"]);
+	assert.deepEqual(git(pro, "log", "--format=%s", "main").split("\n"), [
+		"feat(T999): pro feature",
+		"other work",
+		"init",
+	]);
 });
 
 test("does nothing for a task without a Pro worktree", () => {

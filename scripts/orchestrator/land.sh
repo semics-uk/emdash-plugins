@@ -31,3 +31,5 @@ node scripts/tasks.mjs >/dev/null
 git add -A && git -c user.name="Ollie Breeden" -c user.email="olliebreeden1@gmail.com" commit -qm "Regenerate board after $T$TR" || true
 git worktree remove --force $W 2>/dev/null && git branch -D $B >/dev/null || echo "worktree locked; remove later"
 echo "LANDED $T"
+# Pro tasks also have commits in the separate Pro repo (R40); lands them if a Pro worktree exists.
+zsh $M/scripts/orchestrator/land-pro.sh $1 $T
