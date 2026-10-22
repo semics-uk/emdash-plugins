@@ -4,7 +4,7 @@ title: "Events Pro: QR passes and mobile check-in screen"
 phase: 5
 package: events
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T057, T071]
