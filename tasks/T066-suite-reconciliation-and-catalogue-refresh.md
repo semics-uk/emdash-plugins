@@ -4,7 +4,7 @@ title: "Suite: reconciliation and catalogue refresh"
 phase: 3
 package: suite
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T065]
