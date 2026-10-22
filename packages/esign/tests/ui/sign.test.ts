@@ -329,6 +329,33 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 	});
 });
 
+describe("SU-FR-11 waiting for the other signers (T090, ES-FR-15)", () => {
+	it("SU-FR-11 a signer who has signed an envelope that is still open sees the waiting state", async () => {
+		const h = host({ "public/session": { ok: true, state: "closed", status: "in_progress", title: "Lease" } });
+		expect(await handleSign(h.ctx, TOKEN, null)).toEqual({ kind: "waiting", title: "Lease" });
+	});
+
+	it("SU-FR-11 a signature that leaves others to sign is recorded and says the copy comes later", async () => {
+		let calls = 0;
+		const h = host({
+			"public/session": () =>
+				++calls === 1 ? ready : { ok: true, state: "closed", status: "in_progress", title: "NDA" },
+			"public/submit": { ok: true, status: "in_progress" },
+		});
+		expect(await handleSign(h.ctx, TOKEN, form(signForm))).toEqual({ kind: "signed", waiting: true, pdf: "pending" });
+	});
+
+	it("SU-FR-11 a sequential signer whose turn has not come is told so and keeps the ceremony", async () => {
+		const h = host({
+			"public/session": ready,
+			"public/submit": { ok: false, error: { code: "SIGNING_OUT_OF_TURN", message: "wait" } },
+		});
+		const view = await handleSign(h.ctx, TOKEN, form(signForm));
+		expect(view).toMatchObject({ kind: "ready", errorCode: "SIGNING_OUT_OF_TURN" });
+		expect((view as { message: string }).message).toMatch(/your turn/);
+	});
+});
+
 describe("handleSignedCopy: the stable 'get my signed copy' page (ES-US-6)", () => {
 	const done = {
 		ok: true,

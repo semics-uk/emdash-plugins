@@ -56,7 +56,7 @@ async function fixture(over: Partial<SignerDoc> = {}): Promise<SignedPdfInput> {
 		},
 		...over,
 	} as SignerDoc;
-	return { envelopeId: ENV, envelope, signer, snapshot: "# Terms\n\nI, Ada Lovelace, accept.\n", events, head };
+	return { envelopeId: ENV, envelope, signers: [signer], snapshot: "# Terms\n\nI, Ada Lovelace, accept.\n", events, head };
 }
 
 const latin1 = (bytes: Uint8Array) => Array.from(bytes, (b) => String.fromCharCode(b)).join("");
@@ -138,6 +138,46 @@ describe("ES-FR-07 signed PDF and certificate", () => {
 				expect(sig).not.toHaveProperty("strokes");
 			}),
 		]);
+	});
+
+	it("ES-FR-15 several signers: each one's signature, entries and certificate facts, in signing order", async () => {
+		const one = await fixture({ fieldValues: { phone: "111" } });
+		const second = {
+			...(one.signers[0] as SignerDoc),
+			name: "Grace Hopper",
+			as: "buyer",
+			signedAt: "2026-10-22T09:00:00.000Z",
+			fieldValues: { phone: "222" },
+			signature: { kind: "typed", typedName: "Grace Hopper", sha256: "2".repeat(64) },
+		} as SignerDoc;
+		const input: SignedPdfInput = { ...one, signers: [...one.signers, second] };
+		input.envelope.signerFields = [{ key: "phone", label: "Phone" }];
+		const doc = signedPdfDocument(input);
+		expect(doc.blocks.filter((b) => b.type === "signature")).toHaveLength(2);
+		const facts = doc.blocks.find((b) => b.type === "table" && JSON.stringify(b).includes("Signature SHA-256"));
+		const rows = (facts as { rows: string[][] }).rows;
+		expect(rows).toContainEqual(["Signer 1", "Ada Lovelace"]);
+		expect(rows).toContainEqual(["Signer 2", "Grace Hopper"]);
+		expect(rows).toContainEqual(["Signature SHA-256", "2".repeat(64)]);
+		expect(rows).toContainEqual(["Signing as", "Buyer"]);
+		expect(rows.findIndex((r) => r[0] === "Signer 1")).toBeLessThan(rows.findIndex((r) => r[0] === "Signer 2"));
+		const text = latin1((await renderSignedPdf(input)).bytes);
+		for (const value of ["Details entered by Grace Hopper", "111", "222", "2026-10-22 09:00:00 UTC"]) {
+			expect(text).toContain(value);
+		}
+		// One signer keeps the single-signer layout exactly.
+		const single = signedPdfDocument(await fixture());
+		const singleFacts = single.blocks.find((b) => b.type === "table" && JSON.stringify(b).includes("Signature SHA-256"));
+		expect((singleFacts as { rows: string[][] }).rows).toContainEqual(["Signer", "Ada Lovelace"]);
+	});
+
+	it("ES-FR-15 the audit trail names the signer of each several-signer event", async () => {
+		const input = await fixture();
+		const [first, ...rest] = input.events as AuditEventDoc[];
+		const events = [{ ...(first as AuditEventDoc), actor: "signer", data: { signer: 2 } }, ...rest];
+		const trail = signedPdfDocument({ ...input, events }).blocks.filter((b) => b.type === "table").at(-1);
+		expect((trail as { rows: string[][] }).rows[0]?.[3]).toBe("signer 2");
+		expect((trail as { rows: string[][] }).rows[1]?.[3]).toBe("admin");
 	});
 
 	it("ES-FR-07 headings in the snapshot become PDF headings", async () => {

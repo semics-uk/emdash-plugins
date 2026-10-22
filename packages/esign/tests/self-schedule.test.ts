@@ -90,7 +90,8 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	});
 
 	it("T061 the flag version was bumped with nonce-sweep, so a site scheduled under v1 schedules the sweep too", async () => {
-		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v6");
+		// v7: E-sign Pro `reminders` (T090) piggybacks on the ensure task, so sites scheduled under v6 run it once more.
+		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v7");
 		const { r, budget } = await setup();
 		// A site whose drain was scheduled before nonce-sweep existed.
 		await r.fixtures.plugin.kv("cron:scheduled:v1", { at: "2026-10-20T00:00:00.000Z" });
