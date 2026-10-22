@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Progress shown in admin
+- [ ] From T090: the admin `/envelopes` page can send to several signers (parallel/sequential) via `pro/envelopes/send`; per-signer resend; template placeholders for every signer (not only `{{signer.*}}` for signer 1)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
