@@ -103,6 +103,8 @@ export interface EventInfoDoc {
 	endsAt: string | null;
 	timezone: string | null;
 	venue: string | null;
+	/** The entry's slug, for links to the event's page (absent on copies made before T056). */
+	slug?: string | null;
 }
 
 /** What checkout needs from a ticket type, copied onto the event config. */

@@ -29,7 +29,9 @@ export interface EventMapping {
 
 export interface EventInfoDeps {
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
-	content: { get(collection: string, id: string): Promise<{ data: Record<string, unknown> } | null> };
+	content: {
+		get(collection: string, id: string): Promise<{ data: Record<string, unknown>; slug?: string | null } | null>;
+	};
 	storage: {
 		occurrences: { get(id: string): Promise<unknown> };
 		event_configs: { get(id: string): Promise<unknown> };
@@ -63,17 +65,27 @@ export function mappingOf(entries: ReadonlyArray<{ key: string; value: unknown }
 	};
 }
 
-/** The public info of an entry's fields, read through the mapping; `null` without a usable start. */
-export function infoOfEntry(data: Record<string, unknown>, mapping: EventMapping): EventInfoDoc | null {
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/**
+ * The public info of an entry, read through the mapping; `null` without a usable start. Takes a
+ * content item (`{ id, slug, data: { ...fields } }`, what `ctx.content.get` returns and what EmDash
+ * passes to the content hooks) or a flat record of the fields. The entry's slug is kept so the
+ * listing can link to the event's page (T056).
+ */
+export function infoOfEntry(entry: Record<string, unknown>, mapping: EventMapping): EventInfoDoc | null {
+	const data = isRecord(entry.data) ? entry.data : entry;
 	const startsAt = instant(data[mapping.startsAt]);
 	if (startsAt === undefined) return null;
 	const endsAt = instant(data[mapping.endsAt]);
+	const slug = text(entry.slug) ?? text(data.slug);
 	return {
 		title: text(data.title) ?? "Event",
 		startsAt: iso(startsAt),
 		endsAt: endsAt !== undefined && endsAt > startsAt ? iso(endsAt) : null,
 		timezone: text(data[mapping.timezone]) ?? null,
 		venue: text(data[mapping.venue]) ?? null,
+		...(slug ? { slug } : {}),
 	};
 }
 
@@ -84,7 +96,7 @@ export async function readEntryInfo(
 ): Promise<EventInfoDoc | null> {
 	const mapping = mappingOf(await deps.settings.list());
 	const entry = await deps.content.get(mapping.collection, eventId);
-	return entry ? infoOfEntry(entry.data, mapping) : null;
+	return entry ? infoOfEntry(entry as unknown as Record<string, unknown>, mapping) : null;
 }
 
 /** A stored info as the emails' shape, with the occurrence's start when the booking has one. */

@@ -27,6 +27,14 @@ export interface PublicEventSummary {
 	priceFromMinor?: number;
 	/** Seats left (never negative). */
 	available: number;
+	/** The entry's slug (T056); absent for an event whose info predates it. */
+	slug?: string;
+}
+
+/** Where a card links by default: the site's `/events/<slug>` page, or nowhere without a slug. */
+export const EVENTS_PATH = "/events";
+export function eventHref(event: Pick<PublicEventSummary, "slug">): string | undefined {
+	return event.slug ? `${EVENTS_PATH}/${encodeURIComponent(event.slug)}` : undefined;
 }
 
 export interface CardView {

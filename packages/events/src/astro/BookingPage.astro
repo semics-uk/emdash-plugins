@@ -1,12 +1,15 @@
 ---
 // Injected at `/booking` by the integration. The booking ref is in the URL; the access token is
 // only ever in the HttpOnly cookie the checkout endpoint set, and goes to the core in POST bodies.
+// The emailed link (`?ref=&k=<one-time code>`, R34) renders an "Open my booking" button and
+// redeems nothing: only its POST swaps the code for a token, sets the cookie and redirects to
+// `?ref=` without `k`, so mail scanners that prefetch links cannot use the code up.
 import { pluginId } from "virtual:semics-events/config";
 
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
 import { callPublicRoute } from "./lib/call";
-import { bookingCookieName } from "./lib/checkout-form";
+import { bookingCookieName, bookingCookieOptions, LINK_INVALID, redeemBookingLink } from "./lib/checkout-form";
 import type { BookingView } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
 
@@ -22,6 +25,7 @@ const MESSAGES: Record<string, string> = {
 	PAYMENT_FAILED: "Payment could not be started. Your tickets are held for a short time.",
 	CANCEL_NOT_ALLOWED: "This booking can no longer be cancelled online.",
 	BAD_REQUEST: "Please choose at least one ticket and fill in your name and email.",
+	[LINK_INVALID]: "This booking link has expired or was already used. Open your booking on the device you booked with.",
 };
 
 const url = Astro.url;
@@ -29,12 +33,22 @@ const rawRef = url.searchParams.get("ref") ?? "";
 const ref = /^[0-9A-HJKMNP-TV-Z]{10}$/.test(rawRef) ? rawRef : "";
 const errorCode = url.searchParams.get("error") ?? "";
 let notice = errorCode ? (MESSAGES[errorCode] ?? "Something went wrong. Please try again.") : "";
-const token = ref ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
-const ctx = { locals: Astro.locals, url };
+const code = url.searchParams.get("k") ?? "";
+const ctx = { locals: Astro.locals, url, request: Astro.request };
+const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : undefined;
+
+if (form?.get("intent") === "redeem") {
+	const k = form.get("k");
+	const result = await redeemBookingLink(ctx, { ref: rawRef, code: typeof k === "string" ? k : "" }, { pluginId });
+	if (result.cookie) Astro.cookies.set(result.cookie.name, result.cookie.value, bookingCookieOptions(url));
+	return Astro.redirect(result.location, 303);
+}
+// An emailed link: show the button and touch nothing else (GET must not redeem).
+const opening = Boolean(ref && code);
+const token = ref && !opening ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
 
 let cancelled = false;
-if (ref && token && Astro.request.method === "POST") {
-	const form = await Astro.request.formData().catch(() => new FormData());
+if (ref && token && form) {
 	if (form.get("intent") === "cancel") {
 		const result = await callPublicRoute(ctx, {
 			method: "POST",
@@ -58,7 +72,7 @@ if (ref && token) {
 	});
 	if (result.ok) booking = result.data;
 	else missing = true;
-} else if (ref) {
+} else if (ref && !opening) {
 	missing = true;
 }
 const passes = booking && !cancelled && booking.status === "confirmed" ? booking.attendees.filter((a) => a.code) : [];
@@ -77,7 +91,14 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 			<h1>Your booking</h1>
 			{notice && <p role="alert" data-testid="booking-notice" data-code={errorCode}>{notice}</p>}
 			{
-				booking ? (
+				opening ? (
+					<form method="post" action={`/booking?ref=${ref}`} class="semics-events semics-booking-open" data-testid="booking-open">
+						<input type="hidden" name="intent" value="redeem" />
+						<input type="hidden" name="k" value={code} />
+						<p>Open your booking on this device. The link works once; after that this browser remembers it.</p>
+						<button type="submit">Open my booking</button>
+					</form>
+				) : booking ? (
 					<>
 						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} />
 						{passes.length > 0 && (

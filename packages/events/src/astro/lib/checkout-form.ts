@@ -28,6 +28,47 @@ export const bookingCookieName = (ref: string) => `semics_booking_${ref}`;
 
 export const QTY_PREFIX = "qty:";
 
+/** The booking cookie: HttpOnly, scoped to the booking page, 30 days. */
+export function bookingCookieOptions(url: URL) {
+	return {
+		path: BOOKING_PATH,
+		httpOnly: true,
+		sameSite: "lax" as const,
+		secure: url.protocol === "https:",
+		maxAge: 60 * 60 * 24 * 30,
+	};
+}
+
+const REF_PATTERN = /^[0-9A-HJKMNP-TV-Z]{10}$/;
+/** What the booking page shows for an emailed link that is malformed, expired or already used. */
+export const LINK_INVALID = "LINK_INVALID";
+
+/**
+ * The emailed link (`/booking?ref=&k=<one-time code>`, R34): only ever called from the booking
+ * page's POST (its "Open my booking" button), never on GET, so a mail scanner that prefetches the
+ * link cannot use up the code. Swaps the code for a fresh access token through
+ * `public/booking/redeem` and lands on `/booking?ref=` without `k`, the token in the cookie.
+ */
+export async function redeemBookingLink(
+	ctx: PublicRouteContext,
+	link: { ref: string; code: string },
+	options: Pick<CheckoutFormOptions, "pluginId">,
+): Promise<CheckoutRedirect> {
+	if (!REF_PATTERN.test(link.ref)) return fail(LINK_INVALID);
+	if (!link.code) return fail(LINK_INVALID, link.ref);
+	const redeemed = await callPublicRoute<{ bookingRef: string; accessToken: string }>(ctx, {
+		method: "POST",
+		path: "public/booking/redeem",
+		pluginId: options.pluginId,
+		body: { bookingRef: link.ref, code: link.code },
+	});
+	if (!redeemed.ok || !redeemed.data.accessToken) return fail(LINK_INVALID, link.ref);
+	return {
+		location: `${BOOKING_PATH}?ref=${encodeURIComponent(link.ref)}`,
+		cookie: { name: bookingCookieName(link.ref), value: redeemed.data.accessToken },
+	};
+}
+
 function text(form: FormData, key: string): string {
 	const value = form.get(key);
 	return typeof value === "string" ? value.trim() : "";

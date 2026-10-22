@@ -26,6 +26,11 @@ UI natively (`astro.config.mjs`). Used for end-to-end tests only.
 - Fixtures cover london-meetup, nyc-workshop and sydney-conference (on sale; the past gala has no config so it is
   not listed). `/whats-on` holds an `events-list` and an `events-booking` block; `/e2e/lists?view=live|empty|card`
   shows the list and card (`theme=dark` for the second snapshot theme); `/spike/s2` reads `public/events`.
-- Specs: `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
+- Emails and cron (T056): `src/e2e/mail-capture.mjs` is the site's email provider (production builds have no dev console
+  provider); `GET /e2e/mail?to=` reads delivered messages. `POST /e2e/cron?task=outbox-drain` makes the task due and runs one
+  scheduled batch (EmDash never runs `plugin:activate` for config-declared sandboxed plugins, so it activates the core once).
+  The server trusts `X-Forwarded-For` (playwright.config.ts) so specs give each visitor its own IP.
+- `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
+- Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
   `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate
   with `--update-snapshots` if the CI font differs), `e2e/t055-booking-widget`.

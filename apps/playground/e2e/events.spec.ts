@@ -209,7 +209,7 @@ test("Phase 2 load: 100 concurrent checkouts for the last 5 seats: exactly 5 boo
 }) => {
 	test.setTimeout(180_000);
 	const result = await runCheckoutLoad({ baseURL, buyers: 100, inFlight: 16 });
-	expect(result.maxInFlight).toBeLessThanOrEqual(16);
+	expect(result.maxInFlight).toBe(16); // really concurrent, and never more than 16 at once
 	expect(result.booked).toHaveLength(5);
 	expect(new Set(result.booked).size).toBe(5);
 	expect(result.refused).toEqual({ SOLD_OUT: 95 });

@@ -20,6 +20,12 @@ export interface PublicRouteCall {
 export interface PublicRouteContext {
 	locals: PublicPluginRuntimeLocals | null | undefined;
 	url: URL;
+	/**
+	 * The visitor's request (`Astro.request`). Only its client-IP headers (and Cloudflare's `cf`)
+	 * are passed on, so the core's per-IP limits see the visitor rather than one shared unknown
+	 * address; the host still decides which of them to trust. Cookies and credentials never are.
+	 */
+	request?: Request;
 	/** Injected for tests. Defaults to the global `fetch`. */
 	fetch?: typeof fetch;
 }
@@ -74,7 +80,7 @@ export async function callPublicRoute<T = unknown>(
 			via,
 		};
 	}
-	const request = buildRequest(ctx.url.origin, pluginId, method, path, call.body);
+	const request = buildRequest(ctx.url.origin, pluginId, method, path, call.body, ctx.request);
 
 	if (handler) {
 		try {
@@ -108,8 +114,30 @@ function tokenLikeKey(body: unknown): string | undefined {
 	return Object.keys(body).find((key) => TOKEN_LIKE.test(key));
 }
 
-function buildRequest(origin: string, pluginId: string, method: string, path: string, body: unknown): Request {
+/** Headers that carry the visitor's address; the host trusts them per its own configuration. */
+const CLIENT_IP_HEADERS = ["cf-connecting-ip", "x-forwarded-for", "x-real-ip", "true-client-ip", "fly-client-ip"];
+
+function clientInit(incoming: Request | undefined): { headers: Headers; cf?: unknown } {
+	const headers = new Headers();
+	if (!incoming) return { headers };
+	for (const name of CLIENT_IP_HEADERS) {
+		const value = incoming.headers.get(name);
+		if (value) headers.set(name, value);
+	}
+	const cf = (incoming as Request & { cf?: unknown }).cf;
+	return cf === undefined ? { headers } : { headers, cf };
+}
+
+function buildRequest(
+	origin: string,
+	pluginId: string,
+	method: string,
+	path: string,
+	body: unknown,
+	incoming?: Request,
+): Request {
 	const url = new URL(`/_emdash/api/plugins/${encodeURIComponent(pluginId)}/${path}`, origin);
+	const init = clientInit(incoming);
 	if (method === "GET") {
 		if (body && typeof body === "object") {
 			for (const [key, value] of Object.entries(body)) {
@@ -118,11 +146,12 @@ function buildRequest(origin: string, pluginId: string, method: string, path: st
 				}
 			}
 		}
-		return new Request(url, { method });
+		return new Request(url, { ...init, method });
 	}
+	init.headers.set("content-type", "application/json");
 	return new Request(url, {
+		...init,
 		method,
-		headers: { "content-type": "application/json" },
 		body: body === undefined ? undefined : JSON.stringify(body),
 	});
 }

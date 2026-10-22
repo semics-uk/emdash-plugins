@@ -60,7 +60,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `outbox-drain` (every minute) runs the shared `drainOutbox` over an adapter (`OutboxDoc` ISO strings
   <-> `OutboxRecord` numbers) whose `email.send` renders at send time from fresh reads, two messages
   per tick (`OUTBOX_PER_TICK`; a `prefetch` reads bookings, attendees, configs, occurrences once per tick: 9-10 calls). The link is `/booking?ref=&k=<one-time code>` (hash in `redeemHash`); the
-  page POSTs it to `public/booking/redeem` for a fresh access token (R34). `public/booking` also
+  page POSTs it to `public/booking/redeem` for a fresh access token (R34): `/booking?k=` only renders an "Open my booking"
+  button; its POST calls `redeemBookingLink` (`src/astro/lib/checkout-form.ts`), sets the cookie and redirects without `k` (T056). `public/booking` also
   returns `calendar.query` (`signLink`, `events/booking-ics`, 15 min, key in KV `events:link-key`) and
   valid attendees' `code` (R33). Event fields for emails/ICS come from `src/domain/event-info.ts` (see Public event routes).
 - Public event routes (`src/routes/public-events.ts`, T046): `public/events` (cached 60 s, one query) and
@@ -71,6 +72,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   as `info` by `content:afterSave` (`src/hooks/content.ts`) and by `config/save` when it creates a config
   (nothing else); every reader (listing, emails, ICS) takes `info` from the config and falls back to the entry
   only when it is missing. `info` is managed like `catalog`: admin edits never diff or send it.
+- `callPublicRoute` passes on only the visitor's client-IP headers from `ctx.request` (pass `Astro`/`request`), so the
+  per-IP reserve limit sees visitors. Event info: `infoOfEntry` takes a content item (`{ slug, data }`, the hook shape) or flat fields.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.
@@ -96,8 +99,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,
   `error` (`data-state`). Time and price formatting is the pure `src/astro/lib/list.ts` (`cardView`,
   `listView`; shared `formatInZone`, unknown zone shows UTC). The `events-booking` block (`BookingBlock.astro`)
-  takes an event entry id or slug (slug resolved with `getEmDashEntry`) and renders `<BookingWidget>`. Cards link
-  only when the page gives `hrefFor`/`href` (the route returns no slug).
+  takes an event entry id or slug (slug resolved with `getEmDashEntry`) and renders `<BookingWidget>`. `public/events`
+  rows carry the entry `slug` (from `info.slug`), and list cards link to `/events/<slug>` by default (`hrefFor` overrides).
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 

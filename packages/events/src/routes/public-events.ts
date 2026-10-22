@@ -102,6 +102,8 @@ export async function listEvents(deps: PublicEventsDeps): Promise<unknown> {
 				currency: c.currency,
 				...(prices.length > 0 ? { priceFromMinor: Math.min(...prices) } : {}),
 				available: left(c.capacity, c.reserved),
+				// The entry's slug, so a card can link to the event's page (T056).
+				...(c.info.slug ? { slug: c.info.slug } : {}),
 			},
 		];
 	});

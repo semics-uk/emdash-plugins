@@ -7,7 +7,7 @@ import { pluginId as configuredId } from "virtual:semics-events/config";
 
 import EventCard from "./EventCard.astro";
 import { callPublicRoute } from "./lib/call";
-import { listView, type PublicEventSummary } from "./lib/list";
+import { eventHref, listView, type PublicEventSummary } from "./lib/list";
 
 interface Props {
 	node?: { heading?: string; limit?: number };
@@ -17,7 +17,10 @@ interface Props {
 	events?: PublicEventSummary[];
 	/** The core's plugin id; defaults to the integration's. */
 	pluginId?: string;
-	/** Link target for each event (`eventId` in, URL out), when the site has event pages. */
+	/**
+	 * Link target for each event. Defaults to `/events/<slug>` (the entry's slug from
+	 * `public/events`); return `undefined` for a plain-text title.
+	 */
 	hrefFor?: (event: PublicEventSummary) => string | undefined;
 }
 
@@ -53,7 +56,7 @@ const state = failed ? "error" : cards.length === 0 ? "empty" : "ok";
 					const event = byId.get(card.eventId) as PublicEventSummary;
 					return (
 						<li>
-							<EventCard event={event} href={props.hrefFor?.(event)} locale={locale} headingLevel={3} />
+							<EventCard event={event} href={(props.hrefFor ?? eventHref)(event)} locale={locale} headingLevel={3} />
 						</li>
 					);
 				})}
