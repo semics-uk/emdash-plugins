@@ -4,7 +4,7 @@ title: "Events: confirmation email and calendar routes"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T048, T015, T018]
