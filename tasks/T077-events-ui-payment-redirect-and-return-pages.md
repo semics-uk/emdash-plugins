@@ -54,8 +54,9 @@ pnpm --filter playground e2e
   new route. "Pay now" is `intent=resume` on `/booking` (Origin-checked like cancel/redeem), calling continue with the
   cookie token. Pay URLs are followed only when `https:` (checkout form, resume, suite).
 - Suite: after the last receipt (`waiver=signed`) `/_events/waiver` continues the booking again and follows `pay`.
-  Found and fixed on the way: the booking cookie is scoped to `/booking`, so `/_events/waiver` never received it in a
-  real browser (the T066 retry only worked in tests that faked it). The flow now sets a path-scoped copy when it goes to sign.
+  Note: the booking cookie is scoped to `/booking`, so `/_events/waiver` never received it in a
+  real browser; T067 fixed that independently (`semics_waiver_access_<ref>`), and this task reuses that cookie (set when the flow
+  goes to sign, cleared when it ends) to ask for the pay link.
 - E2E coverage (be exact): the playground runs Free only, so `/e2e/payment` renders the real BookingStatus,
   PaymentReturn and polling script for a booking whose status is faked by `?state=`; Stripe is a Playwright-faked host
   (the 303 to it is asserted on the response, since Chrome does not give a server redirect's hop to Playwright routes);

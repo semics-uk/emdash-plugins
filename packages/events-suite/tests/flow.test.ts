@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { FLOW_STEPS, flowCookieName, handleWaiverRequest, type WaiverOutcome } from "../src/astro/lib/flow";
+import {
+	FLOW_STEPS,
+	flowCookieName,
+	handleWaiverRequest,
+	retryCookieName,
+	type WaiverOutcome,
+} from "../src/astro/lib/flow";
 import { seatField, WAIVER_PATH } from "../src/astro/lib/form";
 
 // <BookingWithWaiver> end to end against a faked host (SX-FR-02, SX-FR-03): book → sign inline →
@@ -500,19 +506,21 @@ describe("payment after the last receipt (T077, EU-FR-09)", () => {
 		expect(outcome.location).toBe("https://pay.example/s/1");
 	});
 
-	it("EU-FR-09 the booking token reaches this page: a copy of the booking cookie is scoped to the waiver path", async () => {
+	it("EU-FR-09 the booking token reaches this page on its own path, and is cleared when the flow ends", async () => {
 		const h = host({
 			[`${EVENTS} public/checkout/reserve`]: reserve,
 			[`${EVENTS} public/checkout/continue`]: signNext,
 			[`${ESIGN} public/envelopes/from-intent`]: fromIntent(),
 		});
 		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, ORDER)));
-		const copies = outcome.cookies.filter((c) => c.name === `semics_booking_${REF}`);
-		expect(copies.map((c) => c.options.path)).toEqual(["/booking", WAIVER_PATH]);
-		expect(copies[1]).toMatchObject({
+		expect(cookieValue(outcome, retryCookieName(REF))).toMatchObject({
 			value: ACCESS,
-			options: { httpOnly: true, sameSite: "strict", maxAge: 3600 },
+			options: { path: WAIVER_PATH, httpOnly: true, sameSite: "strict" },
 		});
+		const paid = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: payNext });
+		const last = expectRedirect(await lastReceipt(paid, { ...LAST, [retryCookieName(REF)]: ACCESS }));
+		expect(last.location).toBe("https://pay.example/s/1");
+		expect(cookieValue(last, retryCookieName(REF))?.options).toMatchObject({ maxAge: 0 });
 	});
 });
 

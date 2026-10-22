@@ -348,7 +348,11 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 		const receipt = receiptOf(view);
 		const landed = receipt ? (await forward(receipt)).location : bookingPage(ref);
 		if (view.kind === "declined") return redirect(landed, [flowCookie(ctx.url, ref, [])]);
-		if (after.length === 0) return redirect(await payOrLand(ctx, ids, ref, landed), [flowCookie(ctx.url, ref, []), retryCookie(ctx.url, ref, undefined)]);
+		if (after.length === 0)
+			return redirect(await payOrLand(ctx, ids, ref, landed), [
+				flowCookie(ctx.url, ref, []),
+				retryCookie(ctx.url, ref, undefined),
+			]);
 		return redirect(`${WAIVER_PATH}?ref=${ref}`, [flowCookie(ctx.url, ref, after)]);
 	}
 
@@ -365,7 +369,10 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 		if (receipt) landed = (await forward(receipt)).location;
 		rest = after;
 	}
-	return redirect(await payOrLand(ctx, ids, ref, landed), [flowCookie(ctx.url, ref, []), retryCookie(ctx.url, ref, undefined)]);
+	return redirect(await payOrLand(ctx, ids, ref, landed), [
+		flowCookie(ctx.url, ref, []),
+		retryCookie(ctx.url, ref, undefined),
+	]);
 }
 
 /** Everything `/_events/waiver` does for one request. The page applies cookies and redirects. */
