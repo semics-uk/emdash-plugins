@@ -20,7 +20,8 @@ runs every gate, cheapest first, and stops at the first failure:
 3. Script tests (`pnpm test:scripts`)
 4. Changeset check (`pnpm changeset:check`; skipped on `main`, where there is nothing to compare)
 5. For each package: `emdash-plugin validate`, typecheck, tests with coverage thresholds, build
-6. Playground typecheck
+6. Release dry run (`pnpm release:dry-run`): packs and audits what would be published
+7. Playground typecheck
 
 CI (`.github/workflows/ci.yml`) runs the same command, plus `actionlint` and Playwright.
 
@@ -52,6 +53,55 @@ it forces site owners to re-consent. Everything else follows semver (new feature
 `@semics-tech/emdash-esign-pro` are released from the private repo in lockstep with their Free
 counterparts: the same number means the same code base. Never bump one edition alone; a Pro-only
 change still ships as a new version of both, so the numbers never diverge.
+
+## Releasing
+
+Nothing is published from a laptop. Releases run in GitHub Actions, from the public repo's `main`.
+
+**Flow**
+
+1. Every change to a published package carries a changeset (see above).
+2. `.github/workflows/release.yml` runs on each push to `main`. It builds, then runs the dry run
+   (`pnpm release:dry-run --build`), then `changesets/action`:
+   - while changesets are pending it opens or updates the "Version Packages" PR (`pnpm version-packages`);
+   - when that PR is merged nothing is pending, so it runs `pnpm release`: the dry run in strict mode
+     (`--release`), then `changeset publish`, which publishes `@semics-tech/emdash-events`,
+     `@semics-tech/emdash-esign` (and the suite package once it exists) to npm with provenance
+     (`NPM_CONFIG_PROVENANCE`, OIDC `id-token: write`). `@semics-tech/shared` stays private.
+3. If the repository variable `EMDASH_REGISTRY_PUBLISH` is `true`, the `registry` job then calls
+   `.github/workflows/emdash-release.yml`, which plans, bundles (`emdash-plugin release prepare`), attests
+   and submits each published plugin to the EmDash registry over GitHub OIDC. No registry token is stored.
+   It first runs `node scripts/release-dry-run.mjs --require-real-did` and stops on the placeholder DID.
+
+**Dry run.** `pnpm release:dry-run [--build] [--release] [--package <name>]` packs each publishable package
+(`pnpm pack`) and bundles it (`emdash-plugin bundle`) into a temp directory, then asserts the expected files are
+there and nothing private is: no tests, `.env`, coverage, keys or logs, no Pro code or licence material, no runtime
+import of `@semics-tech/shared` (R35), no unresolved `workspace:` dependency. It never logs in or publishes, and
+`pnpm verify` runs it. Plain, it only notes the two release blockers (placeholder DID, `"private": true`);
+`--release` fails on them.
+
+**Workflow lint.** CI's `actionlint` job lints every workflow. `scripts/release-workflows.test.mjs` is an offline shape
+check of the release workflows (pinned actions, provenance, the registry gate, no literal secrets) and runs in
+`pnpm test:scripts`.
+
+**Owner setup before the first real release** (none of it is in the repo):
+
+1. Create the public GitHub repository `semics-uk/emdash-plugins` and push (releases need a public repo).
+2. npm: create the `@semics-tech` organisation, then an automation or granular token that can publish it, and store
+   it as the secret `NPM_TOKEN` in a GitHub **environment** named `npm-publish` (add required reviewers).
+3. Remove `"private": true` from `packages/events` and `packages/esign` (and the suite) in the PR that first
+   releases them. Until then `pnpm release` refuses, and Changesets would skip them.
+4. Publisher DID (R21): make `semics.dev` resolve as an atproto handle, run `emdash-plugin login`, and replace
+   `did:plc:semicsdevplaceholder2222` with the real DID in every `emdash-plugin.jsonc`. Then confirm by running
+   `emdash-plugin release setup --trigger=changesets --force` once in a plugin directory and diffing the result
+   against `emdash-release.yml`.
+5. Delegate release authority to the repository for that DID (`emdash-plugin release delegate`, a browser
+   handoff) and approve the first release (`release approve`).
+6. Set the repository variable `EMDASH_REGISTRY_PUBLISH=true` to switch the registry job on, and pin the
+   `emdash-cms/emdash/apps/release-action@main` reference in `emdash-release.yml` to a tag or commit.
+7. Pro: see `.github/workflows/pro-release.yml` in the private Pro repo. It needs a private registry (or GitHub
+   Packages), the secret `PRO_NPM_TOKEN` in a `pro-publish` environment, and the real licence public key
+   (`licence/public-key.txt` or `SEMICS_LICENCE_PUBLIC_KEY`), because `generate --release` refuses a development key.
 
 ## TDD standard
 

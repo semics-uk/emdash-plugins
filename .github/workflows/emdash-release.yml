@@ -1,0 +1,127 @@
+name: Publish EmDash plugins
+
+# Shaped like the workflow `emdash-plugin release setup --trigger=changesets` generates (CLI 0.13.3),
+# so the CLI's own checks recognise it. `release setup` needs `emdash-plugin login <real DID>`, which
+# the placeholder DID (R21) rules out, hence it is committed by hand. When the real DID exists, re-run
+# `emdash-plugin release setup --trigger=changesets --force` in a plugin directory and diff against
+# this file. Differences from the generated one: pnpm 10.23.0 (this repo's pin, the generator emits
+# 11), Node from .nvmrc, and the DID gate before "Prepare plugin release".
+#
+# Publishing uses GitHub OIDC and a signed build attestation: there is no stored registry token.
+# Called by release.yml, or run by hand with a plugin ID.
+
+on:
+  workflow_call:
+    inputs:
+      published-packages:
+        description: "Changesets Action published-packages JSON output"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      package:
+        description: "Plugin ID to publish"
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: emdash-release-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: Plan plugin releases
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      selectors: ${{ steps.changesets.outputs.selectors || steps.manual.outputs.selectors }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+      - name: Plan Changesets plugin releases
+        id: changesets
+        if: ${{ github.event_name == 'workflow_call' }}
+        shell: bash
+        env:
+          EMDASH_PUBLISHED_PACKAGES: ${{ inputs.published-packages }}
+        run: |
+          set -euo pipefail
+          pnpm dlx @emdash-cms/plugin-cli@0.13.3 release plan --published-packages "${EMDASH_PUBLISHED_PACKAGES}" --dir .
+      - name: Plan manual plugin release
+        id: manual
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        shell: bash
+        env:
+          EMDASH_RELEASE_SELECTOR: ${{ inputs.package }}
+        run: |
+          set -euo pipefail
+          pnpm dlx @emdash-cms/plugin-cli@0.13.3 release plan --package "${EMDASH_RELEASE_SELECTOR}" --dir .
+
+  publish:
+    name: Build and publish ${{ matrix.selector }}
+    needs: plan
+    if: ${{ needs.plan.outputs.selectors != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        selector: ${{ fromJSON(needs.plan.outputs.selectors) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Required for the audience-bound GitHub OIDC token.
+      attestations: write # Required to sign build provenance.
+    steps:
+      - name: Check repository visibility
+        if: ${{ github.event.repository.visibility != 'public' }}
+        run: |
+          echo "::error title=Public repository required::EmDash releases currently require a public GitHub repository because private and internal repository attestations cannot yet be verified."
+          exit 1
+      - name: Check out repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build packages
+        run: pnpm build
+      - name: Refuse the placeholder publisher DID (R21)
+        run: node scripts/release-dry-run.mjs --require-real-did
+      - name: Prepare plugin release
+        id: prepare
+        shell: bash
+        env:
+          EMDASH_RELEASE_SELECTOR: ${{ matrix.selector }}
+        run: |
+          set -euo pipefail
+          pnpm dlx @emdash-cms/plugin-cli@0.13.3 release prepare "${EMDASH_RELEASE_SELECTOR}" --dir . --out-dir .emdash-release
+      - name: Create build provenance
+        id: attest
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: ${{ steps.prepare.outputs.bundle-file }}
+      - name: Publish plugin
+        uses: emdash-cms/emdash/apps/release-action@main # zizmor: ignore[unpinned-uses] -- pin to a release tag once the owner has chosen one
+        with:
+          service-url: https://releases.emdashcms.com
+          publisher-did: ${{ steps.prepare.outputs.publisher-did }}
+          bundle-file: ${{ steps.prepare.outputs.bundle-file }}
+          provenance-file: ${{ steps.attest.outputs.bundle-path }}

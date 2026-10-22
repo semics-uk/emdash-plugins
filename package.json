@@ -24,7 +24,10 @@
 		"ci": "biome ci .",
 		"verify": "node scripts/verify.mjs",
 		"changeset": "changeset",
-		"changeset:check": "node scripts/changeset-check.mjs"
+		"changeset:check": "node scripts/changeset-check.mjs",
+		"version-packages": "changeset version && pnpm install --lockfile-only",
+		"release": "node scripts/release-dry-run.mjs --release && changeset publish",
+		"release:dry-run": "node scripts/release-dry-run.mjs"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [

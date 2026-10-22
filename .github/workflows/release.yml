@@ -1,0 +1,82 @@
+name: Release
+
+# Changesets drives both halves of a release:
+#   1. While changesets are pending on main, this opens (or updates) the "Version Packages" PR.
+#   2. When that PR is merged there are none left, so the same step runs `pnpm release`, which
+#      publishes the unpublished versions to npm with provenance (Sigstore).
+# The EmDash registry publish is a second, separate job that only runs once the owner enables it
+# (repository variable EMDASH_REGISTRY_PUBLISH=true), after the real publisher DID replaced the
+# placeholder (BUILD-PLAN R21).
+#
+# Owner setup (see CONTRIBUTING, "Releasing"): secret NPM_TOKEN in the `npm-publish` environment,
+# that environment with required reviewers, and the variable above.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Version PR or npm publish
+    # Only the public repository releases; a fork or the private Pro repo has nothing to publish here.
+    if: github.repository == 'semics-uk/emdash-plugins'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: npm-publish
+    permissions:
+      contents: write # push the version branch
+      pull-requests: write # open the Version Packages PR
+      id-token: write # npm provenance (Sigstore)
+    outputs:
+      published: ${{ steps.changesets.outputs.published }}
+      published-packages: ${{ steps.changesets.outputs.publishedPackages }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - name: Build and audit what would be published
+        run: pnpm release:dry-run --build
+      - name: Create the version PR or publish to npm
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm version-packages
+          publish: pnpm release
+          title: "chore: version packages"
+          commit: "chore: version packages"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"
+
+  registry:
+    name: Publish to the EmDash registry
+    needs: release
+    # Off until the owner sets EMDASH_REGISTRY_PUBLISH=true. The reusable workflow additionally
+    # refuses the placeholder publisher DID.
+    if: needs.release.outputs.published == 'true' && vars.EMDASH_REGISTRY_PUBLISH == 'true'
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    uses: ./.github/workflows/emdash-release.yml
+    with:
+      published-packages: ${{ needs.release.outputs.published-packages }}
