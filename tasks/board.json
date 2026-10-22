@@ -1239,7 +1239,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1261,7 +1261,7 @@
 				"T086",
 				"T087"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T060": {
 			"file": "T060-e-sign-integration-clients-and-pairing-strings.md",
@@ -1350,7 +1350,7 @@
 			"unblocks": [
 				"T064"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T064": {
 			"file": "T064-events-receipt-route-and-waiver-gated-check-in.md",
@@ -1678,7 +1678,7 @@
 				"EU-FR-10"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T081": {
 			"file": "T081-events-waitlist-with-timed-offers.md",
@@ -1698,7 +1698,7 @@
 				"EV-US-6"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T082": {
 			"file": "T082-events-pro-qr-passes-and-mobile-check-in-screen.md",
@@ -1717,7 +1717,7 @@
 				"Free and Pro table"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T083": {
 			"file": "T083-events-pro-reminders-and-broadcasts.md",
@@ -1736,7 +1736,7 @@
 				"EV-FR-08"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T084": {
 			"file": "T084-events-recurring-events.md",
@@ -1756,7 +1756,7 @@
 				"EV-FR-17"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T085": {
 			"file": "T085-events-pro-sales-reports.md",
@@ -1775,7 +1775,7 @@
 				"EV-FR-19"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T086": {
 			"file": "T086-events-pro-mcp-tools.md",
@@ -1794,7 +1794,7 @@
 				"EV-FR-18"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T087": {
 			"file": "T087-events-retention-job.md",
@@ -1815,7 +1815,7 @@
 			"unblocks": [
 				"T100"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T090": {
 			"file": "T090-e-sign-pro-several-signers-and-routing.md",
@@ -2277,7 +2277,6 @@
 			"T060",
 			"T061",
 			"T062",
-			"T063",
 			"T064",
 			"T065",
 			"T066",
@@ -2289,14 +2288,6 @@
 			"T076",
 			"T077",
 			"T078",
-			"T080",
-			"T081",
-			"T082",
-			"T083",
-			"T084",
-			"T085",
-			"T086",
-			"T087",
 			"T090",
 			"T091",
 			"T092",
@@ -2315,12 +2306,20 @@
 		],
 		"ready": [
 			"T043",
+			"T063",
 			"T072",
+			"T080",
+			"T081",
+			"T082",
+			"T083",
+			"T084",
+			"T085",
+			"T086",
+			"T087",
 			"T111"
 		],
 		"in-progress": [
-			"T034",
-			"T057"
+			"T034"
 		],
 		"review": [],
 		"done": [
@@ -2373,6 +2372,7 @@
 			"T054",
 			"T055",
 			"T056",
+			"T057",
 			"T070",
 			"T110",
 			"T112",
