@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT } from "../../src/astro/lib/assets";
 import { ceremonyCsp, cspSource } from "../../src/astro/lib/csp";
-import { handleSign, normaliseStrokes } from "../../src/astro/lib/sign";
+import { handleSign, normaliseStrokes, pdfDocumentView } from "../../src/astro/lib/sign";
 import { missingForSign, pdfLinkFrom, safeDownloadHref } from "../../src/client/ceremony.js";
 
 const root = resolve(import.meta.dirname, "../..");
@@ -285,5 +285,42 @@ describe("drawn signatures and field values in handleSign (SU-FR-05, SU-FR-06)",
 		});
 		const view = await handleSign(h.ctx, TOKEN, form(signForm));
 		expect(view).toMatchObject({ kind: "ready", fields: ["agree", "signature", "fields"] });
+	});
+});
+
+describe("an uploaded PDF in the ceremony (ES-FR-19, T094)", () => {
+	const link = "/_emdash/api/plugins/semics-esign/public/download?d=e1&exp=1&sig=x";
+	const pdf = { kind: "pdf", name: "lease.pdf", bytes: 48_213, pages: 3, view: { url: link, expiresAt: "2030-01-01T00:00:00Z" } };
+
+	it("ES-FR-19 a PDF document is described by name, pages and size, with its same-site link", () => {
+		expect(pdfDocumentView({ ...ready, snapshot: "", document: pdf } as never)).toEqual({
+			name: "lease.pdf",
+			pages: 3,
+			size: "47 KB",
+			url: link,
+		});
+	});
+
+	it("ES-FR-19 no PDF view for a text document, and no link that leaves the site", () => {
+		expect(pdfDocumentView(ready as never)).toBeUndefined();
+		for (const url of ["javascript:alert(1)", "//evil.example/x", "https://evil.example/x.pdf", 7]) {
+			expect(pdfDocumentView({ ...ready, document: { ...pdf, view: { url } } } as never)).toMatchObject({ url: undefined });
+		}
+	});
+
+	it("ES-FR-19 a PDF the core cannot show (the Free core, no link) has no url, and odd names are cleaned", () => {
+		const view = pdfDocumentView({ ...ready, document: { kind: "pdf", name: `a\u0000b${"x".repeat(300)}`, bytes: 2_500_000, pages: 1 } } as never);
+		expect(view).toMatchObject({ pages: 1, size: "2.4 MB", url: undefined });
+		expect(view?.name).toBe(`ab${"x".repeat(118)}`);
+	});
+
+	it("ES-FR-19 the ceremony page offers the PDF to open and download, and does not sign one it cannot show", () => {
+		const source = readFileSync(resolve(root, "src/astro/SigningCeremony.astro"), "utf8");
+		expect(source).toContain('data-testid="sign-pdf"');
+		expect(source).toContain('data-testid="sign-pdf-open"');
+		expect(source).toContain('data-testid="sign-pdf-download"');
+		expect(source).toContain('data-testid="sign-pdf-unavailable"');
+		// The PDF is never embedded: the page's CSP stays frame-free (see lib/csp.ts).
+		expect(source).not.toMatch(/<(iframe|object|embed)\b/);
 	});
 });
