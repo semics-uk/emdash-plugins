@@ -4,7 +4,7 @@ title: "E-sign Pro: bulk send"
 phase: 6
 package: esign
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T090, T071]
