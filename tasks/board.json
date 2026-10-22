@@ -1739,7 +1739,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1750,7 +1750,7 @@
 				"Free and Pro table"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T083": {
 			"file": "T083-events-pro-reminders-and-broadcasts.md",
@@ -2056,7 +2056,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2070,7 +2070,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T102": {
 			"file": "T102-translations-and-right-to-left-layouts.md",
@@ -2410,13 +2410,12 @@
 			"T083",
 			"T086",
 			"T100",
-			"T101",
 			"T102",
 			"T103",
 			"T111"
 		],
 		"in-progress": [
-			"T082"
+			"T101"
 		],
 		"review": [],
 		"done": [
@@ -2491,6 +2490,7 @@
 			"T078",
 			"T080",
 			"T081",
+			"T082",
 			"T084",
 			"T085",
 			"T087",
