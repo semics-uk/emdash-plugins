@@ -1434,7 +1434,7 @@
 			"phase": 3,
 			"package": "suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1451,9 +1451,10 @@
 				"T093",
 				"T094",
 				"T096",
-				"T097"
+				"T097",
+				"T119"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T070": {
 			"file": "T070-licence-verification-and-pro-gating.md",
@@ -1871,7 +1872,7 @@
 			"unblocks": [
 				"T095"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T091": {
 			"file": "T091-e-sign-pro-email-otp.md",
@@ -1892,7 +1893,7 @@
 				"Decision: OTP default"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T092": {
 			"file": "T092-e-sign-decline-void-reminders-and-expiry.md",
@@ -1911,7 +1912,7 @@
 				"ES-FR-17"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T093": {
 			"file": "T093-e-sign-pro-public-self-serve-templates-and-block.md",
@@ -1935,7 +1936,7 @@
 				"T101",
 				"T102"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T094": {
 			"file": "T094-e-sign-pro-uploaded-pdf-templates.md",
@@ -1957,7 +1958,7 @@
 				"Spike S5"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T095": {
 			"file": "T095-e-sign-pro-bulk-send.md",
@@ -1997,7 +1998,7 @@
 				"ES-FR-21"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T097": {
 			"file": "T097-e-sign-retention-job.md",
@@ -2021,7 +2022,7 @@
 				"T103",
 				"T105"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T100": {
 			"file": "T100-security-review-of-both-products.md",
@@ -2354,19 +2355,35 @@
 				"T073"
 			],
 			"column": "done"
+		},
+		"T119": {
+			"file": "T119-integration-hardening-from-the-phase-3-review.md",
+			"id": "T119",
+			"title": "Integration: hardening from the Phase 3 review",
+			"phase": 6,
+			"package": "suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T067"
+			],
+			"spec": [
+				"SX-FR-04",
+				"SX-FR-05",
+				"EV-FR-12",
+				"R5",
+				"R44"
+			],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [
 			"T078",
-			"T090",
-			"T091",
-			"T092",
-			"T093",
-			"T094",
 			"T095",
-			"T096",
-			"T097",
 			"T100",
 			"T101",
 			"T102",
@@ -2382,10 +2399,17 @@
 			"T083",
 			"T084",
 			"T086",
-			"T111"
+			"T090",
+			"T091",
+			"T092",
+			"T093",
+			"T094",
+			"T096",
+			"T097",
+			"T111",
+			"T119"
 		],
 		"in-progress": [
-			"T067",
 			"T077"
 		],
 		"review": [],
@@ -2449,6 +2473,7 @@
 			"T064",
 			"T065",
 			"T066",
+			"T067",
 			"T070",
 			"T071",
 			"T072",
@@ -2469,8 +2494,8 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T067",
-		"T097",
+		"T076",
+		"T078",
 		"T100",
 		"T106"
 	],
