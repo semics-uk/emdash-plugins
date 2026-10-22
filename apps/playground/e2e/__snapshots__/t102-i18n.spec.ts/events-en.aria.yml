@@ -1,0 +1,95 @@
+- main:
+  - heading "T102 events en" [level=1]
+  - region "Upcoming events":
+    - heading "Upcoming events" [level=2]
+    - list:
+      - listitem:
+        - article:
+          - heading "London Community Meetup" [level=3]:
+            - link "London Community Meetup":
+              - /url: /events/london-meetup
+          - paragraph:
+            - time: /Thu, \d+ Mar \d+, \d+:\d+ GMT/
+          - paragraph: The Old Library
+          - paragraph: /From £\d+\.\d+/
+      - listitem:
+        - article:
+          - heading "Sydney Conference" [level=3]
+          - paragraph:
+            - time: /Wed, 6 Nov \d+, \d+:\d+ GMT\+\d+/
+          - paragraph: Free Sold out
+  - region "Book tickets":
+    - heading "Book tickets" [level=2]
+    - combobox "Date":
+      - option "Choose a date" [selected]
+      - option /Thursday, \d+ March \d+ at \d+:\d+/
+      - option /Friday, \d+ March \d+ at \d+:\d+ \(sold out\)/ [disabled]
+    - group "Tickets":
+      - text: /Tickets Standard £\d+\.\d+/
+      - spinbutton /Standard £\d+\.\d+/
+      - text: /Early bird £\d+\.\d+ Sold out/
+      - spinbutton /Early bird £\d+\.\d+ Sold out/ [disabled]
+    - textbox "Your name"
+    - textbox "Email"
+    - group "About you":
+      - text: About you Dietary needs (optional)
+      - combobox "Dietary needs (optional)":
+        - option "Choose an answer" [selected]
+        - option "None"
+        - option "Vegan"
+      - checkbox "Photos are fine"
+      - text: Photos are fine
+    - paragraph:
+      - text: Total
+      - strong: Free
+    - button "Book"
+    - form "Join the waitlist":
+      - heading "Join the waitlist" [level=3]
+      - paragraph: /If tickets come free, we email the first in line and hold the tickets for them for \d+ hours\./
+      - combobox "Date":
+        - option /Friday, \d+ March \d+ at \d+:\d+/ [selected]
+      - combobox "Ticket":
+        - option "Any ticket" [selected]
+        - option "Standard"
+        - option "Early bird"
+      - spinbutton "Tickets"
+      - textbox "Your name"
+      - textbox "Email"
+      - button "Join the waitlist"
+  - region "Booking status":
+    - heading "Booking status" [level=2]
+    - paragraph:
+      - text: Reference
+      - strong: ABCDEFGHJK
+    - paragraph: Waiting for payment
+    - paragraph:
+      - text: Your tickets are held until
+      - time: /\d+ Mar \d+, \d+:\d+ UTC/
+      - text: .
+    - list "2 tickets":
+      - listitem: 2 × Standard
+    - paragraph:
+      - text: Total
+      - strong: /£\d+\.\d+/
+    - paragraph:
+      - text: You can cancel until
+      - time: /\d+ Mar \d+, \d+:\d+ UTC/
+      - text: .
+    - button "Cancel booking"
+  - region "Waiting for your payment":
+    - heading "Waiting for your payment" [level=2]
+    - status:
+      - paragraph: /If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed\. If you left the payment page, your tickets are held until \d+ Mar \d+, \d+:\d+ UTC and you can pay now\./
+      - paragraph
+    - button "Pay now"
+    - link "Check again":
+      - /url: /booking?ref=ABCDEFGHJK
+  - article:
+    - paragraph: London Community Meetup
+    - heading "Grace Hopper" [level=3]
+    - paragraph: Standard
+    - paragraph: Check-in code
+    - paragraph: K 7 Q 2 M 9 X D
+    - paragraph: Waiting for a signed waiver
+  - link "Add to calendar (.ics file)":
+    - /url: /\/_emdash\/api\/plugins\/semics-events\/public\/booking\/ics\?ref=ABCDEFGHJK&exp=\d+&sig=e2e-signature/

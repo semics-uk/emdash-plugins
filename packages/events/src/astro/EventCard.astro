@@ -2,6 +2,7 @@
 // <EventCard event>: one event from `public/events`, server-rendered, no client JavaScript. The start
 // is shown in the event's own time zone. Text only (Astro escapes every expression). Themed with
 // `--events-*` custom properties.
+import { pickLocale, translator } from "../i18n/index";
 import { cardView, type PublicEventSummary } from "./lib/list";
 
 interface Props {
@@ -13,11 +14,13 @@ interface Props {
 	headingLevel?: 2 | 3 | 4;
 }
 
-const { event, href, locale = "en-GB", headingLevel = 3 } = Astro.props;
+const { event, href, headingLevel = 3 } = Astro.props;
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { lang, dir } = translator(locale);
 const view = cardView(event, locale);
 const Heading = `h${headingLevel}` as "h3";
 ---
-<article class="semics-events semics-event-card" data-testid="event-card" data-event-id={view.eventId}>
+<article class="semics-events semics-event-card" lang={lang} dir={dir} data-testid="event-card" data-event-id={view.eventId}>
 	<Heading class="semics-event-title">{href ? <a href={href}>{view.title}</a> : view.title}</Heading>
 	<p class="semics-event-when" data-testid="event-when">
 		<time datetime={view.datetime}>{view.when}</time>

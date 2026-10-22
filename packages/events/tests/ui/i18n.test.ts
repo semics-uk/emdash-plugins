@@ -23,7 +23,10 @@ describe("translations (EU-NFR-04, T102)", () => {
 				expect(text.trim(), `${lang} ${key}`).not.toBe("");
 				const base = key.replace(/\.(zero|one|two|few|many|other)$/, ".other");
 				const source = (en as Record<string, string>)[key] ?? (en as Record<string, string>)[base];
-				expect(placeholders(text), `${lang} ${key}`).toEqual(placeholders(source));
+				// A plural form may leave the number out ("one ticket", Arabic's dual), never add a placeholder.
+				if (/\.(zero|one|two|few|many|other)$/.test(key))
+					for (const name of placeholders(text)) expect(placeholders(source), `${lang} ${key}`).toContain(name);
+				else expect(placeholders(text), `${lang} ${key}`).toEqual(placeholders(source));
 			}
 		}
 	});

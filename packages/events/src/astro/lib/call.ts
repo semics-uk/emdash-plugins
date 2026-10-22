@@ -1,3 +1,4 @@
+// i18n-ignore-file: these errors are for developers (the UI shows its own text by error code, T102).
 import { getPublicPluginApiRouteHandler, type PublicPluginRuntimeLocals } from "emdash/plugin-utils";
 
 /** Plugin ID (manifest slug) of the sandboxed Events core. */

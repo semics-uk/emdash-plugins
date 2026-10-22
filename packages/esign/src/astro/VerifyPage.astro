@@ -3,6 +3,7 @@
 // pastes the signed PDF's SHA-256; with scripts, they choose or drop the PDF and it is fingerprinted
 // in the browser (never uploaded). Its CSP allows only the page's own hashed script and style.
 import { pluginId } from "virtual:semics-esign/config";
+import { pickLocale, translator } from "../i18n/index.ts";
 import { verifyCsp } from "./lib/csp";
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
 import { handleVerify } from "./lib/sign";
@@ -18,21 +19,23 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
 Astro.response.headers.set("Content-Security-Policy", await verifyCsp());
 
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
+const locale = pickLocale(Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
 const view = await handleVerify({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, form);
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
-		<title>Verify a signed document</title>
+		<title>{t("verify.title")}</title>
 	</head>
 	<body>
 		<main data-testid="verify-page">
-			<h1>Verify a signed document</h1>
-			<VerifyDocument view={view} />
+			<h1>{t("verify.title")}</h1>
+			<VerifyDocument view={view} locale={locale} />
 		</main>
 	</body>
 </html>

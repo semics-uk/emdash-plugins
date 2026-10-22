@@ -62,12 +62,49 @@ export function pdfLinkFrom(reply, origin) {
 	return safeDownloadHref(data.download?.url, origin);
 }
 
+/**
+ * The ceremony's messages in the page's language: the component renders them as JSON in the
+ * `data-messages` attribute of its root (T102), so this script holds no text of its own.
+ * @param {Element} el
+ * @returns {Record<string, string>}
+ */
+function messagesOf(el) {
+	try {
+		return JSON.parse(/** @type {HTMLElement | null} */ (el.closest("[data-messages]"))?.dataset.messages ?? "{}");
+	} catch {
+		return {};
+	}
+}
+
+/**
+ * @param {Record<string, string>} m
+ * @param {string} key
+ * @param {Record<string, string>} [vars]
+ */
+function say(m, key, vars = {}) {
+	return (m[key] ?? key).replace(/\{(\w+)\}/g, (whole, name) => vars[name] ?? whole);
+}
+
 /** @type {Record<string, string>} */
-const NEEDS = {
-	typedName: "type your full name",
-	consent: "tick the consent box",
-	agree: "confirm you intend to sign",
-};
+const NEEDS = { typedName: "need.typedName", consent: "need.consent", agree: "need.agree" };
+
+/**
+ * The live note of what is still missing before signing ("To sign, please type your full name, ...").
+ * @param {string[]} missing control names, from `missingForSign`
+ * @param {Record<string, string>} m the ceremony's messages (keys without `ceremony.`)
+ * @param {Record<string, string | undefined>} labels a signer field's label by control name
+ * @param {string} [_lang] the page's language (kept for list formatting)
+ * @returns {string}
+ */
+export function missingNote(missing, m, labels, _lang) {
+	if (missing.length === 0) return "";
+	const items = missing.map((name) => {
+		const need = NEEDS[name];
+		if (need) return say(m, need);
+		return say(m, "need.field", { label: labels[name] ?? say(m, "need.fields") });
+	});
+	return say(m, "missing", { items: items.join(m.separator ?? ", ") });
+}
 
 /**
  * @param {HTMLFormElement} form
@@ -94,18 +131,20 @@ function enhanceSignForm(form) {
 	const button = /** @type {HTMLButtonElement | null} */ (form.querySelector("[data-esign-sign]"));
 	const note = /** @type {HTMLElement | null} */ (form.querySelector("[data-esign-missing]"));
 	if (!button) return;
+	const m = messagesOf(form);
 	let sending = false;
 	const update = () => {
 		const missing = missingForSign(readState(form));
 		button.disabled = sending || missing.length > 0;
 		if (!note) return;
 		note.hidden = missing.length === 0;
-		const labels = missing.map((name) => {
-			if (NEEDS[name]) return NEEDS[name];
+		/** @type {Record<string, string | undefined>} */
+		const labels = {};
+		for (const name of missing) {
 			const field = /** @type {HTMLElement | null} */ (form.querySelector(`[name="${CSS.escape(name)}"]`));
-			return `fill in ${field?.dataset.label ?? "the required fields"}`;
-		});
-		note.textContent = missing.length ? `To sign, please ${labels.join(", ")}.` : "";
+			labels[name] = field?.dataset.label;
+		}
+		note.textContent = missingNote(missing, m, labels, document.documentElement.lang);
 	};
 	form.addEventListener("input", update);
 	form.addEventListener("change", update);
@@ -131,6 +170,7 @@ function pollForPdf(box, options) {
 	const plugin = box.dataset.plugin ?? "";
 	const target = /** @type {HTMLElement | null} */ (box.querySelector("[data-esign-pdf]"));
 	if (!token || !plugin || !target) return;
+	const m = messagesOf(box);
 	const doFetch = options.fetch ?? fetch.bind(globalThis);
 	const interval = options.intervalMs ?? 3000;
 	let left = options.attempts ?? 60;
@@ -154,12 +194,12 @@ function pollForPdf(box, options) {
 		if (href) {
 			const link = document.createElement("a");
 			link.href = href;
-			link.textContent = "Download the signed PDF";
+			link.textContent = say(m, "download");
 			target.replaceChildren(link);
 			return;
 		}
 		if (left > 0) setTimeout(tick, interval);
-		else target.textContent = "The signed PDF is taking longer than usual. Reload this page in a few minutes.";
+		else target.textContent = say(m, "slow");
 	};
 	void tick();
 }

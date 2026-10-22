@@ -1,0 +1,96 @@
+- main:
+  - heading "T102 events ar" [level=1]
+  - region "الفعاليات القادمة":
+    - heading "الفعاليات القادمة" [level=2]
+    - list:
+      - listitem:
+        - article:
+          - heading "London Community Meetup" [level=3]:
+            - link "London Community Meetup":
+              - /url: /events/london-meetup
+          - paragraph:
+            - time: /الخميس، \d+ مارس \d+، \d+:\d+ غرينتش\+0/
+          - paragraph: The Old Library
+          - paragraph: /ابتداءً من ‏\d+\.\d+ UK£/
+      - listitem:
+        - article:
+          - heading "Sydney Conference" [level=3]
+          - paragraph:
+            - time: /الأربعاء، 6 نوفمبر \d+، \d+:\d+ غرينتش\+\d+/
+          - paragraph: مجاني نفدت التذاكر
+  - region "احجز التذاكر":
+    - heading "احجز التذاكر" [level=2]
+    - combobox "التاريخ":
+      - option "اختر تاريخًا" [selected]
+      - option /الخميس، \d+ مارس \d+ في 6:\d+ م/
+      - option /الجمعة، \d+ مارس \d+ في 6:\d+ م \(نفدت التذاكر\)/ [disabled]
+    - group "التذاكر":
+      - text: /التذاكر Standard ‏\d+\.\d+ UK£/
+      - spinbutton /Standard ‏\d+\.\d+ UK£/
+      - text: /Early bird ‏\d+\.\d+ UK£ نفدت التذاكر/
+      - spinbutton /Early bird ‏\d+\.\d+ UK£ نفدت التذاكر/ [disabled]
+    - textbox "اسمك"
+    - text: البريد الإلكتروني
+    - textbox "البريد الإلكتروني"
+    - group "معلومات عنك":
+      - text: معلومات عنك Dietary needs (اختياري)
+      - combobox "Dietary needs (اختياري)":
+        - option "اختر إجابة" [selected]
+        - option "None"
+        - option "Vegan"
+      - checkbox "Photos are fine"
+      - text: Photos are fine
+    - paragraph:
+      - text: المجموع
+      - strong: مجاني
+    - button "احجز"
+    - form "انضم إلى قائمة الانتظار":
+      - heading "انضم إلى قائمة الانتظار" [level=3]
+      - paragraph: /إذا توفرت تذاكر، نراسل أول من في القائمة بالبريد الإلكتروني ونحجز التذاكر له مدة \d+ ساعة\./
+      - combobox "التاريخ":
+        - option /الجمعة، \d+ مارس \d+ في 6:\d+ م/ [selected]
+      - combobox "التذكرة":
+        - option "أي تذكرة" [selected]
+        - option "Standard"
+        - option "Early bird"
+      - spinbutton "التذاكر"
+      - textbox "اسمك"
+      - textbox "البريد الإلكتروني"
+      - button "انضم إلى قائمة الانتظار"
+  - region "حالة الحجز":
+    - heading "حالة الحجز" [level=2]
+    - paragraph:
+      - text: الرقم المرجعي
+      - strong: ABCDEFGHJK
+    - paragraph: بانتظار الدفع
+    - paragraph:
+      - text: تذاكرك محجوزة حتى
+      - time: /\d+‏\/\d+‏\/\d+، 5:\d+ م بالتوقيت العالمي/
+      - text: .
+    - list "تذكرتان":
+      - listitem: 2 × Standard
+    - paragraph:
+      - text: المجموع
+      - strong: /‏\d+\.\d+ UK£/
+    - paragraph:
+      - text: يمكنك الإلغاء حتى
+      - time: /\d+‏\/\d+‏\/\d+، 6:\d+ م بالتوقيت العالمي/
+      - text: .
+    - button "إلغاء الحجز"
+  - region "بانتظار دفعتك":
+    - heading "بانتظار دفعتك" [level=2]
+    - status:
+      - paragraph: /إذا كنت قد دفعت للتو، فستتحدث هذه الصفحة تلقائيًا خلال دقيقة وسنراسلك بالبريد الإلكتروني فور تأكيد الدفع\. إذا غادرت صفحة الدفع، فتذاكرك محجوزة حتى \d+‏\/\d+‏\/\d+، 5:\d+ م بالتوقيت العالمي ويمكنك الدفع الآن\./
+      - paragraph
+    - button "ادفع الآن"
+    - link "تحقق مرة أخرى":
+      - /url: /booking?ref=ABCDEFGHJK
+  - article:
+    - paragraph: London Community Meetup
+    - heading "Grace Hopper" [level=3]
+    - paragraph: Standard
+    - paragraph: رمز تسجيل الحضور
+    - paragraph: K 7 Q 2 M 9 X D
+    - paragraph: بانتظار توقيع إقرار التنازل
+  - link "أضف إلى التقويم (ملف ‎.ics)":
+    - /url: /\/_emdash\/api\/plugins\/semics-events\/public\/booking\/ics\?ref=ABCDEFGHJK&exp=\d+&sig=e2e-signature/

@@ -1,3 +1,4 @@
+import { type MessageKey, t } from "../../i18n/index.ts";
 import { callPublicRoute, type PublicRouteContext } from "./call.ts";
 import { crossSiteResponse, isCrossSiteRequest } from "./csrf.ts";
 
@@ -80,6 +81,7 @@ export async function handleSelfServeForm(
 	options: { pluginId?: string },
 ): Promise<StartResult> {
 	const templateId = text(form, "templateId");
+	// i18n-ignore: a malformed post (not the block's form) gets a plain refusal.
 	if (!templateId) return { status: 400, message: "Missing template." };
 	const returnTo = safeReturnTo(text(form, "returnTo"), ctx.url.origin) ?? "/";
 	const fields: Record<string, string> = {};
@@ -133,13 +135,15 @@ export function readStartState(url: URL, templateId: string): { sent: boolean; c
 	return state ? { sent: false, code: state } : { sent: false };
 }
 
-const MESSAGES: Record<string, string> = {
-	TURNSTILE_FAILED: "The security check did not pass. Please try again.",
-	RATE_LIMITED: "Too many attempts. Please wait a few minutes and try again.",
-	SELF_SERVE_FULL: "This form has reached its limit for today. Please try again tomorrow.",
-	BAD_REQUEST: "Please check your name, email address and the other details, then try again.",
-	TEMPLATE_NOT_FOUND: "This form is not available right now.",
-	SITE_URL_MISSING: "This form is not available right now.",
-};
+const CODES = [
+	"TURNSTILE_FAILED",
+	"RATE_LIMITED",
+	"SELF_SERVE_FULL",
+	"BAD_REQUEST",
+	"TEMPLATE_NOT_FOUND",
+	"SITE_URL_MISSING",
+];
 
-export const startMessage = (code: string): string => MESSAGES[code] ?? "Something went wrong. Please try again later.";
+/** What the block says about a refused start, in the locale's language (T102). */
+export const startMessage = (code: string, locale?: string): string =>
+	t(locale, `selfServe.error.${CODES.includes(code) ? code : "INTERNAL"}` as MessageKey);

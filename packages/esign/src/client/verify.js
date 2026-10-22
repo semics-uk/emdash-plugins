@@ -26,22 +26,23 @@ export async function sha256Hex(bytes) {
  * @param {{ value: string }} target
  * @param {{ textContent: string | null } | null} status
  * @param {{ requestSubmit(): void } | null} form
+ * @param {Record<string, string>} m the page's messages (keys without `verify.`, T102)
  */
-async function hashInto(chosen, target, status, form) {
-	/** @param {string} text */
-	const say = (text) => {
-		if (status) status.textContent = text;
+async function hashInto(chosen, target, status, form, m) {
+	/** @param {string} key @param {string} [name] */
+	const say = (key, name = "") => {
+		if (status) status.textContent = (m[key] ?? key).replace("{name}", name);
 	};
-	say("Fingerprinting in your browser. The file is not uploaded.");
+	say("reading");
 	let hash;
 	try {
 		hash = await sha256Hex(await chosen.arrayBuffer());
 	} catch {
-		say("Could not read that file. Paste its SHA-256 instead.");
+		say("unreadable");
 		return;
 	}
 	target.value = hash;
-	say(`Fingerprinted ${chosen.name || "the file"} in your browser. Checking.`);
+	say("done", chosen.name || (m.theFile ?? "theFile"));
 	form?.requestSubmit();
 }
 
@@ -57,9 +58,16 @@ export function enhanceVerify(root) {
 		const status = root.getElementById(file.dataset.status ?? "");
 		const form = file.closest("form");
 		if (!target) continue;
+		/** @type {Record<string, string>} */
+		let m = {};
+		try {
+			m = JSON.parse(file.dataset.messages ?? "{}");
+		} catch {
+			// No messages: the status line shows their keys.
+		}
 		file.addEventListener("change", async () => {
 			const chosen = file.files?.[0];
-			if (chosen) await hashInto(chosen, target, status, form);
+			if (chosen) await hashInto(chosen, target, status, form, m);
 		});
 		for (const zone of /** @type {NodeListOf<HTMLElement>} */ (root.querySelectorAll("[data-esign-drop]"))) {
 			zone.addEventListener("dragover", (event) => {
@@ -71,7 +79,7 @@ export function enhanceVerify(root) {
 				event.preventDefault();
 				zone.classList.toggle("is-over", false);
 				const dropped = /** @type {DragEvent} */ (event).dataTransfer?.files?.[0];
-				if (dropped) await hashInto(dropped, target, status, form);
+				if (dropped) await hashInto(dropped, target, status, form, m);
 			});
 		}
 	}

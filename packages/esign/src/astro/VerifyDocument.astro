@@ -3,59 +3,63 @@
 // Works without JavaScript (paste the fingerprint). With scripts, choosing or dropping the PDF hashes
 // it in the browser with WebCrypto and posts only the hash: the file control has no `name` and the
 // script has no network code. A page rendering this sends `verifyCsp()` (lib/csp.ts).
+import { clientMessages, pickLocale, segments, translator } from "../i18n/index.ts";
 import { VERIFY_CSS, VERIFY_SCRIPT } from "./lib/assets";
-import type { VerifyView } from "./lib/sign";
+import { signMessage, type VerifyView } from "./lib/sign";
 
 interface Props {
 	view: VerifyView;
 	/** Where the form posts. */
 	action?: string;
+	/** The page's language (T102); else `Astro.currentLocale`, else British English. */
+	locale?: string;
 }
 const { view, action = "/verify" } = Astro.props;
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+const messages = JSON.stringify(clientMessages(locale, "verify."));
+const error =
+	view.kind === "error" ? (view.code === "BAD_REQUEST" ? t("verify.error.BAD_REQUEST") : signMessage(view.code, locale)) : "";
 ---
-<div class="semics-esign semics-verify" data-testid="verify-document" data-state={view.kind}>
-	<p>
-		Check that a signed PDF is the one we issued and that its audit trail is intact. Choose or drop the PDF, or
-		enter its SHA-256 fingerprint (shown on the certificate page). The file stays on your device: only its
-		fingerprint is sent. This confirms the record only; it does not identify anyone.
-	</p>
+<div class="semics-esign semics-verify" lang={lang} dir={dir} data-testid="verify-document" data-state={view.kind}>
+	<p>{t("verify.intro")}</p>
 	<form method="post" action={action}>
 		<div class="semics-drop" data-esign-drop>
-			<label for="esign-file">Signed PDF</label><br />
-			<input id="esign-file" type="file" accept="application/pdf,.pdf" aria-describedby="esign-file-status" data-esign-file data-target="esign-sha256" data-status="esign-file-status" hidden />
+			<label for="esign-file">{t("verify.file")}</label><br />
+			<input id="esign-file" type="file" accept="application/pdf,.pdf" aria-describedby="esign-file-status" data-esign-file data-target="esign-sha256" data-status="esign-file-status" data-messages={messages} hidden />
 			<p id="esign-file-status" class="semics-note" role="status" aria-live="polite"></p>
 		</div>
 		<p>
-			<label for="esign-sha256">Document SHA-256</label><br />
+			<label for="esign-sha256">{t("verify.sha")}</label><br />
 			<input id="esign-sha256" name="sha256" type="text" inputmode="text" autocomplete="off" spellcheck="false" required pattern="[0-9a-fA-F]{64}" size="70" value={view.kind === "result" ? view.sha256 : ""} />
 		</p>
-		<button type="submit">Verify</button>
+		<button type="submit">{t("verify.button")}</button>
 	</form>
-	{view.kind === "error" && <p role="alert" class="semics-error" data-testid="verify-error">{view.message}</p>}
+	{view.kind === "error" && <p role="alert" class="semics-error" data-testid="verify-error">{error}</p>}
 	{
 		view.kind === "result" && (
 			<section class="semics-result" data-testid="verify-result" data-matched={String(view.data.matched)} aria-live="polite">
 				{view.data.matched ? (
 					<>
 						<p>
-							A signed document with this fingerprint was issued here
-							{view.data.completedAt ? <> and completed on <time datetime={view.data.completedAt}>{view.data.completedAt}</time></> : null}.
+							{view.data.completedAt
+								? segments(t("verify.issuedOn")).map((s) =>
+										s.slot === "date" ? <time datetime={view.data.completedAt}>{view.data.completedAt}</time> : s.text,
+									)
+								: t("verify.issued")}
 						</p>
 						<p data-testid="verify-chain">
 							{view.data.chainVerified === true
-								? "Its audit trail is intact."
+								? t("verify.chain.ok")
 								: view.data.chainVerified === false
-									? "Warning: its audit trail does not verify."
-									: "Its audit trail is too long to check online."}
+									? t("verify.chain.bad")
+									: t("verify.chain.long")}
 						</p>
 					</>
 				) : (
 					<>
-						<p>No signed document with that fingerprint was found.</p>
-						<p data-testid="verify-retention">
-							Signed records are deleted when their retention period ends, so a document signed long ago may
-							no longer be listed.
-						</p>
+						<p>{t("verify.none")}</p>
+						<p data-testid="verify-retention">{t("verify.retention")}</p>
 					</>
 				)}
 			</section>

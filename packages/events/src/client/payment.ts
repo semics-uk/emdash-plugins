@@ -67,7 +67,7 @@ export function startPaymentPolling(doc: Document = document): boolean {
 			return;
 		}
 		// The state moved on: say so in the live region, then show the page afresh (tickets, passes).
-		if (live) live.textContent = "Your booking has been updated. Reloading.";
+		if (live) live.textContent = live.dataset.message ?? "";
 		setTimeout(() => doc.location.reload(), 1500);
 	});
 	return true;

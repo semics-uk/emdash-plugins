@@ -5,16 +5,16 @@
 // every expression; nothing here injects raw HTML).
 import { pluginId } from "virtual:semics-events/config";
 
+import { pickLocale, translator } from "../i18n/index";
 import { callPublicRoute } from "./lib/call";
 import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
 import { PROMO_PATH, type PromoView, promoCookieName, promoView } from "./lib/promo";
 import { QUESTIONS_MARKER, questionControls } from "./lib/questions";
-import { readWaitlistState, WAITLIST_MESSAGES, WAITLIST_PATH } from "./lib/waitlist";
+import { readWaitlistState, WAITLIST_PATH, waitlistMessage } from "./lib/waitlist";
 import {
 	anchorId,
-	ERROR_MESSAGES,
 	errorMessage,
-	FIELD_MESSAGES,
+	fieldMessage,
 	formatMoney,
 	newIdempotencyKey,
 	type PublicEvent,
@@ -36,7 +36,12 @@ interface Props {
 	promo?: PromoView | null;
 }
 
-const { event: eventId, heading = "Book tickets", locale = "en-GB" } = Astro.props;
+const { event: eventId } = Astro.props;
+// The language: the `locale` prop, else the page's (Astro i18n), else British English (T102).
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+const heading = Astro.props.heading ?? t("widget.heading");
+const fieldText = (field: Parameters<typeof fieldMessage>[0]) => fieldMessage(field, locale);
 let data = Astro.props.data;
 if (!data) {
 	const result = await callPublicRoute<PublicEvent>(Astro, {
@@ -82,11 +87,11 @@ const waitlist =
 const waitlistDates = ticketTypes.every((t) => t.available === 0) ? occurrences : fullDates;
 const waitlistOutcome = readWaitlistState(Astro.url, eventId);
 // Custom attendee questions are Events Pro's (T080): `public/event` lists them only on a Pro core.
-const questions = questionControls(data?.questions, id, state.fields);
+const questions = questionControls(data?.questions, id, state.fields, locale);
 const bad = (field: WidgetField) => state.fields.includes(field);
 const errId = (field: WidgetField) => `${id}-${field}-error`;
 const invalid = (field: WidgetField) => (bad(field) ? "true" : undefined);
-const formAlert = state.code ? errorMessage(state.code) : "";
+const formAlert = state.code ? errorMessage(state.code, locale) : "";
 const when = (iso: string) => {
 	const options = { dateStyle: "full", timeStyle: "short" } as const;
 	try {
@@ -96,11 +101,11 @@ const when = (iso: string) => {
 	}
 };
 ---
-<section id={id} class="semics-events semics-booking-widget" aria-labelledby={`${id}-title`} data-testid="booking-widget">
+<section id={id} class="semics-events semics-booking-widget" lang={lang} dir={dir} aria-labelledby={`${id}-title`} data-testid="booking-widget">
 	<h2 id={`${id}-title`}>{heading}</h2>
 	{
 		!onSale ? (
-			<p data-testid="booking-unavailable">Booking is not available for this event right now.</p>
+			<p data-testid="booking-unavailable">{t("widget.unavailable")}</p>
 		) : (
 			<>
 			{takesCodes && (
@@ -115,8 +120,9 @@ const when = (iso: string) => {
 				data-semics-booking
 				data-currency={data?.currency}
 				data-locale={locale}
+				data-free={t("money.free")}
 				data-turnstile={siteKey ? "on" : undefined}
-				data-turnstile-message={siteKey ? "Please complete the security check." : undefined}
+				data-turnstile-message={siteKey ? t("widget.turnstile") : undefined}
 			>
 				<p class="semics-form-alert" role="alert" data-form-alert hidden={!formAlert}>{formAlert}</p>
 				<input type="hidden" name="eventId" value={eventId} />
@@ -126,7 +132,7 @@ const when = (iso: string) => {
 				{occurrences.length > 0 && (
 					<div class="semics-field">
 						<input type="hidden" name="needsOccurrence" value="1" />
-						<label for={`${id}-occurrence`}>Date</label>
+						<label for={`${id}-occurrence`}>{t("widget.date")}</label>
 						<select
 							id={`${id}-occurrence`}
 							name="occurrenceId"
@@ -135,16 +141,15 @@ const when = (iso: string) => {
 							aria-invalid={invalid("occurrence")}
 							aria-describedby={errId("occurrence")}
 						>
-							<option value="">Choose a date</option>
+							<option value="">{t("widget.chooseDate")}</option>
 							{occurrences.map((o) => (
 								<option value={o.id} disabled={o.available === 0}>
-									{when(o.startsAt)}
-									{o.available === 0 ? " (sold out)" : ""}
+									{o.available === 0 ? t("widget.dateSoldOut", { date: when(o.startsAt) }) : when(o.startsAt)}
 								</option>
 							))}
 						</select>
-						<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={FIELD_MESSAGES.occurrence}>
-							{bad("occurrence") ? FIELD_MESSAGES.occurrence : ""}
+						<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={fieldText("occurrence")}>
+							{bad("occurrence") ? fieldText("occurrence") : ""}
 						</p>
 					</div>
 				)}
@@ -152,7 +157,7 @@ const when = (iso: string) => {
 				{takesCodes && (
 					<div class="semics-field semics-promo">
 						{promo && <input type="hidden" name="promoCode" value={promo.code} />}
-						<label for={`${id}-promo`}>Promo code</label>
+						<label for={`${id}-promo`}>{t("widget.promo.label")}</label>
 						<div class="semics-promo-row">
 							<input
 								id={`${id}-promo`}
@@ -169,11 +174,11 @@ const when = (iso: string) => {
 								aria-describedby={`${errId("promo")}${promo ? ` ${id}-promo-note` : ""}`}
 							/>
 							<button type="submit" form={promoForm} class="semics-secondary" data-promo-apply>
-								{promo ? "Update code" : "Apply code"}
+								{promo ? t("widget.promo.update") : t("widget.promo.apply")}
 							</button>
 						</div>
-						<p class="semics-field-error" id={errId("promo")} data-error-for="promo" data-message={FIELD_MESSAGES.promo}>
-							{bad("promo") ? FIELD_MESSAGES.promo : ""}
+						<p class="semics-field-error" id={errId("promo")} data-error-for="promo" data-message={fieldText("promo")}>
+							{bad("promo") ? fieldText("promo") : ""}
 						</p>
 						{promo && (
 							<p class="semics-promo-note" id={`${id}-promo-note`} data-testid="promo-note">
@@ -184,38 +189,38 @@ const when = (iso: string) => {
 				)}
 
 				<fieldset class="semics-tickets" data-field="tickets" aria-invalid={invalid("tickets")} aria-describedby={errId("tickets")}>
-					<legend>Tickets</legend>
-					{ticketTypes.map((t) => {
-						const soldOut = t.available === 0;
-						const max = Math.min(t.maxPerOrder ?? 50, t.available ?? 50, 50);
+					<legend>{t("widget.tickets")}</legend>
+					{ticketTypes.map((type) => {
+						const soldOut = type.available === 0;
+						const max = Math.min(type.maxPerOrder ?? 50, type.available ?? 50, 50);
 						return (
 							<div class="semics-ticket">
-								<label for={`${id}-qty-${t.id}`}>
-									<span class="semics-ticket-name">{t.name}</span>
-									<span class="semics-ticket-price">{formatMoney(t.priceMinor, data?.currency ?? "GBP", locale)}</span>
-									{soldOut && <span class="semics-ticket-soldout">Sold out</span>}
+								<label for={`${id}-qty-${type.id}`}>
+									<span class="semics-ticket-name">{type.name}</span>
+									<span class="semics-ticket-price">{formatMoney(type.priceMinor, data?.currency ?? "GBP", locale)}</span>
+									{soldOut && <span class="semics-ticket-soldout">{t("widget.soldOut")}</span>}
 								</label>
 								<input
-									id={`${id}-qty-${t.id}`}
+									id={`${id}-qty-${type.id}`}
 									type="number"
 									inputmode="numeric"
-									name={`${QTY_PREFIX}${t.id}`}
+									name={`${QTY_PREFIX}${type.id}`}
 									value="0"
 									min="0"
 									max={String(max)}
 									disabled={soldOut}
-									data-price-minor={String(t.priceMinor)}
+									data-price-minor={String(type.priceMinor)}
 								/>
 							</div>
 						);
 					})}
-					<p class="semics-field-error" id={errId("tickets")} data-error-for="tickets" data-message={FIELD_MESSAGES.tickets}>
-						{bad("tickets") ? FIELD_MESSAGES.tickets : ""}
+					<p class="semics-field-error" id={errId("tickets")} data-error-for="tickets" data-message={fieldText("tickets")}>
+						{bad("tickets") ? fieldText("tickets") : ""}
 					</p>
 				</fieldset>
 
 				<div class="semics-field">
-					<label for={`${id}-name`}>Your name</label>
+					<label for={`${id}-name`}>{t("widget.name")}</label>
 					<input
 						id={`${id}-name`}
 						name="name"
@@ -227,13 +232,13 @@ const when = (iso: string) => {
 						aria-invalid={invalid("name")}
 						aria-describedby={errId("name")}
 					/>
-					<p class="semics-field-error" id={errId("name")} data-error-for="name" data-message={FIELD_MESSAGES.name}>
-						{bad("name") ? FIELD_MESSAGES.name : ""}
+					<p class="semics-field-error" id={errId("name")} data-error-for="name" data-message={fieldText("name")}>
+						{bad("name") ? fieldText("name") : ""}
 					</p>
 				</div>
 
 				<div class="semics-field">
-					<label for={`${id}-email`}>Email</label>
+					<label for={`${id}-email`}>{t("widget.email")}</label>
 					<input
 						id={`${id}-email`}
 						name="email"
@@ -245,14 +250,14 @@ const when = (iso: string) => {
 						aria-invalid={invalid("email")}
 						aria-describedby={errId("email")}
 					/>
-					<p class="semics-field-error" id={errId("email")} data-error-for="email" data-message={FIELD_MESSAGES.email}>
-						{bad("email") ? FIELD_MESSAGES.email : ""}
+					<p class="semics-field-error" id={errId("email")} data-error-for="email" data-message={fieldText("email")}>
+						{bad("email") ? fieldText("email") : ""}
 					</p>
 				</div>
 
 				{questions.length > 0 && (
 					<fieldset class="semics-questions" data-testid="booking-questions">
-						<legend>About you</legend>
+						<legend>{t("widget.questions")}</legend>
 						<input type="hidden" name={QUESTIONS_MARKER} value="1" />
 						{questions.map((q) => (
 							<div class={q.kind === "checkbox" ? "semics-field semics-check" : "semics-field"}>
@@ -316,7 +321,7 @@ const when = (iso: string) => {
 				)}
 
 				<p class="semics-total" data-total data-testid="booking-total" hidden aria-live="polite">
-					Total <strong data-total-value></strong>
+					{t("widget.total")} <strong data-total-value></strong>
 				</p>
 
 				{siteKey && (
@@ -325,31 +330,28 @@ const when = (iso: string) => {
 						{/* Turnstile is 300 px wide; in a narrower widget use its compact size so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
 						<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						<noscript>
-							<p class="semics-needs-js" data-testid="booking-needs-js">
-								This booking form uses a security check that needs JavaScript. Please turn JavaScript on to
-								book, or contact the organiser.
-							</p>
+							<p class="semics-needs-js" data-testid="booking-needs-js">{t("widget.needsJs")}</p>
 						</noscript>
 						<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 					</>
 				)}
 
-				<button type="submit" disabled={siteKey ? true : undefined}>Book</button>
+				<button type="submit" disabled={siteKey ? true : undefined}>{t("widget.book")}</button>
 			</form>
 			{waitlist && (
 				<form method="post" action={WAITLIST_PATH} class="semics-waitlist" data-testid="waitlist-form" aria-labelledby={`${id}-wl-title`}>
-					<h3 id={`${id}-wl-title`}>Join the waitlist</h3>
-					<p>If tickets come free, we email the first in line and hold the tickets for them for 24 hours.</p>
+					<h3 id={`${id}-wl-title`}>{t("waitlist.heading")}</h3>
+					<p>{t("waitlist.intro")}</p>
 					{waitlistOutcome && (
 						<p role={waitlistOutcome === "joined" ? "status" : "alert"} data-testid="waitlist-outcome" data-code={waitlistOutcome}>
-							{WAITLIST_MESSAGES[waitlistOutcome]}
+							{waitlistMessage(waitlistOutcome, locale)}
 						</p>
 					)}
 					<input type="hidden" name="eventId" value={eventId} />
 					<input type="hidden" name="returnTo" value={returnTo} />
 					{waitlistDates.length > 0 && (
 						<div class="semics-field">
-							<label for={`${id}-wl-date`}>Date</label>
+							<label for={`${id}-wl-date`}>{t("widget.date")}</label>
 							<select id={`${id}-wl-date`} name="occurrenceId" required>
 								{waitlistDates.map((o) => <option value={o.id}>{when(o.startsAt)}</option>)}
 							</select>
@@ -357,23 +359,23 @@ const when = (iso: string) => {
 					)}
 					{ticketTypes.length > 1 && (
 						<div class="semics-field">
-							<label for={`${id}-wl-type`}>Ticket</label>
+							<label for={`${id}-wl-type`}>{t("waitlist.ticket")}</label>
 							<select id={`${id}-wl-type`} name="ticketTypeId">
-								<option value="">Any ticket</option>
-								{ticketTypes.map((t) => <option value={t.id}>{t.name}</option>)}
+								<option value="">{t("waitlist.anyTicket")}</option>
+								{ticketTypes.map((type) => <option value={type.id}>{type.name}</option>)}
 							</select>
 						</div>
 					)}
 					<div class="semics-field">
-						<label for={`${id}-wl-qty`}>Tickets</label>
+						<label for={`${id}-wl-qty`}>{t("widget.tickets")}</label>
 						<input id={`${id}-wl-qty`} name="qty" type="number" inputmode="numeric" min="1" max="10" value="1" required />
 					</div>
 					<div class="semics-field">
-						<label for={`${id}-wl-name`}>Your name</label>
+						<label for={`${id}-wl-name`}>{t("widget.name")}</label>
 						<input id={`${id}-wl-name`} name="name" type="text" autocomplete="name" required maxlength="200" />
 					</div>
 					<div class="semics-field">
-						<label for={`${id}-wl-email`}>Email</label>
+						<label for={`${id}-wl-email`}>{t("widget.email")}</label>
 						<input id={`${id}-wl-email`} name="email" type="email" autocomplete="email" required maxlength="254" />
 					</div>
 					{siteKey && (
@@ -382,7 +384,7 @@ const when = (iso: string) => {
 							<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						</>
 					)}
-					<button type="submit" class="semics-secondary">Join the waitlist</button>
+					<button type="submit" class="semics-secondary">{t("waitlist.button")}</button>
 				</form>
 			)}
 			</>

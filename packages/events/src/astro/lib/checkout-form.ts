@@ -64,8 +64,9 @@ export function isCrossSiteRequest(request: Request, url: URL): boolean {
 	}
 }
 
-/** The answer to a refused cross-site post. */
+/** The answer to a refused cross-site post (another site's form, not a page a visitor reads). */
 export const crossSiteResponse = () =>
+	// i18n-ignore
 	new Response("Cross-site form submissions are not allowed.", {
 		status: 403,
 		headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },

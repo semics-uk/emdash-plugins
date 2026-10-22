@@ -8,6 +8,7 @@
  * `questions` marker so the order sends `answers` (even `{}`) only when questions were shown: Free's
  * reserve refuses unknown keys.
  */
+import { t } from "../../i18n/index";
 import { type PublicQuestion, QUESTION_ID, type QuestionField, type WidgetField } from "./widget";
 
 export const ANSWER_PREFIX = "answer:";
@@ -15,10 +16,11 @@ export const QUESTIONS_MARKER = "questions";
 /** The longest text answer (Pro's reserve refuses longer ones). */
 export const MAX_ANSWER = 500;
 
+/** English messages by question type (the 1.0 API; `questionControls` translates). */
 export const QUESTION_MESSAGES: Record<PublicQuestion["type"], string> = {
-	text: "Answer this question.",
-	select: "Choose an answer.",
-	checkbox: "Tick this box to continue.",
+	text: t("en", "question.error.text"),
+	select: t("en", "question.error.select"),
+	checkbox: t("en", "question.error.checkbox"),
 };
 
 export interface QuestionControl {
@@ -31,8 +33,8 @@ export interface QuestionControl {
 	field: QuestionField;
 	label: string;
 	required: boolean;
-	/** Shown after the label of an optional question. */
-	hint: "(optional)" | undefined;
+	/** Shown after the label of an optional question ("(optional)"). */
+	hint: string | undefined;
 	errorId: string;
 	/** What the error says when the question needs an answer. */
 	message: string;
@@ -55,6 +57,7 @@ export function questionControls(
 	questions: readonly PublicQuestion[] | undefined,
 	anchor: string,
 	bad: readonly WidgetField[] | readonly string[],
+	locale = "en-GB",
 ): QuestionControl[] {
 	return (questions ?? []).filter(wellFormed).map((q) => {
 		const id = `${anchor}-q-${q.id}`;
@@ -68,14 +71,14 @@ export function questionControls(
 			field,
 			label: q.label.trim(),
 			required,
-			hint: required ? undefined : "(optional)",
+			hint: required ? undefined : t(locale, "question.optional"),
 			errorId: `${id}-error`,
-			message: QUESTION_MESSAGES[q.type],
+			message: t(locale, `question.error.${q.type}`),
 			invalid: (bad as readonly string[]).includes(field),
 			...(q.type === "select"
 				? {
 						options: [
-							{ value: "", label: "Choose an answer" },
+							{ value: "", label: t(locale, "question.choose") },
 							...(q.options ?? [])
 								.filter((o) => typeof o === "string" && o !== "")
 								.map((o) => ({ value: o, label: o })),

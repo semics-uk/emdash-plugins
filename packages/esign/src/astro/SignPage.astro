@@ -4,6 +4,7 @@
 // to the core only in POST bodies. A plain form post works without JavaScript. Its CSP allows only
 // the ceremony's own hashed script and style (SU-NFR-02).
 import { pluginId } from "virtual:semics-esign/config";
+import { pickLocale, translator } from "../i18n/index.ts";
 import { ceremonyCsp } from "./lib/csp";
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
 import { ceremonyRedirect, handleSign } from "./lib/sign";
@@ -20,6 +21,9 @@ Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
+// The page's language is the site's (Astro i18n), else British English (T102).
+const locale = pickLocale(Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
 const view = await handleSign({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, token, form);
 // The ceremony ended for an integration's envelope: back to its site with the receipt in the URL
 // fragment (protocol §8.2), never a query string. The redirect keeps no-referrer and no-store.
@@ -32,18 +36,18 @@ if (back) {
 }
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
-		<title>Sign a document</title>
+		<title>{t("sign.title")}</title>
 	</head>
 	<body>
 		<main class="semics-esign semics-sign" data-testid="sign-page" data-state={view.kind}>
-			<h1>{view.kind === "ready" ? view.session.envelope?.title ?? "Sign a document" : "Sign a document"}</h1>
-			<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} />
+			<h1>{view.kind === "ready" ? view.session.envelope?.title ?? t("sign.title") : t("sign.title")}</h1>
+			<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} locale={locale} />
 		</main>
 	</body>
 </html>

@@ -8,6 +8,7 @@
 // booking data: it lists the events from `public/events` only.
 import { pluginId } from "virtual:semics-events/config";
 
+import { clientMessages, pickLocale, translator } from "../i18n/index";
 import { callPublicRoute } from "./lib/call";
 import type { PublicEventSummary } from "./lib/list";
 
@@ -25,26 +26,30 @@ const wanted = (Astro.url.searchParams.get("event") ?? "").slice(0, 200);
 const options = events.map((e) => ({ id: e.eventId, title: e.title || e.eventId }));
 if (wanted && !options.some((o) => o.id === wanted)) options.unshift({ id: wanted, title: wanted });
 const api = `/_emdash/api/plugins/${encodeURIComponent(pluginId)}/checkin/code`;
+const locale = pickLocale(Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+// The script's messages, in the page's language (T102): it has none of its own.
+const messages = JSON.stringify(clientMessages(locale, "checkin.", "status."));
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
-		<title>Check in</title>
+		<title>{t("checkin.title")}</title>
 	</head>
 	<body>
 		<main class="semics-events semics-checkin" data-testid="checkin-page">
-			<h1>Check in</h1>
-			<form class="semics-checkin-form" data-semics-checkin data-api={api} autocomplete="off">
-				<label for="semics-checkin-event">Event</label>
+			<h1>{t("checkin.title")}</h1>
+			<form class="semics-checkin-form" data-semics-checkin data-api={api} data-messages={messages} autocomplete="off">
+				<label for="semics-checkin-event">{t("checkin.event")}</label>
 				<select id="semics-checkin-event" name="eventId">
-					<option value="">Any event</option>
+					<option value="">{t("checkin.anyEvent")}</option>
 					{options.map((o) => <option value={o.id} selected={o.id === wanted}>{o.title}</option>)}
 				</select>
-				<label for="semics-checkin-code">Check-in code</label>
+				<label for="semics-checkin-code">{t("checkin.code")}</label>
 				<input
 					id="semics-checkin-code"
 					name="code"
@@ -56,16 +61,14 @@ const api = `/_emdash/api/plugins/${encodeURIComponent(pluginId)}/checkin/code`;
 					required
 					autofocus
 				/>
-				<button type="submit">Check in</button>
+				<button type="submit">{t("checkin.submit")}</button>
 			</form>
-			<button type="button" class="semics-checkin-camera" data-semics-checkin-camera hidden>Scan with camera</button>
+			<button type="button" class="semics-checkin-camera" data-semics-checkin-camera hidden>{t("checkin.camera")}</button>
 			<video class="semics-checkin-video" data-semics-checkin-video playsinline muted hidden></video>
-			<p class="semics-checkin-note" data-semics-checkin-nocamera hidden>
-				This browser cannot scan QR codes: type the code from the ticket instead.
-			</p>
+			<p class="semics-checkin-note" data-semics-checkin-nocamera hidden>{t("checkin.noCamera")}</p>
 			<div class="semics-checkin-result" role="status" aria-live="polite" data-semics-checkin-result data-testid="checkin-result"></div>
 			<noscript>
-				<p class="semics-checkin-note">This screen needs JavaScript. Check people in from the Attendees page in the admin.</p>
+				<p class="semics-checkin-note">{t("checkin.needsJs")}</p>
 			</noscript>
 		</main>
 		<script>

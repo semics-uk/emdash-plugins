@@ -302,6 +302,7 @@ describe("an uploaded PDF in the ceremony (ES-FR-19, T094)", () => {
 		expect(pdfDocumentView({ ...ready, snapshot: "", document: pdf } as never)).toEqual({
 			name: "lease.pdf",
 			pages: 3,
+			pagesLabel: "3 pages",
 			size: "47 KB",
 			url: link,
 		});

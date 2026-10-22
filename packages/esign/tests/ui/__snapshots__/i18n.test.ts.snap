@@ -1,0 +1,49 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UI text in en and ar (SU-NFR-06 snapshots) > SU-NFR-06 Arabic 1`] = `
+{
+  "missing": "للتوقيع، يُرجى كتابة اسمك الكامل، تحديد مربع الموافقة، تعبئة Company.",
+  "onePage": {
+    "name": "contract.pdf",
+    "pages": 1,
+    "pagesLabel": "صفحة واحدة",
+    "size": "2.3 ميغابايت",
+    "url": undefined,
+  },
+  "otp": "هذا الرمز غير صحيح. راجع أحدث رسالة وحاول مرة أخرى.",
+  "pdf": {
+    "name": "contract.pdf",
+    "pages": 3,
+    "pagesLabel": "3 صفحات",
+    "size": "47 كيلوبايت",
+    "url": undefined,
+  },
+  "start": "بلغ هذا النموذج حدّه لهذا اليوم. يُرجى المحاولة غدًا.",
+  "token": "انتهت صلاحية رابط التوقيع هذا. اطلب من المرسل رابطًا جديدًا.",
+  "unknown": "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
+}
+`;
+
+exports[`UI text in en and ar (SU-NFR-06 snapshots) > SU-NFR-06 English 1`] = `
+{
+  "missing": "To sign, please type your full name, tick the consent box, fill in Company.",
+  "onePage": {
+    "name": "contract.pdf",
+    "pages": 1,
+    "pagesLabel": "1 page",
+    "size": "2.3 MB",
+    "url": undefined,
+  },
+  "otp": "That code is not right. Check the latest email and try again.",
+  "pdf": {
+    "name": "contract.pdf",
+    "pages": 3,
+    "pagesLabel": "3 pages",
+    "size": "47 KB",
+    "url": undefined,
+  },
+  "start": "This form has reached its limit for today. Please try again tomorrow.",
+  "token": "This signing link has expired. Ask the sender for a new one.",
+  "unknown": "Something went wrong. Please try again.",
+}
+`;

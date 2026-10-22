@@ -34,7 +34,7 @@ describe("booking client script (EU-FR-04, EU-NFR-03)", () => {
 				{ qty: Number.NaN, priceMinor: 100 },
 			]),
 		).toBe(2500);
-		expect(formatMinor(2500, "GBP", "en-GB")).toBe("£25.00");
-		expect(formatMinor(0, "GBP", "en-GB")).toBe("Free");
+		expect(formatMinor(2500, "GBP", "en-GB", "Free")).toBe("£25.00");
+		expect(formatMinor(0, "GBP", "en-GB", "Free")).toBe("Free");
 	});
 });

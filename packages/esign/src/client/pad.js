@@ -110,30 +110,35 @@ function enhanceSlot(slot) {
 	const input = /** @type {HTMLInputElement | null} */ (slot.querySelector('input[name="signatureStrokes"]'));
 	if (!input || slot.querySelector("[data-esign-pad]")) return;
 	const pad = createPad(SIZE);
+	// The pad's messages in the page's language, rendered by the component (T102): no text of its own.
+	/** @type {Record<string, string>} */
+	let m = {};
+	try {
+		m = JSON.parse(slot.dataset.messages ?? "{}");
+	} catch {
+		// No messages: the pad shows their keys.
+	}
+	const say = (/** @type {string} */ key, /** @type {number} */ count = 0) =>
+		(m[key] ?? key).replace("{count}", new Intl.NumberFormat(doc.documentElement.lang || undefined).format(count));
+	const rules = new Intl.PluralRules(doc.documentElement.lang || undefined);
 
 	const wrap = make(doc, "div", { class: "semics-pad", "data-esign-pad": "" });
 	const canvas = /** @type {HTMLCanvasElement} */ (
 		make(doc, "canvas", {
 			class: "semics-pad-canvas",
 			role: "img",
-			"aria-label":
-				"Signature drawing area. Optional: draw with a finger, pen or mouse. Typing your name is enough to sign.",
+			"aria-label": say("canvas"),
 			"data-testid": "sign-pad",
 		})
 	);
 	canvas.width = SIZE.w;
 	canvas.height = SIZE.h;
-	const undo = make(doc, "button", { type: "button", "data-esign-pad-undo": "" }, "Undo");
-	const clear = make(doc, "button", { type: "button", "data-esign-pad-clear": "" }, "Clear");
+	const undo = make(doc, "button", { type: "button", "data-esign-pad-undo": "" }, say("undo"));
+	const clear = make(doc, "button", { type: "button", "data-esign-pad-clear": "" }, say("clear"));
 	const status = make(doc, "p", { class: "semics-note", "aria-live": "polite", "data-esign-pad-status": "" });
 	const bar = make(doc, "div", { class: "semics-pad-bar" });
 	bar.append(undo, clear);
-	const label = make(
-		doc,
-		"p",
-		{ class: "semics-note" },
-		"Optional: draw your signature below. Your typed name is still required.",
-	);
+	const label = make(doc, "p", { class: "semics-note" }, say("intro"));
 	wrap.append(label, canvas, bar, status);
 	slot.insertBefore(wrap, input);
 
@@ -199,17 +204,19 @@ function enhanceSlot(slot) {
 		if (e.pointerId !== activePointer) return;
 		activePointer = undefined;
 		pad.end();
-		publish(`Signature drawn: ${pad.strokes().length} stroke${pad.strokes().length === 1 ? "" : "s"}.`);
+		const count = pad.strokes().length;
+		const form = `drawn.${rules.select(count)}`;
+		publish(say(m[form] === undefined ? "drawn.other" : form, count));
 	};
 	canvas.addEventListener("pointerup", finish);
 	canvas.addEventListener("pointercancel", finish);
 	undo.addEventListener("click", () => {
 		pad.undo();
-		publish("Last stroke removed.");
+		publish(say("undone"));
 	});
 	clear.addEventListener("click", () => {
 		pad.clear();
-		publish("Signature cleared.");
+		publish(say("cleared"));
 	});
 	paint();
 }

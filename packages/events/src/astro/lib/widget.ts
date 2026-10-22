@@ -3,6 +3,7 @@
  * the components stay thin. `src/client/booking.ts` mirrors `validateCheckoutFields` (a test keeps
  * them in step) because the client script ships without imports.
  */
+import { type MessageKey, t } from "../../i18n/index";
 
 /** What `GET public/event` answers for one event (T046 implements the route to this shape). */
 export interface PublicEvent {
@@ -84,30 +85,39 @@ export const WIDGET_PARAMS = { error: "booking_error", fields: "booking_fields",
 /** The key reserve accepts (`src/domain/checkout.ts`). */
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
-export const FIELD_MESSAGES: Record<(typeof WIDGET_FIELDS)[number], string> = {
-	occurrence: "Choose a date.",
-	promo: "Check the code, or leave it empty.",
-	tickets: "Choose at least one ticket.",
-	name: "Enter your name.",
-	email: "Enter a valid email address.",
-};
+const ERROR_CODES = [
+	"BAD_REQUEST",
+	"SOLD_OUT",
+	"SALES_CLOSED",
+	"RATE_LIMITED",
+	"TURNSTILE_FAILED",
+	"HOLD_EXPIRED",
+	"NOT_FOUND",
+	"PROMO_INVALID",
+	"PROMO_EXHAUSTED",
+	"PROMO_ORDER_TOO_LARGE",
+	"PROMO_UNAVAILABLE",
+	"INTERNAL",
+] as const;
 
-export const ERROR_MESSAGES: Record<string, string> = {
-	BAD_REQUEST: "Please check the highlighted details.",
-	SOLD_OUT: "Sorry, there are not enough tickets left for that order.",
-	SALES_CLOSED: "Ticket sales for this event are closed.",
-	RATE_LIMITED: "Too many bookings from this connection. Please wait a few minutes and try again.",
-	TURNSTILE_FAILED: "The security check did not pass. Please try again.",
-	HOLD_EXPIRED: "Your hold on these tickets expired. Please start again.",
-	NOT_FOUND: "This event is not taking bookings.",
-	PROMO_INVALID: "That code is not valid for this event.",
-	PROMO_EXHAUSTED: "That code has been used up.",
-	PROMO_ORDER_TOO_LARGE: "That code can't be used on an order this large. Order fewer ticket types at once.",
-	PROMO_UNAVAILABLE: "That code can't be used right now. Remove it to book without it.",
-	INTERNAL: "Something went wrong. Please try again.",
-};
+/** A field's message in the locale's language (T102). */
+export const fieldMessage = (field: (typeof WIDGET_FIELDS)[number], locale?: string) =>
+	t(locale, `widget.field.${field}`);
 
-export const errorMessage = (code: string) => ERROR_MESSAGES[code] ?? ERROR_MESSAGES.INTERNAL;
+/** English field messages, by field (the 1.0 API; components use `fieldMessage`). */
+export const FIELD_MESSAGES = Object.fromEntries(WIDGET_FIELDS.map((f) => [f, fieldMessage(f, "en")])) as Record<
+	(typeof WIDGET_FIELDS)[number],
+	string
+>;
+
+/** English refusal messages by code: the codes the widget knows (anything else reads as `INTERNAL`). */
+export const ERROR_MESSAGES: Record<string, string> = Object.fromEntries(
+	ERROR_CODES.map((code) => [code, t("en", `widget.error.${code}`)]),
+);
+
+/** A refusal's message in the locale's language; an unknown code gets `INTERNAL`'s. */
+export const errorMessage = (code: string, locale?: string) =>
+	t(locale, `widget.error.${(ERROR_CODES as readonly string[]).includes(code) ? code : "INTERNAL"}` as MessageKey);
 
 /** A refusal of an order or check with a code: Pro's licence codes (it lapsed) mean the code can't be used (T120). */
 export const promoRefusal = (code: string) => (code.startsWith("LICENCE_") ? "PROMO_UNAVAILABLE" : code);
@@ -240,7 +250,7 @@ export function eventCalendarHref(pluginId: string, eventId: string): string {
 }
 
 export function formatMoney(minor: number, currency: string, locale = "en-GB"): string {
-	if (minor === 0) return "Free";
+	if (minor === 0) return t(locale, "money.free");
 	try {
 		return new Intl.NumberFormat(locale, { style: "currency", currency }).format(minor / 100);
 	} catch {
@@ -248,16 +258,21 @@ export function formatMoney(minor: number, currency: string, locale = "en-GB"): 
 	}
 }
 
-export const STATUS_LABELS: Record<string, string> = {
-	draft: "Started",
-	held: "Held for you",
-	awaiting_signature: "Waiting for signatures",
-	awaiting_payment: "Waiting for payment",
-	confirmed: "Confirmed",
-	expired: "Expired",
-	cancelled: "Cancelled",
-	refunded: "Refunded",
-	refunded_unavailable: "Refunded",
-};
+const STATUSES = [
+	"draft",
+	"held",
+	"awaiting_signature",
+	"awaiting_payment",
+	"confirmed",
+	"expired",
+	"cancelled",
+	"refunded",
+	"refunded_unavailable",
+] as const;
 
-export const statusLabel = (status: string) => STATUS_LABELS[status] ?? status;
+/** A booking status for people, in the locale's language; an unknown status is shown as it is. */
+export const statusLabel = (status: string, locale?: string) =>
+	(STATUSES as readonly string[]).includes(status) ? t(locale, `status.${status}` as MessageKey) : status;
+
+/** English status labels (the 1.0 API; components use `statusLabel`). */
+export const STATUS_LABELS: Record<string, string> = Object.fromEntries(STATUSES.map((s) => [s, statusLabel(s, "en")]));

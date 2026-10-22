@@ -33,7 +33,9 @@ function files(dir) {
 }
 
 const IDENT = /^[a-z0-9]+(?:[-_][a-z0-9]+)+$/;
-const TECHNICAL_WORD = /^[A-Za-z0-9_$.:/#?=&%@*+,;[\]^|~-]*$/;
+/** HTML keyword lists such as `rel` values. */
+const KEYWORDS = new Set(["noopener", "noreferrer", "nofollow", "noindex", "nofollow"]);
+const TECHNICAL_WORD = /^[A-Za-z0-9_$.:/#?=&%@*+,;[\]^|~{}-]*$/;
 
 /** Whether a string literal (or the static part of a template) reads as words for people. */
 export function looksLikeText(value) {
@@ -41,8 +43,11 @@ export function looksLikeText(value) {
 	if (!/\p{L}{2,}/u.test(trimmed)) return false;
 	// CSS (the e-sign page's hashed stylesheets) is checked by the CSS rule instead.
 	if (/[{}]/.test(trimmed) && /:[^;]*;/.test(trimmed)) return false;
-	if (/\s/.test(trimmed)) return !trimmed.split(/\s+/).every((t) => IDENT.test(t));
-	if (trimmed !== value && /\p{L}/u.test(value)) return true; // " or ", "From "
+	// CSS selectors (`input[name="code"]`, `input:not([disabled])`) and MIME types.
+	if (/^[\w\-.#:[\]="'^$*~|>+,()\uE000]+$/.test(trimmed) && /[[\]]|:\w+\(/.test(trimmed)) return false;
+	if (/^[a-z]+\/[\w.+-]+(?:;\s*charset=[\w-]+)?$/.test(trimmed)) return false;
+	if (/\s/.test(trimmed)) return !trimmed.split(/\s+/).every((t) => IDENT.test(t) || KEYWORDS.has(t));
+	if (trimmed !== value && /\p{L}/u.test(value) && !IDENT.test(trimmed)) return true; // " or ", "From "
 	if (/^\p{Lu}\p{Ll}+$/u.test(trimmed)) return true; // "Free", "Undo"
 	if (/[\p{L}]/u.test(trimmed) && !/^[\x20-\x7e]*$/.test(trimmed)) return true; // non-ASCII words
 	return !TECHNICAL_WORD.test(trimmed);
@@ -106,7 +111,7 @@ export function jsStrings(src) {
 					// The static parts of a template, with a placeholder for each expression.
 					depth = 1;
 					j += 2;
-					value += "\u0000";
+					value += "\uE000";
 					while (j < src.length && depth > 0) {
 						if (src[j] === "{") depth++;
 						else if (src[j] === "}") depth--;
@@ -119,7 +124,7 @@ export function jsStrings(src) {
 				value += d;
 				j++;
 			}
-			for (const part of value.split("\u0000")) out.push({ value: part, line: start, whole: value });
+			for (const part of value.split("\uE000")) out.push({ value: part, line: start, whole: value });
 			i = j + 1;
 			prev = "a";
 			continue;
@@ -183,16 +188,18 @@ export function astroViolations(src) {
 		.replace(/\{\/\*[\s\S]*?\*\/\}/g, blank);
 	const lines = src.split("\n");
 	const ignored = (line) =>
-		/i18n-ignore|headers\.set\(/.test(lines[line - 1] ?? "") || /i18n-ignore/.test(lines[line - 2] ?? "");
+		/i18n-ignore|headers[.:]|"content-type":/.test(lines[line - 1] ?? "") || /i18n-ignore/.test(lines[line - 2] ?? "");
 	for (const s of jsStrings(frontmatter)) {
 		if (looksLikeText(s.value) && !ignored(s.line + 1)) found.push({ line: s.line + 1, text: s.whole });
 	}
 	// Text between tags.
 	const textNode = />([^<>]*)</g;
 	for (let m = textNode.exec(template); m; m = textNode.exec(template)) {
+		// After an arrow (`(s) =>`) the text is the arrow's body, code.
+		if (template[m.index - 1] === "=") continue;
 		const raw = withoutExpressions(m[1]).trim();
 		// Code between the JSX of an expression (`) : booking ? (`), not a text node.
-		if (/^\)|\($|&&$|\|\|$|=>/.test(raw)) continue;
+		if (/^\)|\($|&&$|\|\|$|=>|\breturn\b|\bcase\b[^:]*:|\bdefault:/.test(raw)) continue;
 		const text = raw.replace(/[()?:&|!;,]/g, " ");
 		const line = template.slice(0, m.index).split("\n").length;
 		if (/\p{L}{2,}/u.test(text) && !ignored(line)) found.push({ line, text: text.trim() });
@@ -217,7 +224,7 @@ export function astroViolations(src) {
 export function scriptViolations(src) {
 	const lines = src.split("\n");
 	const ignored = (line) =>
-		/i18n-ignore|headers\.set\(/.test(lines[line - 1] ?? "") || /i18n-ignore/.test(lines[line - 2] ?? "");
+		/i18n-ignore|headers[.:]|"content-type":/.test(lines[line - 1] ?? "") || /i18n-ignore/.test(lines[line - 2] ?? "");
 	return jsStrings(src)
 		.filter((s) => !/^\s*(import|export .* from)\b/.test(lines[s.line - 1] ?? ""))
 		.filter((s) => looksLikeText(s.value) && !ignored(s.line))
@@ -250,6 +257,8 @@ for (const pkg of PACKAGES) {
 		const offenders = [];
 		for (const path of scanned) {
 			const src = readFileSync(path, "utf8");
+			// A module whose strings are all for developers (the route caller's errors) says so once.
+			if (/^\/\/ i18n-ignore-file\b/m.test(src)) continue;
 			const hits = path.endsWith(".astro") ? astroViolations(src) : scriptViolations(src);
 			for (const hit of hits) offenders.push(`${relative(repoRoot, path)}:${hit.line} ${JSON.stringify(hit.text)}`);
 		}

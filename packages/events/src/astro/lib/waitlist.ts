@@ -5,6 +5,7 @@
  * `public/waitlist/join` and goes back to the widget with an outcome code only, never what was typed.
  * Offers arrive by email; the booking page claims them (`claimOfferLink` in `./checkout-form`).
  */
+import { type MessageKey, t } from "../../i18n/index";
 import { callPublicRoute } from "./call";
 import { type CheckoutEndpointContext, crossSiteResponse, isCrossSiteRequest } from "./checkout-form";
 import { anchorId, safeReturnTo, WIDGET_PARAMS } from "./widget";
@@ -12,15 +13,16 @@ import { anchorId, safeReturnTo, WIDGET_PARAMS } from "./widget";
 export const WAITLIST_PATH = "/_events/waitlist";
 const PARAM = "waitlist";
 
-/** What the widget says after a join; anything else reads as `INTERNAL`. */
-export const WAITLIST_MESSAGES: Record<string, string> = {
-	joined: "You are on the waitlist. If tickets come free we will email you, and hold them for you for 24 hours.",
-	BAD_REQUEST: "Please check your name, email, date and number of tickets.",
-	RATE_LIMITED: "Too many requests from this connection. Please wait a few minutes and try again.",
-	TURNSTILE_FAILED: "The security check did not pass. Please try again.",
-	NOT_FOUND: "This event is not taking a waitlist.",
-	INTERNAL: "Something went wrong. Please try again.",
-};
+const OUTCOMES = ["joined", "BAD_REQUEST", "RATE_LIMITED", "TURNSTILE_FAILED", "NOT_FOUND", "INTERNAL"] as const;
+
+/** What the widget says after a join, in English (the 1.0 API); anything else reads as `INTERNAL`. */
+export const WAITLIST_MESSAGES: Record<string, string> = Object.fromEntries(
+	OUTCOMES.map((code) => [code, t("en", `waitlist.${code}`)]),
+);
+
+/** A join's outcome in the locale's language; an unknown one is `INTERNAL`'s. */
+export const waitlistMessage = (code: string, locale?: string) =>
+	t(locale, `waitlist.${(OUTCOMES as readonly string[]).includes(code) ? code : "INTERNAL"}` as MessageKey);
 
 /** The outcome a widget shows after a no-JS round trip; only for the widget of `eventId`. */
 export function readWaitlistState(url: URL, eventId: string): string | undefined {

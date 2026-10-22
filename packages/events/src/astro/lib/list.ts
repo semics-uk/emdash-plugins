@@ -12,6 +12,7 @@ function formatInZone(utcMs: number, timeZone: string, locale: string, options: 
 	return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(new Date(utcMs));
 }
 
+import { t } from "../../i18n/index";
 import { formatMoney } from "./widget";
 
 /** One row of `public/events` (T046): public fields only, never counters. */
@@ -61,11 +62,7 @@ const WHEN: Intl.DateTimeFormatOptions = {
 	timeZoneName: "short",
 };
 
-const BADGES = {
-	cancelled: "Cancelled",
-	closed: "Sales closed",
-	paused: "Sales paused",
-} as const;
+const BADGES = { cancelled: "list.badge.cancelled", closed: "list.badge.closed", paused: "list.badge.paused" } as const;
 
 /** The start in the event's own zone; a missing or unknown zone shows UTC rather than failing. */
 export function eventWhen(startsAt: string, timezone: string | null | undefined, locale: string): string {
@@ -74,10 +71,16 @@ export function eventWhen(startsAt: string, timezone: string | null | undefined,
 }
 
 export function cardView(event: PublicEventSummary, locale: string): CardView {
-	const badge = event.status !== "on_sale" ? BADGES[event.status] : event.available === 0 ? "Sold out" : null;
+	const badge =
+		event.status !== "on_sale"
+			? t(locale, BADGES[event.status])
+			: event.available === 0
+				? t(locale, "list.badge.soldOut")
+				: null;
 	let price: string | null = null;
 	if (event.priceFromMinor !== undefined) {
-		price = event.priceFromMinor === 0 ? "Free" : `From ${formatMoney(event.priceFromMinor, event.currency, locale)}`;
+		const from = formatMoney(event.priceFromMinor, event.currency, locale);
+		price = event.priceFromMinor === 0 ? from : t(locale, "list.priceFrom", { price: from });
 	}
 	return {
 		eventId: event.eventId,

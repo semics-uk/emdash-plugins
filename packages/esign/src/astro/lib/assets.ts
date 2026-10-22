@@ -96,7 +96,7 @@ export const CEREMONY_CSS = `.semics-ceremony {
 	font: 0.9em/1.4 ui-monospace, monospace;
 	margin: 0.75rem 0;
 }
-.semics-ceremony blockquote { margin: 0.75rem 0; padding-left: 0.75rem; border-left: 3px solid var(--_border); }
+.semics-ceremony blockquote { margin: 0.75rem 0; padding-inline-start: 0.75rem; border-inline-start: 3px solid var(--_border); }
 .semics-ceremony a { color: var(--_accent); }
 .semics-ceremony details { margin: 0 0 1rem; }
 .semics-ceremony summary { cursor: pointer; color: var(--_muted); }

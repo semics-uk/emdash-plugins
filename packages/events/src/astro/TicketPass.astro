@@ -3,6 +3,7 @@
 // core also sends the code's QR matrix (`qr`, T082), drawn here as an SVG for the door's camera; the
 // text code stays for typing it in. The code is grouped in fours for reading aloud; screen readers
 // get it character by character.
+import { pickLocale, translator } from "../i18n/index";
 import { qrPath } from "./lib/pass";
 
 interface Props {
@@ -13,14 +14,18 @@ interface Props {
 	status?: string;
 	/** `{ size, bits }` from Events Pro's `public/booking`; anything else draws no QR. */
 	qr?: unknown;
+	locale?: string;
 }
 
 const { name, code, ticket, event, status, qr } = Astro.props;
+const { t, lang, dir } = translator(pickLocale(Astro.props.locale, Astro.currentLocale));
+const statusText =
+	status === "pending" ? t("pass.status.pending") : status === "cancelled" ? t("pass.status.cancelled") : status;
 const spoken = code.replace(/[^A-Za-z0-9]/g, "").split("").join(" ");
 const matrix = qrPath(qr);
 const box = matrix ? matrix.size + 8 : 0;
 ---
-<article class="semics-events semics-ticket-pass" data-testid="ticket-pass" data-status={status}>
+<article class="semics-events semics-ticket-pass" lang={lang} dir={dir} data-testid="ticket-pass" data-status={status}>
 	{event && <p class="semics-pass-event">{event}</p>}
 	<h3 class="semics-pass-name">{name}</h3>
 	{ticket && <p class="semics-pass-ticket">{ticket}</p>}
@@ -29,7 +34,7 @@ const box = matrix ? matrix.size + 8 : 0;
 			class="semics-pass-qr"
 			data-testid="ticket-qr"
 			role="img"
-			aria-label="QR code of the check-in code"
+			aria-label={t("pass.qr")}
 			viewBox={`-4 -4 ${box} ${box}`}
 			shape-rendering="crispEdges"
 		>
@@ -37,12 +42,12 @@ const box = matrix ? matrix.size + 8 : 0;
 			<path d={matrix.d} fill="#000000" />
 		</svg>
 	)}
-	<p class="semics-pass-code-label">Check-in code</p>
+	<p class="semics-pass-code-label">{t("pass.code")}</p>
 	<p class="semics-pass-code">
 		<span aria-hidden="true" data-testid="ticket-code">{code}</span>
 		<span class="semics-visually-hidden">{spoken}</span>
 	</p>
-	{status && status !== "valid" && <p class="semics-pass-status">{status}</p>}
+	{status && status !== "valid" && <p class="semics-pass-status">{statusText}</p>}
 </article>
 
 <style>

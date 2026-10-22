@@ -21,7 +21,15 @@ export interface CheckInView {
 }
 
 const MAX_CODE = 200;
-const ADMIN_HINT = "Use the Attendees page in the admin instead.";
+
+/**
+ * The screen's messages in the page's language, from the form's `data-messages` (the page renders them,
+ * T102): keys without the `checkin.` prefix, plus `status.<booking status>`. A missing key shows the key.
+ */
+export type CheckInMessages = Record<string, string>;
+
+const say = (m: CheckInMessages, key: string, vars: Record<string, string> = {}) =>
+	(m[key] ?? key).replace(/\{(\w+)\}/g, (whole, name: string) => vars[name] ?? whole);
 
 /** A typed or scanned code, as the route takes it. */
 export function codeFromScan(raw: string): string {
@@ -39,9 +47,14 @@ export function safeSignLink(link: unknown, origin: string): string | undefined 
 	}
 }
 
-function timeOf(iso: unknown): string {
+function timeOf(iso: unknown, lang: string | undefined): string {
 	const at = typeof iso === "string" ? new Date(iso) : null;
-	return at && !Number.isNaN(at.getTime()) ? at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+	if (!at || Number.isNaN(at.getTime())) return "";
+	try {
+		return at.toLocaleTimeString(lang || [], { hour: "2-digit", minute: "2-digit" });
+	} catch {
+		return at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+	}
 }
 
 type Answer = {
@@ -56,84 +69,56 @@ type Answer = {
 };
 
 /** What the screen shows for the route's HTTP status and (unwrapped or enveloped) answer. */
-export function checkInView(status: number, raw: unknown, origin: string): CheckInView {
-	if (status === 401 || status === 403) {
-		return { tone: "error", title: "Not signed in", message: "Sign in to the admin on this device, then try again." };
-	}
-	if (status === 404) {
-		return {
-			tone: "error",
-			title: "Check-in screen not available",
-			message: `The check-in screen needs Events Pro. ${ADMIN_HINT}`,
-		};
-	}
+export function checkInView(
+	status: number,
+	raw: unknown,
+	origin: string,
+	m: CheckInMessages,
+	lang?: string,
+): CheckInView {
+	const view = (tone: Tone, key: string, message = `${key}.message`, vars?: Record<string, string>): CheckInView => ({
+		tone,
+		title: say(m, `${key}.title`, vars),
+		message: say(m, message, vars),
+	});
+	if (status === 401 || status === 403) return view("error", "notSignedIn");
+	if (status === 404) return view("error", "unavailable");
 	let body = raw as Answer | null;
 	if (body && typeof body === "object" && "success" in body && "data" in body) {
 		body = (body as { data: unknown }).data as Answer | null;
 	}
-	if (status < 200 || status > 299 || !body || typeof body !== "object") {
-		return {
-			tone: "error",
-			title: "Something went wrong",
-			message: `The code was not checked. Try again. ${ADMIN_HINT}`,
-		};
-	}
-	const name = typeof body.name === "string" && body.name ? body.name : "This attendee";
+	if (status < 200 || status > 299 || !body || typeof body !== "object") return view("error", "failed");
+	const name = typeof body.name === "string" && body.name ? body.name : say(m, "attendee");
 	if (body.ok !== true) {
 		const code = String(body.error?.code ?? "");
-		if (code.startsWith("LICENCE_")) {
-			return {
-				tone: "error",
-				title: "Events Pro licence needed",
-				message: `This site's Events Pro licence is not valid, so the check-in screen is off. ${ADMIN_HINT}`,
-			};
-		}
-		if (code === "BAD_REQUEST")
-			return { tone: "error", title: "Enter a code", message: "Type or scan a check-in code." };
-		return {
-			tone: "error",
-			title: "Something went wrong",
-			message: `The code was not checked. Try again. ${ADMIN_HINT}`,
-		};
+		if (code.startsWith("LICENCE_")) return view("error", "licence");
+		if (code === "BAD_REQUEST") return view("error", "enterCode");
+		return view("error", "failed");
 	}
 	if (body.checkedIn === true) {
-		const at = timeOf(body.checkedInAt);
-		return { tone: "ok", title: `Checked in: ${name}`, message: at ? `At ${at}.` : "Done." };
+		const time = timeOf(body.checkedInAt, lang);
+		return view("ok", "checkedIn", time ? "checkedIn.at" : "checkedIn.done", { name, time });
 	}
 	switch (body.reason) {
 		case "ALREADY_CHECKED_IN": {
-			const at = timeOf(body.checkedInAt);
-			return {
-				tone: "warn",
-				title: "Already checked in",
-				message: `${name} was first checked in${at ? ` at ${at}` : ""}. Do not let the ticket in twice.`,
-			};
+			const time = timeOf(body.checkedInAt, lang);
+			return view("warn", "already", time ? "already.messageAt" : "already.message", { name, time });
 		}
 		case "NOT_FOUND":
-			return {
-				tone: "error",
-				title: "Code not found",
-				message: "No attendee has that code for this event. Check the event, or type the code from the ticket.",
-			};
-		case "BOOKING_NOT_CONFIRMED":
-			return {
-				tone: "error",
-				title: "Cannot check in",
-				message: `The booking is not confirmed (it is ${String(body.bookingStatus ?? "unknown")}), so this ticket is not valid.`,
-			};
+			return view("error", "notFound");
+		case "BOOKING_NOT_CONFIRMED": {
+			const code = String(body.bookingStatus ?? "unknown");
+			return view("error", "notConfirmed", undefined, { status: m[`status.${code}`] ?? code });
+		}
 		case "WAIVER_PENDING": {
 			const signLink = safeSignLink(body.signLink, origin);
 			return {
-				tone: "error",
-				title: "Waiver not signed",
-				message: signLink
-					? `${name} has not signed the waiver yet. Open the signing page so they can sign on this device, then check them in again.`
-					: `${name} has not signed the waiver yet. Check them in once they have signed.`,
+				...view("error", "waiver", signLink ? "waiver.messageLink" : "waiver.message", { name }),
 				...(signLink ? { signLink } : {}),
 			};
 		}
 		default:
-			return { tone: "error", title: "Cannot check in", message: "This ticket is not valid." };
+			return view("error", "invalid");
 	}
 }
 
@@ -151,6 +136,13 @@ export function startCheckIn(doc: Document = document): boolean {
 	const api = form?.dataset.api;
 	if (!form || !input || !out || !api) return false;
 	const win = doc.defaultView as (Window & { BarcodeDetector?: DetectorClass }) | null;
+	let m: CheckInMessages = {};
+	try {
+		m = JSON.parse(form.dataset.messages ?? "{}") as CheckInMessages;
+	} catch {
+		// No messages: the screen shows their keys.
+	}
+	const lang = doc.documentElement.lang || undefined;
 	let busy = false;
 
 	const show = (view: CheckInView) => {
@@ -167,7 +159,7 @@ export function startCheckIn(doc: Document = document): boolean {
 			link.target = "_blank";
 			link.rel = "noopener noreferrer";
 			link.className = "semics-checkin-link";
-			link.textContent = "Open the signing page";
+			link.textContent = say(m, "signLink");
 			out.append(link);
 		}
 		out.hidden = false;
@@ -177,7 +169,7 @@ export function startCheckIn(doc: Document = document): boolean {
 		const code = codeFromScan(raw);
 		if (busy) return;
 		if (!code) {
-			show({ tone: "error", title: "Enter a code", message: "Type or scan a check-in code." });
+			show({ tone: "error", title: say(m, "enterCode.title"), message: say(m, "enterCode.message") });
 			return;
 		}
 		busy = true;
@@ -196,7 +188,7 @@ export function startCheckIn(doc: Document = document): boolean {
 		} catch {
 			// Offline or blocked: shown as "Something went wrong".
 		}
-		show(checkInView(status, body, doc.location.origin));
+		show(checkInView(status, body, doc.location.origin, m, lang));
 		busy = false;
 		input.value = "";
 		input.focus();
@@ -223,7 +215,7 @@ export function startCheckIn(doc: Document = document): boolean {
 		for (const track of stream?.getTracks() ?? []) track.stop();
 		stream = null;
 		video.hidden = true;
-		button.textContent = "Scan with camera";
+		button.textContent = say(m, "camera");
 	};
 	const tick = async (detector: Detector) => {
 		if (!stream) return;
@@ -252,13 +244,13 @@ export function startCheckIn(doc: Document = document): boolean {
 			try {
 				stream = await win.navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
 			} catch {
-				show({ tone: "error", title: "Camera not available", message: "Allow the camera, or type the code instead." });
+				show({ tone: "error", title: say(m, "cameraFailed.title"), message: say(m, "cameraFailed.message") });
 				return;
 			}
 			video.srcObject = stream;
 			video.hidden = false;
 			await video.play().catch(() => undefined);
-			button.textContent = "Stop camera";
+			button.textContent = say(m, "stopCamera");
 			void tick(new Barcode({ formats: ["qr_code"] }));
 		});
 	});

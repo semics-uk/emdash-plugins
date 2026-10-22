@@ -1,6 +1,7 @@
 ---
 // <BookingStatus>: a booking's state, order and cancel button (EU-FR-06). Rendered by the
 // `/booking` page from the `public/booking` answer; the cancel form is a plain POST back to it.
+import { around, pickLocale, translator } from "../i18n/index";
 import { type BookingView, formatMoney, statusLabel } from "./lib/widget";
 
 interface Props {
@@ -14,53 +15,59 @@ interface Props {
 	locale?: string;
 }
 
-const { booking, cancelled = false, cancelAction, ticketNames = {}, locale = "en-GB" } = Astro.props;
+const { booking, cancelled = false, cancelAction, ticketNames = {} } = Astro.props;
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { t, plural, lang, dir } = translator(locale);
+const [heldBefore, heldAfter] = around(t("booking.heldUntil"), "time");
+const [cancelBefore, cancelAfter] = around(t("booking.cancelUntil"), "time");
+const tickets = booking.lines.reduce((n, line) => n + line.qty, 0);
 const status = cancelled ? "cancelled" : booking.status;
 const at = (iso: string) => {
 	try {
-		return new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(
+		const time = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(
 			new Date(iso),
 		);
+		return t("time.utc", { time });
 	} catch {
 		return iso;
 	}
 };
 ---
-<section class="semics-events semics-booking-status" data-testid="booking-details" data-status={status} aria-labelledby="semics-booking-status-title">
-	<h2 id="semics-booking-status-title" class="semics-visually-hidden">Booking status</h2>
+<section class="semics-events semics-booking-status" data-testid="booking-details" data-status={status} lang={lang} dir={dir} aria-labelledby="semics-booking-status-title">
+	<h2 id="semics-booking-status-title" class="semics-visually-hidden">{t("booking.status")}</h2>
 	<p>
-		Reference <strong data-testid="booking-ref">{booking.bookingRef}</strong>
+		{t("booking.reference")} <strong data-testid="booking-ref">{booking.bookingRef}</strong>
 	</p>
 	<p class="semics-status" data-testid="booking-status" data-status={status}>
-		<span class="semics-status-badge">{statusLabel(status)}</span>
+		<span class="semics-status-badge">{statusLabel(status, locale)}</span>
 	</p>
 	{
 		!cancelled && booking.holdExpiresAt && (
 			<p data-testid="booking-hold">
-				Your tickets are held until <time datetime={booking.holdExpiresAt}>{at(booking.holdExpiresAt)} UTC</time>.
+				{heldBefore}<time datetime={booking.holdExpiresAt}>{at(booking.holdExpiresAt)}</time>{heldAfter}
 			</p>
 		)
 	}
-	<ul class="semics-lines">
+	<ul class="semics-lines" aria-label={plural("booking.lines", tickets)}>
 		{
 			booking.lines.map((line) => (
 				<li>
-					{line.qty} × {ticketNames[line.ticketTypeId] ?? line.ticketTypeId}
+					{t("booking.line", { qty: new Intl.NumberFormat(locale).format(line.qty), name: ticketNames[line.ticketTypeId] ?? line.ticketTypeId })}
 				</li>
 			))
 		}
 	</ul>
-	<p>Total <strong>{formatMoney(booking.totals.totalMinor, booking.totals.currency, locale)}</strong></p>
+	<p>{t("booking.total")} <strong>{formatMoney(booking.totals.totalMinor, booking.totals.currency, locale)}</strong></p>
 	{
 		booking.canCancel && !cancelled && cancelAction && (
 			<form method="post" action={cancelAction}>
 				<input type="hidden" name="intent" value="cancel" />
 				{booking.cancelBy && (
 					<p>
-						You can cancel until <time datetime={booking.cancelBy}>{at(booking.cancelBy)} UTC</time>.
+						{cancelBefore}<time datetime={booking.cancelBy}>{at(booking.cancelBy)}</time>{cancelAfter}
 					</p>
 				)}
-				<button type="submit">Cancel booking</button>
+				<button type="submit">{t("booking.cancel")}</button>
 			</form>
 		)
 	}

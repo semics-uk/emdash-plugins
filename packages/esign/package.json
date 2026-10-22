@@ -20,6 +20,7 @@
 		},
 		"./astro": "./src/astro/index.js",
 		"./astro/lib/*": "./src/astro/lib/*.ts",
+		"./i18n": "./src/i18n/index.ts",
 		"./astro/SignPage.astro": "./src/astro/SignPage.astro",
 		"./astro/SigningCeremony.astro": "./src/astro/SigningCeremony.astro",
 		"./astro/SignedCopyPage.astro": "./src/astro/SignedCopyPage.astro",
@@ -32,6 +33,7 @@
 	"files": [
 		"dist",
 		"src/astro",
+		"src/i18n",
 		"src/client",
 		"emdash-plugin.jsonc"
 	],

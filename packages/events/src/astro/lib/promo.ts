@@ -14,6 +14,7 @@
  * The widget shows the field only when `public/event` says the core takes codes (`promoCodes`, set by
  * Pro), so a Free site never offers one; and checkout sends `promoCode` only when a code was typed.
  */
+import { t } from "../../i18n/index";
 import { callPublicRoute, type PublicRouteContext } from "./call";
 import { type CheckoutEndpointContext, crossSiteResponse, isCrossSiteRequest } from "./checkout-form";
 import { anchorId, formatMoney, promoRefusal, safeReturnTo, widgetErrorLocation } from "./widget";
@@ -88,11 +89,14 @@ async function checkCode(
 /** The line the widget shows under an applied code. */
 export function promoNote(check: PromoCheck, currency: string, locale = "en-GB"): string {
 	const value = typeof check.value === "number" ? check.value : 0;
-	if (check.kind === "percent" && value > 0) return `Code applied: ${value / 100}% off your order.`;
-	if (check.kind === "fixed" && value > 0) {
-		return `Code applied: ${formatMoney(value, check.currency ?? currency, locale)} off your order.`;
+	if (check.kind === "percent" && value > 0) {
+		const percent = new Intl.NumberFormat(locale, { style: "percent", maximumFractionDigits: 2 }).format(value / 10000);
+		return t(locale, "promo.percent", { percent });
 	}
-	return check.hiddenTypes.length > 0 ? "Code applied: more tickets are now available." : "Code applied.";
+	if (check.kind === "fixed" && value > 0) {
+		return t(locale, "promo.fixed", { amount: formatMoney(value, check.currency ?? currency, locale) });
+	}
+	return t(locale, check.hiddenTypes.length > 0 ? "promo.unlocked" : "promo.applied");
 }
 
 /** The widget's view of the code in the cookie, or `null` (no code, Free, or it no longer works). */

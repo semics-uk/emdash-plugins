@@ -1,3 +1,4 @@
+import { type MessageKey, t, translator } from "../../i18n/index.ts";
 import { callPublicRoute, type PublicRouteContext } from "./call.ts";
 
 /**
@@ -67,6 +68,8 @@ export const sessionFields = (session: SessionData): SessionField[] =>
 export interface PdfDocumentView {
 	name: string;
 	pages: number;
+	/** The page count for people (`3 pages`). */
+	pagesLabel: string;
 	/** The file size for people (`47 KB`, `2.4 MB`). */
 	size: string;
 	/** The site's own link to the PDF; absent when the core cannot serve it (then it cannot be signed here). */
@@ -76,22 +79,29 @@ export interface PdfDocumentView {
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are removed from a file name before it is shown.
 const CONTROLS = /[\u0000-\u001f\u007f]/g;
 
-const sizeOf = (bytes: number) =>
-	bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+const sizeOf = (bytes: number, locale: string) => {
+	const number = (n: number, digits: number) =>
+		new Intl.NumberFormat(locale, { minimumFractionDigits: digits, maximumFractionDigits: digits }).format(n);
+	return bytes >= 1024 * 1024
+		? t(locale, "sign.pdf.mb", { n: number(bytes / (1024 * 1024), 1) })
+		: t(locale, "sign.pdf.kb", { n: number(Math.max(1, Math.round(bytes / 1024)), 0) });
+};
 
 /**
  * The session's uploaded PDF, if it is one: name (control characters dropped, at most 120 characters), pages, size,
  * and the link only when it is a path on this site (never `//host`, a scheme or another origin).
  */
-export function pdfDocumentView(session: SessionData): PdfDocumentView | undefined {
+export function pdfDocumentView(session: SessionData, locale = "en-GB"): PdfDocumentView | undefined {
 	const doc = session.document;
 	if (!doc || doc.kind !== "pdf") return undefined;
 	const url = doc.view?.url;
 	const name = (typeof doc.name === "string" ? doc.name.replace(CONTROLS, "").trim() : "").slice(0, 120);
+	const pages = Number.isSafeInteger(doc.pages) ? (doc.pages as number) : 0;
 	return {
 		name: name || "document.pdf",
-		pages: Number.isSafeInteger(doc.pages) ? (doc.pages as number) : 0,
-		size: sizeOf(Number.isFinite(doc.bytes) ? (doc.bytes as number) : 0),
+		pages,
+		pagesLabel: translator(locale).plural("sign.pdf.pages", pages),
+		size: sizeOf(Number.isFinite(doc.bytes) ? (doc.bytes as number) : 0, locale),
 		url: typeof url === "string" && /^\/(?![/\\])/.test(url) ? url : undefined,
 	};
 }
@@ -176,26 +186,38 @@ export type SignView =
 	| { kind: "waiting"; title?: string }
 	| { kind: "declined"; returnUrl?: string };
 
-export const MESSAGES: Record<string, string> = {
-	SIGNING_TOKEN_INVALID: "This signing link is not valid. Check you opened the latest link from your email.",
-	SIGNING_TOKEN_EXPIRED: "This signing link has expired. Ask the sender for a new one.",
-	ENVELOPE_CLOSED: "This document can no longer be signed.",
-	ENVELOPE_NOT_FOUND: "This document could not be found.",
-	RATE_LIMITED: "Too many attempts. Please wait a few minutes and try again.",
-	TOKEN_IN_QUERY: "This link is not valid. Open the link from your email.",
-	SESSION_REQUIRED: "Please reload the page and try again.",
-	BAD_REQUEST: "Please check the form and try again.",
-	SIGNING_OUT_OF_TURN: "Another signer has to sign first. You will get an email when it is your turn.",
-	OTP_REQUIRED: "Enter the code we emailed you before signing.",
-	OTP_INVALID: "That code is not right. Check the latest email and try again.",
-	OTP_EXPIRED: "That code has expired. Ask for a new code.",
-	OTP_LOCKED: "Too many wrong codes. Ask for a new code.",
-	OTP_WAIT: "A code was sent a moment ago. Please wait before asking for another.",
-	OTP_SEND_FAILED: "We could not email a code. Please try again shortly.",
-	STROKES_TOO_LARGE: "Your drawn signature is too detailed. Clear it and sign again more simply.",
-};
+const CODES = [
+	"SIGNING_TOKEN_INVALID",
+	"SIGNING_TOKEN_EXPIRED",
+	"ENVELOPE_CLOSED",
+	"ENVELOPE_NOT_FOUND",
+	"RATE_LIMITED",
+	"TOKEN_IN_QUERY",
+	"SESSION_REQUIRED",
+	"BAD_REQUEST",
+	"SIGNING_OUT_OF_TURN",
+	"OTP_REQUIRED",
+	"OTP_INVALID",
+	"OTP_EXPIRED",
+	"OTP_LOCKED",
+	"OTP_WAIT",
+	"OTP_SEND_FAILED",
+	"STROKES_TOO_LARGE",
+];
 
-const message = (code: string) => MESSAGES[code] ?? "Something went wrong. Please try again.";
+/** A refusal's message in the locale's language (T102); an unknown code gets `INTERNAL`'s. */
+export const signMessage = (code: string, locale?: string) =>
+	t(locale, `error.${CODES.includes(code) ? code : "INTERNAL"}` as MessageKey);
+
+/**
+ * English messages by code (the 1.0 API). Views carry the code beside an English `message`; the
+ * components show `signMessage(code, locale)` in the page's language.
+ */
+export const MESSAGES: Record<string, string> = Object.fromEntries(
+	CODES.map((code) => [code, signMessage(code, "en")]),
+);
+
+const message = (code: string) => signMessage(code, "en");
 
 /** A receipt token as the protocol defines it (§4): two base64url segments, a 43-character signature. */
 const RECEIPT_TOKEN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
@@ -390,7 +412,7 @@ export async function handleVerify(ctx: PublicRouteContext, form: FormData | nul
 		return {
 			kind: "error",
 			code: "BAD_REQUEST",
-			message: "Enter the 64 hexadecimal characters of the document's SHA-256.",
+			message: t("en", "verify.error.BAD_REQUEST"),
 		};
 	}
 	const result = await callPublicRoute<VerifyData>(ctx, { method: "POST", path: "public/verify", body: { sha256 } });

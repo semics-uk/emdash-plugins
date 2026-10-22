@@ -5,15 +5,19 @@
 // signature). The download is a plain link, so it works without JavaScript.
 import { pluginId } from "virtual:semics-events/config";
 
+import { pickLocale, translator } from "../i18n/index";
 import { bookingCalendarHref, eventCalendarHref } from "./lib/widget";
 
 interface Props {
 	signedQuery?: string;
 	event?: string;
 	label?: string;
+	locale?: string;
 }
 
-const { signedQuery, event, label = "Add to calendar" } = Astro.props;
+const { signedQuery, event } = Astro.props;
+const { t, lang, dir } = translator(pickLocale(Astro.props.locale, Astro.currentLocale));
+const label = Astro.props.label ?? t("calendar.add");
 const href = signedQuery
 	? bookingCalendarHref({ pluginId, query: signedQuery, now: Date.now() })
 	: event
@@ -22,8 +26,8 @@ const href = signedQuery
 ---
 {
 	href && (
-		<a class="semics-events semics-add-to-calendar" href={href} download="event.ics" rel="nofollow" data-testid="add-to-calendar">
-			{label} <span class="semics-ics-hint">(.ics file)</span>
+		<a class="semics-events semics-add-to-calendar" lang={lang} dir={dir} href={href} download="event.ics" rel="nofollow" data-testid="add-to-calendar">
+			{label} <span class="semics-ics-hint">{t("calendar.hint")}</span>
 		</a>
 	)
 }

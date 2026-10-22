@@ -3,17 +3,22 @@
 // The visitor gives a name, an email address and any template fields and passes the security check; the
 // signing link is then emailed to that address and is never shown here. A site on Free, or a template
 // that is not offered, renders a short unavailable note instead of a form.
+import { pickLocale, translator } from "../i18n/index.ts";
 import { START_PATH, anchorOf, loadSelfServe, readStartState, startMessage } from "./lib/self-serve.ts";
 
 interface Props {
 	node?: { template?: string; heading?: string };
 	template?: string;
 	heading?: string;
+	/** The page's language (T102); else `Astro.currentLocale` (a Portable Text block), else British English. */
+	locale?: string;
 }
 
 const props = Astro.props as Props;
 const templateId = (props.node?.template ?? props.template ?? "").trim();
-const heading = props.node?.heading ?? props.heading ?? "Sign this document";
+const locale = pickLocale(props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+const heading = props.node?.heading ?? props.heading ?? t("selfServe.heading");
 const view = templateId ? await loadSelfServe(Astro, { templateId }) : ({ state: "unavailable" } as const);
 const notice = readStartState(Astro.url, templateId);
 const returnTo = `${Astro.url.pathname}${Astro.url.search}`;
@@ -21,31 +26,29 @@ const id = anchorOf(templateId || "none");
 ---
 {
 	templateId && (
-		<section id={id} class="semics-esign semics-esign-request" aria-labelledby={`${id}-title`} data-testid="esign-request">
+		<section id={id} class="semics-esign semics-esign-request" lang={lang} dir={dir} aria-labelledby={`${id}-title`} data-testid="esign-request">
 			<h2 id={`${id}-title`}>{heading}</h2>
 			{
 				view.state === "unavailable" ? (
-					<p data-testid="esign-request-unavailable">This form is not available right now.</p>
+					<p data-testid="esign-request-unavailable">{t("selfServe.unavailable")}</p>
 				) : notice.sent ? (
-					<p role="status" data-testid="esign-request-sent">
-						Check your email. We have sent a link to the address you gave; open it to read and sign the document.
-					</p>
+					<p role="status" data-testid="esign-request-sent">{t("selfServe.sent")}</p>
 				) : (
 					<form method="post" action={START_PATH} data-testid="esign-request-form">
 						{notice.code && (
 							<p role="alert" data-testid="esign-request-error">
-								{startMessage(notice.code)}
+								{startMessage(notice.code, locale)}
 							</p>
 						)}
 						{view.template.description && <p>{view.template.description}</p>}
 						<input type="hidden" name="templateId" value={templateId} />
 						<input type="hidden" name="returnTo" value={returnTo} />
 						<p>
-							<label for={`${id}-name`}>Your name</label>
+							<label for={`${id}-name`}>{t("selfServe.name")}</label>
 							<input id={`${id}-name`} name="name" autocomplete="name" required maxlength="200" />
 						</p>
 						<p>
-							<label for={`${id}-email`}>Your email</label>
+							<label for={`${id}-email`}>{t("selfServe.email")}</label>
 							<input id={`${id}-email`} name="email" type="email" autocomplete="email" required maxlength="254" />
 						</p>
 						{view.template.fields.map((key) => (
@@ -54,9 +57,9 @@ const id = anchorOf(templateId || "none");
 								<input id={`${id}-f-${key}`} name={`field:${key}`} required maxlength="500" />
 							</p>
 						))}
-						<p style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+						<p style="position:absolute;inset-inline-start:-10000px;inline-size:1px;block-size:1px;overflow:hidden" aria-hidden="true">
 							<label>
-								Leave this empty
+								{t("selfServe.honeypot")}
 								<input name="website" tabindex="-1" autocomplete="off" />
 							</label>
 						</p>
@@ -66,13 +69,13 @@ const id = anchorOf(templateId || "none");
 								{/* Compact below 300 px so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
 								<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 								<noscript>
-									<p>This form uses a security check that needs JavaScript.</p>
+									<p>{t("selfServe.needsJs")}</p>
 								</noscript>
 								<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
 							</>
 						)}
-						<p>We will email you a link to sign. Only someone who can open that email can sign.</p>
-						<button type="submit">Email me the link</button>
+						<p>{t("selfServe.note")}</p>
+						<button type="submit">{t("selfServe.button")}</button>
 					</form>
 				)
 			}

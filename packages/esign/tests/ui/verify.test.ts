@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { VERIFY_CSS, VERIFY_SCRIPT } from "../../src/astro/lib/assets";
 import { cspSource, verifyCsp } from "../../src/astro/lib/csp";
 import { enhanceVerify, sha256Hex } from "../../src/client/verify.js";
+import { en } from "../../src/i18n/en";
 import { clientMessages } from "../../src/i18n/index";
 
 const root = resolve(import.meta.dirname, "../..");
@@ -106,6 +107,8 @@ describe("verify page client (SU-FR-02, ES-US-6)", () => {
 	it("R45 a fingerprint that is not found says signed records are deleted after their retention period", () => {
 		const page = readFileSync(resolve(root, "src/astro/VerifyDocument.astro"), "utf8");
 		expect(page).toContain('data-testid="verify-retention"');
-		expect(page).toMatch(/deleted when their retention\s+period ends/);
+		// The text lives in the translation tables since T102.
+		expect(page).toContain('t("verify.retention")');
+		expect(en["verify.retention"]).toMatch(/deleted when their retention\s+period ends/);
 	});
 });

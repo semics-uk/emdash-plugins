@@ -100,7 +100,7 @@ test("T049 a booking that is not confirmed is refused, and a foreign sign link i
 	);
 	await phone(page);
 	await enter(page, "abc");
-	await expect(page.getByTestId("checkin-result")).toContainText("cancelled");
+	await expect(page.getByTestId("checkin-result")).toContainText(/cancelled/i);
 	await expect(page.getByRole("link", { name: "Open the signing page" })).toHaveCount(0);
 });
 

@@ -72,8 +72,9 @@ export function orderTotalMinor(lines: ReadonlyArray<{ qty: number; priceMinor: 
 	return total;
 }
 
-export function formatMinor(minor: number, currency: string, locale: string): string {
-	if (minor === 0) return "Free";
+/** `free` is the page's word for a zero total (the widget renders it as `data-free`, T102). */
+export function formatMinor(minor: number, currency: string, locale: string, free: string): string {
+	if (minor === 0) return free;
 	try {
 		return new Intl.NumberFormat(locale, { style: "currency", currency }).format(minor / 100);
 	} catch {
@@ -135,7 +136,12 @@ export function enhance(form: HTMLFormElement): void {
 		const minor = orderTotalMinor(
 			qtyInputs.map((i) => ({ qty: qtyOf(i), priceMinor: Number(i.dataset.priceMinor) || 0 })),
 		);
-		totalValue.textContent = formatMinor(minor, form.dataset.currency ?? "GBP", form.dataset.locale ?? "en-GB");
+		totalValue.textContent = formatMinor(
+			minor,
+			form.dataset.currency ?? "GBP",
+			form.dataset.locale ?? "en-GB",
+			form.dataset.free ?? "0",
+		);
 		total.hidden = false;
 	};
 	for (const input of qtyInputs) input.addEventListener("input", updateTotal);

@@ -4,6 +4,7 @@
 // URL (Stripe's return URL carries nothing to trust). While a payment waits for the webhook
 // (`pending`), `src/client/payment.ts` re-reads the page politely; without JavaScript the "Check
 // again" link does the same by hand. "Pay now" is a plain form post back to the booking page.
+import { pickLocale, translator } from "../i18n/index";
 import type { PaymentView } from "./lib/payment";
 
 interface Props {
@@ -11,15 +12,20 @@ interface Props {
 	bookingRef: string;
 	/** Where the "Pay now" form posts (the booking page itself). */
 	action: string;
+	/** The view's language; build `view` with the same locale (`paymentView(booking, locale)`). */
+	locale?: string;
 }
 
 const { view, bookingRef, action } = Astro.props;
+const { t, lang, dir } = translator(pickLocale(Astro.props.locale, Astro.currentLocale));
 ---
 <section
 	class="semics-events semics-payment"
 	data-semics-payment
 	data-testid="payment-return"
 	data-state={view.state}
+	lang={lang}
+	dir={dir}
 	aria-labelledby="semics-payment-title"
 >
 	<h2 id="semics-payment-title">{view.heading}</h2>
@@ -28,26 +34,21 @@ const { view, bookingRef, action } = Astro.props;
 		{
 			view.poll && (
 				<>
-					<p data-semics-payment-checking data-testid="payment-checking" hidden>
-						Checking for your payment…
-					</p>
-					<p data-semics-payment-slow data-testid="payment-slow" hidden>
-						We have not heard back from the payment provider yet. If you paid, we will email you as soon as it is
-						confirmed: you do not need to wait on this page.
-					</p>
+					<p data-semics-payment-checking data-testid="payment-checking" hidden>{t("payment.checking")}</p>
+					<p data-semics-payment-slow data-testid="payment-slow" hidden>{t("payment.slow")}</p>
 				</>
 			)
 		}
-		<p data-semics-payment-live class="semics-visually-hidden"></p>
+		<p data-semics-payment-live data-message={t("payment.updated")} class="semics-visually-hidden"></p>
 	</div>
 	{
 		view.poll && (
 			<div class="semics-payment-actions">
 				<form method="post" action={action}>
 					<input type="hidden" name="intent" value="resume" />
-					<button type="submit" data-testid="payment-resume">Pay now</button>
+					<button type="submit" data-testid="payment-resume">{t("payment.payNow")}</button>
 				</form>
-				<a href={`/booking?ref=${encodeURIComponent(bookingRef)}`} data-testid="payment-check">Check again</a>
+				<a href={`/booking?ref=${encodeURIComponent(bookingRef)}`} data-testid="payment-check">{t("payment.checkAgain")}</a>
 			</div>
 		)
 	}

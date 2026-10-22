@@ -1,0 +1,91 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`UI text in en and ar (EU-NFR-04 snapshots) > EU-NFR-04 Arabic 1`] = `
+{
+  "card": {
+    "badge": "نفدت التذاكر",
+    "datetime": "2030-03-14T18:30:00.000Z",
+    "eventId": "e1",
+    "price": "ابتداءً من ‏15.00 UK£",
+    "title": "London Community Meetup",
+    "venue": "The Old Library",
+    "when": "الخميس، 14 مارس 2030، 18:30 غرينتش+0",
+  },
+  "checkIn": {
+    "message": "تتطلب شاشة تسجيل الحضور Events Pro. استخدم صفحة المشاركين في لوحة الإدارة بدلًا من ذلك.",
+    "title": "شاشة تسجيل الحضور غير متاحة",
+    "tone": "error",
+  },
+  "error": "عذرًا، لم يتبقَّ من التذاكر ما يكفي لهذا الطلب.",
+  "field": "أدخل بريدًا إلكترونيًا صحيحًا.",
+  "free": "مجاني",
+  "payment": {
+    "body": "إذا كنت قد دفعت للتو، فستتحدث هذه الصفحة تلقائيًا خلال دقيقة وسنراسلك بالبريد الإلكتروني فور تأكيد الدفع. إذا غادرت صفحة الدفع، فتذاكرك محجوزة حتى 14‏/03‏/2030، 6:30 م بالتوقيت العالمي ويمكنك الدفع الآن.",
+    "heading": "بانتظار دفعتك",
+    "poll": true,
+    "resume": true,
+    "state": "pending",
+  },
+  "promo": "طُبّق الرمز: خصم 10‎%‎ من طلبك.",
+  "questions": [
+    {
+      "hint": "(اختياري)",
+      "message": "اختر إجابة.",
+      "options": "اختر إجابة",
+    },
+    {
+      "hint": undefined,
+      "message": "حدّد هذا المربع للمتابعة.",
+      "options": undefined,
+    },
+  ],
+  "status": "محجوزة لك",
+  "unknownError": "حدث خطأ ما. يُرجى المحاولة مرة أخرى.",
+  "waitlist": "أنت الآن في قائمة الانتظار. إذا توفرت تذاكر فسنراسلك بالبريد الإلكتروني ونحجزها لك مدة 24 ساعة.",
+}
+`;
+
+exports[`UI text in en and ar (EU-NFR-04 snapshots) > EU-NFR-04 English 1`] = `
+{
+  "card": {
+    "badge": "Sold out",
+    "datetime": "2030-03-14T18:30:00.000Z",
+    "eventId": "e1",
+    "price": "From £15.00",
+    "title": "London Community Meetup",
+    "venue": "The Old Library",
+    "when": "Thu, 14 Mar 2030, 18:30 GMT+0",
+  },
+  "checkIn": {
+    "message": "The check-in screen needs Events Pro. Use the Attendees page in the admin instead.",
+    "title": "Check-in screen not available",
+    "tone": "error",
+  },
+  "error": "Sorry, there are not enough tickets left for that order.",
+  "field": "Enter a valid email address.",
+  "free": "Free",
+  "payment": {
+    "body": "If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed. If you left the payment page, your tickets are held until 14 Mar 2030, 18:30 UTC and you can pay now.",
+    "heading": "Waiting for your payment",
+    "poll": true,
+    "resume": true,
+    "state": "pending",
+  },
+  "promo": "Code applied: 10% off your order.",
+  "questions": [
+    {
+      "hint": "(optional)",
+      "message": "Choose an answer.",
+      "options": "Choose an answer",
+    },
+    {
+      "hint": undefined,
+      "message": "Tick this box to continue.",
+      "options": undefined,
+    },
+  ],
+  "status": "Held for you",
+  "unknownError": "Something went wrong. Please try again.",
+  "waitlist": "You are on the waitlist. If tickets come free we will email you, and hold them for you for 24 hours.",
+}
+`;

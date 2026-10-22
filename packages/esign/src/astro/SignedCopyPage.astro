@@ -4,6 +4,7 @@
 // path. It sends `Referrer-Policy: no-referrer`, is never cached, and POSTs the token to `public/session`
 // (never logged), which issues a fresh short-lived download link on every visit.
 import { pluginId } from "virtual:semics-esign/config";
+import { pickLocale, segments, translator } from "../i18n/index.ts";
 import { ceremonyCsp } from "./lib/csp";
 import { handleSignedCopy } from "./lib/sign";
 import SigningCeremony from "./SigningCeremony.astro";
@@ -15,27 +16,31 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
 Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
+const locale = pickLocale(Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
 const view = await handleSignedCopy({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, token);
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
-		<title>Your signed copy</title>
+		<title>{t("signed.title")}</title>
 	</head>
 	<body>
 		<main class="semics-esign semics-signed-copy" data-testid="signed-copy-page" data-state={view.kind}>
-			<h1>{view.kind === "closed" && view.title ? view.title : "Your signed copy"}</h1>
+			<h1>{view.kind === "closed" && view.title ? view.title : t("signed.title")}</h1>
 			{
 				view.kind === "unsigned" ? (
 					<p data-testid="signed-copy-unsigned">
-						This document has not been signed yet. <a href={`/sign/${encodeURIComponent(token)}`}>Open the signing page</a>.
+						{segments(t("signed.unsigned")).map((s) =>
+							s.slot === "link" ? <a href={`/sign/${encodeURIComponent(token)}`}>{t("signed.openLink")}</a> : s.text,
+						)}
 					</p>
 				) : (
-					<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} />
+					<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} locale={locale} />
 				)
 			}
 		</main>

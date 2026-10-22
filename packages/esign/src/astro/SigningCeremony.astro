@@ -14,10 +14,11 @@
 // file, and never embedded: the core serves it with `Content-Security-Policy: sandbox`, under which browsers'
 // built-in PDF viewers do not run in a frame, and this page's CSP allows no frames. Without a link (a core that
 // cannot serve the PDF) the page says so and offers no signing form.
+import { clientMessages, pickLocale, segments, translator } from "../i18n/index.ts";
 import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT } from "./lib/assets";
 import { ESIGN_PLUGIN_ID } from "./lib/call";
 import { parseSnapshot } from "./lib/markdown";
-import { fieldName, pdfDocumentView, type SignView, sessionFields } from "./lib/sign";
+import { fieldName, pdfDocumentView, type SignView, sessionFields, signMessage } from "./lib/sign";
 import SnapshotBlocks from "./SnapshotBlocks.astro";
 
 interface Props {
@@ -28,14 +29,23 @@ interface Props {
 	token: string;
 	/** The core's plugin id, when it is not the default slug. */
 	pluginId?: string;
+	/** The page's language (T102); else `Astro.currentLocale`, else British English. */
+	locale?: string;
 }
 
 const { view, action, token, pluginId = ESIGN_PLUGIN_ID } = Astro.props;
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+// The client scripts' messages, in this language: they hold no text of their own.
+const messages = JSON.stringify(clientMessages(locale, "ceremony."));
+const padMessages = JSON.stringify(clientMessages(locale, "pad."));
+// A refusal's message in the page's language, by its code (a view's own `message` is English).
+const refusal = (code: string | undefined, fallback?: string) => (code ? signMessage(code, locale) : (fallback ?? ""));
 const ready = view.kind === "ready" ? view : undefined;
 const session = ready?.session;
 const blocks = session ? parseSnapshot(session.snapshot ?? "") : [];
 const fields = session ? sessionFields(session) : [];
-const pdfDoc = session ? pdfDocumentView(session) : undefined;
+const pdfDoc = session ? pdfDocumentView(session, locale) : undefined;
 const canSign = session?.otp !== "required" && (!pdfDoc || pdfDoc.url !== undefined);
 const bad = (name: string) => (ready?.fields ?? []).includes(name) || undefined;
 // A field to fix is described by the message that says why (WCAG 3.3.1).
@@ -51,114 +61,129 @@ const pdfPending =
 	view.pdf === "pending";
 const doneLink = (view.kind === "signed" || view.kind === "closed") && view.download ? view.download : undefined;
 ---
-<div class="semics-esign semics-ceremony" data-testid="signing-ceremony" data-state={view.kind}>
-	{view.kind === "error" && <p role="alert" class="semics-error" data-testid="sign-error" data-code={view.code}>{view.message}</p>}
+<div class="semics-esign semics-ceremony" lang={lang} dir={dir} data-messages={messages} data-testid="signing-ceremony" data-state={view.kind}>
+	{view.kind === "error" && <p role="alert" class="semics-error" data-testid="sign-error" data-code={view.code}>{refusal(view.code, view.message)}</p>}
 	{
 		view.kind === "closed" && (
 			<section data-testid="sign-closed" data-status={view.status} {...(pdfPending ? { "data-esign-poll": "", "data-token": token, "data-plugin": pluginId } : {})}>
 				<p>
 					{view.status === "completed"
-						? "This document has been signed."
+						? t("sign.closed.completed")
 						: view.status === "declined"
-							? "This document was declined."
-							: "This document can no longer be signed."}
+							? t("sign.closed.declined")
+							: t("sign.closed.other")}
 				</p>
 				{(doneLink || pdfPending) && (
 					<p data-esign-pdf aria-live="polite">
-						{doneLink ? <a href={doneLink}>Download the signed PDF</a> : "The signed PDF is being prepared; reload in a minute."}
+						{doneLink ? <a href={doneLink}>{t("sign.download")}</a> : t("sign.preparingShort")}
 					</p>
 				)}
-				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">{t("sign.return")}</a></p>}
 			</section>
 		)
 	}
 	{
 		view.kind === "waiting" && (
 			<section data-testid="sign-waiting">
-				<p>You have signed{view.title ? ` "${view.title}"` : " this document"}. We are waiting for the other signers.</p>
-				<p>When everyone has signed, you will get an email with a link to the signed copy.</p>
+				<p>{view.title ? t("sign.waiting.titled", { title: view.title }) : t("sign.waiting.untitled")}</p>
+				<p>{t("sign.waiting.email")}</p>
 			</section>
 		)
 	}
 	{
 		view.kind === "signed" && view.waiting && (
 			<section data-testid="sign-done" data-waiting>
-				<p>Thank you. Your signature has been recorded.</p>
-				<p>Other people still have to sign. When everyone has signed, you will get an email with a link to the signed copy.</p>
-				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+				<p>{t("sign.thanks")}</p>
+				<p>{t("sign.othersToSign")}</p>
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">{t("sign.return")}</a></p>}
 			</section>
 		)
 	}
 	{
 		view.kind === "signed" && !view.waiting && (
 			<section data-testid="sign-done" {...(pdfPending ? { "data-esign-poll": "", "data-token": token, "data-plugin": pluginId } : {})}>
-				<p>Thank you. Your signature has been recorded.</p>
+				<p>{t("sign.thanks")}</p>
 				<p data-esign-pdf aria-live="polite">
-					{doneLink ? (
-						<a href={doneLink}>Download the signed PDF</a>
-					) : (
-						"The signed PDF is being prepared. Reload this page in a minute for the download link."
-					)}
+					{doneLink ? <a href={doneLink}>{t("sign.download")}</a> : t("sign.preparing")}
 				</p>
-				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">{t("sign.return")}</a></p>}
 			</section>
 		)
 	}
 	{
 		view.kind === "declined" && (
 			<section data-testid="sign-declined">
-				<p>You declined to sign. The sender has been told.</p>
-				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
+				<p>{t("sign.declined")}</p>
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">{t("sign.return")}</a></p>}
 			</section>
 		)
 	}
 	{
 		ready && session && (
 			<>
-				{ready.message && !needsCode && <p role="alert" id="esign-error" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{ready.message}</p>}
+				{ready.message && !needsCode && <p role="alert" id="esign-error" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{refusal(ready.errorCode, ready.message)}</p>}
 				<p>
-					Signing as <strong>{session.signer?.name}</strong>
-					{session.signer?.as ? ` (${session.signer.as})` : ""}
+					{segments(
+						session.signer?.as
+							? t("sign.signingAsRole", { role: session.signer.as })
+							: t("sign.signingAs"),
+					).map((s) => (s.slot === "name" ? <strong>{session.signer?.name}</strong> : s.text))}
 				</p>
 				{pdfDoc ? (
-					<section aria-label="Document to sign" data-testid="sign-pdf">
+					<section aria-label={t("sign.document")} data-testid="sign-pdf">
 						<p>
-							The document is a PDF file: <strong>{pdfDoc.name}</strong> ({pdfDoc.pages === 1 ? "1 page" : `${pdfDoc.pages} pages`}, {pdfDoc.size}). Read it before you sign.
+							{segments(t("sign.pdf.intro", { pages: pdfDoc.pagesLabel, size: pdfDoc.size })).map((s) =>
+								s.slot === "name" ? <strong>{pdfDoc.name}</strong> : s.text,
+							)}
 						</p>
 						{pdfDoc.url ? (
 							<p>
-								<a href={pdfDoc.url} target="_blank" rel="noopener noreferrer" data-testid="sign-pdf-open">Open the PDF</a>
-								{" or "}
-								<a href={pdfDoc.url} download={pdfDoc.name} data-testid="sign-pdf-download">download it</a>
+								{segments(t("sign.pdf.links")).map((s) =>
+									s.slot === "open" ? (
+										<a href={pdfDoc.url} target="_blank" rel="noopener noreferrer" data-testid="sign-pdf-open">{t("sign.pdf.open")}</a>
+									) : s.slot === "download" ? (
+										<a href={pdfDoc.url} download={pdfDoc.name} data-testid="sign-pdf-download">{t("sign.pdf.download")}</a>
+									) : (
+										s.text
+									),
+								)}
 							</p>
 						) : (
-							<p role="alert" class="semics-error" data-testid="sign-pdf-unavailable">This PDF cannot be shown right now, so it cannot be signed yet. Please try again later.</p>
+							<p role="alert" class="semics-error" data-testid="sign-pdf-unavailable">{t("sign.pdf.unavailable")}</p>
 						)}
-						<p>SHA-256 fingerprint of the PDF file you are signing: <span class="semics-hash">{session.envelope?.docSha256}</span></p>
+						<p>
+							{segments(t("sign.pdf.fingerprint")).map((s) =>
+								s.slot === "hash" ? <span class="semics-hash">{session.envelope?.docSha256}</span> : s.text,
+							)}
+						</p>
 					</section>
 				) : (
-					<section aria-label="Document to sign" data-testid="sign-document">
+					<section aria-label={t("sign.document")} data-testid="sign-document">
 						<div class="semics-doc"><SnapshotBlocks blocks={blocks} /></div>
 						<details data-testid="sign-exact">
-							<summary>Exact text you are signing</summary>
-							<p>SHA-256 fingerprint: <span class="semics-hash">{session.envelope?.docSha256}</span></p>
+							<summary>{t("sign.exact.summary")}</summary>
+							<p>
+								{segments(t("sign.exact.fingerprint")).map((s) =>
+									s.slot === "hash" ? <span class="semics-hash">{session.envelope?.docSha256}</span> : s.text,
+								)}
+							</p>
 							<pre>{session.snapshot}</pre>
 						</details>
 					</section>
 				)}
 				{
 					session.otp === "required" && (
-						<section id="esign-otp" data-testid="sign-otp" aria-label="Email code">
-							<p>To sign, first enter the code we email to you.</p>
-							{ready.message && <p role="alert" id="esign-error" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{ready.message}</p>}
-							{ready.otpSent && <p role="status" data-testid="sign-otp-sent">We emailed you a code. It expires in 10 minutes.</p>}
+						<section id="esign-otp" data-testid="sign-otp" aria-label={t("sign.otp.label")}>
+							<p>{t("sign.otp.intro")}</p>
+							{ready.message && <p role="alert" id="esign-error" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{refusal(ready.errorCode, ready.message)}</p>}
+							{ready.otpSent && <p role="status" data-testid="sign-otp-sent">{t("sign.otp.sent")}</p>}
 							<form method="post" action={otpAction}>
-								<button type="submit" name="intent" value="otp-send">Email me a code</button>
+								<button type="submit" name="intent" value="otp-send">{t("sign.otp.send")}</button>
 							</form>
 							<form method="post" action={otpAction}>
 								<div class="semics-field">
-									<label for="esign-code">Code</label>
-									<p id="esign-code-hint" class="semics-note">The 6-digit code from the email we sent you.</p>
+									<label for="esign-code">{t("sign.otp.code")}</label>
+									<p id="esign-code-hint" class="semics-note">{t("sign.otp.hint")}</p>
 									<input
 										id="esign-code"
 										name="code"
@@ -172,7 +197,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 										aria-invalid={badCode || undefined}
 									/>
 								</div>
-								<button type="submit" name="intent" value="otp-verify">Verify code</button>
+								<button type="submit" name="intent" value="otp-verify">{t("sign.otp.verify")}</button>
 							</form>
 						</section>
 					)
@@ -181,10 +206,10 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 					{
 						fields.length > 0 && (
 							<fieldset>
-								<legend>Your details</legend>
+								<legend>{t("sign.details")}</legend>
 								{fields.map((field) => (
 									<div class="semics-field">
-										<label for={`esign-field-${field.key}`}>{field.label}{field.required ? " (required)" : ""}</label>
+										<label for={`esign-field-${field.key}`}>{field.required ? t("sign.required", { label: field.label }) : field.label}</label>
 										<input
 											id={`esign-field-${field.key}`}
 											name={fieldName(field.key)}
@@ -201,15 +226,15 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 						)
 					}
 					<fieldset>
-						<legend>Your signature</legend>
+						<legend>{t("sign.signature")}</legend>
 						<div class="semics-field">
-							<label for="esign-name">Type your full name to sign</label>
+							<label for="esign-name">{t("sign.typedName")}</label>
 							<input id="esign-name" name="typedName" type="text" autocomplete="name" required maxlength="200" {...fix("typedName")} />
 						</div>
-						<div data-esign-pad-slot data-testid="sign-pad-slot">
+						<div data-esign-pad-slot data-messages={padMessages} data-testid="sign-pad-slot">
 							<slot name="pad" />
 							<input type="hidden" name="signatureStrokes" value="" />
-							{bad("signature") && <p class="semics-error">{ready.message}</p>}
+							{bad("signature") && <p class="semics-error">{refusal(ready.errorCode, ready.message)}</p>}
 						</div>
 					</fieldset>
 					<div class="semics-check">
@@ -218,17 +243,17 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 					</div>
 					<div class="semics-check">
 						<input id="esign-agree" name="agree" type="checkbox" required {...fix("agree")} />
-						<label for="esign-agree">I intend the signature above to be my signature on this document.</label>
+						<label for="esign-agree">{t("sign.agree")}</label>
 					</div>
 					<p id="esign-missing" class="semics-note" data-esign-missing data-testid="sign-missing" aria-live="polite" hidden></p>
-					<button type="submit" name="intent" value="sign" data-esign-sign aria-describedby="esign-missing">Sign document</button>
+					<button type="submit" name="intent" value="sign" data-esign-sign aria-describedby="esign-missing">{t("sign.submit")}</button>
 				</form>}
 				<form method="post" action={action} class="semics-decline">
 					<div class="semics-field">
-						<label for="esign-reason">Or decline to sign (optional reason)</label>
+						<label for="esign-reason">{t("sign.decline.label")}</label>
 						<input id="esign-reason" name="reason" type="text" maxlength="500" />
 					</div>
-					<button type="submit" name="intent" value="decline" data-esign-decline>Decline</button>
+					<button type="submit" name="intent" value="decline" data-esign-decline>{t("sign.decline.button")}</button>
 				</form>
 			</>
 		)

@@ -1,0 +1,43 @@
+- main:
+  - heading "T102 esign ar" [level=1]
+  - paragraph:
+    - text: التوقيع باسم
+    - strong: Ada Lovelace
+    - text: (Recipient)
+  - region "المستند المطلوب توقيعه":
+    - heading "Mutual NDA" [level=2]
+    - paragraph: Keep the other party's information confidential.
+    - blockquote:
+      - paragraph: Nothing here transfers ownership.
+    - group: النص الدقيق الذي توقّعه
+  - group "بياناتك":
+    - text: بياناتك Company (مطلوب)
+    - textbox "Company (مطلوب)"
+  - group "توقيعك":
+    - text: توقيعك اكتب اسمك الكامل للتوقيع
+    - textbox "اكتب اسمك الكامل للتوقيع"
+    - paragraph: "اختياري: ارسم توقيعك أدناه. كتابة اسمك تبقى مطلوبة."
+    - 'img "مساحة رسم التوقيع. اختياري: ارسم بإصبعك أو بقلم أو بالفأرة. كتابة اسمك تكفي للتوقيع."'
+    - button "تراجع" [disabled]
+    - button "مسح" [disabled]
+    - paragraph
+  - checkbox "I agree to use electronic records and an electronic signature."
+  - text: I agree to use electronic records and an electronic signature.
+  - checkbox "أقصد أن يكون التوقيع أعلاه توقيعي على هذا المستند."
+  - text: أقصد أن يكون التوقيع أعلاه توقيعي على هذا المستند.
+  - paragraph: للتوقيع، يُرجى تعبئة Company، كتابة اسمك الكامل، تحديد مربع الموافقة، تأكيد أنك تقصد التوقيع.
+  - button "وقّع المستند" [disabled]
+  - text: أو ارفض التوقيع (السبب اختياري)
+  - textbox "أو ارفض التوقيع (السبب اختياري)"
+  - button "رفض"
+  - paragraph: "/تحقق من أن ملف PDF الموقّع هو الذي أصدرناه وأن سجل التدقيق الخاص به سليم\\. اختر ملف PDF أو أفلته هنا، أو أدخل بصمة SHA-\\d+ الخاصة به \\(الظاهرة في صفحة الشهادة\\)\\. يبقى الملف على جهازك: تُرسل بصمته فقط\\. يؤكد هذا السجل فقط؛ ولا يحدد هوية أي شخص\\./"
+  - text: ملف PDF الموقّع
+  - button "ملف PDF الموقّع"
+  - status
+  - paragraph:
+    - text: /بصمة SHA-\d+ للمستند/
+    - textbox /بصمة SHA-\d+ للمستند/
+  - button "تحقق"
+  - region "وقّع هذا المستند":
+    - heading "وقّع هذا المستند" [level=2]
+    - paragraph: هذا النموذج غير متاح الآن.

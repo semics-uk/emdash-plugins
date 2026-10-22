@@ -23,6 +23,7 @@
 		"./astro/promo-endpoint": "./src/astro/promo-endpoint.ts",
 		"./astro/waitlist-endpoint": "./src/astro/waitlist-endpoint.ts",
 		"./astro/lib/*": "./src/astro/lib/*.ts",
+		"./i18n": "./src/i18n/index.ts",
 		"./client/*": "./src/client/*.ts",
 		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro",
 		"./astro/DoorSignPage.astro": "./src/astro/DoorSignPage.astro",
@@ -40,6 +41,7 @@
 	"files": [
 		"dist",
 		"src/astro",
+		"src/i18n",
 		"src/client",
 		"emdash-plugin.jsonc"
 	],

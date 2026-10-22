@@ -1,0 +1,43 @@
+- main:
+  - heading "T102 esign en" [level=1]
+  - paragraph:
+    - text: Signing as
+    - strong: Ada Lovelace
+    - text: (Recipient)
+  - region "Document to sign":
+    - heading "Mutual NDA" [level=2]
+    - paragraph: Keep the other party's information confidential.
+    - blockquote:
+      - paragraph: Nothing here transfers ownership.
+    - group: Exact text you are signing
+  - group "Your details":
+    - text: Your details Company (required)
+    - textbox "Company (required)"
+  - group "Your signature":
+    - text: Your signature Type your full name to sign
+    - textbox "Type your full name to sign"
+    - paragraph: "Optional: draw your signature below. Your typed name is still required."
+    - 'img "Signature drawing area. Optional: draw with a finger, pen or mouse. Typing your name is enough to sign."'
+    - button "Undo" [disabled]
+    - button "Clear" [disabled]
+    - paragraph
+  - checkbox "I agree to use electronic records and an electronic signature."
+  - text: I agree to use electronic records and an electronic signature.
+  - checkbox "I intend the signature above to be my signature on this document."
+  - text: I intend the signature above to be my signature on this document.
+  - paragraph: To sign, please fill in Company, type your full name, tick the consent box, confirm you intend to sign.
+  - button "Sign document" [disabled]
+  - text: Or decline to sign (optional reason)
+  - textbox "Or decline to sign (optional reason)"
+  - button "Decline"
+  - paragraph: "/Check that a signed PDF is the one we issued and that its audit trail is intact\\. Choose or drop the PDF, or enter its SHA-\\d+ fingerprint \\(shown on the certificate page\\)\\. The file stays on your device: only its fingerprint is sent\\. This confirms the record only; it does not identify anyone\\./"
+  - text: Signed PDF
+  - button "Signed PDF"
+  - status
+  - paragraph:
+    - text: /Document SHA-\d+/
+    - textbox /Document SHA-\d+/
+  - button "Verify"
+  - region "Sign this document":
+    - heading "Sign this document" [level=2]
+    - paragraph: This form is not available right now.

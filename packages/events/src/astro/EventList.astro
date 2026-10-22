@@ -5,6 +5,7 @@
 // has the answer. Every failure renders a defined state.
 import { pluginId as configuredId } from "virtual:semics-events/config";
 
+import { pickLocale, translator } from "../i18n/index";
 import EventCard from "./EventCard.astro";
 import { callPublicRoute } from "./lib/call";
 import { eventHref, listView, type PublicEventSummary } from "./lib/list";
@@ -25,9 +26,11 @@ interface Props {
 }
 
 const props = Astro.props as Props;
-const heading = props.node?.heading ?? props.heading ?? "Upcoming events";
+// The language: the `locale` prop, else the page's (Astro i18n), else British English (T102).
+const locale = pickLocale(props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+const heading = props.node?.heading ?? props.heading ?? t("list.heading");
 const limit = Number(props.node?.limit ?? props.limit ?? 3);
-const locale = props.locale ?? "en-GB";
 
 let events = props.events;
 let failed = false;
@@ -43,13 +46,13 @@ const cards = listView(events ?? [], { limit: Number.isFinite(limit) ? limit : 3
 const byId = new Map((events ?? []).map((e) => [e.eventId, e]));
 const state = failed ? "error" : cards.length === 0 ? "empty" : "ok";
 ---
-<section class="semics-events semics-event-list" data-testid="event-list" data-state={state} aria-labelledby="semics-event-list-title">
+<section class="semics-events semics-event-list" data-testid="event-list" data-state={state} lang={lang} dir={dir} aria-labelledby="semics-event-list-title">
 	<h2 id="semics-event-list-title">{heading}</h2>
 	{
 		failed ? (
-			<p role="alert" data-testid="event-list-error">Events are unavailable right now.</p>
+			<p role="alert" data-testid="event-list-error">{t("list.error")}</p>
 		) : cards.length === 0 ? (
-			<p data-testid="event-list-empty">No upcoming events right now.</p>
+			<p data-testid="event-list-empty">{t("list.empty")}</p>
 		) : (
 			<ul class="semics-event-items">
 				{cards.map((card) => {

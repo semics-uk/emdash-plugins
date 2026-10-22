@@ -1,3 +1,4 @@
+// i18n-ignore-file: Content-Security-Policy directives, no text for people (T102).
 import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT, VERIFY_CSS, VERIFY_SCRIPT } from "./assets.ts";
 
 /**

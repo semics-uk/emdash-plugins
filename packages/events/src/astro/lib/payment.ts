@@ -4,6 +4,7 @@
  * cancel alike, with nothing in the URL to trust, so "paid", "abandoned" and "webhook still on its
  * way" are told apart by asking the core, never by a query parameter.
  */
+import { type MessageKey, t } from "../../i18n/index";
 import type { BookingView } from "./widget";
 
 export type PaymentState = "confirmed" | "pending" | "expired" | "cancelled" | "refunded" | "refunded_unavailable";
@@ -18,10 +19,10 @@ export interface PaymentView {
 	resume: boolean;
 }
 
-const UTC = (iso: string) => {
+const utc = (iso: string, locale: string) => {
 	try {
-		const at = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
-		return `${at.format(new Date(iso))} UTC`;
+		const at = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
+		return t(locale, "time.utc", { time: at.format(new Date(iso)) });
 	} catch {
 		return iso;
 	}
@@ -37,56 +38,35 @@ export function isPayUrl(value: unknown): value is string {
 	}
 }
 
-const final = (state: PaymentState, heading: string, body: string): PaymentView => ({
+const final = (state: PaymentState, locale: string): PaymentView => ({
 	state,
-	heading,
-	body,
+	heading: t(locale, `payment.${state}.heading` as MessageKey),
+	body: t(locale, `payment.${state}.body` as MessageKey),
 	poll: false,
 	resume: false,
 });
 
 /** The payment section for a booking, or `null` when there is nothing to say about money. */
-export function paymentView(booking: BookingView): PaymentView | null {
+export function paymentView(booking: BookingView, locale = "en-GB"): PaymentView | null {
 	const paid = booking.totals.totalMinor > 0;
 	switch (booking.status) {
 		case "awaiting_payment":
 			return {
 				state: "pending",
-				heading: "Waiting for your payment",
-				body: `If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed. If you left the payment page, your tickets are held${
-					booking.holdExpiresAt ? ` until ${UTC(booking.holdExpiresAt)}` : " for a short time"
-				} and you can pay now.`,
+				heading: t(locale, "payment.pending.heading"),
+				body: booking.holdExpiresAt
+					? t(locale, "payment.pending.bodyUntil", { time: utc(booking.holdExpiresAt, locale) })
+					: t(locale, "payment.pending.body"),
 				poll: true,
 				resume: true,
 			};
 		case "confirmed":
-			return paid
-				? final("confirmed", "Payment received", "Thank you: your payment is confirmed and so is your booking.")
-				: null;
 		case "expired":
-			return paid
-				? final(
-						"expired",
-						"This booking expired",
-						"The hold ran out before a payment was confirmed. If you were charged, the payment is refunded automatically, or the booking is confirmed if the tickets are still available. Otherwise, please start again from the event page.",
-					)
-				: null;
 		case "cancelled":
-			return paid
-				? final(
-						"cancelled",
-						"Booking cancelled",
-						"This booking was cancelled. Any payment is refunded to the original payment method.",
-					)
-				: null;
+			return paid ? final(booking.status, locale) : null;
 		case "refunded":
-			return final("refunded", "Payment refunded", "Your payment was refunded to the original payment method.");
 		case "refunded_unavailable":
-			return final(
-				"refunded_unavailable",
-				"Payment refunded: tickets no longer available",
-				"Your payment arrived after these tickets were no longer available, so it has been refunded in full. No tickets were issued.",
-			);
+			return final(booking.status, locale);
 		default:
 			return null;
 	}
