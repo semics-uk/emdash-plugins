@@ -173,7 +173,11 @@ function enhanceSlot(slot) {
 	canvas.addEventListener("pointerdown", (e) => {
 		if (activePointer !== undefined || (e.pointerType === "mouse" && e.button !== 0)) return;
 		activePointer = e.pointerId;
-		canvas.setPointerCapture?.(e.pointerId);
+		try {
+			canvas.setPointerCapture(e.pointerId);
+		} catch {
+			// A pointer the browser no longer tracks: the stroke still draws while it stays over the pad.
+		}
 		e.preventDefault();
 		pad.start(...at(e));
 		paint();

@@ -96,11 +96,12 @@ test("SU-NFR-02 the CSP header allows only the package's hashed script, and that
 		expect(csp, path).toContain("default-src 'none'");
 		expect(csp, path).not.toContain("unsafe-inline");
 		const scriptSrc = csp.split(";").map((d) => d.trim()).find((d) => d.startsWith("script-src"));
-		expect(scriptSrc?.split(/\s+/).slice(1), path).toHaveLength(1);
+		expect(scriptSrc?.split(/\s+/).slice(1), path).toHaveLength(2);
 		const html = await response.text();
 		const inline = [...html.matchAll(/<script type="module">([\s\S]*?)<\/script>/g)].map((m) => m[1] as string);
-		expect(inline, path).toHaveLength(1);
-		expect(scriptSrc, path).toBe(`script-src ${sha256(inline[0] as string)}`);
+		// The ceremony script and the signature pad script (T031).
+		expect(inline, path).toHaveLength(2);
+		expect(scriptSrc, path).toBe(`script-src ${inline.map(sha256).join(" ")}`);
 		expect(html, path).not.toMatch(/<script(?![^>]*type="module">)[^>]*>/);
 	}
 	const violations = await watchCsp(page);
