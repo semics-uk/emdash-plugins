@@ -30,8 +30,20 @@ async function setup(options?: { pluginId?: string; esignPluginId?: string; reco
 describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 	it("EU-FR-05 injects the no-JS checkout endpoint and the booking page, both server-rendered", async () => {
 		const { routes } = await setup();
-		expect(routes.map((r) => r.pattern).sort()).toEqual(["/_events/checkout", "/_events/sign", "/booking"]);
+		expect(routes.map((r) => r.pattern).sort()).toEqual([
+			"/_events/checkout",
+			"/_events/promo",
+			"/_events/sign",
+			"/booking",
+		]);
 		for (const r of routes) expect(r.prerender).toBe(false);
+	});
+
+	it("EV-FR-14 injects the promo code endpoint from the package's own export (T078)", async () => {
+		const { routes } = await setup();
+		expect(routes.find((r) => r.pattern === "/_events/promo")?.entrypoint).toBe(
+			"@semics-tech/emdash-events/astro/promo-endpoint",
+		);
 	});
 
 	it("defaults the core's plugin id to the slug and takes a registry id as an option", async () => {
