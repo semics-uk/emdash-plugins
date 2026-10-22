@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { callPublicRoute, ESIGN_PLUGIN_ID } from "../../src/astro/lib/call";
 import { crossSiteResponse, isCrossSiteRequest } from "../../src/astro/lib/csrf";
-import { handleSign, handleSignedCopy, handleVerify } from "../../src/astro/lib/sign";
+import { ceremonyRedirect, handleSign, handleSignedCopy, handleVerify } from "../../src/astro/lib/sign";
 
 const url = new URL("https://site.example/sign/TOKEN");
 const DOC = "a".repeat(64);
@@ -237,6 +237,61 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 		const view = await handleSign(h.ctx, TOKEN, form({ intent: "decline", reason: " not for me " }));
 		expect(h.seen[1]?.body).toEqual({ token: TOKEN, reason: "not for me" });
 		expect(view).toEqual({ kind: "declined" });
+	});
+
+	const RECEIPT = `eyJ2IjoxfQ.${"S".repeat(43)}`;
+	const RETURN = "https://events.example/booking/BK7Q2M?step=waiver";
+
+	it("ES-FR-14 a signed intent envelope returns to the site with the receipt in the fragment, never the query", async () => {
+		const h = host({
+			"public/session": ready,
+			"public/submit": { ok: true, status: "completed", returnUrl: RETURN, receipt: RECEIPT },
+		});
+		const view = await handleSign(h.ctx, TOKEN, form(signForm));
+		expect(view).toMatchObject({ kind: "signed", returnUrl: `${RETURN}#receipt=${RECEIPT}` });
+		const target = new URL(ceremonyRedirect(view) as string);
+		expect(target.hash).toBe(`#receipt=${RECEIPT}`);
+		expect(target.search).toBe("?step=waiver");
+		expect(target.search).not.toContain(RECEIPT);
+	});
+
+	it("ES-FR-14 a decline returns with its receipt; no receipt or a bad one leaves the plain link", async () => {
+		const declined = host({
+			"public/session": ready,
+			"public/decline": { ok: true, status: "declined", returnUrl: RETURN, receipt: RECEIPT },
+		});
+		const view = await handleSign(declined.ctx, TOKEN, form({ intent: "decline" }));
+		expect(view).toEqual({ kind: "declined", returnUrl: `${RETURN}#receipt=${RECEIPT}` });
+		expect(ceremonyRedirect(view)).toBe(`${RETURN}#receipt=${RECEIPT}`);
+
+		for (const receipt of [undefined, "not a token", `${RECEIPT}&x=1`]) {
+			const h = host({
+				"public/session": ready,
+				"public/decline": { ok: true, status: "declined", returnUrl: RETURN, receipt },
+			});
+			const plain = await handleSign(h.ctx, TOKEN, form({ intent: "decline" }));
+			expect(plain, String(receipt)).toEqual({ kind: "declined", returnUrl: RETURN });
+			expect(ceremonyRedirect(plain)).toBeUndefined();
+		}
+		// A return URL with a fragment of its own is never extended.
+		const odd = host({
+			"public/session": ready,
+			"public/decline": { ok: true, status: "declined", returnUrl: `${RETURN}#x`, receipt: RECEIPT },
+		});
+		expect(await handleSign(odd.ctx, TOKEN, form({ intent: "decline" }))).toEqual({
+			kind: "declined",
+			returnUrl: `${RETURN}#x`,
+		});
+	});
+
+	it("ES-FR-14 a closed intent envelope links back with its receipt but does not redirect a plain visit", async () => {
+		const h = host({
+			"public/session": { ok: true, state: "closed", status: "completed", returnUrl: RETURN, receipt: RECEIPT },
+		});
+		const view = await handleSign(h.ctx, TOKEN, null);
+		expect(view).toMatchObject({ kind: "closed", returnUrl: `${RETURN}#receipt=${RECEIPT}` });
+		expect(ceremonyRedirect(view)).toBeUndefined();
+		expect(ceremonyRedirect({ kind: "signed" })).toBeUndefined();
 	});
 
 	it("a closed envelope shows its state, with the signed PDF state for the signer", async () => {
