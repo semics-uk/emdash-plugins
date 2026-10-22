@@ -25,7 +25,14 @@ const rule = (text: string) => {
 
 describe(`RRULE expansion (EV-FR-17, reference: ${generator})`, () => {
 	it.each(vectors)("EV-FR-17 RRULE vectors match a reference expansion: $rule from $start in $zone", (v) => {
-		const got = occurrencesBetween(rule(v.rule), Date.parse(v.start), v.zone, Date.parse(v.from), Date.parse(v.to), 1000);
+		const got = occurrencesBetween(
+			rule(v.rule),
+			Date.parse(v.start),
+			v.zone,
+			Date.parse(v.from),
+			Date.parse(v.to),
+			1000,
+		);
 		expect(got.map(iso)).toEqual(v.expected);
 	});
 
@@ -58,15 +65,24 @@ describe(`RRULE expansion (EV-FR-17, reference: ${generator})`, () => {
 			"2026-03-29T18:30:00.000Z",
 			"2026-04-05T18:30:00.000Z",
 		]);
-		expect(autumn.map(iso)).toEqual(["2026-10-24T18:30:00.000Z", "2026-10-25T19:30:00.000Z", "2026-10-26T19:30:00.000Z"]);
+		expect(autumn.map(iso)).toEqual([
+			"2026-10-24T18:30:00.000Z",
+			"2026-10-25T19:30:00.000Z",
+			"2026-10-26T19:30:00.000Z",
+		]);
 	});
 
 	it("EV-FR-17 a skipped local time moves forward by the gap; a repeated one takes its first instant", () => {
 		const zone = "Europe/London";
 		const at = (start: string) =>
-			occurrencesBetween(rule("FREQ=DAILY;COUNT=2"), Date.parse(start), zone, 0, Date.parse("2027-01-01T00:00:00Z"), 5).map(
-				iso,
-			);
+			occurrencesBetween(
+				rule("FREQ=DAILY;COUNT=2"),
+				Date.parse(start),
+				zone,
+				0,
+				Date.parse("2027-01-01T00:00:00Z"),
+				5,
+			).map(iso);
 		// 01:30 does not exist on 29 March: it is read as 01:30 GMT (02:30 BST).
 		expect(at("2026-03-28T01:30:00Z")).toEqual(["2026-03-28T01:30:00.000Z", "2026-03-29T01:30:00.000Z"]);
 		// 01:30 happens twice on 25 October: the first (BST) one.
@@ -91,9 +107,9 @@ describe(`RRULE expansion (EV-FR-17, reference: ${generator})`, () => {
 		expect(expandLocal(rule("FREQ=DAILY"), start, from, to, 50).map(iso)).toEqual(
 			[1, 2, 3, 4, 5, 6, 7].map((d) => iso(Date.UTC(2026, 5, d, 9))),
 		);
-		expect(expandLocal(rule("FREQ=MONTHLY;INTERVAL=5"), start, Date.UTC(2026, 0, 1), Date.UTC(2027, 0, 1), 50).map(iso)).toEqual(
-			[iso(Date.UTC(2026, 3, 1, 9)), iso(Date.UTC(2026, 8, 1, 9))],
-		);
+		expect(
+			expandLocal(rule("FREQ=MONTHLY;INTERVAL=5"), start, Date.UTC(2026, 0, 1), Date.UTC(2027, 0, 1), 50).map(iso),
+		).toEqual([iso(Date.UTC(2026, 3, 1, 9)), iso(Date.UTC(2026, 8, 1, 9))]);
 	});
 });
 
