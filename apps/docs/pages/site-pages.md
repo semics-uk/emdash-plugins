@@ -78,3 +78,21 @@ exported from `@semics-tech/emdash-esign/astro` for sites that build their own p
 
 The components ship small, plain styles that follow the page's colours. They use logical properties only, so
 they mirror in right-to-left languages, and they work at 320 px wide ([Accessibility](accessibility.md)).
+
+To match your design, set these custom properties on any element around the components (for example
+`:root`). They are the only styling the kits promise to keep across upgrades; anything else in their CSS can
+change in a minor release. The defaults meet WCAG AA contrast with each other; keep that when you change them.
+
+| Events property | E-sign property | Used for | Default |
+| --- | --- | --- | --- |
+| `--events-fg` | `--esign-fg` | Text | `#1a1a1a` |
+| `--events-muted` | `--esign-muted` | Secondary text | `#4a4a4a` |
+| `--events-bg` | `--esign-bg` | Backgrounds of fields and panels | `#ffffff` |
+| `--events-border` | `--esign-border` | Borders of fields and panels | `#6b6b6b` |
+| `--events-accent` | `--esign-accent` | Buttons and links | `#0b57d0` |
+| `--events-accent-fg` | `--esign-accent-fg` | Text on the accent colour | `#ffffff` |
+| `--events-error` | `--esign-error` | Error messages and invalid fields | `#b3261e` |
+| `--events-success` | | Confirmations | `#146c2e` |
+| `--events-radius` | `--esign-radius` | Corner radius | `6px` |
+| `--events-font` | | Font family | `system-ui, sans-serif` |
+| | `--esign-paper` | The document being signed | `#fafafa` |

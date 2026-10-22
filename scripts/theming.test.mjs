@@ -45,7 +45,7 @@ test("EU-NFR-05 the site-pages guide documents every theming custom property wit
 	const missing = [];
 	for (const [name, defaults] of properties()) {
 		const row = styling.split("\n").find((line) => line.includes(`\`${name}\``));
-		if (!row || !row.includes(`\`${[...defaults][0]}\``)) missing.push(`${name} (${[...defaults][0]})`);
+		if (!row?.includes(`\`${[...defaults][0]}\``)) missing.push(`${name} (${[...defaults][0]})`);
 	}
 	assert.deepEqual(missing, []);
 });
