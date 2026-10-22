@@ -1759,7 +1759,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1770,7 +1770,7 @@
 				"EV-FR-08"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T084": {
 			"file": "T084-events-recurring-events.md",
@@ -2079,7 +2079,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2093,7 +2093,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T103": {
 			"file": "T103-docs-site-operator-guides-and-registry-listings.md",
@@ -2409,12 +2409,11 @@
 		"ready": [
 			"T086",
 			"T100",
-			"T102",
 			"T103",
 			"T111"
 		],
 		"in-progress": [
-			"T083"
+			"T102"
 		],
 		"review": [],
 		"done": [
@@ -2490,6 +2489,7 @@
 			"T080",
 			"T081",
 			"T082",
+			"T083",
 			"T084",
 			"T085",
 			"T087",
