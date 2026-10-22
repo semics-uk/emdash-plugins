@@ -2102,7 +2102,7 @@
 			"phase": 7,
 			"package": "docs",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2115,7 +2115,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T104": {
 			"file": "T104-release-automation.md",
@@ -2182,7 +2182,7 @@
 				"Phase 7 exit"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T110": {
 			"file": "T110-cloudflare-staging-and-platform-limit-measurements.md",
@@ -2403,15 +2403,12 @@
 		}
 	},
 	"columns": {
-		"backlog": [
-			"T106"
-		],
+		"backlog": [],
 		"ready": [
+			"T106",
 			"T111"
 		],
-		"in-progress": [
-			"T103"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2502,6 +2499,7 @@
 			"T100",
 			"T101",
 			"T102",
+			"T103",
 			"T104",
 			"T105",
 			"T110",
@@ -2517,8 +2515,7 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T103",
-		"T106"
+		"T111"
 	],
-	"criticalWeight": 3
+	"criticalWeight": 2
 }
