@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No open Severity 1 or 2
+- [ ] Declined/expired receipts are re-forwarded on every status-page load while the booking waits (T066): stop asking once a ref has a terminal receipt recorded
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
