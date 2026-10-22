@@ -97,6 +97,8 @@ function failing(ctx: PluginContext, failAt: number | undefined): CounterStorage
 const plugin: SandboxedPlugin = {
 	routes: {
 		...CONFIG_ROUTES,
+		// The shipped manifest declares this editor panel route; the probe only has to exist.
+		"editor/tickets": { handler: async () => ({ blocks: [] }) },
 		"probe/seed": {
 			handler: async (r, ctx) => {
 				const i = input(r);

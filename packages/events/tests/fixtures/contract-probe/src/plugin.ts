@@ -18,6 +18,8 @@ const collection = (storage: unknown, name: unknown): Collection =>
  */
 const plugin: SandboxedPlugin = {
 	routes: {
+		// The shipped manifest declares this editor panel route; the probe only has to exist.
+		"editor/tickets": { handler: async () => ({ blocks: [] }) },
 		"probe/put": {
 			handler: async (r, ctx) => {
 				const i = input(r);
