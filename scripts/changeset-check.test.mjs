@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkChangesets, parseChangesetPackages } from "./changeset-check.mjs";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { checkChangesets, parseChangesetPackages, readChangesets } from "./changeset-check.mjs";
 
 const published = [
 	{ name: "@semics-tech/emdash-events", dir: "packages/events" },
@@ -71,4 +74,15 @@ test("parseChangesetPackages reads the front matter", () => {
 	const body = `---\n"@semics-tech/emdash-events": minor\n'@semics-tech/emdash-esign': patch\n---\n\nAdds waitlists.\n`;
 	assert.deepEqual(parseChangesetPackages(body), [events, esign]);
 	assert.deepEqual(parseChangesetPackages("---\n---\n\nEmpty changeset.\n"), []);
+});
+
+test("T106 in rc pre mode the changesets Changesets moved to .changeset/pre/ still count", () => {
+	const root = mkdtempSync(join(tmpdir(), "cs-"));
+	mkdirSync(join(root, ".changeset", "pre"), { recursive: true });
+	writeFileSync(join(root, ".changeset", "README.md"), "# Changesets\n");
+	writeFileSync(join(root, ".changeset", "new.md"), `---\n"${esign}": patch\n---\n\nNew.\n`);
+	writeFileSync(join(root, ".changeset", "pre", "old.md"), `---\n"${events}": major\n---\n\nOld.\n`);
+	const found = readChangesets(root);
+	assert.deepEqual(found.map((c) => c.file).sort(), ["new.md", "pre/old.md"]);
+	assert.equal(check(["packages/events/src/a.ts", "packages/esign/src/b.ts"], found).ok, true);
 });
