@@ -4,7 +4,7 @@ title: "Cloudflare staging playground and nightly run"
 phase: 1
 package: repo
 edition: free
-status: done
+status: blocked
 model: opus-5.5
 size: M
 depends_on: [T110]
