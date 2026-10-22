@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Release candidates built
 - [ ] The scaffold `hello` route is removed from the Events core before the route list freezes (T057 review F14)
+- [ ] Licence Worker support tooling (T072): issue the key for a `needs_sites` sale and change a licence's hostnames without hand-editing D1; an alert for webhook events stuck in `processing`; a decision on checking `semreg_` registry tokens (proxy vs manual npm access)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
