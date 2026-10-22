@@ -1227,7 +1227,8 @@
 				"Phase 2 exit criteria"
 			],
 			"unblocks": [
-				"T057"
+				"T057",
+				"T116"
 			],
 			"column": "done"
 		},
@@ -2249,6 +2250,26 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T116": {
+			"file": "T116-cron-scheduling-without-plugin-activate.md",
+			"id": "T116",
+			"title": "Cron scheduling without plugin:activate",
+			"phase": 2,
+			"package": "repo",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T056"
+			],
+			"spec": [
+				"R23",
+				"R37"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2299,7 +2320,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T034"
+			"T034",
+			"T116"
 		],
 		"review": [],
 		"done": [
