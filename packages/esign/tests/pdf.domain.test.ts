@@ -280,3 +280,14 @@ describe("ES-FR-08 chunked storage of the signed PDF", () => {
 		expect(a.sha256).toBe(b.sha256);
 	});
 });
+
+describe("ES-FR-16 the certificate records the email code", () => {
+	it("ES-FR-16 a signer who verified an email one-time code gets the line, per signer; others do not", async () => {
+		const input = await fixture({ otpVerifiedAt: AT });
+		expect(JSON.stringify(signedPdfDocument(input).blocks)).toContain("Email one-time code verified");
+		expect(JSON.stringify(signedPdfDocument(await fixture()).blocks)).not.toContain("one-time code");
+		const plain = (await fixture()).signers[0] as SignedPdfInput["signers"][number];
+		const two = { ...input, signers: [input.signers[0], plain] as SignedPdfInput["signers"] };
+		expect(JSON.stringify(signedPdfDocument(two).blocks).match(/Email one-time code verified/g)).toHaveLength(1);
+	});
+});

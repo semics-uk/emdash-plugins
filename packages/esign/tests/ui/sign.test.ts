@@ -356,6 +356,58 @@ describe("SU-FR-11 waiting for the other signers (T090, ES-FR-15)", () => {
 	});
 });
 
+describe("ES-FR-16 the email code step (T091)", () => {
+	const needs = { ...ready, otp: "required" };
+
+	it("ES-FR-16 the session's otp state reaches the view", async () => {
+		const h = host({ "public/session": needs });
+		expect(await handleSign(h.ctx, TOKEN, null)).toMatchObject({ kind: "ready", session: { otp: "required" } });
+	});
+
+	it("ES-FR-16 'send code' posts only the token to public/otp/send and says a code was sent", async () => {
+		const h = host({ "public/session": needs, "public/otp/send": { ok: true, sent: true } });
+		const view = await handleSign(h.ctx, TOKEN, form({ intent: "otp-send" }));
+		expect(view).toMatchObject({ kind: "ready", otpSent: true });
+		expect(h.seen.find((s) => s.path === "public/otp/send")?.body).toEqual({ token: TOKEN });
+		expect(h.seen.some((s) => s.path === "public/submit")).toBe(false);
+	});
+
+	it("ES-FR-16 a wrong code keeps the step and explains; the code goes only in the POST body", async () => {
+		const h = host({
+			"public/session": needs,
+			"public/otp/verify": { ok: false, error: { code: "OTP_INVALID", message: "x" } },
+		});
+		const view = await handleSign(h.ctx, TOKEN, form({ intent: "otp-verify", code: " 123456 " }));
+		expect(view).toMatchObject({ kind: "ready", errorCode: "OTP_INVALID" });
+		expect((view as { message: string }).message).toMatch(/code/i);
+		const verify = h.seen.find((s) => s.path === "public/otp/verify");
+		expect(verify?.body).toEqual({ token: TOKEN, code: "123456" });
+		expect(verify?.url).not.toContain("123456");
+	});
+
+	it("ES-FR-16 a right code reloads the session so the signing form can show", async () => {
+		let sessions = 0;
+		const h = host({
+			"public/session": () => (++sessions === 1 ? needs : { ...ready, otp: "verified" }),
+			"public/otp/verify": { ok: true, verified: true },
+		});
+		expect(await handleSign(h.ctx, TOKEN, form({ intent: "otp-verify", code: "123456" }))).toMatchObject({
+			kind: "ready",
+			session: { otp: "verified" },
+		});
+	});
+
+	it("ES-FR-16 signing before verifying shows the code message", async () => {
+		const h = host({
+			"public/session": needs,
+			"public/submit": { ok: false, error: { code: "OTP_REQUIRED", message: "x" } },
+		});
+		const view = await handleSign(h.ctx, TOKEN, form(signForm));
+		expect(view).toMatchObject({ kind: "ready", errorCode: "OTP_REQUIRED" });
+		expect((view as { message: string }).message).toMatch(/code/i);
+	});
+});
+
 describe("handleSignedCopy: the stable 'get my signed copy' page (ES-US-6)", () => {
 	const done = {
 		ok: true,
