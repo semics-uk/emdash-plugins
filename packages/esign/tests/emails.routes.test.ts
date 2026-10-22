@@ -127,8 +127,8 @@ describe("ES-FR-10 invitation emails", () => {
 	it("the recurring drain is scheduled on activation", async () => {
 		const { budget } = await setup();
 		const r = await budget.invokeHook("plugin:activate", {});
-		// One schedule call per recurring task: the drain, (T061) the nonce sweep and (T097) retention.
-		expectWithinBudget(r, { calls: 3, cpuMs: 50 });
+		// One schedule call per recurring task: the drain, (T061) the nonce sweep and (T097) retention and (T092) expiry.
+		expectWithinBudget(r, { calls: 4, cpuMs: 50 });
 		const names = (await host().inspect.scheduledTasks()).map((t) => t.name);
 		expect(names).toContain(OUTBOX_TASK);
 	});
