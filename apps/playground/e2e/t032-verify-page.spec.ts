@@ -1,12 +1,41 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, request as playwrightRequest, test } from "@playwright/test";
 
-import { SIGNED_COPY_TOKEN, SIGNED_PDF, SIGNED_PDF_SHA256 } from "./harness/esign-fixture.mjs";
+import {
+	createAndSend,
+	route,
+	sha256,
+	signViaRoutes,
+	waitForCompletionToken,
+	waitForPdf,
+} from "./harness/esign-journey";
 
 // T032 (SU-FR-02, ES-US-6): /verify hashes a dropped PDF in the browser and posts only the hash;
 // /signed/[token] is the stable "get my signed copy" page the completion email links to.
 
-const pdf = { name: "signed.pdf", mimeType: "application/pdf", buffer: SIGNED_PDF };
+// One envelope signed through the real routes (T033 replaced the T032 direct-storage fixture): its
+// stored PDF is what the tests drop on /verify, and the completion email's token opens /signed/<token>.
+let SIGNED_PDF: Buffer;
+let SIGNED_PDF_SHA256: string;
+let SIGNED_COPY_TOKEN: string;
+let pdf: { name: string; mimeType: string; buffer: Buffer };
+
+test.beforeAll(async ({ baseURL }) => {
+	const api = await playwrightRequest.newContext({ baseURL: baseURL ?? "http://127.0.0.1:4401" });
+	try {
+		const sent = await createAndSend(api, "Verify page agreement");
+		await signViaRoutes(api, sent);
+		const done = await waitForPdf(api, sent.envelopeId);
+		SIGNED_COPY_TOKEN = await waitForCompletionToken(sent.envelopeId);
+		const { download } = await route<{ download: { url: string } }>(api, "public/session", { token: SIGNED_COPY_TOKEN });
+		SIGNED_PDF = await (await api.get(download.url)).body();
+		SIGNED_PDF_SHA256 = sha256(SIGNED_PDF);
+		if (SIGNED_PDF_SHA256 !== done.pdfSha256) throw new Error("downloaded PDF does not match the receipt");
+		pdf = { name: "signed.pdf", mimeType: "application/pdf", buffer: SIGNED_PDF };
+	} finally {
+		await api.dispose();
+	}
+});
 
 test("ES-US-6 choosing the signed PDF shows matched, and only the hash is posted", async ({ page }) => {
 	const posts: { url: string; type: string; body: string }[] = [];
@@ -19,6 +48,7 @@ test("ES-US-6 choosing the signed PDF shows matched, and only the hash is posted
 	await expect(page.getByTestId("verify-result")).toBeVisible();
 	await expect(page.getByTestId("verify-result")).toHaveAttribute("data-matched", "true");
 	await expect(page.getByTestId("verify-result")).toContainText(/was issued here/i);
+	await expect(page.getByTestId("verify-chain")).toHaveText("Its audit trail is intact.");
 
 	expect(posts).toHaveLength(1);
 	expect(new URL(posts[0]!.url).pathname).toBe("/verify");
