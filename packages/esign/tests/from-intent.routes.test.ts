@@ -288,6 +288,21 @@ async function call(budget: BudgetedHost, token: string, target = INLINE_TARGET)
 	return r.value as Body;
 }
 
+describe("T100 from-intent without a rate limit (T034 review finding 20)", () => {
+	// Accepted: nothing an unauthenticated caller sends gets past the HMAC without the client secret, so
+	// a flood costs the site at most these calls each; a per-IP counter would cost 2 more on a route at 9.
+	it("a malformed token costs no bridge call; an unknown cid costs 2 (settings + client), and neither writes", async () => {
+		const budget = await integration();
+		const malformed = await budget.invokeRoute(ROUTE, { intent: "not.a-token" });
+		expect(malformed.value).toMatchObject({ ok: false, error: { code: "TOKEN_MALFORMED" } });
+		expect(malformed.calls).toHaveLength(0);
+		const unknown = await budget.invokeRoute(ROUTE, { intent: await sign(payload({ cid: "cl_unknownclient" })) });
+		expect(unknown.value).toMatchObject({ ok: false, error: { code: "CLIENT_UNKNOWN" } });
+		expect(unknown.calls).toHaveLength(2);
+		expect(unknown.calls.every((c) => !/put|set|delete|update/i.test(c.method))).toBe(true);
+	});
+});
+
 describe("ES-FR-13 SX-NFR-03 from-intent route rules", () => {
 	it("SX-NFR-03 a replayed intent is rejected with TOKEN_REPLAYED and changes nothing", async () => {
 		const budget = await integration();
