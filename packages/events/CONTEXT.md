@@ -102,7 +102,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   booking page shows passes for attendees with a `code` and a calendar link from `calendar.query`
   (signed by the core, T050). Never use `set:html` or HTML sinks (a test checks). Every POST the UI
   answers (`/_events/checkout`, the booking page's cancel/redeem) refuses cross-site posts first with
-  `isCrossSiteRequest` (403), independent of Astro's `checkOrigin` (T057).
+  `isCrossSiteRequest` (403): EmDash sets Astro's `checkOrigin: false`, so nothing else does (T057).
 - Log calls are bridge calls: a path already at 10 must not log (the outbox meters its tick, T057).
 - UI (T054): `<EventList>` (also the `events-list` block) calls `public/events` through `callPublicRoute` with the
   integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,

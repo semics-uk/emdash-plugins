@@ -35,7 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Listing passes `emdash-plugin validate`
-- [ ] The Events operator guide says to trust client-IP headers (`trustedProxyHeaders`) only when a proxy in front overwrites them, since the UI forwards them as sent and the per-IP reserve limit depends on them; and to keep Astro's `security.checkOrigin` on (T057 review F9)
+- [ ] The Events operator guide says to trust client-IP headers (`trustedProxyHeaders`) only when a proxy in front overwrites them, since the UI forwards them as sent and the per-IP reserve limit depends on them; and that `security.allowedDomains` gives `Astro.url` the public host (EmDash turns `checkOrigin` off; the Events forms check Origin themselves) (T057 review F9)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

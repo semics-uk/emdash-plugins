@@ -12,26 +12,36 @@ are filed as acceptance criteria on the task that owns the area.
 
 | Severity | Found | Fixed here | Filed |
 | --- | --- | --- | --- |
-| 1 | 0 | – | – |
-| 2 | 4 | 4 | – |
+| 1 | 1 | 1 | – |
+| 2 | 3 | 3 | – |
 | 3 | 5 | 1 (test gap) | 4 |
 | 4 | 7 | – | 7 |
 
 No open Severity 1 or 2 findings.
 
-## Severity 2 (fixed)
+## Severity 1 (fixed)
 
-**F1 · The no-JS forms had no Origin check of their own.** `POST /_events/checkout` and the booking
-page's POST (cancel and redeem forms) relied on Astro's `security.checkOrigin` (default on in Astro
-7.3.8: `isForbiddenCrossOriginRequest` checks `Sec-Fetch-Site`, then `Origin`, for form content types)
-and on the `SameSite=Lax` cookie. A site that turns `checkOrigin` off let any page auto-submit the
-checkout form: bookings started in the visitor's name and from the visitor's IP, so a busy third-party
+**F1 · The no-JS forms had no CSRF protection on any EmDash site.** `POST /_events/checkout` and the
+booking page's POST (cancel and redeem forms) had no Origin check of their own and appeared to rely on
+Astro's `security.checkOrigin` (default on in Astro 7.3.8) and the `SameSite=Lax` cookie. But **EmDash
+1.2's integration sets `security.checkOrigin: false`** (`emdash/dist/astro/index.mjs`), and its own
+`checkPublicCsrf` covers only `/_emdash/api` routes, so on every install any page could auto-submit the
+checkout form (the T056 load test, posting with `Origin: http://127.0.0.1:4401` to a server whose
+`Astro.url` is `http://localhost:4401`, had been going straight through): bookings started in the visitor's name and from the visitor's IP, so a busy third-party
 page could hold every seat while each IP stayed under the per-IP reserve limit (Turnstile, if
-configured, is the only other stop), plus login-CSRF on the redeem form. Fix: `isCrossSiteRequest`
-in `src/astro/lib/checkout-form.ts` (same rule as Astro: `Sec-Fetch-Site` other than `same-origin`/
-`none`, else an `Origin` that is not the site's, refused; clients that send neither pass) answers 403
-before the form is read. The endpoint is now `handleCheckoutRequest`; `BookingPage.astro` checks first.
-Tests: `tests/ui/checkout-form.test.ts` (T057 cross-site), `tests/ui/csrf.build.test.ts`.
+configured, is the only other stop), plus login-CSRF on the redeem form. Cancel was safe cross-site
+only because the explicit `SameSite=Lax` cookie is not sent on a cross-site POST (same-site
+subdomains could still do it). Fix: `isCrossSiteRequest` in `src/astro/lib/checkout-form.ts` refuses
+a `Sec-Fetch-Site` other than `same-origin`/`none`, else an `Origin` that is neither `url.origin` nor
+the request's `Host` (Astro builds `url` on `localhost` without `security.allowedDomains`); clients
+that send neither header pass. It answers 403 before the form is read. The endpoint is now
+`handleCheckoutRequest`; `BookingPage.astro` checks first. Tests: `tests/ui/checkout-form.test.ts`
+(T057 cross-site), `tests/ui/csrf.build.test.ts`, and e2e `apps/playground/e2e/t053-booking-page.spec.ts`
+(T057: 403 for checkout, cancel and redeem with a foreign `Origin` or `Sec-Fetch-Site: cross-site`,
+on the real playground where Astro's check is off). **E-sign's UI forms may have the same gap**: left
+to the T034 review.
+
+## Severity 2 (fixed)
 
 **F2 · `public/event/ics` served events that are not public.** It called `loadEventInfo` without
 looking at the config, so a draft, unpublished or orphaned event's title, times and venue came back,
