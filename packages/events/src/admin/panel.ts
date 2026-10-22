@@ -1,6 +1,6 @@
 import {
-	banner,
 	type Block,
+	banner,
 	context,
 	type FormField,
 	form,
@@ -54,9 +54,7 @@ export interface PanelDeps {
 	waivers?: WaiverCheck;
 }
 
-export type WaiverAvailability =
-	| { available: true }
-	| { available: false; reason: "edition" | "pairing" | "licence" };
+export type WaiverAvailability = { available: true } | { available: false; reason: "edition" | "pairing" | "licence" };
 
 /** Decides waiver availability from the plugin settings, without bridge calls of its own. */
 export type WaiverCheck = (settings: Record<string, unknown>) => Promise<WaiverAvailability>;
@@ -394,7 +392,10 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		const required = typeof values.waiver_required === "boolean" ? values.waiver_required : storedSignature.required;
 		const templateId =
 			values.waiver_template !== undefined ? str(values.waiver_template, 64) : (storedSignature.templateId ?? "");
-		const mode = values.waiver_mode === "buyer" || values.waiver_mode === "each_attendee" ? values.waiver_mode : storedSignature.mode;
+		const mode =
+			values.waiver_mode === "buyer" || values.waiver_mode === "each_attendee"
+				? values.waiver_mode
+				: storedSignature.mode;
 		if (required && !templateId) {
 			return panelForm(state, failure([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers);
 		}

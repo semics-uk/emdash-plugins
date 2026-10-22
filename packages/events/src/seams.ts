@@ -9,6 +9,9 @@
  * - `editorTicketsRoute({ waivers })`: the "Tickets & booking" panel with a waiver availability
  *   check. Free shows required waivers as unavailable.
  */
+
+export type { WaiverAvailability, WaiverCheck } from "./admin/panel";
+export type { InputIssue } from "./domain/checkout";
 export {
 	type ContinueSteps,
 	checkoutContinueRoute,
@@ -19,6 +22,4 @@ export {
 	type SigningRefusal,
 } from "./routes/checkout-continue";
 export { type EditorSteps, editorTicketsRoute } from "./routes/editor";
-export type { WaiverAvailability, WaiverCheck } from "./admin/panel";
 export type { AttendeeDoc, BookingDoc, BookingWaiver, SignatureMode } from "./storage/schema";
-export type { InputIssue } from "./domain/checkout";

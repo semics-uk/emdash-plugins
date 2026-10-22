@@ -141,7 +141,8 @@ export async function saveConfig(
 		(newTicketTypes.length > 0 ? 1 : 0) +
 		(newOccurrences.length > 0 ? 1 : 0) +
 		(state.config && !sameJson(storedCatalog, target) ? 1 : 0);
-	if (calls + reservedCalls > MAX_SAVE_CALLS) return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
+	if (calls + reservedCalls > MAX_SAVE_CALLS)
+		return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
 
 	const info: EventInfoDoc | null = state.config || !loadInfo ? null : await loadInfo().catch(() => null);
 

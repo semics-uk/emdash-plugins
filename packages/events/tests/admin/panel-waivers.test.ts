@@ -93,7 +93,9 @@ describe("EV-FR-12 waiver toggle on the editor panel", () => {
 		const w = world({ available: true });
 		const res = await load(w.deps);
 		const f = fields(res.blocks as Block[]);
-		expect(f.map((x) => x.action_id)).toEqual(expect.arrayContaining(["waiver_required", "waiver_template", "waiver_mode"]));
+		expect(f.map((x) => x.action_id)).toEqual(
+			expect.arrayContaining(["waiver_required", "waiver_template", "waiver_mode"]),
+		);
 		expect(banners(res.blocks as Block[])).toEqual([]);
 
 		const saved = await save(w.deps, { waiver_required: true, waiver_template: "tpl_1", waiver_mode: "buyer" });
