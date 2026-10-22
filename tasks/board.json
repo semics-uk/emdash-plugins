@@ -2387,7 +2387,7 @@
 			"phase": 6,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2399,7 +2399,7 @@
 				"R2"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -2424,8 +2424,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T091",
-			"T120"
+			"T091"
 		],
 		"review": [],
 		"done": [
@@ -2512,7 +2511,8 @@
 			"T116",
 			"T117",
 			"T118",
-			"T119"
+			"T119",
+			"T120"
 		],
 		"blocked": []
 	},
