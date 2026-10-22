@@ -19,8 +19,9 @@ UI natively (`astro.config.mjs`). Used for end-to-end tests only.
 - E-sign journey (T033): `e2e/harness/esign-admin.mjs` seeds one admin user + API token (no sign-in bypass in a
   production build); `e2e/harness/esign-journey.ts` drives the real private/public routes (template, envelope with a
   signer-fillable field, send, sign, wait for the signed PDF, `/signed/<token>` from the completion email).
-  Tokens are read from the clear-text outbox rows (`invite-<envelopeId>:s1`, `complete-<envelopeId>`) before the
-  one-minute drain scrubs them. The PDF job is a one-shot cron: it runs within a second or two, so tests poll the
+  Tokens are read from the delivered emails (`/e2e/mail?to=`, T061): each envelope gets a unique signer address and
+  the harness runs `/e2e/cron?task=outbox-drain&plugin=semics-esign` until the invitation / completion email arrives
+  (the drain scrubs the outbox rows, R32). The PDF job is a one-shot cron: it runs within a second or two, so tests poll the
   admin receipt (`envelopes/get`) rather than waiting for the minute tick. `esign.spec.ts` is the journey;
   `t032-verify-page.spec.ts` signs its own envelope in `beforeAll`.
 - Fixtures cover london-meetup, nyc-workshop and sydney-conference (on sale; the past gala has no config so it is

@@ -69,7 +69,15 @@ Budget: from-intent is 8 calls inline and 9 with email delivery (create-only env
 
 Cron scheduling (T116, R37): `plugin:activate` never runs for a config-declared core, so admin `page_load`s,
 `templates/create` and `public/verify` carry the shared `withScheduleCheck` (1 KV read; +1 the first time to queue
-`ensure-schedules`, which schedules `outbox-drain`). Not on `from-intent`, `submit`, `session` or admin actions.
+`ensure-schedules`, which schedules `outbox-drain` and `nonce-sweep`). Not on `from-intent`, `submit`, `session` or admin actions.
+Adding a recurring task means adding it to `RECURRING_TASKS` in `src/plugin.ts` and bumping `SCHEDULES_FLAG` (shared, now v2).
+
+Signing intents (T061): `src/routes/from-intent.ts`. Templates carry `integrations` ("available to integrations", head
+only, default off, toggle on both template forms); `availableToIntegrations(head)` gates from-intent (else
+`TEMPLATE_NOT_FOUND`, nonce already spent) and is what the T062 catalogue should list. `cron/nonce-sweep.ts`: hourly
+`nonce-sweep` deletes `nonces` with `expiresAt < now`, oldest first, 3 pages of 100 (query + `deleteMany` each), and
+schedules the one-shot `nonce-sweep-more` when a backlog remains (≤ 7 calls). `tests/from-intent.routes.test.ts` runs
+all 53 intent vectors through the route: payload times shifted to the real clock and re-signed with the derived secret.
 
 Admin (T028): `src/admin/pages.ts` + private `admin` route (`routes/admin.ts`); pages `/envelopes`, `/templates`,
 `/settings` in the manifest. Actions go through the private routes, plus `envelopes/resend` (fresh token + queued

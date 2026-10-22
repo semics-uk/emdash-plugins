@@ -14,8 +14,12 @@
  * recurring tasks are written once, not pushed back on every request.
  */
 
-/** KV flag set once the recurring tasks are scheduled. Bump the version when the task list changes. */
-export const SCHEDULES_FLAG = "cron:scheduled:v1";
+/**
+ * KV flag set once the recurring tasks are scheduled. Bump the version when a core's task list
+ * changes, so sites scheduled under the old list schedule the new task too. v2: E-sign `nonce-sweep`
+ * (T061). Each core has its own KV, so a bump only re-runs the ensure task once on the other core.
+ */
+export const SCHEDULES_FLAG = "cron:scheduled:v2";
 
 /** One-shot task that schedules the recurring ones from inside a cron invocation. */
 export const ENSURE_SCHEDULES_TASK = "ensure-schedules";

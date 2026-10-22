@@ -87,7 +87,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
 - Cron scheduling (T116, R37): EmDash 1.2 never runs `plugin:activate` for a core in `sandboxed: [...]`, so
   `public/events`, `public/event` and admin `page_load`s are wrapped in `withScheduleCheck` (shared
-  `schedules.ts`): 1 KV read of `cron:scheduled:v1`; when missing, +1 to queue the one-shot `ensure-schedules`,
+  `schedules.ts`): 1 KV read of `cron:scheduled:v2` (v2 since T061); when missing, +1 to queue the one-shot `ensure-schedules`,
   whose tick schedules `sweep-holds` + `outbox-drain` and sets the flag. Never add it to checkout or admin
   actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self

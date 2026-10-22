@@ -18,6 +18,7 @@ import {
 	table,
 	templateFields,
 	textInput,
+	toggle,
 } from "@semics-tech/shared";
 import type { PluginContext } from "emdash/plugin";
 
@@ -77,6 +78,7 @@ const ISSUE_TEXT: Record<string, string> = {
 	INVALID_BODY: "The template text is required (up to 100,000 characters).",
 	INVALID_DESCRIPTION: "The description is too long (up to 1,000 characters).",
 	TEMPLATE_ARCHIVED: "This template is archived.",
+	INVALID_INTEGRATIONS: "Choose whether integrations may use the template.",
 	INVALID_TITLE: "The title is too long or has control characters.",
 	INVALID_SIGNER_NAME: "Enter the signer's name.",
 	INVALID_SIGNER_EMAIL: "Enter a valid email address for the signer.",
@@ -499,6 +501,7 @@ async function templatesPage(deps: AdminDeps, extra: Block[] = []): Promise<Admi
 		name: t.name,
 		version: t.version,
 		fields: ((t.fields as string[]) ?? []).join(", "),
+		integrations: t.integrations === true ? "Yes" : "No",
 		updated: t.updatedAt,
 		edit: button("template.edit", "Edit", { value: t.id }),
 		use: button("envelope.new", "New envelope", { style: "primary", value: t.id }),
@@ -511,6 +514,7 @@ async function templatesPage(deps: AdminDeps, extra: Block[] = []): Promise<Admi
 				{ key: "name", label: "Name" },
 				{ key: "version", label: "Version", format: "number" },
 				{ key: "fields", label: "Fields" },
+				{ key: "integrations", label: "Integrations" },
 				{ key: "updated", label: "Updated", format: "relative_time" },
 				{ key: "edit", label: "", format: "element" },
 				{ key: "use", label: "", format: "element" },
@@ -528,10 +532,19 @@ async function templatesPage(deps: AdminDeps, extra: Block[] = []): Promise<Admi
 				textInput("name", "Name"),
 				textInput("description", "Description (optional)"),
 				textInput("body", "Template text", { multiline: true }),
+				integrationsToggle(false),
 			],
 			submit: { label: "Create template", actionId: "template.create" },
 		}),
 	]);
+}
+
+/** "Available to integrations" (T061): only flagged templates accept signing intents (protocol §8.1). */
+function integrationsToggle(initialValue: boolean) {
+	return toggle("integrations", "Available to integrations", {
+		description: "Paired sites (such as Events) may send this template for signing.",
+		initialValue,
+	});
 }
 
 function previewOf(body: string): string {
@@ -557,6 +570,7 @@ function templateEditor(id: string, tpl: Record<string, unknown>, extra: Block[]
 				textInput("name", "Name", { initialValue: String(tpl.name ?? "") }),
 				textInput("description", "Description (optional)", { initialValue: String(tpl.description ?? "") }),
 				textInput("body", "Template text", { initialValue: body, multiline: true }),
+				integrationsToggle(tpl.integrations === true),
 			],
 			submit: { label: "Save new version", actionId: "template.save" },
 			blockId: `template:${id}`,
@@ -597,6 +611,7 @@ async function createTemplate(deps: AdminDeps, v: Record<string, unknown>): Prom
 		name: str(v.name),
 		body: typeof v.body === "string" ? v.body : "",
 		...(str(v.description, 1000) ? { description: str(v.description, 1000) } : {}),
+		integrations: v.integrations === true,
 	});
 	if (reply.ok !== true) return templatesPage(deps, notices([error("Not saved", failure(reply))]));
 	return templatesPage(deps, notices([{ severity: "info", title: "Template created" }]));
@@ -613,6 +628,7 @@ async function saveTemplate(
 		name: str(v.name),
 		body: typeof v.body === "string" ? v.body : "",
 		description: str(v.description, 1000),
+		integrations: v.integrations === true,
 	};
 	const reply = await run(deps, templateRoute("templates/update"), { id, ...input });
 	if (reply.ok !== true) {

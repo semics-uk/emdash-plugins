@@ -7,6 +7,10 @@
  *  - one immutable version document per version, id `<id>:v<n>`, status `version`.
  * Editing writes a new version and bumps the head; envelopes freeze their own snapshot at send, so
  * an edit never changes a sent envelope.
+ *
+ * `integrations` ("available to integrations", T061) is read from the head: only a flagged, active
+ * template can start an envelope from a signing intent (protocol §8.1) or appear in the catalogue
+ * (§8.5). It defaults to off; heads written before T061 have no flag and count as off.
  */
 import { err, ok, type Result, templateFields } from "@semics-tech/shared";
 
@@ -18,6 +22,8 @@ export interface TemplateDoc {
 	kind: "text";
 	status: TemplateStatus;
 	public: boolean;
+	/** Available to integrations (signing intents, the template catalogue). Absent means off. */
+	integrations?: boolean;
 	version: number;
 	body: string;
 	fields: string[];
@@ -32,6 +38,7 @@ export type TemplateIssueCode =
 	| "INVALID_NAME"
 	| "INVALID_BODY"
 	| "INVALID_DESCRIPTION"
+	| "INVALID_INTEGRATIONS"
 	| "TEMPLATE_ARCHIVED";
 
 export interface TemplateIssue {
@@ -50,13 +57,14 @@ interface Fields {
 	name: string;
 	body: string;
 	description?: string;
+	integrations?: boolean;
 }
 
 function validate(input: unknown): Result<Fields, TemplateIssue[]> {
 	if (typeof input !== "object" || input === null || Array.isArray(input)) {
 		return err([{ path: "", code: "INVALID_INPUT" }]);
 	}
-	const { name, body, description } = input as Record<string, unknown>;
+	const { name, body, description, integrations } = input as Record<string, unknown>;
 	const issues: TemplateIssue[] = [];
 	const trimmed = typeof name === "string" ? name.trim() : "";
 	if (trimmed.length === 0 || trimmed.length > MAX_NAME_LENGTH) issues.push({ path: "name", code: "INVALID_NAME" });
@@ -66,11 +74,15 @@ function validate(input: unknown): Result<Fields, TemplateIssue[]> {
 	if (description !== undefined && (typeof description !== "string" || description.length > MAX_DESCRIPTION_LENGTH)) {
 		issues.push({ path: "description", code: "INVALID_DESCRIPTION" });
 	}
+	if (integrations !== undefined && typeof integrations !== "boolean") {
+		issues.push({ path: "integrations", code: "INVALID_INTEGRATIONS" });
+	}
 	if (issues.length > 0) return err(issues);
 	return ok({
 		name: trimmed,
 		body: body as string,
 		...(typeof description === "string" && description !== "" ? { description } : {}),
+		...(typeof integrations === "boolean" ? { integrations } : {}),
 	});
 }
 
@@ -95,6 +107,7 @@ export function createTemplate(
 		kind: "text",
 		status: "active",
 		public: false,
+		integrations: v.value.integrations ?? false,
 		version: 1,
 		body: v.value.body,
 		fields: templateFields(v.value.body),
@@ -124,6 +137,8 @@ export function updateTemplate(
 		name: v.value.name,
 		body: v.value.body,
 		fields: templateFields(v.value.body),
+		// Kept as it was unless the edit sets it.
+		integrations: v.value.integrations ?? existing.integrations === true,
 		version: existing.version + 1,
 		updatedAt: ctx.now,
 	};
@@ -132,6 +147,11 @@ export function updateTemplate(
 
 export function archiveTemplate(head: TemplateDoc, now: string): TemplateDoc {
 	return head.status === "archived" ? head : { ...head, status: "archived", updatedAt: now };
+}
+
+/** Only an active head flagged "available to integrations" serves signing intents and the catalogue. */
+export function availableToIntegrations(head: TemplateDoc | undefined): boolean {
+	return head?.status === "active" && head.integrations === true;
 }
 
 /** Archived templates look missing to the envelope flow, so they can't start new envelopes. */

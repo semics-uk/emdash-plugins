@@ -67,7 +67,7 @@ the need for activation-time scheduling altogether.
 ## Our workaround (T116)
 
 Both cores keep scheduling in `plugin:activate`, and certain always-hit routes (public event reads, admin page
-loads, template creation, the verify page) also make one KV read of a `cron:scheduled:v1` flag. When
+loads, template creation, the verify page) also make one KV read of a `cron:scheduled:v<n>` flag (bumped when a task list changes). When
 the flag is missing they queue a one-shot `ensure-schedules` cron task (one more call); its cron
 invocation schedules the recurring tasks and sets the flag. Cost: +1 bridge call per guarded request,
 +2 until the first tick. We can drop it once the fix ships.

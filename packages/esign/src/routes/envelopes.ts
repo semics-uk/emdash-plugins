@@ -2,27 +2,17 @@
  * Envelope routes (ES-FR-02, ES-FR-03): thin adapters over `domain/envelopes` and `domain/state`.
  *
  * Private (admin): `envelopes/create` (draft), `envelopes/send` (freeze + signer), `envelopes/get`,
- * `envelopes/list`. Public: `public/envelopes/from-intent` (verify an `esign-intent/1` token, then
- * create and send, or return the envelope for its `(cid, ref)`; protocol §8.1).
+ * `envelopes/list`, `envelopes/resend`, `envelopes/void`. The public `envelopes/from-intent` lives
+ * in `./from-intent.ts` and shares the helpers exported here.
  *
  * Every status change goes through `transitionEnvelope` (or, for an envelope created already sent,
  * through `sendEnvelope`'s `draft → sent` check), so the table in `domain/state.ts` is the one
  * source of truth for routes and cron jobs. Each handler stays at ≤ 8 bridge calls (R22), except
- * from-intent at 9 with email delivery (still inside the hard limit of 10; see below). Create and send write the
- * envelope's opening `audit_events` (domain/audit.ts).
+ * `send` at 9 (it queues the invitation). Create and send write the envelope's opening
+ * `audit_events` (domain/audit.ts).
  */
-import {
-	deriveClientSecret,
-	type EsignClient,
-	generateToken,
-	hashToken,
-	type OutboxRecord,
-	type RandomBytes,
-	toRouteError,
-	verifyIntentToken,
-} from "@semics-tech/shared";
-import type { PluginContext, RouteHandler, SandboxedPlugin } from "emdash/plugin";
-import { scheduleIntentFinish } from "../cron/intent-finish";
+import { generateToken, hashToken, type OutboxRecord, type RandomBytes, toRouteError } from "@semics-tech/shared";
+import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import {
 	type AuditEventDoc,
 	type AuditInput,
@@ -34,10 +24,7 @@ import {
 import {
 	buildDraft,
 	createdAuditEvent,
-	draftFromIntent,
 	type EnvelopeDoc,
-	envelopeIdForRef,
-	existingForRef,
 	joinSnapshot,
 	parseDraftInput,
 	pickTemplateVersion,
@@ -46,7 +33,6 @@ import {
 	sendEnvelope,
 	sentAuditEvent,
 } from "../domain/envelopes";
-import { masterKeyBytes } from "../domain/master-key";
 import type { ArtifactChunkDoc } from "../domain/pdf";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { type TemplateDoc, versionDocId } from "../domain/templates";
@@ -373,179 +359,3 @@ export const ENVELOPE_ROUTES: Record<string, RouteDef> = {
 	"envelopes/void": { handler: voidEnvelope as Handler },
 	"outbox/status": { handler: (async (_r, ctx) => ({ ok: true, ...(await outboxReport(ctx)) })) as Handler },
 };
-
-// --- public/envelopes/from-intent ---
-
-export interface FromIntentDeps {
-	/** Epoch milliseconds. */
-	now?: () => number;
-	random?: RandomBytes;
-}
-
-function allowlistOf(value: unknown): string[] | undefined {
-	return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined;
-}
-
-function siteOrigin(ctx: PluginContext): string | undefined {
-	try {
-		return new URL(ctx.site.url).origin;
-	} catch {
-		return undefined;
-	}
-}
-
-/**
- * Protocol §8.1. Bridge calls: settings + client (2), nonce (1), template (1), then the create-only
- * envelope write first (1), snapshot, signer and opening audit-event writes (3), plus the outbox
- * put for email delivery (1): 8 inline, 9 email. The existing-envelopes read happens only when the
- * create-only write loses: a replay is then 7 (inline reuse adds a token rotation), and a retry
- * after a declined, voided or expired envelope costs the read and a second create: 10 inline.
- */
-export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
-	const nowMs = (deps.now ?? Date.now)();
-	const now = new Date(nowMs).toISOString();
-	const { envelopes, signers, snapshots, templates, clients, nonces } = stores(ctx);
-	let settings: Record<string, unknown> = {};
-
-	const getClient = async (cid: string): Promise<EsignClient | undefined> => {
-		const [all, found] = await Promise.all([
-			ctx.settings.list(),
-			clients.query({ where: { clientId: cid }, limit: 1 }),
-		]);
-		settings = Object.fromEntries(all.map((s) => [s.key, s.value]));
-		const key = masterKeyBytes(settings.integrationMasterKey);
-		const client = found.items[0]?.data;
-		if (!key || !client) return undefined;
-		return {
-			secret: await deriveClientSecret(key, cid),
-			revoked: client.revokedAt !== undefined && client.revokedAt !== null,
-			returnUrlAllowlist: allowlistOf(client.returnUrlAllowlist),
-		};
-	};
-
-	const consumeNonce = async (cid: string, nonce: string, expiresAt: number): Promise<boolean> => {
-		const id = `${cid}.${nonce}`;
-		try {
-			const doc = { nonce: id, cid, expiresAt: new Date(expiresAt * 1000).toISOString() };
-			return (await nonces.compareAndSet(id, null, doc)).applied;
-		} catch (error) {
-			if (isUniqueViolation(error)) return false;
-			throw error;
-		}
-	};
-
-	const verified = await verifyIntentToken({
-		token: obj(input).intent,
-		now: nowMs,
-		getClient,
-		consumeNonce,
-		siteOrigin: siteOrigin(ctx),
-	});
-	if (!verified.ok) return fail(verified.error);
-	const intent = verified.value;
-
-	const versionId = intent.tplVersion === undefined ? undefined : versionDocId(intent.tpl, intent.tplVersion);
-	const docs = await templates.getMany(versionId === undefined ? [intent.tpl] : [intent.tpl, versionId]);
-	const template = pickTemplateVersion(
-		docs.get(intent.tpl),
-		versionId === undefined ? undefined : docs.get(versionId),
-		intent.tplVersion,
-	);
-	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
-
-	const piiSalt = newPiiSalt(deps.random);
-	const draft = draftFromIntent(intent, template.value, { now, piiSalt });
-	if (!draft.ok) return badRequest(draft.error);
-	const token = generateToken(deps.random);
-	const tokenHash = await hashToken(token);
-	const build = async (attempt: number) => {
-		const id = await envelopeIdForRef(intent.cid, intent.ref, attempt);
-		const sent = await sendEnvelope(id, draft.value, template.value, {
-			now,
-			tokenHash,
-			expiryDays: expiryDays(settings.expiryDays),
-		});
-		return { id, sent };
-	};
-
-	// Optimistic first attempt: most intents are the first for their (cid, ref), so the create-only
-	// write goes first and the existing-envelopes read only happens when it loses.
-	let attempt = await build(1);
-	if (!attempt.sent.ok) return Array.isArray(attempt.sent.error) ? badRequest(attempt.sent.error) : fail("INTERNAL");
-	let created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
-	if (!created.applied) {
-		const previous = await envelopes.query({
-			where: { clientId: intent.cid, externalRef: intent.ref },
-			limit: LIST_LIMIT,
-		});
-		const current = existingForRef(previous.items);
-		if (current) {
-			// A draft here is an email intent whose finishing task may never have been scheduled.
-			if (current.data.status === "draft") await scheduleIntentFinish(ctx.cron, current.id, nowMs);
-			return reuse(signers, current.id, current.data, deps.random);
-		}
-		// Every earlier envelope for the pair was declined, voided or expired: start the next one.
-		const next = Math.max(previous.items.length, 1) + 1;
-		if (draft.value.delivery === "email") {
-			// 8 calls so far and the hard limit is 10: store a draft and let a cron task finish it.
-			const draftId = await envelopeIdForRef(intent.cid, intent.ref, next);
-			if (!(await envelopes.compareAndSet(draftId, null, draft.value)).applied) {
-				const winner = await envelopes.get(draftId);
-				return winner ? reuse(signers, draftId, winner, deps.random) : fail("INTERNAL");
-			}
-			await scheduleIntentFinish(ctx.cron, draftId, nowMs);
-			return response(draftId, draft.value, undefined);
-		}
-		attempt = await build(next);
-		if (!attempt.sent.ok) return Array.isArray(attempt.sent.error) ? badRequest(attempt.sent.error) : fail("INTERNAL");
-		created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
-		if (!created.applied) {
-			const winner = await envelopes.get(attempt.id);
-			return winner ? reuse(signers, attempt.id, winner, deps.random) : fail("INTERNAL");
-		}
-	}
-	const { id, sent } = attempt;
-	if (!sent.ok) return fail("INTERNAL");
-	// Chunk ids are hash-addressed, and only the winner of the create-only write gets here.
-	await snapshots.putMany(sent.value.chunks);
-	const stored = await insertSigner(signers, sent.value.signer, token, deps.random);
-	if (sent.value.envelope.delivery === "email") {
-		// The only place the token exists besides the hash: queued for the cron drain (1 call).
-		await queueInvitation(ctx, {
-			signerId: sent.value.signer.id,
-			envelope: sent.value.envelope,
-			token: stored,
-			senderSetting: settings.senderName,
-			now: nowMs,
-		});
-	}
-	// This request won the create-only envelope write, so it alone opens the chain: one putMany.
-	const opening = [createdAuditEvent(draft.value, "integration"), sentAuditEvent(sent.value.envelope, "integration")];
-	await stores(ctx).audit_events.putMany(await initialAuditEvents(id, opening, piiSalt));
-	return response(id, sent.value.envelope, stored);
-}
-
-function response(id: string, envelope: EnvelopeDoc, token: string | undefined) {
-	return {
-		ok: true,
-		envelopeId: id,
-		status: envelope.status,
-		...(token !== undefined && envelope.delivery === "inline" ? { signingToken: token } : {}),
-	};
-}
-
-/**
- * Idempotent return for an existing `(cid, ref)` envelope. Only the token hash is stored, so an
- * inline signer who has not signed yet gets a fresh token (the previous one stops working).
- */
-async function reuse(signers: Collection<SignerDoc>, id: string, envelope: EnvelopeDoc, random?: RandomBytes) {
-	const signerId = envelope.signerIds[0];
-	const awaiting = envelope.status === "sent" || envelope.status === "in_progress";
-	if (envelope.delivery !== "inline" || !awaiting || signerId === undefined) return response(id, envelope, undefined);
-	const rotated = await withUniqueToken(generateToken(random), random, (tokenHash) =>
-		signers.updateIf(signerId, { where: { status: "pending" }, set: { tokenHash } }),
-	);
-	return response(id, envelope, rotated.value.applied ? rotated.token : undefined);
-}
-
-export const fromIntentHandler: RouteHandler = (routeCtx, ctx) => fromIntent(routeCtx.input, ctx);

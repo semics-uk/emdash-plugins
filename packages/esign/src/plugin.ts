@@ -8,12 +8,14 @@ import {
 import type { SandboxedPlugin } from "emdash/plugin";
 import { runCompletionEmailJob } from "./cron/completion-email";
 import { runIntentFinishJob } from "./cron/intent-finish";
+import { NONCE_SWEEP_SCHEDULE, NONCE_SWEEP_TASK, runNonceSweepJob } from "./cron/nonce-sweep";
 import { runPdfJob } from "./cron/pdf";
 import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
 import { ADMIN_ROUTES } from "./routes/admin";
 import { CEREMONY_HANDLERS } from "./routes/ceremony";
 import { downloadHandler } from "./routes/download";
-import { ENVELOPE_ROUTES, fromIntentHandler } from "./routes/envelopes";
+import { ENVELOPE_ROUTES } from "./routes/envelopes";
+import { fromIntentHandler } from "./routes/from-intent";
 import { publicRoutes } from "./routes/public";
 import { TEMPLATE_ROUTES } from "./routes/templates";
 import { verifyHandler } from "./routes/verify";
@@ -26,7 +28,11 @@ type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
  * hits (admin page loads, template creation, `verify`) run the one-KV-read
  * schedule check. `from-intent`, `submit`, `session` (7 calls) and admin actions do not.
  */
-const RECURRING_TASKS: readonly RecurringTask[] = [{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE }];
+const RECURRING_TASKS: readonly RecurringTask[] = [
+	{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE },
+	// T061: joined the list after T116, so the shared schedule flag moved to v2.
+	{ name: NONCE_SWEEP_TASK, schedule: NONCE_SWEEP_SCHEDULE },
+];
 
 const PUBLIC = publicRoutes({
 	"public/envelopes/from-intent": fromIntentHandler,
@@ -46,6 +52,7 @@ const plugin: SandboxedPlugin = {
 			if (await runOutboxJob(event, ctx)) return;
 			if (await runCompletionEmailJob(event, ctx)) return;
 			if (await runIntentFinishJob(event, ctx)) return;
+			if (await runNonceSweepJob(event, ctx)) return;
 			await runPdfJob(event, ctx);
 		},
 	},
