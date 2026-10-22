@@ -1623,7 +1623,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1636,7 +1636,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T077": {
 			"file": "T077-events-ui-payment-redirect-and-return-pages.md",
@@ -1688,7 +1688,7 @@
 				"T102",
 				"T103"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T080": {
 			"file": "T080-events-pro-custom-attendee-questions.md",
@@ -2382,7 +2382,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T078",
 			"T095",
 			"T100",
 			"T101",
@@ -2391,6 +2390,7 @@
 			"T106"
 		],
 		"ready": [
+			"T078",
 			"T080",
 			"T081",
 			"T082",
@@ -2406,9 +2406,7 @@
 			"T111",
 			"T119"
 		],
-		"in-progress": [
-			"T076"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2477,6 +2475,7 @@
 			"T073",
 			"T074",
 			"T075",
+			"T076",
 			"T077",
 			"T085",
 			"T087",
@@ -2494,10 +2493,9 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T076",
-		"T078",
-		"T100",
+		"T093",
+		"T101",
 		"T106"
 	],
-	"criticalWeight": 5
+	"criticalWeight": 4
 }
