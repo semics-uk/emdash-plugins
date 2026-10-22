@@ -20,6 +20,7 @@ import {
 } from "@semics-tech/shared";
 
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
+import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, validateMapping } from "../domain/mapping";
 import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "../routes/attendees";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
@@ -30,6 +31,7 @@ import {
 	SECRET_SETTING_KEYS,
 	type TicketTypeDoc,
 } from "../storage/schema";
+import { issueMessage } from "./messages";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -60,6 +62,13 @@ export interface AdminDeps {
 	storage: AdminStorage;
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
 	schema: { listCollections(): Promise<Array<{ slug: string; fields: ReadonlyArray<{ slug: string }> }>> };
+	/** `content:read`, for event titles in lists. Optional: a list without it shows ids. */
+	content?: {
+		list(
+			collection: string,
+			options?: { limit?: number },
+		): Promise<{ items: Array<{ id: string; data?: Record<string, unknown> }> }>;
+	};
 	now: number;
 	/** Site origin, for the absolute CSV download link (Block Kit external links must be absolute). */
 	origin: string;
@@ -218,14 +227,37 @@ async function bookingsPage(
 
 // --- events (list for attendees and the editor) -----------------------------------------------
 
+/**
+ * Titles for one page of events: a single `content:read` listing (plus the settings read for the
+ * mapped collection), matched by entry id. An event outside that listing, or a read that fails,
+ * falls back to the title copied onto its config, then to its id.
+ */
+async function eventTitles(deps: AdminDeps): Promise<Map<string, string>> {
+	const titles = new Map<string, string>();
+	if (!deps.content) return titles;
+	try {
+		const { collection } = mappingOf(await deps.settings.list());
+		const found = await deps.content.list(collection, { limit: 100 });
+		for (const entry of found.items) {
+			const t = entry.data?.title;
+			if (typeof t === "string" && t.trim() !== "") titles.set(entry.id, t.trim());
+		}
+	} catch {
+		// Titles are a convenience: the list still works with ids.
+	}
+	return titles;
+}
+
 async function eventsList(deps: AdminDeps, title: string, actionId: string, label: string, lead?: string) {
 	const page = await deps.storage.event_configs.query({ limit: 50 });
+	const titles = await eventTitles(deps);
 	return respond([
 		header(title),
 		...(lead ? [context(lead)] : []),
 		table({
 			columns: [
-				{ key: "event", label: "Event", format: "code" },
+				{ key: "title", label: "Event" },
+				{ key: "event", label: "ID", format: "code" },
 				{ key: "status", label: "Status", format: "badge" },
 				{ key: "sold", label: "Sold", format: "number" },
 				{ key: "capacity", label: "Capacity", format: "number" },
@@ -234,6 +266,7 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 			rows: page.items.map(({ id, data }) => {
 				const c = data as EventConfigDoc;
 				return {
+					title: titles.get(id) ?? c.info?.title ?? id,
 					event: id,
 					status: c.status,
 					sold: c.sold,
@@ -380,16 +413,6 @@ async function doCheckIn(
 
 // --- event editor -----------------------------------------------------------------------------
 
-const ISSUE_MESSAGES: Record<string, string> = {
-	CAPACITY_BELOW_RESERVED: "Capacity cannot be lower than the seats already reserved or sold.",
-	INVALID_CAPACITY: "Capacity must be a whole number of at least 1.",
-	INVALID_PRICE: "Price must be an amount such as 15.00.",
-	INVALID_STATUS: "Choose one of the listed statuses.",
-	ITEM_IN_USE: "That item already has bookings and cannot be removed.",
-	UNKNOWN_ID: "An item changed while you were editing. Reload and try again.",
-	TOO_MANY_CHANGES: "Too many changes at once: save fewer ticket types at a time (at most 5 per save).",
-};
-
 const EVENT_STATUS_OPTIONS = ["draft", "on_sale", "paused", "closed", "cancelled"].map((s) => ({
 	label: s.replaceAll("_", " "),
 	value: s,
@@ -507,10 +530,7 @@ async function saveEditor(
 		return editorForm(id, fresh, notices([{ severity: "info", title: "Saved", message: "The event was updated." }]));
 	}
 	const issues = out.issues ?? [];
-	const message =
-		issues
-			.map((i) => `${ISSUE_MESSAGES[i.code] ?? i.code}${i.path && i.code !== "TOO_MANY_CHANGES" ? ` (${i.path})` : ""}`)
-			.join(" ") || "The change was refused.";
+	const message = issues.map((i) => issueMessage(i.code, i.path)).join(" ") || "The change was refused.";
 	return editorForm(
 		id,
 		state,

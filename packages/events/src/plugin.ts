@@ -20,6 +20,7 @@ import { pageMetadata } from "./hooks/metadata";
 import { ADMIN_ROUTES } from "./routes/admin";
 import { ATTENDEE_ROUTES } from "./routes/attendees";
 import { CONFIG_ROUTES } from "./routes/config";
+import { EDITOR_ROUTES } from "./routes/editor";
 import { PUBLIC_ROUTES } from "./routes/public";
 
 /**
@@ -66,6 +67,7 @@ const plugin: SandboxedPlugin = {
 		...CONFIG_ROUTES,
 		...ADMIN_ROUTES,
 		...ATTENDEE_ROUTES,
+		...EDITOR_ROUTES,
 		...PUBLIC_ROUTES,
 		admin: withScheduleCheck(ADMIN_ROUTES.admin as RouteDef, isPageLoad),
 		"public/events": withScheduleCheck(PUBLIC_ROUTES["public/events"] as RouteDef),

@@ -24,6 +24,7 @@ export const ADMIN_ROUTES: Record<string, RouteDef> = {
 				storage: ctx.storage as unknown as AdminDeps["storage"],
 				settings: ctx.settings as unknown as AdminDeps["settings"],
 				schema: ctx.schema as unknown as AdminDeps["schema"],
+				content: ctx.content as unknown as AdminDeps["content"],
 				now: Date.now(),
 				pluginId: ctx.plugin.id,
 				newId: () => crypto.randomUUID(),

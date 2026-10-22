@@ -1,0 +1,445 @@
+import {
+	type Block,
+	context,
+	type FormField,
+	form,
+	fromMinor,
+	header,
+	isValidTimeZone,
+	meter,
+	notices,
+	numberInput,
+	repeater,
+	select,
+	stats,
+	table,
+	textInput,
+	toggle,
+	toMinor,
+	utcToZoned,
+	zonedToUtc,
+} from "@semics-tech/shared";
+
+import { MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
+import { readEntryInfo } from "../domain/event-info";
+import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
+import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
+import { issueMessage } from "./messages";
+
+/**
+ * The "Tickets & booking" panel on a saved event entry (EV-US-1, T043), built only with the shared
+ * Block Kit builders. The host attaches the entry's identity (`routeCtx.ui.entry.id`); the panel
+ * edits the event's booking config through `saveConfig`, the same code as `config/save`.
+ *
+ * Existing ticket types and dates are flat fields keyed by id (`tt_price:<id>`, `oc_start:<id>`, ...)
+ * so a removed or edited row can never be matched to the wrong document; new ones come from two
+ * repeaters. Only changed items differ from the stored documents, so `saveConfig` writes only those
+ * (one guarded call each). Budget: a load is 3 bridge calls; a save is at most 8 (`saveConfig`
+ * refuses a bigger one as `TOO_MANY_CHANGES`) and renders what it wrote without reading it back.
+ * `catalog` and `info` on the config are managed: they are never diffed or submitted.
+ */
+export interface PanelDeps {
+	storage: ConfigStorage;
+	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
+	content: { get(collection: string, id: string): Promise<{ data: Record<string, unknown> } | null> };
+	newId: () => string;
+}
+
+export type PanelInteraction =
+	| { type: "panel_load" }
+	| { type: "block_action"; action_id: string; block_id?: string; value?: unknown }
+	| { type: "form_submit"; action_id: string; block_id?: string; values: Record<string, unknown> };
+
+export interface PanelResponse {
+	blocks: Block[];
+}
+
+type Obj = Record<string, unknown>;
+type Item<T> = { id: string; data: T };
+
+const STATUS_OPTIONS = ["draft", "on_sale", "paused", "closed", "cancelled"].map((s) => ({
+	label: s.replaceAll("_", " "),
+	value: s,
+}));
+const OCCURRENCE_STATUS_OPTIONS = ["open", "closed", "cancelled"].map((s) => ({ label: s, value: s }));
+
+const respond = (blocks: Block[]): PanelResponse => ({ blocks });
+const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
+const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
+
+/** A whole number from a number or a numeric string; NaN otherwise (the validator then refuses it). */
+const num = (v: unknown): number =>
+	typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : Number.NaN;
+const given = (v: unknown) => v !== undefined && v !== null && v !== "";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+/** The event's zone, from the copy of its entry's info; UTC when it has none. */
+const zoneOf = (config: EventConfigDoc): string => {
+	const zone = config.info?.timezone;
+	return zone && isValidTimeZone(zone) ? zone : "UTC";
+};
+
+/** `2026-12-01 19:30` in the zone. */
+function localText(iso: string, zone: string): string {
+	const p = utcToZoned(Date.parse(iso), zone);
+	return `${p.year}-${pad(p.month)}-${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}`;
+}
+
+const LOCAL = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/;
+
+/**
+ * A typed date to an ISO instant: `2026-12-01 19:30` is wall-clock time in the event's zone; anything
+ * else (a full ISO string with an offset, or garbage) goes to the validator unchanged.
+ */
+function toInstant(text: string, zone: string): string {
+	const m = LOCAL.exec(text);
+	if (!m) return text;
+	const [year, month, day, hour, minute] = m.slice(1).map(Number) as [number, number, number, number, number];
+	if (month < 1 || month > 12 || day < 1 || day > 31 || hour > 23 || minute > 59) return text;
+	const ms = zonedToUtc({ year, month, day, hour, minute }, zone);
+	const back = utcToZoned(ms, zone);
+	// Feb 30 and friends roll over; refuse them rather than saving another day.
+	if (back.day !== day || back.month !== month) return text;
+	return new Date(ms).toISOString();
+}
+
+const rows = (value: unknown): Obj[] => (Array.isArray(value) ? value.filter(isObj) : []);
+const blankRow = (row: Obj) => Object.values(row).every((v) => !given(v) || (typeof v === "string" && v.trim() === ""));
+
+// --- render -----------------------------------------------------------------------------------
+
+const held = (reserved: number, sold: number) => Math.max(reserved - sold, 0);
+
+function statsBlocks(config: EventConfigDoc): Block[] {
+	return [
+		stats([
+			{ label: "Sold", value: String(config.sold) },
+			{ label: "Held", value: String(held(config.reserved, config.sold)) },
+			{ label: "Remaining", value: String(Math.max(config.capacity - config.reserved, 0)) },
+			{ label: "Capacity", value: String(config.capacity) },
+		]),
+		meter({
+			label: "Seats sold",
+			value: config.sold,
+			max: config.capacity,
+			customValue: `${config.sold} sold, ${held(config.reserved, config.sold)} held of ${config.capacity}`,
+		}),
+	];
+}
+
+const byTicketOrder = (a: Item<TicketTypeDoc>, b: Item<TicketTypeDoc>) =>
+	a.data.sort - b.data.sort || (a.data.name < b.data.name ? -1 : a.data.name > b.data.name ? 1 : 0);
+
+function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], dates: Item<OccurrenceDoc>[]): Block[] {
+	const zone = zoneOf(config);
+	const out: Block[] = [];
+	if (tickets.length > 0) {
+		out.push(
+			table({
+				columns: [
+					{ key: "name", label: "Ticket type" },
+					{ key: "price", label: "Price" },
+					{ key: "sold", label: "Sold", format: "number" },
+					{ key: "held", label: "Held", format: "number" },
+					{ key: "capacity", label: "Capacity", format: "number" },
+				],
+				rows: tickets.map(({ data: t }) => ({
+					name: t.name,
+					price: fromMinor(t.priceMinor, config.currency),
+					sold: t.sold,
+					held: held(t.reserved, t.sold),
+					capacity: t.capacity,
+				})),
+				pageActionId: "panel.tickets.page",
+			}),
+		);
+	}
+	if (dates.length > 0) {
+		out.push(
+			table({
+				columns: [
+					{ key: "starts", label: `Date (${zone})` },
+					{ key: "status", label: "Status", format: "badge" },
+					{ key: "sold", label: "Sold", format: "number" },
+					{ key: "held", label: "Held", format: "number" },
+					{ key: "capacity", label: "Capacity", format: "number" },
+				],
+				rows: dates.map(({ data: o }) => ({
+					starts: localText(o.startsAt, zone),
+					status: o.status,
+					sold: o.sold,
+					held: held(o.reserved, o.sold),
+					capacity: o.capacity,
+				})),
+				pageActionId: "panel.dates.page",
+			}),
+		);
+	}
+	return out;
+}
+
+function panelForm(state: EventState, extra: Block[] = []): PanelResponse {
+	const config = state.config as EventConfigDoc;
+	const zone = zoneOf(config);
+	const tickets = (state.ticketTypes as Item<TicketTypeDoc>[]).slice().sort(byTicketOrder);
+	const dates = state.occurrences as Item<OccurrenceDoc>[];
+
+	const fields = [
+		select("status", "Sales status", STATUS_OPTIONS, { initialValue: config.status }),
+		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
+		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
+		...tickets.flatMap(({ id, data: t }) => [
+			textInput(`tt_name:${id}`, `${t.name}: name`, { initialValue: t.name }),
+			textInput(`tt_price:${id}`, `${t.name}: price (${config.currency})`, {
+				initialValue: fromMinor(t.priceMinor, config.currency),
+			}),
+			numberInput(`tt_capacity:${id}`, `${t.name}: capacity`, { initialValue: t.capacity, min: 1 }),
+			toggle(`tt_remove:${id}`, `Remove ${t.name}`, { description: "Not possible once seats are held or sold." }),
+		]),
+		...(tickets.length < MAX_TICKET_TYPES
+			? [
+					repeater(
+						"newTickets",
+						"New ticket types",
+						[
+							textInput("name", "Name"),
+							textInput("price", `Price (${config.currency})`, { placeholder: "0.00" }),
+							numberInput("capacity", "Capacity", { min: 1 }),
+						],
+						{ itemLabel: "Ticket type", maxItems: MAX_TICKET_TYPES - tickets.length },
+					),
+				]
+			: []),
+		...dates.flatMap(({ id, data: o }) => {
+			const when = localText(o.startsAt, zone);
+			return [
+				textInput(`oc_start:${id}`, `${when}: starts (${zone})`, { initialValue: when }),
+				numberInput(`oc_capacity:${id}`, `${when}: capacity`, { initialValue: o.capacity, min: 1 }),
+				select(`oc_status:${id}`, `${when}: status`, OCCURRENCE_STATUS_OPTIONS, { initialValue: o.status }),
+				toggle(`oc_remove:${id}`, `Remove ${when}`, { description: "Not possible once seats are held or sold." }),
+			];
+		}),
+		...(dates.length < MAX_OCCURRENCES
+			? [
+					repeater(
+						"newDates",
+						"New dates",
+						[
+							textInput("startsAt", `Starts (${zone})`, { placeholder: "2026-12-01 19:30" }),
+							numberInput("capacity", "Capacity", { min: 1 }),
+						],
+						{ itemLabel: "Date", maxItems: MAX_OCCURRENCES - dates.length },
+					),
+				]
+			: []),
+		// The Block Kit types leave repeaters out of FormField, but the host accepts them in a form.
+	] as FormField[];
+
+	return respond([
+		header("Tickets & booking"),
+		...extra,
+		...statsBlocks(config),
+		...liveTables(config, tickets, dates),
+		context(
+			`Dates are in ${zone}. Only the items you change are written. Capacity cannot go below the seats already held or sold.`,
+		),
+		form({ fields, submit: { label: "Save changes", actionId: "panel.save" }, blockId: "tickets" }),
+	]);
+}
+
+async function enableForm(deps: PanelDeps, extra: Block[] = []): Promise<PanelResponse> {
+	const currency = str((await deps.settings.list()).find((s) => s.key === "currency")?.value, 3).toUpperCase() || "GBP";
+	return respond([
+		header("Tickets & booking"),
+		...extra,
+		context(
+			"This event has no booking settings yet. Enable them to sell tickets; sales stay in draft until you open them.",
+		),
+		form({
+			fields: [
+				numberInput("capacity", "Event capacity", { initialValue: 100, min: 1 }),
+				textInput("currency", "Currency (ISO code)", { initialValue: currency }),
+			],
+			submit: { label: "Enable booking", actionId: "panel.enable" },
+			blockId: "tickets-enable",
+		}),
+	]);
+}
+
+// --- save -------------------------------------------------------------------------------------
+
+type SaveOutcome = { ok: true; state: EventState } | { ok: false; issues: Array<{ path: string; code: string }> };
+
+async function runSave(deps: PanelDeps, eventId: string, input: Obj, state: EventState): Promise<SaveOutcome> {
+	let saved: EventState | undefined;
+	const out = (await saveConfig(
+		deps.storage,
+		{ eventId, ...input },
+		deps.newId,
+		state,
+		() => readEntryInfo({ settings: deps.settings, content: deps.content }, eventId),
+		(s) => {
+			saved = s;
+		},
+	)) as { ok?: boolean; issues?: Array<{ path: string; code: string }> };
+	if (out.ok && saved) return { ok: true, state: saved };
+	return { ok: false, issues: out.issues ?? [] };
+}
+
+function failure(issues: Array<{ path: string; code: string }>): Block[] {
+	const tooMany = issues.some((i) => i.code === "TOO_MANY_CHANGES");
+	const message =
+		issues.map((i) => issueMessage(i.code, i.code === "TOO_MANY_CHANGES" ? "" : i.path)).join(" ") ||
+		"The change was refused.";
+	return notices([{ severity: "error", title: tooMany ? "Too many changes at once" : "Not saved", message }]);
+}
+
+async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
+	const state = await loadEventState(eventId, deps.storage);
+	const stored = state.config;
+	if (!stored) return enableForm(deps);
+	const { catalog: _catalog, info: _info, ...base } = stored;
+	const zone = zoneOf(stored);
+
+	let changed = 0;
+	const status = str(values.status) || stored.status;
+	if (status !== stored.status) changed++;
+	const capacity = given(values.capacity) ? num(values.capacity) : stored.capacity;
+	if (capacity !== stored.capacity) changed++;
+	const waitlistEnabled = typeof values.waitlist === "boolean" ? values.waitlist : stored.waitlistEnabled;
+	if (waitlistEnabled !== stored.waitlistEnabled) changed++;
+
+	const ticketTypes: Obj[] = [];
+	let nextSort = 0;
+	for (const { id, data } of (state.ticketTypes as Item<TicketTypeDoc>[]).slice().sort(byTicketOrder)) {
+		nextSort = Math.max(nextSort, data.sort + 1);
+		if (values[`tt_remove:${id}`] === true) {
+			changed++;
+			continue;
+		}
+		const item: Obj = { ...data, id };
+		const name = str(values[`tt_name:${id}`], 120);
+		if (name !== "" && name !== data.name) {
+			item.name = name;
+			changed++;
+		}
+		const cap = values[`tt_capacity:${id}`];
+		if (given(cap) && num(cap) !== data.capacity) {
+			item.capacity = num(cap);
+			changed++;
+		}
+		const price = str(values[`tt_price:${id}`], 20);
+		if (price !== "") {
+			let minor: number | null = null;
+			try {
+				minor = toMinor(price, stored.currency);
+			} catch {
+				minor = null;
+			}
+			if (minor === null || minor !== data.priceMinor) {
+				delete item.priceMinor;
+				item.price = price;
+				changed++;
+			}
+		}
+		ticketTypes.push(item);
+	}
+	for (const row of rows(values.newTickets)) {
+		if (blankRow(row)) continue;
+		changed++;
+		ticketTypes.push({
+			name: str(row.name, 120),
+			price: str(row.price, 20) || "0",
+			capacity: given(row.capacity) ? num(row.capacity) : capacity,
+			sort: nextSort++,
+		});
+	}
+
+	const occurrences: Obj[] = [];
+	for (const { id, data } of state.occurrences as Item<OccurrenceDoc>[]) {
+		if (values[`oc_remove:${id}`] === true) {
+			changed++;
+			continue;
+		}
+		const item: Obj = { ...data, id };
+		const typed = str(values[`oc_start:${id}`], 40);
+		if (typed !== "" && typed !== localText(data.startsAt, zone)) {
+			const startsAt = toInstant(typed, zone);
+			item.startsAt = startsAt;
+			// Keep the length of the date: move the end with the start.
+			const moved = Date.parse(startsAt) - Date.parse(data.startsAt);
+			if (data.endsAt && Number.isFinite(moved)) item.endsAt = new Date(Date.parse(data.endsAt) + moved).toISOString();
+			changed++;
+		}
+		const cap = values[`oc_capacity:${id}`];
+		if (given(cap) && num(cap) !== data.capacity) {
+			item.capacity = num(cap);
+			changed++;
+		}
+		const next = str(values[`oc_status:${id}`]);
+		if (next !== "" && next !== data.status) {
+			item.status = next;
+			changed++;
+		}
+		occurrences.push(item);
+	}
+	for (const row of rows(values.newDates)) {
+		if (blankRow(row)) continue;
+		changed++;
+		occurrences.push({
+			startsAt: toInstant(str(row.startsAt, 40), zone),
+			capacity: given(row.capacity) ? num(row.capacity) : capacity,
+		});
+	}
+
+	if (changed === 0) {
+		return panelForm(
+			state,
+			notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]),
+		);
+	}
+	const result = await runSave(
+		deps,
+		eventId,
+		{ config: { ...base, status, capacity, waitlistEnabled }, ticketTypes, occurrences },
+		state,
+	);
+	return result.ok
+		? panelForm(result.state, notices([{ severity: "info", title: "Saved", message: "The event was updated." }]))
+		: panelForm(state, failure(result.issues));
+}
+
+async function enablePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
+	const state = await loadEventState(eventId, deps.storage);
+	if (state.config) return panelForm(state);
+	const currency = str(values.currency, 3).toUpperCase();
+	const result = await runSave(
+		deps,
+		eventId,
+		{ config: { status: "draft", capacity: num(values.capacity), currency }, ticketTypes: [], occurrences: [] },
+		state,
+	);
+	return result.ok
+		? panelForm(
+				result.state,
+				notices([{ severity: "info", title: "Saved", message: "Booking is enabled for this event." }]),
+			)
+		: enableForm(deps, failure(result.issues));
+}
+
+// --- dispatch ---------------------------------------------------------------------------------
+
+export async function handlePanel(
+	deps: PanelDeps,
+	interaction: PanelInteraction,
+	eventId: string,
+): Promise<PanelResponse> {
+	if (!eventId) return respond(notices([{ severity: "error", title: "Save the entry first" }]));
+	if (interaction.type === "form_submit") {
+		if (interaction.action_id === "panel.save") return savePanel(deps, eventId, interaction.values);
+		if (interaction.action_id === "panel.enable") return enablePanel(deps, eventId, interaction.values);
+	}
+	const state = await loadEventState(eventId, deps.storage);
+	return state.config ? panelForm(state) : enableForm(deps);
+}

@@ -216,7 +216,7 @@ describe("EV-US-1 editor panel", () => {
 				newDates: [{ startsAt: "2099-08-01 19:00", capacity: 30 }],
 			}),
 		);
-		expectWithinBudget(save, { calls: 10 });
+		expectWithinBudget(save, { calls: 8 });
 	});
 
 	it("EV-US-1 too many changes at once are refused with a clear message", async () => {

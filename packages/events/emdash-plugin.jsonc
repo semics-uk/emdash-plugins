@@ -58,6 +58,11 @@
 			{ "path": "/setup", "label": "Setup check", "icon": "gear" }
 		],
 		"widgets": [{ "id": "sales", "title": "Ticket sales", "size": "half" }],
+		// "Tickets & booking" panel on saved event entries (T043), answered by the private editor/tickets route.
+		// Scoped to the default events collection; it reads and writes plugin storage only, never the entry.
+		"editorPanels": [
+			{ "id": "tickets", "title": "Tickets & booking", "route": "editor/tickets", "collections": ["events"] }
+		],
 		// Secret fields are encrypted with EMDASH_ENCRYPTION_KEY (spike S8); saving one without it fails.
 		"settingsSchema": {
 			"eventsCollection": {

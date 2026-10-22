@@ -81,6 +81,8 @@ export async function saveConfig(
 	 * fresh afterwards (and fills it in for a config saved before it existed).
 	 */
 	loadInfo?: () => Promise<EventInfoDoc | null>,
+	/** Called after a successful save with the event as it now stands (no read back; the editor panel renders it). */
+	onSaved?: (state: EventState) => void,
 ): Promise<unknown> {
 	const eventId = eventIdOf(input);
 	if (!eventId) return badRequest();
@@ -193,13 +195,22 @@ export async function saveConfig(
 	// 3. Creations, with zero counters; a new config goes last, carrying its catalog.
 	if (newTicketTypes.length > 0) await storage.ticket_types.putMany(newTicketTypes);
 	if (newOccurrences.length > 0) await storage.occurrences.putMany(newOccurrences);
+	for (const t of newTicketTypes) effective.ticketTypes.set(t.id, t.data);
+	for (const o of newOccurrences) effective.occurrences.set(o.id, o.data);
 	if (!state.config) {
 		await storage.event_configs.put(eventId, { ...v.config, catalog: target, ...(info ? { info } : {}) });
 	} else {
-		for (const t of newTicketTypes) effective.ticketTypes.set(t.id, t.data);
-		for (const o of newOccurrences) effective.occurrences.set(o.id, o.data);
 		await writeCatalog();
 	}
+	onSaved?.({
+		config: state.config
+			? { ...state.config, ...v.config }
+			: { ...v.config, catalog: target, ...(info ? { info } : {}) },
+		ticketTypes: [...effective.ticketTypes].map(([id, data]) => ({ id, data })),
+		occurrences: [...effective.occurrences]
+			.map(([id, data]) => ({ id, data }))
+			.sort((a, b) => (a.data.startsAt < b.data.startsAt ? -1 : a.data.startsAt > b.data.startsAt ? 1 : 0)),
+	});
 	return { ok: true, eventId };
 }
 
