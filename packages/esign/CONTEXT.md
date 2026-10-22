@@ -79,6 +79,18 @@ only, default off, toggle on both template forms); `availableToIntegrations(head
 schedules the one-shot `nonce-sweep-more` when a backlog remains (≤ 7 calls). `tests/from-intent.routes.test.ts` runs
 all 53 intent vectors through the route: payload times shifted to the real clock and re-signed with the derived secret.
 
+Receipts (T062): `domain/receipts.ts` mints `esign-receipt/1` deterministically from the stored envelope (only terminal
+envelopes with `clientId` + `externalRef`; `at` = `completedAt`, else `closedAt` (decline and void write it), else
+`updatedAt`); `routes/integration.ts` holds the shared client lookup (`integrationClients`: settings + client, 2 calls) and
+`mintReceipt` (no calls). `public/submit`, `public/decline` and a closed `public/session` add `returnUrl` + `receipt` for
+an integration's envelope (submit reads `settings.list()` instead of `get`, still 9; decline is 8). `/sign/[token]` answers
+the sign/decline post with a 303 to `returnUrl#receipt=<token>` (`ceremonyRedirect`, `receiptReturnUrl` in `lib/sign.ts`);
+a closed visit only shows the link. `public/receipts/lookup` (`routes/receipts.ts`, 3 calls: newest envelope of the pair by
+attempt suffix, scoped to the cid) and `public/templates/catalog` (`routes/catalog.ts`, ≤ 5 calls: active heads filtered
+with `availableToIntegrations`, `{ id, name, version }` sorted by name). `tests/vectors.ts` re-mints protocol vectors for
+the real routes (time fields shifted, derived secrets); `tests/receipts.*.test.ts` cover all receipt, lookup and catalog
+vectors. No rate limit on lookup/catalog (HMAC-authenticated, read-only, server-to-server).
+
 Admin (T028): `src/admin/pages.ts` + private `admin` route (`routes/admin.ts`); pages `/envelopes`, `/templates`,
 `/settings` in the manifest. Actions go through the private routes, plus `envelopes/resend` (fresh token + queued
 invitation for a `sent` envelope whose `invite-<signerId>` outbox row is missing/failed; appends a missing `envelope.sent`

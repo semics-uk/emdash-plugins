@@ -74,6 +74,8 @@ export interface EnvelopeDoc {
 	expiresAt: string | null;
 	sentAt: string | null;
 	completedAt: string | null;
+	/** When a decline or void closed the envelope (T062: the receipt's `at`); absent on older envelopes. */
+	closedAt?: string | null;
 	finalHash: string | null;
 	/** SHA-256 of the stored signed PDF (domain/pdf.ts); absent until the PDF job has run. */
 	pdfSha256?: string | null;

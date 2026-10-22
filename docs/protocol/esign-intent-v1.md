@@ -300,10 +300,16 @@ Response `{ "ok": true, "envelopeId", "status", "signingToken"? }`. `signingToke
 for `delivery: "inline"` while the envelope awaits this signer; the caller renders the ceremony
 in-process with it (`<SigningCeremony token>`). For `delivery: "email"`, e-sign emails the signer.
 
+`status` is usually `"sent"`. For `delivery: "email"` it MAY be `"draft"`: e-sign has accepted the
+intent and the invitation is on its way (a retry after a terminal envelope is finished by a one-shot
+task within about a minute). Clients MUST treat `"draft"` like `"sent"`, not as an error.
+
 ### 8.2 Receipt redirect
 
 When the ceremony ends (any terminal status), e-sign redirects the browser to
-`returnUrl + "#receipt=" + receiptToken`. The token needs no percent-encoding. The UI kit page reads
+`returnUrl + "#receipt=" + receiptToken`. The token needs no percent-encoding. (`semics-esign`: the
+`/sign/[token]` page answers the sign or decline form post with a `303` to that URL; a host that renders
+`<SigningCeremony>` itself gets the same URL as the view's `returnUrl`.) The UI kit page reads
 `location.hash`, removes it with `history.replaceState`, and POSTs the token to Events
 `signatures/receipt`. Fragments are not sent to servers or in `Referer` headers.
 

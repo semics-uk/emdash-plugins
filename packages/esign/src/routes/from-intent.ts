@@ -11,14 +11,7 @@
  * create-only document `nonces/<cid>.<nonce>` with ISO `expiresAt` = `exp` + 60 s; the hourly
  * `nonce-sweep` (cron/nonce-sweep.ts) deletes it after that.
  */
-import {
-	deriveClientSecret,
-	type EsignClient,
-	generateToken,
-	hashToken,
-	type RandomBytes,
-	verifyIntentToken,
-} from "@semics-tech/shared";
+import { generateToken, hashToken, type RandomBytes, verifyIntentToken } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
 import { scheduleIntentFinish } from "../cron/intent-finish";
 import { initialAuditEvents, newPiiSalt } from "../domain/audit";
@@ -33,7 +26,6 @@ import {
 	sendEnvelope,
 	sentAuditEvent,
 } from "../domain/envelopes";
-import { masterKeyBytes } from "../domain/master-key";
 import { availableToIntegrations, versionDocId } from "../domain/templates";
 import { queueInvitation } from "../emails/outbox";
 import {
@@ -47,6 +39,7 @@ import {
 	stores,
 	withUniqueToken,
 } from "./envelopes";
+import { integrationClients } from "./integration";
 
 export interface FromIntentDeps {
 	/** Epoch milliseconds. */
@@ -56,10 +49,6 @@ export interface FromIntentDeps {
 
 /** Envelopes read for one `(cid, ref)`: each retry after a terminal envelope adds one. */
 const REF_LIMIT = 100;
-
-function allowlistOf(value: unknown): string[] | undefined {
-	return Array.isArray(value) ? value.filter((v): v is string => typeof v === "string") : undefined;
-}
 
 function siteOrigin(ctx: PluginContext): string | undefined {
 	try {
@@ -79,24 +68,8 @@ function siteOrigin(ctx: PluginContext): string | undefined {
 export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
 	const nowMs = (deps.now ?? Date.now)();
 	const now = new Date(nowMs).toISOString();
-	const { envelopes, signers, snapshots, templates, clients, nonces } = stores(ctx);
-	let settings: Record<string, unknown> = {};
-
-	const getClient = async (cid: string): Promise<EsignClient | undefined> => {
-		const [all, found] = await Promise.all([
-			ctx.settings.list(),
-			clients.query({ where: { clientId: cid }, limit: 1 }),
-		]);
-		settings = Object.fromEntries(all.map((s) => [s.key, s.value]));
-		const key = masterKeyBytes(settings.integrationMasterKey);
-		const client = found.items[0]?.data;
-		if (!key || !client) return undefined;
-		return {
-			secret: await deriveClientSecret(key, cid),
-			revoked: client.revokedAt !== undefined && client.revokedAt !== null,
-			returnUrlAllowlist: allowlistOf(client.returnUrlAllowlist),
-		};
-	};
+	const { envelopes, signers, snapshots, templates, nonces } = stores(ctx);
+	const clients = integrationClients(ctx);
 
 	const consumeNonce = async (cid: string, nonce: string, expiresAt: number): Promise<boolean> => {
 		const id = `${cid}.${nonce}`;
@@ -112,12 +85,13 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	const verified = await verifyIntentToken({
 		token: obj(input).intent,
 		now: nowMs,
-		getClient,
+		getClient: clients.getClient,
 		consumeNonce,
 		siteOrigin: siteOrigin(ctx),
 	});
 	if (!verified.ok) return fail(verified.error);
 	const intent = verified.value;
+	const settings = clients.settings();
 
 	const versionId = intent.tplVersion === undefined ? undefined : versionDocId(intent.tpl, intent.tplVersion);
 	const docs = await templates.getMany(versionId === undefined ? [intent.tpl] : [intent.tpl, versionId]);

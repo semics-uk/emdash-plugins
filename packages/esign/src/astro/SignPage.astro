@@ -6,7 +6,7 @@
 import { pluginId } from "virtual:semics-esign/config";
 import { ceremonyCsp } from "./lib/csp";
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
-import { handleSign } from "./lib/sign";
+import { ceremonyRedirect, handleSign } from "./lib/sign";
 import SigningCeremony from "./SigningCeremony.astro";
 
 export const prerender = false;
@@ -21,6 +21,15 @@ Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
 const view = await handleSign({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, token, form);
+// The ceremony ended for an integration's envelope: back to its site with the receipt in the URL
+// fragment (protocol §8.2), never a query string. The redirect keeps no-referrer and no-store.
+const back = form ? ceremonyRedirect(view) : undefined;
+if (back) {
+	return new Response(null, {
+		status: 303,
+		headers: { Location: back, "Referrer-Policy": "no-referrer", "Cache-Control": "private, no-store" },
+	});
+}
 ---
 <!doctype html>
 <html lang="en">

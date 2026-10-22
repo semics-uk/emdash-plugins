@@ -17,7 +17,10 @@
  *    is rendered by that job, not here). The head is read before the transition so the envelope's
  *    `finalHash` (which covers the chain head) is written by that one update;
  *  - session on a completed envelope: signer + settings (2), envelope (1), download-link key (1) = 4;
- *  - decline: signer (1), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 7.
+ *  - decline: signer + settings (2), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 8.
+ *
+ * Submit, decline and a closed session answer an integration's envelope with its `returnUrl` and
+ * signed receipt (T062, protocol §8.2), minted from the settings already read: no extra calls.
  *
  * Submit accepts only an `in_progress` envelope (R31): the first view (`sent -> in_progress`, which writes
  * `signer.viewed`) is `public/session`'s job, so no event can land between submit's head read and its
@@ -49,6 +52,7 @@ import {
 import { canTransition, type EnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { downloadLink } from "./download";
 import { badRequest, fail, obj, stores } from "./envelopes";
+import { mintReceipt } from "./integration";
 
 interface RouteInput {
 	input?: unknown;
@@ -108,6 +112,20 @@ async function findCopySigner(ctx: PluginContext, token: string): Promise<Signed
 	return found?.data.copyTokenHash && (await verifyToken(token, found.data.copyTokenHash)) ? found : null;
 }
 
+/**
+ * Where the ceremony returns the signer, with the receipt for an integration's envelope (protocol
+ * §8.2): `returnUrl`, plus `receipt` when the envelope is terminal and an integration created it. The
+ * page appends it as `#receipt=`; it never goes in a query string. No bridge calls.
+ */
+async function returnTo(id: string, envelope: EnvelopeDoc, masterKey: unknown) {
+	if (!envelope.returnUrl) return {};
+	const receipt = await mintReceipt(id, envelope, masterKey);
+	return { returnUrl: envelope.returnUrl, ...(receipt ? { receipt } : {}) };
+}
+
+const settingOf = (settings: ReadonlyArray<{ key: string; value: unknown }>, key: string) =>
+	settings.find((s) => s.key === key)?.value;
+
 const isExpired = (envelope: EnvelopeDoc, now: string) => envelope.expiresAt !== null && envelope.expiresAt <= now;
 
 /**
@@ -148,7 +166,13 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	// A copy token only ever shows the completed envelope's closed state and download link.
 	if (viaCopy && envelope.status !== "completed") return invalidToken(ctx, routeCtx, "session");
 	if (!OPEN.includes(envelope.status) || signer.data.status !== "pending") {
-		const closed = { ok: true, state: "closed", status: envelope.status, title: envelope.title };
+		const closed = {
+			ok: true,
+			state: "closed",
+			status: envelope.status,
+			title: envelope.title,
+			...(viaCopy ? {} : await returnTo(signer.data.envelopeId, envelope, settingOf(settings, "integrationMasterKey"))),
+		};
 		if (envelope.status !== "completed" || signer.data.status !== "signed") return closed;
 		// The signer of a completed envelope gets the signed PDF's short-lived link once it is stored.
 		if (!envelope.pdfSha256) return { ...closed, pdf: "pending" };
@@ -177,7 +201,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		}
 	}
 	const setting = (key: string, fallback: string) => {
-		const value = settings.find((s) => s.key === key)?.value;
+		const value = settingOf(settings, key);
 		return typeof value === "string" && value.length > 0 ? value : fallback;
 	};
 	const { participant } = signer.data;
@@ -210,10 +234,8 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	const fields = parseSubmit(routeCtx.input);
 	if (!fields.ok) return badRequest(fields.error);
 	const { envelopes, signers, audit_events } = stores(ctx);
-	const [signer, consentVersion] = await Promise.all([
-		findSigner(ctx, token),
-		ctx.settings.get<string>("consentVersion"),
-	]);
+	const [signer, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
+	const consentVersion = settingOf(settings, "consentVersion");
 	if (!signer || signer.data.status !== "pending") return invalidToken(ctx, routeCtx, "submit");
 	const envelopeId = signer.data.envelopeId;
 	const envelope = await envelopes.get(envelopeId);
@@ -286,7 +308,7 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 		ok: true,
 		status: "completed",
 		completedAt: now,
-		...(envelope.returnUrl ? { returnUrl: envelope.returnUrl } : {}),
+		...(await returnTo(envelopeId, moved.value, settingOf(settings, "integrationMasterKey"))),
 	};
 }
 
@@ -299,7 +321,7 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	const reason = cleanReason(obj(routeCtx.input).reason);
 	if (reason === null) return badRequest([{ path: "reason", code: "INVALID_INPUT" }]);
 	const { envelopes, signers } = stores(ctx);
-	const signer = await findSigner(ctx, token);
+	const [signer, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
 	if (!signer || signer.data.status !== "pending") return invalidToken(ctx, routeCtx, "decline");
 	const envelopeId = signer.data.envelopeId;
 	const envelope = await envelopes.get(envelopeId);
@@ -308,7 +330,10 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	const now = new Date().toISOString();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 
-	const moved = await transitionEnvelope(envelopes, envelopeId, envelope.status, "declined", { updatedAt: now });
+	const moved = await transitionEnvelope(envelopes, envelopeId, envelope.status, "declined", {
+		closedAt: now,
+		updatedAt: now,
+	});
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
 	const who = personalOf(routeCtx);
 	await signers.updateIf(signer.id, {
@@ -321,7 +346,11 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 		envelope.piiSalt,
 		declinedAuditEvents({ at: now, docSha256: envelope.docSha256, hasReason: reason !== undefined, who }),
 	);
-	return { ok: true, status: "declined", ...(envelope.returnUrl ? { returnUrl: envelope.returnUrl } : {}) };
+	return {
+		ok: true,
+		status: "declined",
+		...(await returnTo(envelopeId, moved.value, settingOf(settings, "integrationMasterKey"))),
+	};
 }
 
 const wrap =

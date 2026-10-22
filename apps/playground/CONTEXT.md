@@ -32,6 +32,10 @@ UI natively (`astro.config.mjs`). Used for end-to-end tests only.
   scheduled batch. The cores schedule their own crons (T116: the first public read queues `ensure-schedules`); when the
   row is still missing the endpoint runs one batch first. It never activates the core.
   The server trusts `X-Forwarded-For` (playwright.config.ts) so specs give each visitor its own IP.
+- `e2e/t062-receipts.spec.ts` (T062): pairs a client through the admin route (generate key, `client.create`), mints an
+  inline intent with node:crypto, signs on `/sign/[token]` and asserts the 303 lands on the return URL with the receipt in
+  the fragment only; then lookup and catalogue. `serve.mjs` gives the server a fixed test `EMDASH_ENCRYPTION_KEY` (unless
+  one is set) so secret settings can be saved.
 - `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
   `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate

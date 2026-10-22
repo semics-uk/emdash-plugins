@@ -34,7 +34,13 @@ const server = spawn(process.execPath, [resolve(root, "dist/server/entry.mjs")],
 	cwd: root,
 	stdio: "inherit",
 	detached: true, // own process group so one signal reaches workerd too
-	env: { ...process.env, PORT: port, HOST: "127.0.0.1" },
+	// A fixed, test-only encryption key so secret settings (the e-sign master key, T062) can be saved.
+	env: {
+		EMDASH_ENCRYPTION_KEY: `emdash_enc_v1_${"E".repeat(43)}`,
+		...process.env,
+		PORT: port,
+		HOST: "127.0.0.1",
+	},
 });
 
 let stopping = false;

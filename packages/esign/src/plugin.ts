@@ -12,11 +12,13 @@ import { NONCE_SWEEP_SCHEDULE, NONCE_SWEEP_TASK, runNonceSweepJob } from "./cron
 import { runPdfJob } from "./cron/pdf";
 import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
 import { ADMIN_ROUTES } from "./routes/admin";
+import { catalogHandler } from "./routes/catalog";
 import { CEREMONY_HANDLERS } from "./routes/ceremony";
 import { downloadHandler } from "./routes/download";
 import { ENVELOPE_ROUTES } from "./routes/envelopes";
 import { fromIntentHandler } from "./routes/from-intent";
 import { publicRoutes } from "./routes/public";
+import { lookupHandler } from "./routes/receipts";
 import { TEMPLATE_ROUTES } from "./routes/templates";
 import { verifyHandler } from "./routes/verify";
 
@@ -38,6 +40,8 @@ const PUBLIC = publicRoutes({
 	"public/envelopes/from-intent": fromIntentHandler,
 	"public/download": downloadHandler,
 	"public/verify": verifyHandler,
+	"public/receipts/lookup": lookupHandler,
+	"public/templates/catalog": catalogHandler,
 	...CEREMONY_HANDLERS,
 });
 

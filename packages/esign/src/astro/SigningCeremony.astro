@@ -54,6 +54,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 						{doneLink ? <a href={doneLink}>Download the signed PDF</a> : "The signed PDF is being prepared; reload in a minute."}
 					</p>
 				)}
+				{view.returnUrl && <p><a href={view.returnUrl} rel="noreferrer">Return to the site</a></p>}
 			</section>
 		)
 	}

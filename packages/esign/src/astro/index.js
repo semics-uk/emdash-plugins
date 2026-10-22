@@ -7,4 +7,12 @@ export { callPublicRoute, ESIGN_PLUGIN_ID } from "./lib/call.ts";
 // A page that renders <SigningCeremony> sends `ceremonyCsp()` as its Content-Security-Policy.
 export { ceremonyCsp, verifyCsp } from "./lib/csp.ts";
 export { parseSnapshot, safeHref } from "./lib/markdown.ts";
-export { handleSign, handleSignedCopy, handleVerify, normaliseStrokes } from "./lib/sign.ts";
+// After a sign or decline, `ceremonyRedirect(view)` is the 303 target carrying the receipt (T062).
+export {
+	ceremonyRedirect,
+	handleSign,
+	handleSignedCopy,
+	handleVerify,
+	normaliseStrokes,
+	receiptReturnUrl,
+} from "./lib/sign.ts";

@@ -19,6 +19,15 @@ export interface SessionData {
 	consent?: { version: string; wording: string };
 	/** Values the signer fills in (`fieldValues` on submit). */
 	fields?: SessionField[];
+	/** A closed integration envelope: where to return, and its signed receipt (T062). */
+	returnUrl?: string;
+	receipt?: string;
+}
+
+/** What submit and decline answer with besides `ok` (T062: `receipt` for an integration's envelope). */
+interface Done {
+	returnUrl?: string;
+	receipt?: string;
 }
 
 export interface SessionField {
@@ -111,7 +120,7 @@ export type SignView =
 			errorCode?: string;
 			message?: string;
 	  }
-	| { kind: "closed"; status: string; title?: string; pdf?: "pending" | "ready"; download?: string }
+	| { kind: "closed"; status: string; title?: string; pdf?: "pending" | "ready"; download?: string; returnUrl?: string }
 	| { kind: "signed"; returnUrl?: string; download?: string; pdf?: "pending" | "ready" }
 	| { kind: "declined"; returnUrl?: string };
 
@@ -128,6 +137,32 @@ export const MESSAGES: Record<string, string> = {
 };
 
 const message = (code: string) => MESSAGES[code] ?? "Something went wrong. Please try again.";
+
+/** A receipt token as the protocol defines it (§4): two base64url segments, a 43-character signature. */
+const RECEIPT_TOKEN = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/;
+
+/**
+ * The link back to the sender's site (protocol §8.2): the return URL, with `#receipt=<token>` when
+ * the core issued a receipt. The receipt only ever goes in the fragment, which browsers never send to
+ * a server or put in a Referer; a return URL that already has a fragment is left as it is.
+ */
+export function receiptReturnUrl(done: Done): string | undefined {
+	const returnUrl = safeReturnUrl(done.returnUrl);
+	if (!returnUrl) return undefined;
+	const { receipt } = done;
+	if (typeof receipt !== "string" || !RECEIPT_TOKEN.test(receipt) || returnUrl.includes("#")) return returnUrl;
+	return `${returnUrl}#receipt=${receipt}`;
+}
+
+/**
+ * Where the sign page redirects (303) once a sign or decline ended the ceremony with a receipt, so
+ * the browser lands on the sender's site with it (§8.2). A plain visit to a closed envelope only
+ * shows the link.
+ */
+export function ceremonyRedirect(view: SignView): string | undefined {
+	if (view.kind !== "signed" && view.kind !== "declined") return undefined;
+	return view.returnUrl?.includes("#receipt=") ? view.returnUrl : undefined;
+}
 
 /** Only http(s) URLs may be offered as a link back to the sender's site. */
 export function safeReturnUrl(value: unknown): string | undefined {
@@ -146,7 +181,9 @@ const text = (form: FormData, key: string) => {
 };
 
 function closedView(session: SessionData): SignView {
+	const returnUrl = receiptReturnUrl(session);
 	return {
+		...(returnUrl ? { returnUrl } : {}),
 		kind: "closed",
 		status: session.status ?? "closed",
 		...(session.title ? { title: session.title } : {}),
@@ -165,14 +202,14 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 
 	if (text(form, "intent") === "decline") {
 		const reason = text(form, "reason");
-		const result = await callPublicRoute<{ returnUrl?: string }>(ctx, {
+		const result = await callPublicRoute<Done>(ctx, {
 			method: "POST",
 			path: "public/decline",
 			body: { token, ...(reason ? { reason } : {}) },
 		});
 		if (!result.ok)
 			return { kind: "ready", session, errorCode: result.error.code, message: message(result.error.code) };
-		const returnUrl = safeReturnUrl(result.data.returnUrl);
+		const returnUrl = receiptReturnUrl(result.data);
 		return returnUrl ? { kind: "declined", returnUrl } : { kind: "declined" };
 	}
 
@@ -196,7 +233,7 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 		const code = strokes && !strokes.ok && strokes.code === "STROKES_TOO_LARGE" ? strokes.code : "BAD_REQUEST";
 		return { kind: "ready", session, fields, errorCode: code, message: message(code) };
 	}
-	const result = await callPublicRoute<{ returnUrl?: string }>(ctx, {
+	const result = await callPublicRoute<Done>(ctx, {
 		method: "POST",
 		path: "public/submit",
 		body: {
@@ -221,7 +258,7 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 	// The signed PDF is built by a job just after; the session shows its link once it is stored.
 	const after = await callPublicRoute<SessionData>(ctx, { method: "POST", path: "public/session", body: { token } });
 	const done = after.ok ? after.data : undefined;
-	const returnUrl = safeReturnUrl(result.data.returnUrl);
+	const returnUrl = receiptReturnUrl(result.data);
 	return {
 		kind: "signed",
 		...(returnUrl ? { returnUrl } : {}),

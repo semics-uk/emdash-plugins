@@ -60,10 +60,16 @@ async function seedTemplate(r: PluginRuntimeTestHost, id: string, over: Template
 		...over,
 	};
 	await r.fixtures.plugin.storage("templates", id, head);
-	await r.fixtures.plugin.storage("templates", `${id}:v${head.version}`, { ...head, status: "version", templateId: id });
+	await r.fixtures.plugin.storage("templates", `${id}:v${head.version}`, {
+		...head,
+		status: "version",
+		templateId: id,
+	});
 }
 
-async function host(clients: Record<string, { revoked: boolean }> = { [CID]: { revoked: false } }): Promise<BudgetedHost> {
+async function host(
+	clients: Record<string, { revoked: boolean }> = { [CID]: { revoked: false } },
+): Promise<BudgetedHost> {
 	await runtime?.dispose();
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 	runtime = await createPluginRuntimeTestHost();
@@ -126,7 +132,8 @@ describe("ES-FR-14 every catalog vector through public/templates/catalog", () =>
 		const result = await runVector(v, CATALOG);
 		expectWithinBudget(result, TARGET);
 		const body = result.value as Body;
-		if (v.expected.ok) expect(body).toEqual({ ok: true, templates: [{ id: "tpl_waiver", name: "Waiver", version: 1 }] });
+		if (v.expected.ok)
+			expect(body).toEqual({ ok: true, templates: [{ id: "tpl_waiver", name: "Waiver", version: 1 }] });
 		else {
 			expect(body).toMatchObject({ ok: false, error: { code: v.expected.error } });
 			expect(Object.keys(body).sort()).toEqual(["error", "ok"]);
@@ -156,10 +163,15 @@ async function intent(budget: BudgetedHost, ref: string, cid = CID, over: Partia
 		returnUrl: RETURN,
 		...over,
 	};
-	const body = await call(budget, "public/envelopes/from-intent", { intent: await signEsignToken("intent", p, await derived(cid)) }, {
-		calls: 10,
-		cpuMs: 50,
-	});
+	const body = await call(
+		budget,
+		"public/envelopes/from-intent",
+		{ intent: await signEsignToken("intent", p, await derived(cid)) },
+		{
+			calls: 10,
+			cpuMs: 50,
+		},
+	);
 	expect(body, JSON.stringify(body)).toMatchObject({ ok: true });
 	return body as Body & { envelopeId: string; signingToken: string };
 }
@@ -188,7 +200,11 @@ async function submit(budget: BudgetedHost, token: string): Promise<Body> {
 
 async function verifyReceipt(token: unknown, cid = CID) {
 	const secret = await derived(cid);
-	return verifyReceiptToken({ token, now: Date.now(), getClient: (c) => (c === cid ? { secret, revoked: false } : undefined) });
+	return verifyReceiptToken({
+		token,
+		now: Date.now(),
+		getClient: (c) => (c === cid ? { secret, revoked: false } : undefined),
+	});
 }
 
 describe("ES-FR-14 public/receipts/lookup", () => {
@@ -197,12 +213,29 @@ describe("ES-FR-14 public/receipts/lookup", () => {
 		const good = await lookupFor("BK7Q2M:A1");
 		const [payload, signature] = good.split(".") as [string, string];
 		const flipped = `${payload}.${signature.startsWith("A") ? `B${signature.slice(1)}` : `A${signature.slice(1)}`}`;
-		expect(await call(budget, LOOKUP, { request: flipped })).toMatchObject({ ok: false, error: { code: "TOKEN_INVALID" } });
+		expect(await call(budget, LOOKUP, { request: flipped })).toMatchObject({
+			ok: false,
+			error: { code: "TOKEN_INVALID" },
+		});
 		// Signed with another client's secret, or as a catalog request: indistinguishable (§6.2 step 5).
-		const wrongKey = await signEsignToken("lookup", { v: 1, typ: "lookup", cid: CID, ts: nowS(), ref: "R" }, await derived(OTHER));
-		expect(await call(budget, LOOKUP, { request: wrongKey })).toMatchObject({ ok: false, error: { code: "TOKEN_INVALID" } });
-		const catalogToken = await signEsignToken("catalog", { v: 1, typ: "catalog", cid: CID, ts: nowS() }, await derived(CID));
-		expect(await call(budget, LOOKUP, { request: catalogToken })).toMatchObject({ ok: false, error: { code: "TOKEN_INVALID" } });
+		const wrongKey = await signEsignToken(
+			"lookup",
+			{ v: 1, typ: "lookup", cid: CID, ts: nowS(), ref: "R" },
+			await derived(OTHER),
+		);
+		expect(await call(budget, LOOKUP, { request: wrongKey })).toMatchObject({
+			ok: false,
+			error: { code: "TOKEN_INVALID" },
+		});
+		const catalogToken = await signEsignToken(
+			"catalog",
+			{ v: 1, typ: "catalog", cid: CID, ts: nowS() },
+			await derived(CID),
+		);
+		expect(await call(budget, LOOKUP, { request: catalogToken })).toMatchObject({
+			ok: false,
+			error: { code: "TOKEN_INVALID" },
+		});
 		for (const input of [{}, { request: 42 }, null]) {
 			expect(await call(budget, LOOKUP, input), JSON.stringify(input)).toMatchObject({
 				ok: false,
@@ -214,9 +247,17 @@ describe("ES-FR-14 public/receipts/lookup", () => {
 	it("none, then pending, then terminal with a receipt equal to the ceremony's (no PII)", async () => {
 		const budget = await host();
 		const ref = "BK7Q2M:A1";
-		expect(await call(budget, LOOKUP, { request: await lookupFor(ref) })).toEqual({ ok: true, state: "none", receipt: null });
+		expect(await call(budget, LOOKUP, { request: await lookupFor(ref) })).toEqual({
+			ok: true,
+			state: "none",
+			receipt: null,
+		});
 		const created = await intent(budget, ref);
-		expect(await call(budget, LOOKUP, { request: await lookupFor(ref) })).toEqual({ ok: true, state: "pending", receipt: null });
+		expect(await call(budget, LOOKUP, { request: await lookupFor(ref) })).toEqual({
+			ok: true,
+			state: "pending",
+			receipt: null,
+		});
 
 		const done = await submit(budget, created.signingToken);
 		expect(done).toMatchObject({ ok: true, status: "completed", returnUrl: RETURN });
@@ -246,7 +287,8 @@ describe("ES-FR-14 public/receipts/lookup", () => {
 		const found = await call(budget, LOOKUP, { request: await lookupFor(ref) });
 		expect(found).toEqual({ ok: true, state: "terminal", receipt: done.receipt });
 		// Receipts carry no PII (§12): nothing of the signer is in the response.
-		const text = JSON.stringify(found) + Buffer.from(String(found.receipt).split(".")[0] as string, "base64url").toString();
+		const text =
+			JSON.stringify(found) + Buffer.from(String(found.receipt).split(".")[0] as string, "base64url").toString();
 		expect(text).not.toContain("Ada");
 		expect(text).not.toContain("ada@example.com");
 
@@ -300,7 +342,13 @@ describe("ES-FR-14 public/receipts/lookup", () => {
 		const created = await intent(budget, "BK7Q2M:A3");
 		const done = await submit(budget, created.signingToken);
 		const closed = await call(budget, "public/session", { token: created.signingToken });
-		expect(closed).toMatchObject({ ok: true, state: "closed", status: "completed", returnUrl: RETURN, receipt: done.receipt });
+		expect(closed).toMatchObject({
+			ok: true,
+			state: "closed",
+			status: "completed",
+			returnUrl: RETURN,
+			receipt: done.receipt,
+		});
 
 		const tpl = (await budget.invokeRoute("templates/create", { name: "NDA", body: BODY })).value as {
 			template: { id: string };
@@ -343,7 +391,7 @@ describe("ES-FR-14 public/templates/catalog", () => {
 		const r = runtime as PluginRuntimeTestHost;
 		await seedTemplate(r, "tpl_nda", { name: "NDA", version: 4 });
 		await seedTemplate(r, "tpl_off", { name: "Not for integrations", integrations: false });
-		await seedTemplate(r, "tpl_old", { name: "Old, unflagged" , integrations: undefined });
+		await seedTemplate(r, "tpl_old", { name: "Old, unflagged", integrations: undefined });
 		await seedTemplate(r, "tpl_gone", { name: "Archived", status: "archived" });
 		const body = await call(budget, CATALOG, { request: await catalogFor() });
 		expect(body).toEqual({
@@ -357,7 +405,11 @@ describe("ES-FR-14 public/templates/catalog", () => {
 
 	it("a catalog request with a bad signature, a stale ts or a revoked client fails", async () => {
 		const budget = await host({ [CID]: { revoked: false }, [OTHER]: { revoked: true } });
-		const wrongKey = await signEsignToken("catalog", { v: 1, typ: "catalog", cid: CID, ts: nowS() }, await derived(OTHER));
+		const wrongKey = await signEsignToken(
+			"catalog",
+			{ v: 1, typ: "catalog", cid: CID, ts: nowS() },
+			await derived(OTHER),
+		);
 		expect(await call(budget, CATALOG, { request: wrongKey })).toMatchObject({ error: { code: "TOKEN_INVALID" } });
 		expect(await call(budget, CATALOG, { request: await catalogFor(CID, { ts: nowS() - 400 }) })).toMatchObject({
 			error: { code: "TOKEN_EXPIRED" },

@@ -322,7 +322,10 @@ async function voidEnvelope(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	const envelope = await stores(ctx).envelopes.get(id);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	const at = new Date().toISOString();
-	const moved = await transitionEnvelope(stores(ctx).envelopes, id, envelope.status, "voided", { updatedAt: at });
+	const moved = await transitionEnvelope(stores(ctx).envelopes, id, envelope.status, "voided", {
+		closedAt: at,
+		updatedAt: at,
+	});
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
 	await appendAudit(ctx, id, moved.value, { type: "envelope.voided", at, actor: "admin" });
 	return { ok: true, envelope: view(id, moved.value) };

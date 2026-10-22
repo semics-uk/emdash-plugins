@@ -10,7 +10,13 @@ import { type ReceiptSource, receiptPayload, signReceipt } from "../src/domain/r
 interface Vector {
 	name: string;
 	type: string;
-	input: { token: string; signedWithPrefix?: string; signedWithSecret?: string; payload?: ReceiptPayload; tamper?: string };
+	input: {
+		token: string;
+		signedWithPrefix?: string;
+		signedWithSecret?: string;
+		payload?: ReceiptPayload;
+		tamper?: string;
+	};
 	verifier: { now: number; clients: Record<string, { secret: string; revoked: boolean }> };
 	expected: { ok: true; payload: ReceiptPayload } | { ok: false; error: string };
 }
@@ -35,14 +41,22 @@ function envelopeFor(p: ReceiptPayload): ReceiptSource {
 }
 
 const ISSUABLE = RECEIPTS.filter(
-	(v) => v.input.payload && !v.input.tamper && v.input.signedWithPrefix === "esign-receipt/1" && v.name !== "receipt/oversize",
+	(v) =>
+		v.input.payload &&
+		!v.input.tamper &&
+		v.input.signedWithPrefix === "esign-receipt/1" &&
+		v.name !== "receipt/oversize",
 ).filter((v) => v.expected.ok || v.expected.error === "TOKEN_NOT_YET_VALID");
 
 describe("ES-FR-14 receipt vectors: e-sign issues them byte for byte", () => {
 	it("the vector file has the 19 receipt vectors", () => {
 		expect(RECEIPTS).toHaveLength(19);
 		expect(ISSUABLE.map((v) => v.name)).toEqual(
-			expect.arrayContaining(["receipt/valid-completed", "receipt/valid-declined", "receipt/valid-completed-pdf-pending"]),
+			expect.arrayContaining([
+				"receipt/valid-completed",
+				"receipt/valid-declined",
+				"receipt/valid-completed-pdf-pending",
+			]),
 		);
 	});
 
@@ -73,9 +87,7 @@ describe("ES-FR-14 receipt vectors: e-sign issues them byte for byte", () => {
 
 describe("ES-FR-14 the issuer refuses or corrects the schema-breaking receipt states", () => {
 	const valid = RECEIPTS.find((v) => v.name === "receipt/valid-completed")?.input.payload as ReceiptPayload;
-	const secret = secretOf(
-		RECEIPTS.find((v) => v.name === "receipt/valid-completed")?.input.signedWithSecret as string,
-	);
+	const secret = secretOf(RECEIPTS.find((v) => v.name === "receipt/valid-completed")?.input.signedWithSecret as string);
 
 	it("receipt/uppercase-hex: a non-lowercase hash is never signed", async () => {
 		const bad = { ...envelopeFor(valid), docSha256: valid.docSha256.toUpperCase() };
