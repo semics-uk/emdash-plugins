@@ -54,12 +54,10 @@ export function eventWhen(startsAt: string, timezone: string | null | undefined,
 }
 
 export function cardView(event: PublicEventSummary, locale: string): CardView {
-	const badge =
-		event.status !== "on_sale" ? BADGES[event.status] : event.available === 0 ? "Sold out" : null;
+	const badge = event.status !== "on_sale" ? BADGES[event.status] : event.available === 0 ? "Sold out" : null;
 	let price: string | null = null;
 	if (event.priceFromMinor !== undefined) {
-		price =
-			event.priceFromMinor === 0 ? "Free" : `From ${formatMoney(event.priceFromMinor, event.currency, locale)}`;
+		price = event.priceFromMinor === 0 ? "Free" : `From ${formatMoney(event.priceFromMinor, event.currency, locale)}`;
 	}
 	return {
 		eventId: event.eventId,

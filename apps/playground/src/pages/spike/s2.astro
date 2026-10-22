@@ -2,12 +2,11 @@
 // Spike S2 probe page (repointed by T054): server-renders the sandboxed core's real `public/events`
 // route through `callPublicRoute`. `?plugin=` targets another plugin ID so the not-enabled error
 // state can be exercised.
-import { callPublicRoute } from "@semics-tech/emdash-events/astro";
-import { pluginId as configuredId } from "virtual:semics-events/config";
+import { callPublicRoute, EVENTS_PLUGIN_ID } from "@semics-tech/emdash-events/astro";
 
 export const prerender = false;
 
-const pluginId = Astro.url.searchParams.get("plugin") ?? configuredId;
+const pluginId = Astro.url.searchParams.get("plugin") ?? EVENTS_PLUGIN_ID;
 const result = await callPublicRoute<{ events: Array<{ title: string }> }>(Astro, {
 	path: "public/events",
 	pluginId,

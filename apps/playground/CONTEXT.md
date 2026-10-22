@@ -14,5 +14,9 @@ UI natively (`astro.config.mjs`). Used for end-to-end tests only.
   sale, free tickets, plus the entry's `info`) into `_plugin_storage` after seeding; `/events/[slug]`
   renders `<BookingWidget event>`, which loads `public/event` itself (T046). `/e2e/widgets` shows components in states the
   site can't reach yet (Turnstile on, a pass, a signed calendar link). axe via `@axe-core/playwright`.
-- Specs: `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route` (success test skipped until T054 points it at
-  `public/events`), `e2e/s6-pt-block`, `e2e/t053-booking-page`, `e2e/t055-booking-widget`.
+- Fixtures cover london-meetup, nyc-workshop and sydney-conference (on sale; the past gala has no config so it is
+  not listed). `/whats-on` holds an `events-list` and an `events-booking` block; `/e2e/lists?view=live|empty|card`
+  shows the list and card (`theme=dark` for the second snapshot theme); `/spike/s2` reads `public/events`.
+- Specs: `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
+  `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate
+  with `--update-snapshots` if the CI font differs), `e2e/t055-booking-widget`.

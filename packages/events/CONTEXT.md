@@ -92,6 +92,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   turns that into an error. The widget expects `public/event` in the `PublicEvent` shape (T046), the
   booking page shows passes for attendees with a `code` and a calendar link from `calendar.query`
   (signed by the core, T050). Never use `set:html` or HTML sinks (a test checks).
+- UI (T054): `<EventList>` (also the `events-list` block) calls `public/events` through `callPublicRoute` with the
+  integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,
+  `error` (`data-state`). Time and price formatting is the pure `src/astro/lib/list.ts` (`cardView`,
+  `listView`; shared `formatInZone`, unknown zone shows UTC). The `events-booking` block (`BookingBlock.astro`)
+  takes an event entry id or slug (slug resolved with `getEmDashEntry`) and renders `<BookingWidget>`. Cards link
+  only when the page gives `hrefFor`/`href` (the route returns no slug).
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 
