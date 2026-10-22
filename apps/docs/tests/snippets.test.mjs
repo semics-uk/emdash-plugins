@@ -6,7 +6,8 @@
 //               the plugins' components must be one the component declares.
 //   json        parsed; a seed file (it has `collections`) must pass EmDash's own `validateSeed`.
 //   sh          each command is checked: a package to install must exist, a script must be one the
-//               package defines, an environment variable must be one EmDash reads; `openssl` runs.
+//               package defines, an environment variable must be one EmDash reads; `emdash secrets
+//               generate` runs.
 //   text        prose in a box (paths, sample output): not code, nothing to run.
 //
 // The protocol page's grammar and schema boxes are covered by docs/protocol/vectors.test.mjs.
@@ -63,7 +64,7 @@ const INSTALLABLE = new Set([
 
 /** Environment variables EmDash itself reads (each must appear in its build). */
 function emdashReads(name) {
-	const dist = join(dirname(requireFromDocs.resolve("emdash/package.json")), "dist");
+	const dist = join(docsRoot, "node_modules", "emdash", "dist");
 	const grep = spawnSync("grep", ["-rlqF", name, dist]);
 	return grep.status === 0;
 }
@@ -83,9 +84,15 @@ function checkShell(text, src) {
 			if (!emdashReads(env[1])) problems.push(`${env[1]} is not read by EmDash`);
 			continue;
 		}
-		if (words[0] === "openssl") {
-			const run = spawnSync(words[0], words.slice(1), { encoding: "utf8" });
-			if (run.status !== 0) problems.push(`"${line}" failed: ${run.stderr}`);
+		if (words[0] === "npx" && words[1] === "emdash") {
+			// `emdash secrets generate` runs (its output, a throwaway key, is never printed); other EmDash
+			// commands must be ones its CLI lists.
+			const cli = join(docsRoot, "node_modules", ".bin", "emdash");
+			const generate = words[2] === "secrets" && words[3] === "generate";
+			const run = spawnSync(cli, generate ? words.slice(2) : ["--help"], { encoding: "utf8" });
+			if (run.status !== 0) problems.push(`"${line}" failed`);
+			else if (!generate && !new RegExp(`\\b${words[2]}\\b`).test(run.stdout))
+				problems.push(`emdash has no ${words[2]}`);
 			continue;
 		}
 		let args = words;

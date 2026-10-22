@@ -1,7 +1,7 @@
 // T103: the docs site builds with no broken link, and says what the earlier tasks asked it to say.
 // Each "says" test names the task or decision (BUILD-PLAN §12) that filed it.
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { test } from "node:test";
 import { buildSite, PAGES, repoRoot } from "../build.mjs";
@@ -89,8 +89,8 @@ test("legal brief §12: the E-sign README matches the code", () => {
 	const readme = pageText("packages/esign/README.md");
 	assert.match(readme, /participant/i, "the README names the participant (minor) on the certificate");
 	assert.match(readme, /Details entered by the signer/, "the README says entered values stay in the signed PDF");
-	const plan = pageText("BUILD-PLAN.md");
-	const r45 = /\| R45 \|.*?\|\n?/s.exec(plan)?.[0] ?? "";
+	const plan = readFileSync(join(repoRoot, "BUILD-PLAN.md"), "utf8");
+	const r45 = /^\| R45 \|.*$/m.exec(plan)?.[0] ?? "";
 	assert.match(r45, /participant/i, "R45 names the participant on the certificate");
 	assert.match(r45, /Details entered by the signer/, "R45 says entered values stay in the signed PDF");
 });
@@ -134,4 +134,18 @@ test("features and their limits: the outbox drain, PDFs, opt-out, MCP, check-in,
 		"third parties out of scope": /Turnstile/,
 	});
 	says(PAGE("editions"), { "Free and Pro table": /\| *Free *\| *Pro *\|/ });
+});
+
+test("T100 follow-ups: page caching (R62), Pro export expiry (R63), counter sweep (R61), MCP call counts (R60)", () => {
+	says(PAGE("configure"), {
+		"no shared page cache for booking pages": /an event page with a booking form, in a cache shared/i,
+		"a resubmit re-issues a held booking's token": /fresh access token while it is still on hold/i,
+	});
+	says(PAGE("privacy"), {
+		"Pro exports expire 24 hours after their last step": /expires 24 hours after its last step/i,
+		"rate-limit counters are swept by retention": /rate-limit counters[^.]*deleted by the same retention pass/i,
+	});
+	says(PAGE("events"), {
+		"paid cancel and refund at 10 and 9 calls": /paid booking \(10 calls\) and `refundBooking` \(9\)/,
+	});
 });
