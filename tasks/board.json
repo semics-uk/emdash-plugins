@@ -1362,7 +1362,7 @@
 			"phase": 3,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1377,7 +1377,7 @@
 			"unblocks": [
 				"T065"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T065": {
 			"file": "T065-suite-package-and-bookingwithwaiver-flow.md",
@@ -1403,7 +1403,7 @@
 			"unblocks": [
 				"T066"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T066": {
 			"file": "T066-suite-reconciliation-and-catalogue-refresh.md",
@@ -2358,7 +2358,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T065",
 			"T066",
 			"T067",
 			"T074",
@@ -2382,6 +2381,7 @@
 			"T106"
 		],
 		"ready": [
+			"T065",
 			"T073",
 			"T080",
 			"T081",
@@ -2392,7 +2392,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T064",
 			"T085"
 		],
 		"review": [],
@@ -2453,6 +2452,7 @@
 			"T061",
 			"T062",
 			"T063",
+			"T064",
 			"T070",
 			"T071",
 			"T072",
@@ -2469,13 +2469,12 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T064",
-		"T065",
-		"T066",
-		"T067",
-		"T097",
+		"T073",
+		"T074",
+		"T075",
+		"T078",
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 10
+	"criticalWeight": 9
 }
