@@ -40,6 +40,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Site-owner Stripe setup for Events Pro (T074, Pro README): secret key scopes, webhook endpoint URL with the plugin id, the four event types, `stripeWebhookSecret`
 - [ ] Operator guide: carry over `packages/esign/README.md` "Retention (operators)" (T097, R45), including that the snapshot and certificate keep the signer's name and IP until the signed-records period ends
 - [ ] Correct the docs to match the code (legal brief §12): the certificate keeps the participant (minor) name as well as signer name and IP, and the signed PDF keeps "Details entered by the signer" until the signed-records period ends (README "Retention (operators)" and R45 wording)
+- [ ] Operator guide: an amount mismatch (R49) is refunded automatically with only Stripe's refund receipt (no plugin email) and a warning in the logs; tell site owners where to look
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
