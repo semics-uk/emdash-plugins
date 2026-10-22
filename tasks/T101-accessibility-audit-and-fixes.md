@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Recorded results
+- [ ] Exercise the E-sign sign page's "Email me a code" OTP step (T091) in a real browser: keyboard, screen reader labels, error and lockout messages, no code in any URL
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
