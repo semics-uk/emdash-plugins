@@ -1668,7 +1668,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1686,9 +1686,10 @@
 				"T100",
 				"T101",
 				"T102",
-				"T103"
+				"T103",
+				"T120"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T080": {
 			"file": "T080-events-pro-custom-attendee-questions.md",
@@ -2046,7 +2047,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T101": {
 			"file": "T101-accessibility-audit-and-fixes.md",
@@ -2114,7 +2115,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T104": {
 			"file": "T104-release-automation.md",
@@ -2378,15 +2379,34 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T120": {
+			"file": "T120-payments-hardening-from-the-phase-4-review.md",
+			"id": "T120",
+			"title": "Payments: hardening from the Phase 4 review",
+			"phase": 6,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T078"
+			],
+			"spec": [
+				"EV-FR-13",
+				"EV-FR-14",
+				"R2"
+			],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [
 			"T095",
-			"T100",
 			"T101",
 			"T102",
-			"T103",
 			"T106"
 		],
 		"ready": [
@@ -2400,10 +2420,12 @@
 			"T093",
 			"T094",
 			"T096",
-			"T111"
+			"T100",
+			"T103",
+			"T111",
+			"T120"
 		],
 		"in-progress": [
-			"T078",
 			"T090"
 		],
 		"review": [],
@@ -2476,6 +2498,7 @@
 			"T075",
 			"T076",
 			"T077",
+			"T078",
 			"T085",
 			"T087",
 			"T092",
