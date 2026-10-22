@@ -91,3 +91,11 @@ Pad (T031): `src/client/pad.js` (inlined, hashed as `PAD_SCRIPT`, second `script
 Signer fields (T033): `envelopes/create` takes optional `signerFields: [{ key, label, required? }]` (max 16, stored on
 the envelope); `public/session` returns them as `fields`; `public/submit` rejects undeclared keys and missing required
 ones (`BAD_REQUEST`, issue `fieldValues.<key>`) and stores the values on the signer.
+
+Phase 1 review (T034, `tasks/reviews/phase-1.md`): `bindSignature(docSha256, signature, { fieldValues, salt })` hashes
+`piiSalt ‖ JSON([docSha256, kind, typedName, strokes, [[key, value]…]])`, so the entered values are covered and a purged
+name cannot be guessed (R28); the signed PDF prints the entered values under "Details entered by the signer". Pages pass
+`request: Astro.request` to `callPublicRoute`, which copies the visitor's headers (minus cookie, authorization, Referer,
+body framing) and `cf` onto in-process calls (R38): without it `requestMeta` has no IP or user agent. JSON routes cannot
+set an HTTP status in the sandbox (R37). `envelopes/list` takes `cursor` and returns `nextCursor`; the admin table's page
+action is `envelopes.page:<status>`. Coverage counts only code imported by tests, not code run inside workerd.

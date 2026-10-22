@@ -35,6 +35,8 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No open Severity 1 or 2
+- [ ] Sandboxed routes that throw reach public callers as `400 ROUTE_ERROR` carrying the raw `Error.message` (EmDash dispatch); today the messages are fixed strings (`audit chain contention`, `download link key unavailable`), so check none can carry stored data or a token, or catch and map them to `INTERNAL` (T034 review, Severity 3)
+- [ ] `public/envelopes/from-intent` has no rate limit: malformed tokens are rejected before any bridge call, an unknown `cid` costs 2 calls (settings + client). Decide whether a per-IP failure counter is worth a call (T034 review, Severity 4)
 - [ ] Events reserve salts `ipHash` with a secret even when no Turnstile secret is set (today the plugin id), without taking reserve past 10 bridge calls (T057 review F6)
 - [ ] `checkout/continue` verifies an unknown ref against a decoy hash like `public/booking` and `/redeem` (T057 review F10)
 - [ ] Confirm or revisit "no per-IP limit on wrong tokens and codes" for booking, cancel, redeem and continue, and the idempotency-key resubmit that re-issues a token (T057 review F11, F16)
