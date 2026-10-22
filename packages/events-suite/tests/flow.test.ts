@@ -434,6 +434,88 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 	});
 });
 
+describe("payment after the last receipt (T077, EU-FR-09)", () => {
+	const BOOKING_COOKIE = { [`semics_booking_${REF}`]: ACCESS };
+	const LAST = { [flowCookieName(REF)]: SIGNING(2) };
+	const payNext = () =>
+		ok({ bookingRef: REF, status: "awaiting_payment", next: { type: "pay", url: "https://pay.example/s/1" } });
+	const lastReceipt = (h: ReturnType<typeof host>, cookies: Record<string, string> = { ...LAST, ...BOOKING_COOKIE }) =>
+		run(h, post(`${WAIVER_PATH}?ref=${REF}`, SIGN_FORM), cookies);
+
+	it("EU-FR-09 the last signature of a paid waiver booking continues it again and goes to the payment page", async () => {
+		const h = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: payNext });
+		const outcome = expectRedirect(await lastReceipt(h));
+		expect(h.calls.at(-1)).toEqual({
+			id: EVENTS,
+			path: "public/checkout/continue",
+			body: { bookingRef: REF, accessToken: ACCESS },
+		});
+		expect(outcome.location).toBe("https://pay.example/s/1");
+		expect(cookieValue(outcome, flowCookieName(REF))?.options).toMatchObject({ maxAge: 0 });
+	});
+
+	it("EU-FR-09 a free waiver booking, or one still waiting on other signers, lands on the booking page as before", async () => {
+		const done = ceremonyHost({
+			[`${EVENTS} public/checkout/continue`]: () =>
+				ok({ bookingRef: REF, status: "confirmed", next: { type: "done" } }),
+		});
+		expect(expectRedirect(await lastReceipt(done)).location).toBe(`/booking?ref=${REF}&waiver=signed`);
+		const waiting = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: signNext });
+		expect(expectRedirect(await lastReceipt(waiting)).location).toBe(`/booking?ref=${REF}&waiver=signed`);
+		const refusedContinue = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: () => refused("HOLD_EXPIRED") });
+		expect(expectRedirect(await lastReceipt(refusedContinue)).location).toBe(`/booking?ref=${REF}&waiver=signed`);
+	});
+
+	it("EU-FR-09 a non-https payment url is not followed, a decline never asks for payment, and without the booking cookie nothing is asked", async () => {
+		const bad = ceremonyHost({
+			[`${EVENTS} public/checkout/continue`]: () => ok({ next: { type: "pay", url: "javascript:alert(1)" } }),
+		});
+		expect(expectRedirect(await lastReceipt(bad)).location).toBe(`/booking?ref=${REF}&waiver=signed`);
+
+		const declined = ceremonyHost({
+			[`${ESIGN} public/decline`]: () => ok({ returnUrl: RETURN, receipt: RECEIPT(9) }),
+			[`${EVENTS} public/checkout/continue`]: payNext,
+		});
+		const out = expectRedirect(
+			await run(declined, post(`${WAIVER_PATH}?ref=${REF}`, { intent: "decline", reason: "No" }), {
+				...LAST,
+				...BOOKING_COOKIE,
+			}),
+		);
+		expect(out.location).toBe(`/booking?ref=${REF}&waiver=declined`);
+		expect(declined.calls.some((c) => c.path === "public/checkout/continue")).toBe(false);
+
+		const bare = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: payNext });
+		expect(expectRedirect(await lastReceipt(bare, LAST)).location).toBe(`/booking?ref=${REF}&waiver=signed`);
+		expect(bare.calls.some((c) => c.path === "public/checkout/continue")).toBe(false);
+	});
+
+	it("EU-FR-09 every other signer already signed elsewhere: the GET goes to payment too", async () => {
+		const h = ceremonyHost({
+			[`${ESIGN} public/session`]: () =>
+				ok({ state: "closed", status: "completed", returnUrl: RETURN, receipt: RECEIPT(2) }),
+			[`${EVENTS} public/checkout/continue`]: payNext,
+		});
+		const outcome = expectRedirect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`), { ...LAST, ...BOOKING_COOKIE }));
+		expect(outcome.location).toBe("https://pay.example/s/1");
+	});
+
+	it("EU-FR-09 the booking token reaches this page: a copy of the booking cookie is scoped to the waiver path", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/checkout/continue`]: signNext,
+			[`${ESIGN} public/envelopes/from-intent`]: fromIntent(),
+		});
+		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, ORDER)));
+		const copies = outcome.cookies.filter((c) => c.name === `semics_booking_${REF}`);
+		expect(copies.map((c) => c.options.path)).toEqual(["/booking", WAIVER_PATH]);
+		expect(copies[1]).toMatchObject({
+			value: ACCESS,
+			options: { httpOnly: true, sameSite: "strict", maxAge: 3600 },
+		});
+	});
+});
+
 describe("retry after e-sign refuses an intent (T066, SX-FR-03)", () => {
 	const BOOKING_COOKIE = { [`semics_booking_${REF}`]: ACCESS };
 	const retry = () => post(`${WAIVER_PATH}?ref=${REF}`, { intent: "retry" });
