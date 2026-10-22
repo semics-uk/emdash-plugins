@@ -1271,7 +1271,7 @@
 			"phase": 3,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1284,7 +1284,7 @@
 			"unblocks": [
 				"T061"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T061": {
 			"file": "T061-e-sign-accept-signing-intents.md",
@@ -2326,7 +2326,6 @@
 			"T106"
 		],
 		"ready": [
-			"T060",
 			"T063",
 			"T071",
 			"T072",
@@ -2342,7 +2341,8 @@
 			"T117"
 		],
 		"in-progress": [
-			"T043"
+			"T043",
+			"T060"
 		],
 		"review": [],
 		"done": [
