@@ -4,7 +4,7 @@ title: "E-sign: decline, void, reminders and expiry"
 phase: 6
 package: esign
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T067]
