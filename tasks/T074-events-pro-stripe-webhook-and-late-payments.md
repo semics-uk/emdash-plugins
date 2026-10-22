@@ -4,7 +4,7 @@ title: "Events Pro: Stripe webhook and late payments"
 phase: 4
 package: events
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T073, T071]
