@@ -48,7 +48,9 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   Continue (`src/routes/checkout-continue.ts`, T048) finds the booking by `ref` + token, confirms a
   free booking (then `confirmSold`, attendees, outbox `confirm-<bookingId>`, in that order: the
   outbox row marks the side effects done, so a replay writes nothing) and steps a paid one to
-  `awaiting_payment` through a `PaymentStep` seam that Free leaves empty (`PAYMENT_FAILED`). The
+  `awaiting_payment` through a `PaymentStep` seam that Free leaves empty (`PAYMENT_FAILED`): `prepare` sees the
+  booking as read (`held` = new, `awaiting_payment` = in-flight) and the settings, may refuse before any write; then
+  `start(holdExpiresAt)` (Pro Stripe, T073: 5 Free calls + fetch + payment record = 7). The
   status graph and next-step rule live in `src/domain/booking-state.ts`.
 - Booking status and cancel (`src/routes/booking.ts`, T049): `{ bookingRef, accessToken }` in the POST
   body; unknown ref and wrong token are the same `NOT_FOUND`. Cancel claims (`releaseClaimedAt`),

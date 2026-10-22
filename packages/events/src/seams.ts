@@ -23,6 +23,7 @@ export { type AdminSteps, adminRoute } from "./routes/admin";
 export {
 	type ContinueSteps,
 	checkoutContinueRoute,
+	type PaymentStarter,
 	type PaymentStep,
 	type SignatureStep,
 	type SigningIntentOut,

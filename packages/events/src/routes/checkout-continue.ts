@@ -38,8 +38,9 @@ import { badRequest, fail } from "./reply";
  *    sweeper's drift repair recomputes it from confirmed bookings, so a replay never counts twice.
  * 4. `attendees.putMany` (1), then `outbox.put` of the confirmation (1).
  * A one-ticket-type order is 5 calls; the largest is 9. A replay is 2 (query, `outbox.get`).
- * The paid step: query, `settings.list`, `extendHold` (status + hold in one write), attendees,
- * the `hold-<ref>` re-arm, then the provider's own calls.
+ * The paid step: query, `settings.list` (shared with the step's `prepare`, which reads the licence
+ * and provider key from it and may refuse before any write), `extendHold` (status + hold in one
+ * write), attendees, the `hold-<ref>` re-arm: 5 calls, then the provider's own `start`.
  * The signature step (a booking with a `waiver`, Pro only): query, `settings.list` (shared with the
  * step, which reads the licence and pairing from it), `extendHold` → `awaiting_signature`,
  * attendees, the re-arm: 5 calls; the step mints its intents without bridge calls. Continuing a
@@ -68,9 +69,21 @@ export interface ContinueStorage extends CounterStorage {
 	outbox: { get(id: string): Promise<unknown>; put(id: string, data: unknown): Promise<void> };
 }
 
-/** The Pro payment step: create the provider's checkout session for a booking awaiting payment. */
+/** Starts the provider's checkout once the booking awaits payment until `holdExpiresAt`. */
+export interface PaymentStarter {
+	start(holdExpiresAt: string): Promise<Result<{ url: string }, { code: ErrorCode }>>;
+}
+
+/**
+ * The Pro payment step. `prepare` gets the booking as read (`held`: a new checkout; already
+ * `awaiting_payment`: in-flight) and the settings checkout loaded; it may refuse before any write.
+ */
 export interface PaymentStep {
-	start(args: { bookingId: string; booking: BookingDoc; holdExpiresAt: string }): Promise<{ url: string }>;
+	prepare(args: {
+		bookingId: string;
+		booking: BookingDoc;
+		settings: Record<string, unknown>;
+	}): Promise<Result<PaymentStarter, { code: ErrorCode }>>;
 }
 
 /** One signing intent for the browser: the token travels in this response body only, never in a URL. */
@@ -172,20 +185,25 @@ async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknow
 	return done(b);
 }
 
+const settingsOf = async (deps: ContinueDeps): Promise<Record<string, unknown>> =>
+	Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+
 /** The Pro payment step: extend the hold, move to `awaiting_payment`, re-arm `hold-<ref>`. */
 async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item[]): Promise<unknown> {
 	const { storage, now, payment, cron } = c.deps;
 	if (!payment) return fail("PAYMENT_FAILED");
-	const entries = await c.deps.settings.list();
-	const settings = holdSettings(Object.fromEntries(entries.map((e) => [e.key, e.value])));
-	const until = stepTarget(now, { paid: true }, settings);
+	const settings = await settingsOf(c.deps);
+	const prepared = await payment.prepare({ bookingId: c.id, booking: b, settings });
+	if (!prepared.ok) return fail(prepared.error.code);
+	const until = stepTarget(now, { paid: true }, holdSettings(settings));
 	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
 	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
 	const { holdExpiresAt } = extended.value;
 	await storage.attendees.putMany(docs);
 	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
-	const session = await payment.start({ bookingId: c.id, booking: { ...b, status, holdExpiresAt }, holdExpiresAt });
-	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.url } };
+	const session = await prepared.value.start(holdExpiresAt);
+	if (!session.ok) return fail(session.error.code);
+	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.value.url } };
 }
 
 /**
@@ -203,7 +221,7 @@ async function keepSigned(storage: ContinueStorage, planned: Item[]): Promise<It
 /** The Pro signature step: extend the hold, move to `awaiting_signature`, re-arm, return the intents. */
 async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: Item[]): Promise<unknown> {
 	const { storage, now, cron } = c.deps;
-	const settings = Object.fromEntries((await c.deps.settings.list()).map((e) => [e.key, e.value]));
+	const settings = await settingsOf(c.deps);
 	const docs = b.status === "awaiting_signature" ? await keepSigned(storage, planned) : planned;
 	const attendees = docs as Array<{ id: string; data: AttendeeDoc }>;
 	const prepared = await step.prepare({ bookingId: c.id, booking: b, attendees, settings });

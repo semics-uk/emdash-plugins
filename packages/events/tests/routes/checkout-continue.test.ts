@@ -202,9 +202,16 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 	it("EV-FR-05 prepare sees the booking as read and the settings checkout loaded, before any write", async () => {
 		const w = await world({ priceMinor: 1500 });
 		const seen: Prepared[] = [];
-		const settings = { list: async () => (meter.calls++, [{ key: "stripeSecretKey", value: "sk_test_x" }]) };
+		const settings = {
+			list: async () => {
+				meter.calls++;
+				return [{ key: "stripeSecretKey", value: "sk_test_x" }];
+			},
+		};
 		await run(w.deps(T0 + MIN, { payment: payment([], { seen }), settings }), w.input);
-		expect(seen).toMatchObject([{ bookingId: ID, booking: { status: "held" }, settings: { stripeSecretKey: "sk_test_x" } }]);
+		expect(seen).toMatchObject([
+			{ bookingId: ID, booking: { status: "held" }, settings: { stripeSecretKey: "sk_test_x" } },
+		]);
 		// A continue of a booking already awaiting payment is in-flight work: the step sees that status.
 		await run(w.deps(T0 + 2 * MIN, { payment: payment([], { seen }), settings }), w.input);
 		expect(seen[1]?.booking.status).toBe("awaiting_payment");
