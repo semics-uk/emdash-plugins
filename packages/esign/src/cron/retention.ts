@@ -18,13 +18,14 @@
  *
  * Until the records period ends the signed PDF, snapshot and chain keep what they printed (the
  * signer's name and IP on the certificate, `{{signer.name}}` in the text): they are the signed record.
- * Consumed `nonces` are already deleted hourly by `nonce-sweep` (T061).
+ * Consumed `nonces` are already deleted hourly by `nonce-sweep` (T061). A pass starts by deleting ended
+ * rate-limit counters (`rl:` keys hold hashed IPs and KV has no TTL, T100), 3 a tick, in phase `rl`.
  *
  * The daily `retention` task runs a pass a page at a time (keyset cursor in KV, as Events T087); each
  * page takes two ticks so every tick stays within 8 bridge calls, and while the pass has more to do
  * it queues the one-shot `retention-more` for the next minute's tick. The clock is passed in.
  */
-import { toIso } from "@semics-tech/shared";
+import { sweepRateLimits, toIso } from "@semics-tech/shared";
 import type { PluginContext } from "emdash/plugin";
 import { purgePersonal } from "../domain/audit";
 import type { EnvelopeDoc, SignerDoc } from "../domain/envelopes";
@@ -118,7 +119,7 @@ async function scrubRecords(st: S, items: Item[], now: number) {
 
 /** What the job keeps in KV between ticks. */
 export interface RetentionState {
-	phase?: "personal" | "records" | "outbox";
+	phase?: "rl" | "personal" | "records" | "outbox";
 	/** 1: the current page's second tick. */
 	step?: 1;
 	/** This pass's cutoffs (ms). */
@@ -140,8 +141,9 @@ export async function retentionTick(ctx: PluginContext, now: number): Promise<bo
 	const s: RetentionState = { ...(await ctx.kv.get<RetentionState>(RETENTION_STATE_KEY)) };
 	let idle = false;
 
-	if (!s.phase) {
-		Object.assign(s, retentionCutoffs(await ctx.settings.list("retention"), now), { phase: "personal" });
+	if (!s.phase || s.phase === "rl") {
+		if ((await sweepRateLimits(ctx.kv, now, 3)).more) s.phase = "rl";
+		else Object.assign(s, retentionCutoffs(await ctx.settings.list("retention"), now), { phase: "personal" });
 	} else if (s.phase === "outbox") {
 		const page = await st.outbox.query({
 			where: { status: { in: ["sent", "failed"] }, nextAttemptAt: { lt: s.p } },
