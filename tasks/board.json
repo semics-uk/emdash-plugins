@@ -1412,7 +1412,7 @@
 			"phase": 3,
 			"package": "suite",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1425,7 +1425,7 @@
 			"unblocks": [
 				"T067"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T067": {
 			"file": "T067-phase-3-gate-integration-security-and-e2e.md",
@@ -2380,7 +2380,6 @@
 			"T106"
 		],
 		"ready": [
-			"T066",
 			"T080",
 			"T081",
 			"T082",
@@ -2390,6 +2389,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T066",
 			"T073"
 		],
 		"review": [],
