@@ -31,8 +31,18 @@ function world(days: unknown = 365) {
 		sold: 5,
 		info: { startsAt: at(-400), endsAt: at(-399) },
 	});
-	storage.event_configs.set("e_new", { status: "closed", reserved: 2, sold: 2, info: { startsAt: at(-100), endsAt: null } });
-	storage.event_configs.set("e_future", { status: "on_sale", reserved: 3, sold: 3, info: { startsAt: at(30), endsAt: null } });
+	storage.event_configs.set("e_new", {
+		status: "closed",
+		reserved: 2,
+		sold: 2,
+		info: { startsAt: at(-100), endsAt: null },
+	});
+	storage.event_configs.set("e_future", {
+		status: "on_sale",
+		reserved: 3,
+		sold: 3,
+		info: { startsAt: at(30), endsAt: null },
+	});
 	const deps = (now: number, extra: Partial<RetentionDeps> = {}): RetentionDeps => ({
 		storage: storage as unknown as RetentionStorage,
 		kv,
@@ -130,10 +140,20 @@ describe("retention job (EV-FR-20, R22)", () => {
 		});
 		expect(old.erasedAt).toBeTruthy();
 		// Counts and aggregates survive.
-		expect(old).toMatchObject({ status: "confirmed", lines: [{ qty: 2 }], totals: { totalMinor: 1000 }, ref: "e_old-1" });
+		expect(old).toMatchObject({
+			status: "confirmed",
+			lines: [{ qty: 2 }],
+			totals: { totalMinor: 1000 },
+			ref: "e_old-1",
+		});
 		expect(w.storage.event_configs.docs.get("e_old")).toMatchObject({ reserved: 5, sold: 5 });
 		expect(w.storage.bookings.docs.get("old_cancelled")?.erasedAt).toBeTruthy();
-		expect(w.storage.attendees.docs.get("old-1")).toMatchObject({ name: "", email: "", code: "Cold1", status: "valid" });
+		expect(w.storage.attendees.docs.get("old-1")).toMatchObject({
+			name: "",
+			email: "",
+			code: "Cold1",
+			status: "valid",
+		});
 
 		for (const id of ["recent", "live", "live_held"]) {
 			expect(w.storage.bookings.docs.get(id)?.erasedAt, id).toBeUndefined();
