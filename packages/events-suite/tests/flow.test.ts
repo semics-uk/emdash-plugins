@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { seatField, WAIVER_PATH } from "../src/astro/lib/form";
 import { FLOW_STEPS, flowCookieName, handleWaiverRequest, type WaiverOutcome } from "../src/astro/lib/flow";
+import { seatField, WAIVER_PATH } from "../src/astro/lib/form";
 
 // <BookingWithWaiver> end to end against a faked host (SX-FR-02, SX-FR-03): book → sign inline →
 // receipt → confirmed, through the real UI helpers of both products (`callPublicRoute`,
@@ -25,7 +24,8 @@ type Responder = (body: Record<string, unknown>, n: number) => Answer;
 const ok = (data: Record<string, unknown>) => ({ success: true, data: { ok: true, ...data } });
 const refused = (code: string, issues?: unknown[]) => ({
 	success: true,
-	data: { ok: false, error: { code, message: code, ...(issues ? { issues } : {}) } },
+	// The cores' refusal shape: `{ ok: false, error, issues? }` (`badRequest` in Events' routes/reply.ts).
+	data: { ok: false, error: { code, message: code }, ...(issues ? { issues } : {}) },
 });
 
 /** A host whose in-process handler answers `<pluginId> <path>` from `routes`, recording every call. */
@@ -33,7 +33,10 @@ function host(routes: Record<string, Responder>) {
 	const calls: Array<{ id: string; path: string; body: Record<string, unknown> }> = [];
 	const counts = new Map<string, number>();
 	const handler = async (id: string, _method: string, path: string, request: Request) => {
-		const body = (await request.clone().json().catch(() => ({}))) as Record<string, unknown>;
+		const body = (await request
+			.clone()
+			.json()
+			.catch(() => ({}))) as Record<string, unknown>;
 		calls.push({ id, path, body });
 		const key = `${id} ${path}`;
 		const n = (counts.get(key) ?? 0) + 1;
@@ -98,7 +101,9 @@ const signNext = () =>
 function fromIntent(emailStatus = "draft"): Responder {
 	return (body) => {
 		const n = Number(String(body.intent).split(".")[0]?.slice(-1));
-		return n === 3 ? ok({ envelopeId: "env_3", status: emailStatus }) : ok({ envelopeId: `env_${n}`, status: "sent", signingToken: SIGNING(n) });
+		return n === 3
+			? ok({ envelopeId: "env_3", status: emailStatus })
+			: ok({ envelopeId: `env_${n}`, status: "sent", signingToken: SIGNING(n) });
 	};
 }
 
@@ -119,7 +124,10 @@ describe("booking (SX-FR-02)", () => {
 		});
 		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, ORDER)));
 		expect(outcome.location).toBe(`/booking?ref=${REF}`);
-		expect(cookieValue(outcome, `semics_booking_${REF}`)).toMatchObject({ value: ACCESS, options: { path: "/booking", httpOnly: true } });
+		expect(cookieValue(outcome, `semics_booking_${REF}`)).toMatchObject({
+			value: ACCESS,
+			options: { path: "/booking", httpOnly: true },
+		});
 		expect(h.calls.map((c) => `${c.id} ${c.path}`)).toEqual([
 			`${EVENTS} public/checkout/reserve`,
 			`${EVENTS} public/checkout/continue`,
@@ -180,7 +188,11 @@ describe("booking (SX-FR-02)", () => {
 			[`${EVENTS} public/booking/cancel`]: () => ok({ status: "cancelled" }),
 		});
 		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, ORDER)));
-		expect(h.calls.at(-1)).toEqual({ id: EVENTS, path: "public/booking/cancel", body: { bookingRef: REF, accessToken: ACCESS } });
+		expect(h.calls.at(-1)).toEqual({
+			id: EVENTS,
+			path: "public/booking/cancel",
+			body: { bookingRef: REF, accessToken: ACCESS },
+		});
 		const url = new URL(outcome.location, ORIGIN);
 		expect(url.searchParams.get("waiver_error")).toBe("WAIVER_EMAIL_REQUIRED");
 		expect(url.searchParams.get("waiver_fields")).toBe("attendees,attendee.3.name");
@@ -241,7 +253,8 @@ describe("signing intents (SX-FR-03)", () => {
 		const h = host({
 			[`${EVENTS} public/checkout/reserve`]: reserve,
 			[`${EVENTS} public/checkout/continue`]: signNext,
-			[`${ESIGN} public/envelopes/from-intent`]: (_b, n) => (n === 2 ? refused("TEMPLATE_NOT_FOUND") : fromIntent()(_b, n)),
+			[`${ESIGN} public/envelopes/from-intent`]: (_b, n) =>
+				n === 2 ? refused("TEMPLATE_NOT_FOUND") : fromIntent()(_b, n),
 		});
 		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, ORDER)));
 		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}&error=SIGNING_UNAVAILABLE`);
@@ -282,8 +295,10 @@ function ceremonyHost(extra: Record<string, Responder> = {}) {
 			const n = Number(String(body.token).slice(0, 1));
 			return SESSION(n);
 		},
-		[`${ESIGN} public/submit`]: (body) => ok({ returnUrl: RETURN, receipt: RECEIPT(Number(String(body.token).slice(0, 1))) }),
-		[`${ESIGN} public/decline`]: (body) => ok({ returnUrl: RETURN, receipt: RECEIPT(Number(String(body.token).slice(0, 1))) }),
+		[`${ESIGN} public/submit`]: (body) =>
+			ok({ returnUrl: RETURN, receipt: RECEIPT(Number(String(body.token).slice(0, 1))) }),
+		[`${ESIGN} public/decline`]: (body) =>
+			ok({ returnUrl: RETURN, receipt: RECEIPT(Number(String(body.token).slice(0, 1))) }),
 		[`${EVENTS} signatures/receipt`]: (body) =>
 			ok({
 				bookingRef: REF,
@@ -302,7 +317,13 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 	it("SX-FR-03 GET renders the first signer's ceremony, posting back to this page", async () => {
 		const h = ceremonyHost();
 		const outcome = await run(h, get(`${WAIVER_PATH}?ref=${REF}`), cookies);
-		expect(outcome).toMatchObject({ type: "render", ref: REF, token: SIGNING(1), remaining: 1, view: { kind: "ready" } });
+		expect(outcome).toMatchObject({
+			type: "render",
+			ref: REF,
+			token: SIGNING(1),
+			remaining: 1,
+			view: { kind: "ready" },
+		});
 		// A GET only looks: the envelope is opened by the first form post (T117).
 		expect(h.calls).toEqual([{ id: ESIGN, path: "public/session", body: { token: SIGNING(1) } }]);
 	});
@@ -333,7 +354,10 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 		);
 		expect(h.calls.at(-1)).toEqual({ id: EVENTS, path: "signatures/receipt", body: { receipt: RECEIPT(2) } });
 		expect(outcome.location).toBe(`/booking?ref=${REF}&waiver=signed`);
-		expect(cookieValue(outcome, flowCookieName(REF))).toMatchObject({ value: "", options: { maxAge: 0, path: WAIVER_PATH } });
+		expect(cookieValue(outcome, flowCookieName(REF))).toMatchObject({
+			value: "",
+			options: { maxAge: 0, path: WAIVER_PATH },
+		});
 	});
 
 	it("SX-FR-03 a decline is recorded and ends the flow on the booking page", async () => {
@@ -376,7 +400,8 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 		expect(expectRedirect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`))).location).toBe(`/booking?ref=${REF}`);
 		expect(expectRedirect(await run(h, get(`${WAIVER_PATH}?ref=nope`), cookies)).location).toBe("/booking");
 		expect(
-			expectRedirect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`), { [flowCookieName(REF)]: "not a token!" })).location,
+			expectRedirect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`), { [flowCookieName(REF)]: "not a token!" }))
+				.location,
 		).toBe(`/booking?ref=${REF}`);
 		expect(h.calls).toEqual([]);
 	});

@@ -104,7 +104,14 @@ describe("eventsSuite() (SX-FR-01)", () => {
 	it("SX-FR-02 injects the waiver booking page, plus the pages of both products", () => {
 		const { routes } = wiring(eventsSuite());
 		expect(routes.map((r) => r.pattern)).toEqual(
-			expect.arrayContaining(["/_events/checkout", "/booking", "/_events/sign", "/sign/[token]", "/verify", "/_events/waiver"]),
+			expect.arrayContaining([
+				"/_events/checkout",
+				"/booking",
+				"/_events/sign",
+				"/sign/[token]",
+				"/verify",
+				"/_events/waiver",
+			]),
 		);
 		expect(routes.find((r) => r.pattern === "/_events/waiver")?.entrypoint).toBe(
 			"@semics-tech/emdash-events-suite/astro/WaiverPage.astro",

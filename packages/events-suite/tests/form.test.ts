@@ -161,7 +161,9 @@ describe("widget error round trip (SX-FR-02)", () => {
 	});
 
 	it("SX-FR-02 unknown codes and field names from the URL are not echoed", () => {
-		const url = new URL("https://site.example/x?waiver_error=<script>&waiver_fields=name,evil,attendee.99.name&waiver_event=ev_1");
+		const url = new URL(
+			"https://site.example/x?waiver_error=<script>&waiver_fields=name,evil,attendee.99.name&waiver_event=ev_1",
+		);
 		expect(readWaiverState(url, "ev_1")).toEqual({ code: "INTERNAL", fields: ["name"] });
 	});
 });

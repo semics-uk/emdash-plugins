@@ -21,7 +21,8 @@ const sources = files(join(root, "src")).map((path) => ({
 }));
 
 /** Every module specifier a source imports or re-exports. */
-const imports = (text: string) => [...text.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map((m) => m[1] as string);
+const imports = (text: string) =>
+	[...text.matchAll(/(?:from|import)\s*\(?\s*["']([^"']+)["']/g)].map((m) => m[1] as string);
 
 describe("suite boundaries (SX-FR-01, SX-FR-02)", () => {
 	it("SX-FR-01 has sources to check", () => {

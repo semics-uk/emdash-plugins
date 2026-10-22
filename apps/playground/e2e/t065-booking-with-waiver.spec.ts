@@ -29,7 +29,7 @@ test("SX-FR-02 Free: the waiver booking completes in one flow (no JS) and lands 
 	const widget = page.getByTestId("booking-with-waiver");
 	await expect(widget.getByRole("heading", { name: "Book with waiver" })).toBeVisible();
 	// One "under 18" control per attendee row.
-	await expect(widget.getByRole("checkbox", { name: /is under 18/ })).toHaveCount(4);
+	await expect(widget.getByRole("checkbox", { name: /is under 18/i })).toHaveCount(4);
 
 	await page.getByLabel("Your name").fill("Ada Lovelace");
 	await page.getByLabel("Your email").fill("ada@example.com");
@@ -109,7 +109,8 @@ test("SX-FR-03 the waiver page embeds the ceremony under its CSP and forwards th
 		{
 			name: `semics_waiver_${ref}`,
 			value: issued.signingToken,
-			url: `${baseURL}/_events/waiver`,
+			domain: new URL(baseURL as string).hostname,
+			path: "/_events/waiver",
 			httpOnly: true,
 			sameSite: "Strict",
 		},
