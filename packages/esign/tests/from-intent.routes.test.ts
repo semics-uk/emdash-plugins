@@ -187,7 +187,8 @@ async function runVector(v: Vector) {
 		const t0 = nowS();
 		const token = await routeToken(v, t0 - v.verifier.now);
 		const result = await budget.invokeRoute(ROUTE, { intent: token });
-		if (nowS() === t0 || attempt === 3) return { result, body: result.value as Body, noncesBefore, shift: t0 - v.verifier.now };
+		if (nowS() === t0 || attempt === 3)
+			return { result, body: result.value as Body, noncesBefore, shift: t0 - v.verifier.now };
 	}
 }
 

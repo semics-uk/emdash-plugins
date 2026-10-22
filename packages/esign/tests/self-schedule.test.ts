@@ -44,24 +44,27 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 		expect(await taskNames(r)).toEqual([]);
 	});
 
-	it.each(ALWAYS_HIT)("%s queues the ensure task, and its cron tick schedules outbox-drain and nonce-sweep", async (route, input) => {
-		const { r, budget } = await setup();
-		const first = await budget.invokeRoute(route, input);
-		expectWithinBudget(first, TARGET);
-		expect(first.calls.filter(isCheck)).toHaveLength(1);
-		expect(await taskNames(r)).toEqual([ENSURE_SCHEDULES_TASK]);
+	it.each(ALWAYS_HIT)(
+		"%s queues the ensure task, and its cron tick schedules outbox-drain and nonce-sweep",
+		async (route, input) => {
+			const { r, budget } = await setup();
+			const first = await budget.invokeRoute(route, input);
+			expectWithinBudget(first, TARGET);
+			expect(first.calls.filter(isCheck)).toHaveLength(1);
+			expect(await taskNames(r)).toEqual([ENSURE_SCHEDULES_TASK]);
 
-		const ran = await budget.measure("ensure tick", () => tick(r));
-		expectWithinBudget(ran, TARGET);
-		expect(await r.inspect.scheduledTasks()).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
-				expect.objectContaining({ name: "nonce-sweep", schedule: "0 * * * *" }),
-			]),
-		);
-		expect(await taskNames(r)).toEqual(["nonce-sweep", "outbox-drain"]);
-		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
-	});
+			const ran = await budget.measure("ensure tick", () => tick(r));
+			expectWithinBudget(ran, TARGET);
+			expect(await r.inspect.scheduledTasks()).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
+					expect.objectContaining({ name: "nonce-sweep", schedule: "0 * * * *" }),
+				]),
+			);
+			expect(await taskNames(r)).toEqual(["nonce-sweep", "outbox-drain"]);
+			expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
+		},
+	);
 
 	it("once scheduled, every always-hit path makes only the one KV check and schedules nothing", async () => {
 		const { r, budget } = await setup();

@@ -27,11 +27,19 @@ async function seed(r: PluginRuntimeTestHost, expired: number, live: number) {
 	const now = Date.now();
 	for (let i = 0; i < expired; i++) {
 		const id = `cl_test_aaaaaaaa.expired${String(i).padStart(16, "0")}`;
-		await r.fixtures.plugin.storage("nonces", id, { nonce: id, cid: "cl_test_aaaaaaaa", expiresAt: iso(now - 60_000 - i) });
+		await r.fixtures.plugin.storage("nonces", id, {
+			nonce: id,
+			cid: "cl_test_aaaaaaaa",
+			expiresAt: iso(now - 60_000 - i),
+		});
 	}
 	for (let i = 0; i < live; i++) {
 		const id = `cl_test_aaaaaaaa.live${String(i).padStart(19, "0")}`;
-		await r.fixtures.plugin.storage("nonces", id, { nonce: id, cid: "cl_test_aaaaaaaa", expiresAt: iso(now + 600_000) });
+		await r.fixtures.plugin.storage("nonces", id, {
+			nonce: id,
+			cid: "cl_test_aaaaaaaa",
+			expiresAt: iso(now + 600_000),
+		});
 	}
 }
 

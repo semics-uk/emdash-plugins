@@ -43,7 +43,8 @@ async function setup(): Promise<{ budget: BudgetedHost; templateId: string }> {
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 	runtime = await createPluginRuntimeTestHost({ site: { name: "Acme Theatre", url: "https://site.test" } });
 	const budget = withBudget(runtime);
-	const t = (await budget.invokeRoute("templates/create", { name: "Waiver", body: BODY, integrations: true })).value as {
+	const t = (await budget.invokeRoute("templates/create", { name: "Waiver", body: BODY, integrations: true }))
+		.value as {
 		template: { id: string };
 	};
 	return { budget, templateId: t.template.id };
@@ -122,7 +123,8 @@ describe("ES-FR-10 invitation emails", () => {
 	it("the recurring drain is scheduled on activation", async () => {
 		const { budget } = await setup();
 		const r = await budget.invokeHook("plugin:activate", {});
-		expectWithinBudget(r, { calls: 1, cpuMs: 50 });
+		// One schedule call per recurring task: the drain and (T061) the nonce sweep.
+		expectWithinBudget(r, { calls: 2, cpuMs: 50 });
 		const names = (await host().inspect.scheduledTasks()).map((t) => t.name);
 		expect(names).toContain(OUTBOX_TASK);
 	});

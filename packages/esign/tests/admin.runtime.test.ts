@@ -103,7 +103,9 @@ describe("ES-FR-11 admin pages in the host", () => {
 
 		// The editor shows the current value and saving can turn it on.
 		const open = text(await r.admin.act("/templates", "template.edit", { value: templateId }));
-		expect(open).toMatch(/"action_id":"integrations"[^}]*"initial_value":false|"initial_value":false[^}]*"action_id":"integrations"/);
+		expect(open).toMatch(
+			/"action_id":"integrations"[^}]*"initial_value":false|"initial_value":false[^}]*"action_id":"integrations"/,
+		);
 		await r.admin.submit(
 			"/templates",
 			"template.save",
