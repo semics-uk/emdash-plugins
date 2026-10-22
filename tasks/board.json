@@ -1386,7 +1386,7 @@
 			"phase": 3,
 			"package": "suite",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1403,7 +1403,7 @@
 			"unblocks": [
 				"T066"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T066": {
 			"file": "T066-suite-reconciliation-and-catalogue-refresh.md",
@@ -2381,7 +2381,6 @@
 			"T106"
 		],
 		"ready": [
-			"T065",
 			"T073",
 			"T080",
 			"T081",
@@ -2392,6 +2391,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T065",
 			"T085"
 		],
 		"review": [],

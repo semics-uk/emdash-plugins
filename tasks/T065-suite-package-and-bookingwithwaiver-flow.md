@@ -4,7 +4,7 @@ title: "Suite: package and BookingWithWaiver flow"
 phase: 3
 package: suite
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T062, T064, T055, T030]
