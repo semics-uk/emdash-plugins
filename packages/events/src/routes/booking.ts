@@ -35,7 +35,8 @@ import { badRequest, fail } from "./reply";
  * the budget (event and occurrence go first) are left for the sweeper's drift repair, which counts
  * only live bookings. Abandoning a held booking skips the config and settings reads.
  * Status is query, attendees query, and for a confirmed booking the config and settings reads, plus
- * the calendar link's key read (the first use creates it): 5, or 7 on that first use.
+ * the calendar link's key read (the first use creates it): 5, or 7 on that first use. A waiver
+ * booking's lookup requests (Pro) reuse a confirmed booking's settings read; awaiting signatures, +1.
  *
  * A confirmed booking's answer carries `calendar: { query }`, a 15-minute signed query for
  * `public/booking/ics` (T050), and each valid attendee's check-in `code` (R33): only the token

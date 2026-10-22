@@ -5,7 +5,7 @@
 // `src/client/receipt.ts` clears it and posts it here; this page redeems it with e-sign in-process
 // (`public/envelopes/from-intent`) and sends the browser to e-sign's signing page. Afterwards e-sign
 // returns to `/booking?ref=…#receipt=…`, which records the receipt.
-import { esignPluginId } from "virtual:semics-events/config";
+import { esignPluginId, pluginId } from "virtual:semics-events/config";
 
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/checkout-form";
 import { startDoorSigning } from "./lib/receipt";
@@ -26,11 +26,13 @@ const MESSAGES: Record<string, string> = {
 const ctx = { locals: Astro.locals, url: Astro.url, request: Astro.request };
 if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
 let error = "";
+let signed = false;
 if (Astro.request.method === "POST") {
 	const form = await Astro.request.formData().catch(() => new FormData());
-	const result = await startDoorSigning(ctx, form.get("intent"), { esignPluginId });
+	const result = await startDoorSigning(ctx, form.get("intent"), { esignPluginId, pluginId }, form.get("lookup"));
 	if ("location" in result) return Astro.redirect(result.location, 303);
-	error = MESSAGES[result.error] ?? "Signing could not be started. Open the link again from the check-in page.";
+	if ("signed" in result) signed = true;
+	else error = MESSAGES[result.error] ?? "Signing could not be started. Open the link again from the check-in page.";
 }
 ---
 <!doctype html>
@@ -45,9 +47,16 @@ if (Astro.request.method === "POST") {
 	<body>
 		<main class="semics-booking" data-testid="door-sign-page">
 			<h1>Sign the waiver</h1>
-			{error ? <p role="alert" data-testid="door-sign-error">{error}</p> : <p>Opening the signing page…</p>}
+			{signed ? (
+				<p role="status" data-testid="door-sign-signed">The waiver is already signed and is now on record. Check the attendee in again.</p>
+			) : error ? (
+				<p role="alert" data-testid="door-sign-error">{error}</p>
+			) : (
+				<p>Opening the signing page…</p>
+			)}
 			<form method="post" action="/_events/sign" data-semics-fragment="intent" hidden>
 				<input type="hidden" name="intent" value="" />
+				<input type="hidden" name="lookup" value="" />
 			</form>
 		</main>
 		<script>

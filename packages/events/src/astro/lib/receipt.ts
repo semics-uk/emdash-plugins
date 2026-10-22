@@ -8,7 +8,10 @@
  *   configured, this asks e-sign's `public/receipts/lookup` once and forwards the full receipt.
  *   (Closed-tab reconciliation on later visits is the suite's job, T066.)
  * - `startDoorSigning`: redeems a staff-issued intent (check-in's signing link) with e-sign's
- *   `public/envelopes/from-intent` in-process and sends the browser to e-sign's signing page.
+ *   `public/envelopes/from-intent` in-process and sends the browser to e-sign's signing page. When the
+ *   envelope is already completed (an emailed adult signed, but their return page never posted the
+ *   receipt: no JavaScript, tab closed), the link's lookup request (Pro mints it with the intent) fetches
+ *   the receipt from e-sign and records it, so check-in admits them (T119 F5).
  *
  * Web APIs only, no `@semics-tech/shared` (R35).
  */
@@ -85,19 +88,38 @@ export async function forwardReceipt(
 /** The signing page e-sign's integration injects (`/sign/[token]`). */
 export const SIGN_PATH = "/sign/";
 
-/** Redeem a door-signing intent with e-sign and go to its signing page. */
+/** Records a completed envelope's receipt, fetched with the door link's lookup request. */
+async function recordSigned(ctx: PublicRouteContext, lookup: unknown, options: ReceiptOptions): Promise<boolean> {
+	if (!options.esignPluginId || !tokenOk(lookup, RECEIPT_MAX)) return false;
+	const found = await post<{ state?: string; receipt?: unknown }>(ctx, options.esignPluginId, "public/receipts/lookup", {
+		request: lookup,
+	});
+	if (!found.ok || found.data.state !== "terminal" || !tokenOk(found.data.receipt, RECEIPT_MAX)) return false;
+	const stored = await post<ReceiptAnswer>(ctx, options.pluginId, "signatures/receipt", { receipt: found.data.receipt });
+	return stored.ok && stored.data.signature?.status === "completed";
+}
+
+/**
+ * Redeem a door-signing intent with e-sign and go to its signing page; `{ signed: true }` when the
+ * waiver was already signed and is now on record.
+ */
 export async function startDoorSigning(
 	ctx: PublicRouteContext,
 	intent: unknown,
-	options: Pick<ReceiptOptions, "esignPluginId">,
-): Promise<{ location: string } | { error: string }> {
+	options: ReceiptOptions,
+	lookup?: unknown,
+): Promise<{ location: string } | { signed: true } | { error: string }> {
 	if (!options.esignPluginId) return { error: "ESIGN_NOT_CONFIGURED" };
 	if (!tokenOk(intent, INTENT_MAX)) return { error: "INTENT_INVALID" };
-	const result = await post<{ signingToken?: unknown }>(ctx, options.esignPluginId, "public/envelopes/from-intent", {
-		intent,
-	});
+	const result = await post<{ status?: unknown; signingToken?: unknown }>(
+		ctx,
+		options.esignPluginId,
+		"public/envelopes/from-intent",
+		{ intent },
+	);
 	if (!result.ok) return { error: result.error.code };
 	const token = result.data.signingToken;
-	if (typeof token !== "string" || !/^[A-Za-z0-9_-]{1,256}$/.test(token)) return { error: "SIGNING_UNAVAILABLE" };
-	return { location: `${SIGN_PATH}${token}` };
+	if (typeof token === "string" && /^[A-Za-z0-9_-]{1,256}$/.test(token)) return { location: `${SIGN_PATH}${token}` };
+	if (result.data.status === "completed" && (await recordSigned(ctx, lookup, options))) return { signed: true };
+	return { error: "SIGNING_UNAVAILABLE" };
 }
