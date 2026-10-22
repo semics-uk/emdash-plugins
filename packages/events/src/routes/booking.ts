@@ -151,12 +151,22 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 			: undefined,
 	]);
 	// A booking waiting for signatures lists the refs to reconcile with e-sign (a signer who closed the
-	// tab, or signed by email); with Pro's step it carries a lookup request for each (SX-FR-05).
-	const refs = b.waiver && b.status === "awaiting_signature" ? waitingRefs(b, items) : [];
+	// tab, or signed by email); with Pro's step it carries a lookup request for each (SX-FR-05). So does a
+	// confirmed one for its seats still pending: an emailed adult whose return page never ran (no
+	// JavaScript, tab closed) is recorded on the buyer's next visit (T119 F5).
+	const confirmed = b.status === "confirmed";
+	const pending = confirmed ? items.filter((i) => (i.data as { status?: string }).status === "pending") : items;
+	const refs = b.waiver && (confirmed || b.status === "awaiting_signature") ? waitingRefs(b, pending) : [];
 	const lookups =
 		refs.length > 0 && deps.lookups
-			? await deps.lookups(refs, Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value])))
+			? await deps.lookups(
+					refs,
+					confirmed ? decision.settings : Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value])),
+				)
 			: undefined;
+	// Free has no waivers (no lookups step): an attendee a Pro waiver left pending on a confirmed booking
+	// gets their pass, and Free check-in admits them (R44, T119 F6).
+	const passFor = (status: string) => status === "valid" || (confirmed && !deps.lookups && b.waiver && status === "pending");
 	return {
 		ok: true,
 		bookingRef: b.ref,
@@ -173,7 +183,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 				name: a.name,
 				ticketTypeId: a.ticketTypeId,
 				status: a.status,
-				...(a.status === "valid" && a.code ? { code: a.code } : {}),
+				...(passFor(a.status) && a.code ? { code: a.code } : {}),
 			};
 		}),
 		...(calendar ? { calendar: { query: calendar } } : {}),

@@ -83,7 +83,8 @@ export interface AdminDeps {
 	/**
 	 * The Pro waiver step's signing link for an attendee refused at check-in with a pending waiver
 	 * (EV-FR-12): staff open it on their device and check the attendee in once they have signed.
-	 * Absent in the Free edition; `null` when no link can be made (no pairing).
+	 * Absent in the Free edition, which then checks such attendees in (no waivers to sign, R44);
+	 * `null` when no link can be made (no pairing).
 	 */
 	signingLink?: SigningLink;
 }
@@ -472,7 +473,8 @@ async function doCheckIn(
 	target: { id: string } | { code: string },
 	eventId: string,
 ): Promise<AdminResponse> {
-	const result = await checkIn(deps.storage, target, iso(deps.now), eventId);
+	// The signing-link seam is the edition's waiver support: Free (none) does not enforce waivers.
+	const result = await checkIn(deps.storage, target, iso(deps.now), eventId, { waivers: deps.signingLink !== undefined });
 	let banner: NoticeInput;
 	const links: Block[] = [];
 	if (!result.ok && result.reason === "WAIVER_PENDING" && result.waiver && result.id && deps.signingLink) {

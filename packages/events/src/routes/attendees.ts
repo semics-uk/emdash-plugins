@@ -68,12 +68,18 @@ async function find(storage: AttendeeStorage, target: CheckInTarget): Promise<{ 
 	return hit ? { id: hit.id, doc: hit.data as AttendeeDoc } : null;
 }
 
-/** Check one attendee in at `nowIso`. `eventId`, when given, must match the attendee's event. */
+/**
+ * Check one attendee in at `nowIso`. `eventId`, when given, must match the attendee's event.
+ * `waivers: false` is an edition without waivers (Free, also after a downgrade from Pro): nothing can
+ * be signed there, so an attendee a waiver left `pending` on a confirmed booking is checked in like a
+ * valid one (R44: downgrading switches Pro features off; T119 F6).
+ */
 export async function checkIn(
 	storage: AttendeeStorage,
 	target: CheckInTarget,
 	nowIso: string,
 	eventId?: string,
+	{ waivers = true }: { waivers?: boolean } = {},
 ): Promise<CheckInResult> {
 	const hit = await find(storage, target);
 	if (!hit || (eventId !== undefined && hit.doc.eventId !== eventId)) return { ok: false, reason: "NOT_FOUND" };
@@ -85,10 +91,11 @@ export async function checkIn(
 	}
 	// A waiver booking confirms once the buyer has signed; other adults stay pending until their
 	// own receipt arrives, and are refused here with a signing link (EV-FR-12).
-	if (doc.status === "pending" && booking.waiver) {
+	const waiverPending = doc.status === "pending" && Boolean(booking.waiver);
+	if (waiverPending && waivers) {
 		return { ok: false, reason: "WAIVER_PENDING", ...who, waiver: { attendee: doc, booking } };
 	}
-	if (doc.status !== "valid") return { ok: false, reason: "ATTENDEE_NOT_VALID", ...who };
+	if (doc.status !== "valid" && !waiverPending) return { ok: false, reason: "ATTENDEE_NOT_VALID", ...who };
 	if (doc.checkedInAt) return { ok: false, reason: "ALREADY_CHECKED_IN", ...who, checkedInAt: doc.checkedInAt };
 	const written = await storage.attendees.updateIf(id, { where: { checkedInAt: null }, set: { checkedInAt: nowIso } });
 	if (!written.applied) {
