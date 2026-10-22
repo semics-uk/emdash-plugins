@@ -38,4 +38,11 @@ describe("esign package entries (SU-FR-01)", () => {
 			expect(page).not.toMatch(/set:html|innerHTML/);
 		}
 	});
+
+	it("T034 the pages hand Astro.request to the helpers, so the core sees the visitor's IP and user agent", () => {
+		for (const page of ["SignPage.astro", "SignedCopyPage.astro", "VerifyPage.astro"]) {
+			const source = readFileSync(resolve(root, "src/astro", page), "utf8");
+			expect(source, page).toContain("request: Astro.request");
+		}
+	});
 });

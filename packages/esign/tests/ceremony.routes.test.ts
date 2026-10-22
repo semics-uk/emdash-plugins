@@ -225,7 +225,10 @@ describe("ES-FR-04 public/submit", () => {
 
 		const signer = await runtime?.inspect.storage.get<Record<string, unknown>>("signers", `${s.id}:s1`);
 		expect(signer).toMatchObject({ status: "signed", consentVersion: "1", signature: { kind: "drawn", strokes } });
-		const expectedSha = await sha256Hex(JSON.stringify([s.docSha256, "drawn", "Ada", strokes]));
+		// T034: salted with the envelope's piiSalt and covering the (here empty) entered values.
+		const expectedSha = await sha256Hex(
+			`${env?.piiSalt as string}${JSON.stringify([s.docSha256, "drawn", "Ada", strokes, []])}`,
+		);
 		expect((signer?.signature as { sha256: string } | undefined)?.sha256).toBe(expectedSha);
 	});
 

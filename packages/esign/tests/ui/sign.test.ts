@@ -1,5 +1,3 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { callPublicRoute, ESIGN_PLUGIN_ID } from "../../src/astro/lib/call";
@@ -103,13 +101,6 @@ describe("callPublicRoute keeps the visitor's request metadata in-process (T034,
 		await handleSign(ctx, TOKEN, null);
 		await handleVerify(ctx, form({ sha256: DOC }));
 		expect(seen.map((r) => r.headers.get("user-agent"))).toEqual(["Mozilla/5.0 Signer", "Mozilla/5.0 Signer"]);
-	});
-
-	it("the pages hand Astro.request to the helpers", () => {
-		for (const page of ["SignPage.astro", "SignedCopyPage.astro", "VerifyPage.astro"]) {
-			const source = readFileSync(resolve(import.meta.dirname, "../../src/astro", page), "utf8");
-			expect(source, page).toContain("request: Astro.request");
-		}
 	});
 });
 
