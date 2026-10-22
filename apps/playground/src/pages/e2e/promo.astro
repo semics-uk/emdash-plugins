@@ -1,0 +1,42 @@
+---
+// e2e-only page (T078): the booking widget as an Events Pro site shows it. The playground runs the
+// Free cores (R40), so `public/event` never says `promoCodes`; this page passes the event as Pro
+// answers it. `?applied=1` also passes the view `/_events/promo` gives an applied unlock code (a
+// hidden ticket type revealed). "Apply code" posts to the real `/_events/promo`, whose
+// `public/promo/check` call reaches the Free core (no such route: the code is refused).
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
+
+export const prerender = false;
+
+const applied = Astro.url.searchParams.get("applied") === "1";
+const data = {
+	eventId: "e2e-promo",
+	status: "on_sale" as const,
+	currency: "GBP",
+	promoCodes: true,
+	ticketTypes: [{ id: "tt_e2e_standard", name: "Standard", priceMinor: 2000, available: 10, maxPerOrder: 4 }],
+	timezone: "Europe/London",
+};
+const promo = applied
+	? {
+			code: "VIP-PASS",
+			note: "Code applied: more tickets are now available.",
+			hiddenTypes: [{ id: "tt_e2e_backstage", name: "Backstage", priceMinor: 5000 }],
+		}
+	: undefined;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Promo codes</title>
+	</head>
+	<body>
+		<main>
+			<h1>Promo codes</h1>
+			<BookingWidget event="e2e-promo" data={data} promo={promo} />
+		</main>
+	</body>
+</html>
