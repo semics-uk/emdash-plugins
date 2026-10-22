@@ -793,7 +793,8 @@
 				"Phase 1 exit criteria"
 			],
 			"unblocks": [
-				"T034"
+				"T034",
+				"T115"
 			],
 			"column": "done"
 		},
@@ -2228,6 +2229,26 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T115": {
+			"file": "T115-e-sign-signed-copy-token-without-rotating-the-signing-token.md",
+			"id": "T115",
+			"title": "E-sign: signed-copy token without rotating the signing token",
+			"phase": 1,
+			"package": "esign",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T033"
+			],
+			"spec": [
+				"ES-FR-05",
+				"R36"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2279,7 +2300,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T056"
+			"T056",
+			"T115"
 		],
 		"review": [],
 		"done": [
