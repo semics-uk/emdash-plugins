@@ -109,7 +109,8 @@ export function safeReturnTo(raw: string, origin: string): string | undefined {
 	} catch {
 		return undefined;
 	}
-	if (url.origin !== origin || url.pathname.startsWith("/_events/")) return undefined;
+	// `/.//x` and `/%2e//x` resolve to `//x`: as a Location that is another host (T119 F11).
+	if (url.origin !== origin || url.pathname.startsWith("//") || url.pathname.startsWith("/_events/")) return undefined;
 	for (const name of Object.values(WIDGET_PARAMS)) url.searchParams.delete(name);
 	return `${url.pathname}${url.search}`;
 }

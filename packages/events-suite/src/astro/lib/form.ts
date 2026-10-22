@@ -126,6 +126,8 @@ export const WAIVER_MESSAGES: Record<string, string> = {
 	CONTROL_CHARACTERS: "Names and emails cannot contain control characters (such as tabs or line breaks).",
 	WAIVER_EMAIL_REQUIRED:
 		"Every adult other than you needs their own email address, so they can sign their waiver themselves.",
+	WAIVER_TOO_MANY_EMAILS:
+		"One booking can invite at most 10 adults to sign by email. Please split the group into smaller bookings.",
 	SOLD_OUT: "Sorry, there are not enough tickets left for that order.",
 	SALES_CLOSED: "Ticket sales for this event are closed.",
 	RATE_LIMITED: "Too many bookings from this connection. Please wait a few minutes and try again.",
@@ -151,7 +153,9 @@ export function safeReturnPath(raw: string, origin: string): string | undefined 
 	} catch {
 		return undefined;
 	}
-	if (url.origin !== origin || url.pathname.startsWith("/_events/") || url.pathname.startsWith("/_emdash/")) {
+	// `/.//x` and `/%2e//x` resolve to `//x`: as a Location that is another host (T119 F11).
+	const path = url.pathname;
+	if (url.origin !== origin || path.startsWith("//") || path.startsWith("/_events/") || path.startsWith("/_emdash/")) {
 		return undefined;
 	}
 	for (const name of Object.values(WAIVER_PARAMS)) url.searchParams.delete(name);

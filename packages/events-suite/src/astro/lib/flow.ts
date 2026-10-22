@@ -81,6 +81,8 @@ const MAX_INLINE = 40;
 /** The flow cookie outlives no hold (60 minutes at most, BUILD-PLAN §3.1). */
 const FLOW_COOKIE_SECONDS = 60 * 60;
 const ERROR_CODE = /^[A-Z_]{1,40}$/;
+/** Waiver refusals of an order (Pro), shown with their own message rather than as BAD_REQUEST. */
+const WAIVER_ISSUES = ["WAIVER_EMAIL_REQUIRED", "WAIVER_TOO_MANY_EMAILS"];
 
 /** The cookie holding the inline signing tokens still to sign for booking `ref`. */
 export const flowCookieName = (ref: string) => `semics_waiver_${ref}`;
@@ -118,6 +120,13 @@ function flowCookie(url: URL, ref: string, tokens: readonly string[]): CookieOp 
 		},
 	};
 }
+
+/**
+ * Clears the retry cookie when the browser has one and the flow leaves this page (T119 F13): it is
+ * needed only while this page still has signing or payment to start.
+ */
+const endRetry = (ctx: WaiverRequestContext, ref: string): CookieOp[] =>
+	ctx.cookie(retryCookieName(ref)) ? [retryCookie(ctx.url, ref, undefined)] : [];
 
 const redirect = (location: string, cookies: CookieOp[] = []): WaiverOutcome => ({
 	type: "redirect",
@@ -228,7 +237,7 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 		// Nothing to sign or pay for yet: release the held seats so a corrected order can have them.
 		await post(call, ids.eventsPluginId, "public/booking/cancel", { bookingRef: ref, accessToken });
 		const { code, issues } = continued.error;
-		const waiverIssue = issues?.find((i) => i.code === "WAIVER_EMAIL_REQUIRED");
+		const waiverIssue = issues?.find((i) => WAIVER_ISSUES.includes(i.code));
 		return refuse(waiverIssue ? waiverIssue.code : code, fieldsOf(issues, order));
 	}
 
@@ -244,12 +253,13 @@ async function proceed(
 	cookies: CookieOp[],
 	accessToken: string,
 ): Promise<WaiverOutcome> {
+	const leave = [...cookies, ...endRetry(ctx, ref)];
 	if (next?.type === "pay") {
 		return isPayUrl(next.url)
-			? redirect(next.url, cookies)
-			: redirect(`${bookingPage(ref)}&error=PAYMENT_FAILED`, cookies);
+			? redirect(next.url, leave)
+			: redirect(`${bookingPage(ref)}&error=PAYMENT_FAILED`, leave);
 	}
-	if (next?.type !== "sign" || !Array.isArray(next.intents)) return redirect(bookingPage(ref), cookies);
+	if (next?.type !== "sign" || !Array.isArray(next.intents)) return redirect(bookingPage(ref), leave);
 
 	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
 	const inline = await redeemIntents(call, ids, next.intents as Intent[]);
@@ -261,7 +271,7 @@ async function proceed(
 			retryCookie(ctx.url, ref, accessToken),
 		]);
 	}
-	if (inline.length === 0) return redirect(bookingPage(ref), cookies);
+	if (inline.length === 0) return redirect(bookingPage(ref), leave);
 	// The token stays on this page's path for the retry button and for payment after the last receipt.
 	return redirect(`${WAIVER_PATH}?ref=${ref}`, [
 		...cookies,
@@ -347,7 +357,7 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 		// Signed, declined, or closed meanwhile (another tab): record the outcome with Events.
 		const receipt = receiptOf(view);
 		const landed = receipt ? (await forward(receipt)).location : bookingPage(ref);
-		if (view.kind === "declined") return redirect(landed, [flowCookie(ctx.url, ref, [])]);
+		if (view.kind === "declined") return redirect(landed, [flowCookie(ctx.url, ref, []), ...endRetry(ctx, ref)]);
 		if (after.length === 0)
 			return redirect(await payOrLand(ctx, ids, ref, landed), [
 				flowCookie(ctx.url, ref, []),
