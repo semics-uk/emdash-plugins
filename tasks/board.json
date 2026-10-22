@@ -2032,7 +2032,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2047,7 +2047,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T101": {
 			"file": "T101-accessibility-audit-and-fixes.md",
@@ -2079,7 +2079,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2093,7 +2093,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T103": {
 			"file": "T103-docs-site-operator-guides-and-registry-listings.md",
@@ -2407,12 +2407,11 @@
 			"T106"
 		],
 		"ready": [
-			"T100",
 			"T103",
 			"T111"
 		],
 		"in-progress": [
-			"T102"
+			"T100"
 		],
 		"review": [],
 		"done": [
@@ -2502,6 +2501,7 @@
 			"T096",
 			"T097",
 			"T101",
+			"T102",
 			"T104",
 			"T105",
 			"T110",
