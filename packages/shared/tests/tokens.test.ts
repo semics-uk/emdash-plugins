@@ -70,6 +70,17 @@ describe("EV-FR-07 ES-NFR-02 token hashing", () => {
 		expect(await verifyToken(token, stored.toUpperCase())).toBe(false);
 		expect(await verifyToken(token, "")).toBe(false);
 	});
+
+	it("hashes against a decoy without a stored hash, so an unknown record costs what a wrong token costs (T100, T057 F10)", async () => {
+		const digest = vi.spyOn(crypto.subtle, "digest");
+		try {
+			expect(await verifyToken(generateToken(), undefined)).toBe(false);
+			expect(await verifyToken(generateToken(), null)).toBe(false);
+			expect(digest).toHaveBeenCalledTimes(2);
+		} finally {
+			digest.mockRestore();
+		}
+	});
 });
 
 describe("ES-NFR-02 constant-time compare", () => {

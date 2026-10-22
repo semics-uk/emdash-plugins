@@ -172,3 +172,22 @@ describe("outbox", () => {
 		});
 	});
 });
+
+describe("outbox lastError (T100, T057 review F12)", () => {
+	it("keeps no link, code or token from the provider's error text", async () => {
+		const { storage, rows } = memStorage();
+		const code = "Zx9_aB3-kLmN0pQrStUvWxYz0123456789abcdefGHI";
+		const email: OutboxEmail = {
+			async send() {
+				throw new Error(`550 rejected body: open https://site.example/booking?ref=AB12&k=${code} now (id ${code})`);
+			},
+		};
+		await enqueueEmail(storage, msg("a@x.com"), 0, () => "m1");
+		await drainOutbox({ storage, email, now: 0 });
+		const lastError = rows.get("m1")?.lastError ?? "";
+		expect(lastError).toContain("550 rejected");
+		expect(lastError).not.toContain(code);
+		expect(lastError).not.toContain("site.example");
+		expect(lastError).not.toContain("k=");
+	});
+});
