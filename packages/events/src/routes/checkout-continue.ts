@@ -1,4 +1,4 @@
-import { type ErrorCode, generateToken, toRouteError, verifyToken } from "@semics-tech/shared";
+import { type ErrorCode, generateToken, type Result, toRouteError, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
@@ -13,7 +13,7 @@ import {
 import { type InputIssue, parseContinueInput } from "../domain/checkout";
 import { extendHold, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
-import type { AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
+import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
 
 /**
  * `POST public/checkout/continue` (EV-FR-05, EV-FR-07, R9): the step after `checkout/reserve`.
@@ -38,6 +38,12 @@ import type { AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schem
  * A one-ticket-type order is 5 calls; the largest is 9. A replay is 2 (query, `outbox.get`).
  * The paid step: query, `settings.list`, `extendHold` (status + hold in one write), attendees,
  * the `hold-<ref>` re-arm, then the provider's own calls.
+ * The signature step (a booking with a `waiver`, Pro only): query, `settings.list` (shared with the
+ * step, which reads the licence and pairing from it), `extendHold` → `awaiting_signature`,
+ * attendees, the re-arm: 5 calls; the step mints its intents without bridge calls.
+ *
+ * Pro plugs in through `checkoutContinueRoute({ payment, signature })` (`src/seams.ts`); the
+ * declared route is the Free one, with neither step.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
@@ -63,12 +69,44 @@ export interface PaymentStep {
 	start(args: { bookingId: string; booking: BookingDoc; holdExpiresAt: string }): Promise<{ url: string }>;
 }
 
+/** One signing intent for the browser: the token travels in this response body only, never in a URL. */
+export interface SigningIntentOut {
+	ref: string;
+	delivery: "inline" | "email";
+	token: string;
+	[key: string]: unknown;
+}
+
+/** Mints the intents once the booking holds until `holdExpiresAt` (intent `exp` ≤ the hold, R5). */
+export interface SigningIssuer {
+	issue(holdExpiresAt: string): Promise<SigningIntentOut[]>;
+}
+
+export type SigningRefusal = { code: ErrorCode } | { issues: InputIssue[] };
+
+/**
+ * The Pro signature step (waivers, EV-FR-12). Asked only for a booking that carries a `waiver`.
+ * `prepare` gets the settings checkout already read (so the licence key and pairing string cost
+ * no extra bridge call) and the attendee documents about to be written; it may refuse (no licence,
+ * no pairing, an attendee the rules cannot serve) before anything is written.
+ */
+export interface SignatureStep {
+	prepare(args: {
+		bookingId: string;
+		booking: BookingDoc;
+		attendees: Array<{ id: string; data: AttendeeDoc }>;
+		settings: Record<string, unknown>;
+	}): Promise<Result<SigningIssuer, SigningRefusal>>;
+}
+
 export interface ContinueDeps {
 	storage: ContinueStorage;
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
 	cron?: SweepCron;
 	/** Absent in the Free edition. */
 	payment?: PaymentStep;
+	/** Absent in the Free edition, which ignores a booking's waiver. */
+	signature?: SignatureStep;
 	now: number;
 	/** Check-in codes (default: a 256-bit opaque token). */
 	newCode?: () => string;
@@ -150,6 +188,27 @@ async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.url } };
 }
 
+/** The Pro signature step: extend the hold, move to `awaiting_signature`, re-arm, return the intents. */
+async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, docs: Item[]): Promise<unknown> {
+	const { storage, now, cron } = c.deps;
+	const settings = Object.fromEntries((await c.deps.settings.list()).map((e) => [e.key, e.value]));
+	const attendees = docs as Array<{ id: string; data: AttendeeDoc }>;
+	const prepared = await step.prepare({ bookingId: c.id, booking: b, attendees, settings });
+	if (!prepared.ok) {
+		const refusal = prepared.error;
+		return "code" in refusal ? fail(refusal.code) : badRequest(refusal.issues);
+	}
+	const until = stepTarget(now, { paid: b.totals.totalMinor > 0 }, holdSettings(settings));
+	const status: BookingStatus = "awaiting_signature";
+	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
+	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
+	const { holdExpiresAt } = extended.value;
+	await storage.attendees.putMany(docs);
+	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
+	const intents = await prepared.value.issue(holdExpiresAt);
+	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "sign", intents } };
+}
+
 export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promise<unknown> {
 	const parsed = parseContinueInput(raw);
 	if (!parsed.ok) return badRequest(parsed.error);
@@ -173,25 +232,42 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 		case "closed":
 			return fail("HOLD_EXPIRED");
 	}
-	// Waivers are Pro: the Free edition never has a signature pending.
-	const step = nextStep(booking, { signaturePending: false });
-	if (!step || step.type === "sign") return fail("INTERNAL");
+	// Waivers are Pro: without a signature step (Free) a booking's waiver is ignored. Signing comes
+	// before payment, so a booking already awaiting payment never goes back to it.
+	const signing = booking.waiver && (booking.status === "held" || booking.status === "awaiting_signature");
+	const signature = signing ? deps.signature : undefined;
+	const step = nextStep(booking, { signaturePending: signature !== undefined });
+	if (!step) return fail("INTERNAL");
 	const planned = attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
 	if (!planned.ok) return badRequest(planned.error);
+	if (step.type === "sign" && signature) return sign(c, booking, signature, planned.value);
 	return step.type === "done" ? confirm(c, booking, planned.value) : pay(c, booking, step.status, planned.value);
 }
 
-export const CHECKOUT_CONTINUE_ROUTE: RouteDef = {
-	methods: ["POST"],
-	public: true,
-	handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
-		continueCheckout(
-			{
-				storage: ctx.storage as unknown as ContinueStorage,
-				settings: ctx.settings,
-				...(ctx.cron ? { cron: ctx.cron } : {}),
-				now: Date.now(),
-			},
-			routeCtx.input,
-		)) as Handler,
-};
+/** The steps a Pro build adds to checkout, each built from the invocation's context. */
+export interface ContinueSteps {
+	payment?: (ctx: PluginContext) => PaymentStep;
+	signature?: (ctx: PluginContext) => SignatureStep;
+}
+
+/** `public/checkout/continue` with the given steps (none: the Free route). */
+export function checkoutContinueRoute(steps: ContinueSteps = {}): RouteDef {
+	return {
+		methods: ["POST"],
+		public: true,
+		handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
+			continueCheckout(
+				{
+					storage: ctx.storage as unknown as ContinueStorage,
+					settings: ctx.settings,
+					...(ctx.cron ? { cron: ctx.cron } : {}),
+					...(steps.payment ? { payment: steps.payment(ctx) } : {}),
+					...(steps.signature ? { signature: steps.signature(ctx) } : {}),
+					now: Date.now(),
+				},
+				routeCtx.input,
+			)) as Handler,
+	};
+}
+
+export const CHECKOUT_CONTINUE_ROUTE: RouteDef = checkoutContinueRoute();

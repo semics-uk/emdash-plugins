@@ -1,4 +1,5 @@
 import {
+	banner,
 	type Block,
 	context,
 	type FormField,
@@ -37,12 +38,80 @@ import { issueMessage } from "./messages";
  * (one guarded call each). Budget: a load is 3 bridge calls; a save is at most 8 (`saveConfig`
  * refuses a bigger one as `TOO_MANY_CHANGES`) and renders what it wrote without reading it back.
  * `catalog` and `info` on the config are managed: they are never diffed or submitted.
+ *
+ * Required waivers (EV-FR-12) are Pro. The Free edition has no `waivers` seam, so the waiver
+ * setting is shown as unavailable with a banner and a submitted value is ignored (Block Kit has no
+ * disabled toggle, so the toggle is left out of the form). A Pro build supplies `waivers`, which
+ * decides from the settings (one `settings.list`, counted against the save budget) whether a
+ * pairing string and a valid licence are in place.
  */
 export interface PanelDeps {
 	storage: ConfigStorage;
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
 	content: { get(collection: string, id: string): Promise<{ data: Record<string, unknown> } | null> };
 	newId: () => string;
+	/** Pro: whether required waivers can be set here (absent in the Free edition). */
+	waivers?: WaiverCheck;
+}
+
+export type WaiverAvailability =
+	| { available: true }
+	| { available: false; reason: "edition" | "pairing" | "licence" };
+
+/** Decides waiver availability from the plugin settings, without bridge calls of its own. */
+export type WaiverCheck = (settings: Record<string, unknown>) => Promise<WaiverAvailability>;
+
+const FREE_EDITION: WaiverAvailability = { available: false, reason: "edition" };
+
+/** Bridge calls `waiverAvailability` makes. */
+const waiverCalls = (deps: PanelDeps) => (deps.waivers ? 1 : 0);
+
+async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> {
+	if (!deps.waivers) return FREE_EDITION;
+	const settings = Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+	return deps.waivers(settings);
+}
+
+const WAIVER_UNAVAILABLE: Record<"edition" | "pairing" | "licence", string> = {
+	edition:
+		"Required waivers are an Events Pro feature: with Pro and the E-sign plugin, attendees sign before their booking is confirmed.",
+	pairing:
+		"To require a signed waiver, create an integration client in the E-sign plugin and paste its pairing string into the Events settings.",
+	licence:
+		"Your Events Pro licence is not valid for this site, so waivers cannot be changed. Bookings already made keep their waivers.",
+};
+
+const MODE_OPTIONS = [
+	{ label: "Each attendee (the buyer signs for minors)", value: "each_attendee" },
+	{ label: "The buyer, once per booking", value: "buyer" },
+];
+
+function waiverBlocks(config: EventConfigDoc, waivers: WaiverAvailability): Block[] {
+	if (waivers.available) return [];
+	const sig = config.signature;
+	const now = sig?.required ? `required (template ${sig.templateId ?? "not set"})` : "off";
+	return [
+		banner({
+			title: "Signed waivers unavailable",
+			description: WAIVER_UNAVAILABLE[waivers.reason],
+			variant: "alert",
+			blockId: "waiver-unavailable",
+		}),
+		context(`Signed waiver: ${now}.`),
+	];
+}
+
+function waiverFields(config: EventConfigDoc, waivers: WaiverAvailability): FormField[] {
+	if (!waivers.available) return [];
+	const sig = config.signature;
+	return [
+		toggle("waiver_required", "Require a signed waiver", {
+			initialValue: sig?.required === true,
+			description: "Attendees sign through the E-sign plugin before the booking is confirmed.",
+		}),
+		textInput("waiver_template", "Waiver template id (E-sign)", { initialValue: sig?.templateId ?? "" }),
+		select("waiver_mode", "Who signs", MODE_OPTIONS, { initialValue: sig?.mode ?? "each_attendee" }),
+	];
 }
 
 export type PanelInteraction =
@@ -179,7 +248,7 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 	return out;
 }
 
-function panelForm(state: EventState, extra: Block[] = []): PanelResponse {
+function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailability): PanelResponse {
 	const config = state.config as EventConfigDoc;
 	const zone = zoneOf(config);
 	const tickets = (state.ticketTypes as Item<TicketTypeDoc>[]).slice().sort(byTicketOrder);
@@ -189,6 +258,7 @@ function panelForm(state: EventState, extra: Block[] = []): PanelResponse {
 		select("status", "Sales status", STATUS_OPTIONS, { initialValue: config.status }),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
 		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
+		...waiverFields(config, waivers),
 		...tickets.flatMap(({ id, data: t }) => [
 			textInput(`tt_name:${id}`, `${t.name}: name`, { initialValue: t.name }),
 			textInput(`tt_price:${id}`, `${t.name}: price (${config.currency})`, {
@@ -239,6 +309,7 @@ function panelForm(state: EventState, extra: Block[] = []): PanelResponse {
 	return respond([
 		header("Tickets & booking"),
 		...extra,
+		...waiverBlocks(config, waivers),
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
 		context(
@@ -271,7 +342,13 @@ async function enableForm(deps: PanelDeps, extra: Block[] = []): Promise<PanelRe
 
 type SaveOutcome = { ok: true; state: EventState } | { ok: false; issues: Array<{ path: string; code: string }> };
 
-async function runSave(deps: PanelDeps, eventId: string, input: Obj, state: EventState): Promise<SaveOutcome> {
+async function runSave(
+	deps: PanelDeps,
+	eventId: string,
+	input: Obj,
+	state: EventState,
+	reservedCalls = 0,
+): Promise<SaveOutcome> {
 	let saved: EventState | undefined;
 	const out = (await saveConfig(
 		deps.storage,
@@ -282,6 +359,7 @@ async function runSave(deps: PanelDeps, eventId: string, input: Obj, state: Even
 		(s) => {
 			saved = s;
 		},
+		reservedCalls,
 	)) as { ok?: boolean; issues?: Array<{ path: string; code: string }> };
 	if (out.ok && saved) return { ok: true, state: saved };
 	return { ok: false, issues: out.issues ?? [] };
@@ -301,6 +379,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	if (!stored) return enableForm(deps);
 	const { catalog: _catalog, info: _info, ...base } = stored;
 	const zone = zoneOf(stored);
+	const waivers = await waiverAvailability(deps);
 
 	let changed = 0;
 	const status = str(values.status) || stored.status;
@@ -309,6 +388,19 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	if (capacity !== stored.capacity) changed++;
 	const waitlistEnabled = typeof values.waitlist === "boolean" ? values.waitlist : stored.waitlistEnabled;
 	if (waitlistEnabled !== stored.waitlistEnabled) changed++;
+	const storedSignature = stored.signature ?? { required: false, mode: "each_attendee" };
+	let signature = storedSignature;
+	if (waivers.available) {
+		const required = typeof values.waiver_required === "boolean" ? values.waiver_required : storedSignature.required;
+		const templateId =
+			values.waiver_template !== undefined ? str(values.waiver_template, 64) : (storedSignature.templateId ?? "");
+		const mode = values.waiver_mode === "buyer" || values.waiver_mode === "each_attendee" ? values.waiver_mode : storedSignature.mode;
+		if (required && !templateId) {
+			return panelForm(state, failure([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers);
+		}
+		signature = { required, mode, ...(templateId ? { templateId } : {}) };
+		if (JSON.stringify(signature) !== JSON.stringify(storedSignature)) changed++;
+	}
 
 	const ticketTypes: Obj[] = [];
 	let nextSort = 0;
@@ -397,33 +489,41 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		return panelForm(
 			state,
 			notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]),
+			waivers,
 		);
 	}
 	const result = await runSave(
 		deps,
 		eventId,
-		{ config: { ...base, status, capacity, waitlistEnabled }, ticketTypes, occurrences },
+		{ config: { ...base, status, capacity, waitlistEnabled, signature }, ticketTypes, occurrences },
 		state,
+		waiverCalls(deps),
 	);
 	return result.ok
-		? panelForm(result.state, notices([{ severity: "info", title: "Saved", message: "The event was updated." }]))
-		: panelForm(state, failure(result.issues));
+		? panelForm(
+				result.state,
+				notices([{ severity: "info", title: "Saved", message: "The event was updated." }]),
+				waivers,
+			)
+		: panelForm(state, failure(result.issues), waivers);
 }
 
 async function enablePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
 	const state = await loadEventState(eventId, deps.storage);
-	if (state.config) return panelForm(state);
+	if (state.config) return panelForm(state, [], await waiverAvailability(deps));
 	const currency = str(values.currency, 3).toUpperCase();
 	const result = await runSave(
 		deps,
 		eventId,
 		{ config: { status: "draft", capacity: num(values.capacity), currency }, ticketTypes: [], occurrences: [] },
 		state,
+		waiverCalls(deps),
 	);
 	return result.ok
 		? panelForm(
 				result.state,
 				notices([{ severity: "info", title: "Saved", message: "Booking is enabled for this event." }]),
+				await waiverAvailability(deps),
 			)
 		: enableForm(deps, failure(result.issues));
 }
@@ -441,5 +541,5 @@ export async function handlePanel(
 		if (interaction.action_id === "panel.enable") return enablePanel(deps, eventId, interaction.values);
 	}
 	const state = await loadEventState(eventId, deps.storage);
-	return state.config ? panelForm(state) : enableForm(deps);
+	return state.config ? panelForm(state, [], await waiverAvailability(deps)) : enableForm(deps);
 }

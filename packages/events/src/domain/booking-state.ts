@@ -77,6 +77,7 @@ export interface AttendeeInput {
 	ticketTypeId: string;
 	name: string;
 	email?: string | undefined;
+	minor?: boolean | undefined;
 }
 
 /** Attendee document ids are fixed by the booking, so writing them again replaces, never adds. */
@@ -102,7 +103,7 @@ export function planAttendees(
 	const seats = new Map<string, number>();
 	for (const line of booking.lines) seats.set(line.ticketTypeId, (seats.get(line.ticketTypeId) ?? 0) + line.qty);
 	const buyer = { name: booking.buyer.name, email: booking.buyer.email };
-	const people = new Map<string, Array<{ name: string; email: string }>>();
+	const people = new Map<string, Array<{ name: string; email: string; minor?: boolean }>>();
 	if (attendees === undefined) {
 		for (const [type, qty] of seats)
 			people.set(
@@ -112,7 +113,11 @@ export function planAttendees(
 	} else {
 		for (const a of attendees) {
 			const list = people.get(a.ticketTypeId) ?? [];
-			list.push({ name: a.name, email: (a.email ?? buyer.email).trim().toLowerCase() });
+			list.push({
+				name: a.name,
+				email: (a.email ?? buyer.email).trim().toLowerCase(),
+				...(a.minor === true ? { minor: true } : {}),
+			});
 			people.set(a.ticketTypeId, list);
 		}
 		const matches = people.size === seats.size && [...seats].every(([type, qty]) => people.get(type)?.length === qty);
@@ -132,6 +137,7 @@ export function planAttendees(
 					email: person.email,
 					code: newCode(),
 					status,
+					...(person.minor ? { minor: true } : {}),
 				},
 			});
 		}

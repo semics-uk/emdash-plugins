@@ -92,6 +92,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
+  Reserve copies a required waiver (`signature.required` + `templateId`) onto the booking as `waiver`;
+  continue asks the Pro `SignatureStep` only for such a booking (Free ignores it), moves it to
+  `awaiting_signature` and returns `next: { type: "sign", intents }`. Attendee input takes `minor: true`.
+  The editor panel shows the waiver toggle only when the Pro `waivers` check says it is available, else a
+  banner (Free: always). Pro composes these through `src/seams.ts` (`checkoutContinueRoute`,
+  `editorTicketsRoute`), the only extension points; keep them MIT and behaviour-free (T063).
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.
 - UI (T055): `<BookingWidget event>` posts a plain form to `/_events/checkout` (`returnTo`,
   `idempotencyKey`, `qty:<ticketTypeId>`); refusals before a booking exists go back to the widget as

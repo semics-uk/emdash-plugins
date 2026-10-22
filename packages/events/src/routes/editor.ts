@@ -1,6 +1,6 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
-import { handlePanel, type PanelDeps, type PanelInteraction } from "../admin/panel";
+import { handlePanel, type PanelDeps, type PanelInteraction, type WaiverCheck } from "../admin/panel";
 
 /**
  * The private `editor/tickets` route behind the "Tickets & booking" editor panel (T043). The host
@@ -13,8 +13,14 @@ type Handler = (
 	ctx: PluginContext,
 ) => Promise<unknown>;
 
-export const EDITOR_ROUTES: Record<string, RouteDef> = {
-	"editor/tickets": {
+/** Pro: builds the panel's waiver check from the invocation's context (`src/seams.ts`). */
+export interface EditorSteps {
+	waivers?: (ctx: PluginContext) => WaiverCheck;
+}
+
+/** `editor/tickets` with the given steps (none: the Free route, where waivers are unavailable). */
+export function editorTicketsRoute(steps: EditorSteps = {}): RouteDef {
+	return {
 		handler: (async (routeCtx, ctx) => {
 			const id = routeCtx.ui?.entry?.id;
 			const deps: PanelDeps = {
@@ -22,6 +28,7 @@ export const EDITOR_ROUTES: Record<string, RouteDef> = {
 				settings: ctx.settings as unknown as PanelDeps["settings"],
 				content: (ctx.content ?? { get: async () => null }) as unknown as PanelDeps["content"],
 				newId: () => crypto.randomUUID(),
+				...(steps.waivers ? { waivers: steps.waivers(ctx) } : {}),
 			};
 			return handlePanel(
 				deps,
@@ -29,5 +36,9 @@ export const EDITOR_ROUTES: Record<string, RouteDef> = {
 				typeof id === "string" ? id : "",
 			);
 		}) as Handler,
-	},
+	};
+}
+
+export const EDITOR_ROUTES: Record<string, RouteDef> = {
+	"editor/tickets": editorTicketsRoute(),
 };

@@ -64,6 +64,8 @@ export const continueInputSchema = z.strictObject({
 					ticketTypeId: docId,
 					name: z.string().check(z.trim(), z.minLength(1), z.maxLength(200)),
 					email: z.optional(z.pipe(z.string().check(z.trim(), z.toLowerCase(), z.maxLength(254)), z.email())),
+					/** Under 18: the buyer signs any waiver for them as guardian (R5). */
+					minor: z.optional(z.boolean()),
 				}),
 			)
 			.check(z.minLength(1), z.maxLength(MAX_LINES * MAX_QTY_PER_LINE)),

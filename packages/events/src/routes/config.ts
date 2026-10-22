@@ -83,6 +83,8 @@ export async function saveConfig(
 	loadInfo?: () => Promise<EventInfoDoc | null>,
 	/** Called after a successful save with the event as it now stands (no read back; the editor panel renders it). */
 	onSaved?: (state: EventState) => void,
+	/** Bridge calls the caller makes besides the save itself in the same invocation (the panel's settings read). */
+	reservedCalls = 0,
 ): Promise<unknown> {
 	const eventId = eventIdOf(input);
 	if (!eventId) return badRequest();
@@ -139,7 +141,7 @@ export async function saveConfig(
 		(newTicketTypes.length > 0 ? 1 : 0) +
 		(newOccurrences.length > 0 ? 1 : 0) +
 		(state.config && !sameJson(storedCatalog, target) ? 1 : 0);
-	if (calls > MAX_SAVE_CALLS) return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
+	if (calls + reservedCalls > MAX_SAVE_CALLS) return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
 
 	const info: EventInfoDoc | null = state.config || !loadInfo ? null : await loadInfo().catch(() => null);
 

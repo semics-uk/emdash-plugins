@@ -195,6 +195,13 @@ export interface BookingDoc {
 	totals: { subtotalMinor: number; discountMinor: number; totalMinor: number; currency: string };
 	payment?: { provider: string; ref: string };
 	answers: Record<string, string>;
+	/**
+	 * The waiver the event required when the booking was made (`signature` on the event config,
+	 * copied by `checkout/reserve`), so checkout never reads the config again and a later change
+	 * to the event does not change what this booking must sign. Absent: no waiver. Signing waivers
+	 * is a Pro step; the Free edition ignores it (EV-FR-12, R5).
+	 */
+	waiver?: BookingWaiver;
 	/** SHA-256 of the access token; the token itself is never stored. */
 	accessTokenHash: string;
 	/**
@@ -210,6 +217,11 @@ export interface BookingDoc {
 	 */
 	ipHash?: string;
 	createdAt: string;
+}
+
+export interface BookingWaiver {
+	templateId: string;
+	mode: SignatureMode;
 }
 
 export type PaymentStatus = "pending" | "paid" | "expired" | "refunded" | "partially_refunded";
@@ -236,6 +248,8 @@ export interface AttendeeDoc {
 	/** Unique check-in code. */
 	code: string;
 	status: AttendeeStatus;
+	/** Marked under 18 at checkout: the buyer signs the waiver as their guardian (R5). */
+	minor?: boolean;
 	checkedInAt?: string;
 	signature?: {
 		envelopeId: string;

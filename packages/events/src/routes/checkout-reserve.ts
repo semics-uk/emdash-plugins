@@ -79,6 +79,12 @@ export interface ReserveDeps {
 }
 
 const fail = (code: ErrorCode) => toRouteError(code).body;
+
+/** The event's waiver, copied onto the booking (only when it is required and names a template). */
+function waiverOf(config: EventConfigDoc): Pick<BookingDoc, "waiver"> {
+	const sig = config.signature;
+	return sig?.required && sig.templateId ? { waiver: { templateId: sig.templateId, mode: sig.mode } } : {};
+}
 const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });
 const iso = (ms: number) => new Date(ms).toISOString();
 
@@ -184,6 +190,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		lines: plan.value.lines,
 		totals: plan.value.totals,
 		answers: {},
+		...waiverOf(config),
 		accessTokenHash: attempt.tokenHash,
 		ipHash,
 		createdAt: iso(now),
