@@ -77,6 +77,9 @@ booking in that person's name, kept for 24 hours, and an email with a link. Pres
 confirms it. An offer nobody claims is released like any hold, and the next person gets the seats. Waitlist
 entries are personal data: they are deleted after the retention period and by a deletion request.
 
+There is no separate waitlist page in the admin in 1.0: an offer shows on the **Bookings** page as a held
+booking in the person's name, and a deletion request by email also removes their waitlist entries.
+
 ## Recurring events
 
 Type a rule in **Repeats (RRULE)**, for example `FREQ=WEEKLY;BYDAY=TU;COUNT=10`. The series starts at the
@@ -162,7 +165,8 @@ has no answers). Answers per attendee would need the form to collect each attend
   booking gets one reminder per offset before its event or date.
 - **Broadcasts**: the **Email attendees** page sends your message to everyone booked on an event or date: the
   buyer and each attendee's own address, without duplicates, at most 10 addresses per booking.
-- Both are sent through the same outbox, so at two emails a minute.
+- Both are sent through the same outbox, so at two emails a minute: a broadcast to 500 people takes about
+  four hours to deliver, and confirmations queued meanwhile wait behind it.
 - Every reminder and update has an opt-out link to `/_events/opt-out`. Opening the page changes nothing; the
   person presses a button to stop reminders and updates for that booking. Cancellation notices are always
   sent. An opt-out link stops working once the buyer opens a newer booking link; the next email carries a

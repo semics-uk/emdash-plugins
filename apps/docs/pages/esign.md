@@ -114,6 +114,9 @@ text fields on its pages.
 - The signer gets links to open or download the PDF, not an embedded viewer.
 - The signed copy is the original file with the stamps and the certificate added as an update, so the
   original bytes stay unchanged inside it.
+- In 1.0 a PDF template has one signer and is sent from the admin. Integrations (such as Events waivers),
+  self-serve forms, bulk send and the MCP tools use Markdown templates.
+- Every uploaded version of a PDF template is kept, because envelopes signed on it point to it.
 
 ### Self-serve signing forms
 
