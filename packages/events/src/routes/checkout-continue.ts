@@ -13,6 +13,7 @@ import {
 import { type InputIssue, parseContinueInput } from "../domain/checkout";
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
+import { seatIds } from "../domain/receipts";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
 import { badRequest, fail } from "./reply";
@@ -220,6 +221,17 @@ async function keepSigned(storage: ContinueStorage, planned: Item[]): Promise<It
 	});
 }
 
+/**
+ * A retry of a booking awaiting signatures that names no attendees (T066: e-sign refused an intent
+ * and the visitor tries again) keeps the stored ones: planning none would put every seat in the
+ * buyer's name. Null when any seat is missing.
+ */
+async function storedAttendees(storage: ContinueStorage, id: string, b: BookingDoc): Promise<Item[] | null> {
+	const ids = seatIds(id, b);
+	const stored = await storage.attendees.getMany(ids);
+	return ids.every((i) => stored.has(i)) ? ids.map((i) => ({ id: i, data: stored.get(i) })) : null;
+}
+
 /** The Pro signature step: extend the hold, move to `awaiting_signature`, re-arm, return the intents. */
 async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: Item[]): Promise<unknown> {
 	const { storage, now, cron } = c.deps;
@@ -271,7 +283,13 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	const signature = signing ? deps.signature : undefined;
 	const step = nextStep(booking, { signaturePending: signature !== undefined });
 	if (!step) return fail("INTERNAL");
-	const planned = attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
+	const kept =
+		signature && booking.status === "awaiting_signature" && !c.attendees
+			? await storedAttendees(deps.storage, found.id, booking)
+			: null;
+	const planned = kept
+		? { ok: true as const, value: kept }
+		: attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
 	if (!planned.ok) return badRequest(planned.error);
 	if (step.type === "sign" && signature) return sign(c, booking, signature, planned.value);
 	return step.type === "done" ? confirm(c, booking, planned.value) : pay(c, booking, step.status, planned.value);

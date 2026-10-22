@@ -61,7 +61,25 @@ export interface BookingDeps {
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
 	/** Holds the calendar link key; without it the answer has no `calendar`. */
 	kv?: LinkKv;
+	/** Pro (T066): a signed receipt-lookup request per ref, from the settings (the pairing). */
+	lookups?: LookupStep;
 	now: number;
+}
+
+/** Mints e-sign receipt-lookup requests (`esign-lookup/1`) for the refs; refs it cannot mint are left out. */
+export type LookupStep = (refs: string[], settings: Record<string, unknown>) => Promise<Record<string, string>>;
+
+/** Refs listed for reconciliation: a page load asks e-sign once per ref. */
+const MAX_WAITING_REFS = 10;
+
+/** The refs of a waiver booking that still lack a completed receipt (`<bookingRef>:<seat>`, or the booking's own). */
+function waitingRefs(b: BookingDoc, items: Item[]): string[] {
+	const unsigned = items.filter(
+		(i) => (i.data as { signature?: { status?: string } }).signature?.status !== "completed",
+	);
+	if (unsigned.length === 0) return [];
+	if (b.waiver?.mode === "buyer") return [b.ref];
+	return unsigned.slice(0, MAX_WAITING_REFS).map((i) => `${b.ref}:${i.id.slice(i.id.lastIndexOf("-") + 1)}`);
 }
 
 /** A token hash no real token matches, so an unknown ref pays for a check like a wrong token. */
@@ -106,6 +124,13 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 			? bookingCalendarQuery(deps.kv, b.ref, deps.now).catch(() => undefined)
 			: undefined,
 	]);
+	// A booking waiting for signatures lists the refs to reconcile with e-sign (a signer who closed the
+	// tab, or signed by email); with Pro's step it carries a lookup request for each (SX-FR-05).
+	const refs = b.waiver && b.status === "awaiting_signature" ? waitingRefs(b, items) : [];
+	const lookups =
+		refs.length > 0 && deps.lookups
+			? await deps.lookups(refs, Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value])))
+			: undefined;
 	return {
 		ok: true,
 		bookingRef: b.ref,
@@ -126,6 +151,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 			};
 		}),
 		...(calendar ? { calendar: { query: calendar } } : {}),
+		...(refs.length > 0 ? { waiver: { refs, ...(lookups ? { lookups } : {}) } } : {}),
 		canCancel: decision.allowed,
 		...(decision.cancelBy ? { cancelBy: decision.cancelBy } : {}),
 	};
@@ -189,14 +215,27 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 }
 
 const handler =
-	(fn: (deps: BookingDeps, raw: unknown) => Promise<unknown>): Handler =>
+	(fn: (deps: BookingDeps, raw: unknown) => Promise<unknown>, lookups?: LookupStep): Handler =>
 	async (routeCtx, ctx) =>
 		fn(
-			{ storage: ctx.storage as unknown as BookingRouteStorage, settings: ctx.settings, kv: ctx.kv, now: Date.now() },
+			{
+				storage: ctx.storage as unknown as BookingRouteStorage,
+				settings: ctx.settings,
+				kv: ctx.kv,
+				...(lookups ? { lookups } : {}),
+				now: Date.now(),
+			},
 			routeCtx.input,
 		);
 
-export const BOOKING_ROUTE: RouteDef = { methods: ["POST"], public: true, handler: handler(bookingStatus) as never };
+/** `public/booking` with the given lookup step (none: the Free route; a Pro build supplies one, `src/seams.ts`). */
+export const bookingStatusRoute = (lookups?: LookupStep): RouteDef => ({
+	methods: ["POST"],
+	public: true,
+	handler: handler(bookingStatus, lookups) as never,
+});
+
+export const BOOKING_ROUTE: RouteDef = bookingStatusRoute();
 export const BOOKING_CANCEL_ROUTE: RouteDef = {
 	methods: ["POST"],
 	public: true,

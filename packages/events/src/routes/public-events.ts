@@ -11,7 +11,8 @@ import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/sc
  *   deleted). A draft or unknown event is the same `NOT_FOUND`.
  * - Counters never leave the core. The answer carries `available` (seats left, never negative),
  *   which is the smaller of the type's, the date's and the event's own remaining seats; no
- *   `reserved`, `sold`, capacity, hidden ticket type, question, waiver or booking data.
+ *   `reserved`, `sold`, capacity, hidden ticket type, question or booking data. A required waiver
+ *   shows only as `waiver: true` (T066: a form then asks for attendees); no template or mode.
  * - The title, times, zone and venue come from the copy of the entry on the config
  *   (`EventConfigDoc.info`, T046), so a listing is one `event_configs.query`. A config without a
  *   copy (its entry is missing or has no usable start) is not listed.
@@ -160,6 +161,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		status: statusOf(config, deps.now),
 		currency: config.currency,
 		...(info?.timezone ? { timezone: info.timezone } : {}),
+		...(config.signature?.required ? { waiver: true } : {}),
 		ticketTypes,
 		...(occurrences ? { occurrences } : {}),
 		...(typeof siteKey === "string" && siteKey.trim() !== "" ? { turnstileSiteKey: siteKey.trim() } : {}),

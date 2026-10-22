@@ -315,7 +315,10 @@ describe("public/booking waiver reconciliation data (SX-FR-05, T066)", () => {
 		};
 		const { body, calls } = await run(bookingStatus, deps, w.input);
 		expect(body).toMatchObject({
-			waiver: { refs: [`${REF}:1`, `${REF}:2`], lookups: { [`${REF}:1`]: `lookup-${REF}:1`, [`${REF}:2`]: `lookup-${REF}:2` } },
+			waiver: {
+				refs: [`${REF}:1`, `${REF}:2`],
+				lookups: { [`${REF}:1`]: `lookup-${REF}:1`, [`${REF}:2`]: `lookup-${REF}:2` },
+			},
 		});
 		expect(seen[0]?.settings).toMatchObject({ esignPairing: "p" });
 		expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);

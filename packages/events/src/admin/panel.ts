@@ -1,6 +1,8 @@
 import {
+	actions,
 	type Block,
 	banner,
+	button,
 	column,
 	context,
 	type FormField,
@@ -8,6 +10,7 @@ import {
 	fromMinor,
 	header,
 	isValidTimeZone,
+	link,
 	meter,
 	notices,
 	numberInput,
@@ -56,7 +59,17 @@ export interface PanelDeps {
 	waivers?: WaiverCheck;
 }
 
-export type WaiverAvailability = { available: true } | { available: false; reason: "edition" | "pairing" | "licence" };
+/**
+ * Pro (T066): `templates` is the e-sign catalogue cached by the last refresh (the template field
+ * becomes a select); `refresh` mints the link to the suite's catalogue page for the Refresh button.
+ */
+export type WaiverAvailability =
+	| {
+			available: true;
+			templates?: ReadonlyArray<{ id: string; name: string }>;
+			refresh?: () => Promise<string | null>;
+	  }
+	| { available: false; reason: "edition" | "pairing" | "licence" };
 
 /** Decides waiver availability from the plugin settings, without bridge calls of its own. */
 export type WaiverCheck = (settings: Record<string, unknown>) => Promise<WaiverAvailability>;
@@ -101,12 +114,25 @@ function waiverBlocks(config: EventConfigDoc, waivers: WaiverAvailability): Bloc
 function waiverFields(config: EventConfigDoc, waivers: WaiverAvailability): FormField[] {
 	if (!waivers.available) return [];
 	const sig = config.signature;
+	const saved = sig?.templateId ?? "";
+	const templates = waivers.templates ?? [];
+	// A saved template the catalogue no longer lists stays selectable, so saving never drops it silently.
+	const options = [
+		...templates.map((t) => ({ label: t.name, value: t.id })),
+		...(saved && !templates.some((t) => t.id === saved)
+			? [{ label: `${saved} (not in the catalogue)`, value: saved }]
+			: []),
+	];
 	return [
 		toggle("waiver_required", "Require a signed waiver", {
 			initialValue: sig?.required === true,
 			description: "Attendees sign through the E-sign plugin before the booking is confirmed.",
 		}),
-		textInput("waiver_template", "Waiver template id (E-sign)", { initialValue: sig?.templateId ?? "" }),
+		templates.length > 0
+			? select("waiver_template", "Waiver template (E-sign)", options, {
+					initialValue: saved || (options[0]?.value ?? ""),
+				})
+			: textInput("waiver_template", "Waiver template id (E-sign)", { initialValue: saved }),
 		select("waiver_mode", "Who signs", MODE_OPTIONS, { initialValue: sig?.mode ?? "each_attendee" }),
 	];
 }
@@ -297,6 +323,9 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		header("Tickets & booking"),
 		...extra,
 		...waiverBlocks(config, waivers),
+		...(waivers.available && waivers.refresh
+			? [actions([button("panel.templates.refresh", "Refresh templates")], { blockId: "waiver-templates" })]
+			: []),
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
 		context(
@@ -509,5 +538,24 @@ export async function handlePanel(
 		if (interaction.action_id === "panel.enable") return enablePanel(deps, eventId, interaction.values);
 	}
 	const state = await loadEventState(eventId, deps.storage);
-	return state.config ? panelForm(state, [], await waiverAvailability(deps)) : enableForm(deps);
+	if (!state.config) return enableForm(deps);
+	const waivers = await waiverAvailability(deps);
+	let extra: Block[] = [];
+	if (interaction.type === "block_action" && interaction.action_id === "panel.templates.refresh" && waivers.available) {
+		// The core cannot reach E-sign, so the link takes the admin to the suite page that fetches the catalogue.
+		const url = await waivers.refresh?.();
+		extra = url
+			? [
+					actions([link("Fetch the templates from E-sign", { kind: "external", url }, { appearance: "primary" })]),
+					context("The link works for five minutes. Reload this panel afterwards to pick a template."),
+				]
+			: notices([
+					{
+						severity: "warning",
+						title: "Could not prepare the refresh",
+						message: "Check the E-sign pairing string in the Events settings.",
+					},
+				]);
+	}
+	return panelForm(state, extra, waivers);
 }

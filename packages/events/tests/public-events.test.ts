@@ -326,13 +326,24 @@ describe("SX-FR-02 public/event says whether a waiver is required (T066)", () =>
 		await save(plain.id);
 		const gated = await entry("Gated Gig");
 		await save(gated.id, "on_sale", {
-			config: { status: "on_sale", capacity: 50, currency: "GBP", signature: { required: true, mode: "buyer", templateId: "tpl_1" } },
+			config: {
+				status: "on_sale",
+				capacity: 50,
+				currency: "GBP",
+				signature: { required: true, mode: "buyer", templateId: "tpl_1" },
+			},
 		});
 		const off = await entry("Off Gig");
 		await save(off.id, "on_sale", {
-			config: { status: "on_sale", capacity: 50, currency: "GBP", signature: { required: false, mode: "buyer", templateId: "tpl_1" } },
+			config: {
+				status: "on_sale",
+				capacity: 50,
+				currency: "GBP",
+				signature: { required: false, mode: "buyer", templateId: "tpl_1" },
+			},
 		});
-		const read = async (id: string) => (await budget.invokeRoute("public/event", { eventId: id })).value as Record<string, unknown>;
+		const read = async (id: string) =>
+			(await budget.invokeRoute("public/event", { eventId: id })).value as Record<string, unknown>;
 		expect(await read(gated.id)).toMatchObject({ ok: true, waiver: true });
 		expect(await read(plain.id)).not.toHaveProperty("waiver");
 		expect(await read(off.id)).not.toHaveProperty("waiver");

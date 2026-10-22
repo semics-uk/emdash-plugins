@@ -132,14 +132,16 @@ describe("SX-FR-07 catalogue refresh on the editor panel (T066)", () => {
 		{ id: "tpl_swim", name: "Swim waiver" },
 	];
 	type Opt = { label: string; value: string };
-	const field = (blocks: Block[], id: string) => fields(blocks).find((f) => f.action_id === id) as
-		| (Field & { options?: Opt[] })
-		| undefined;
+	const field = (blocks: Block[], id: string) =>
+		fields(blocks).find((f) => f.action_id === id) as (Field & { options?: Opt[] }) | undefined;
 	const press = (deps: PanelDeps) =>
 		handlePanel(deps, { type: "block_action", action_id: "panel.templates.refresh" }, EVENT);
 
 	it("SX-FR-07 with a cached catalogue the template field is a select of the templates, keeping the saved one", async () => {
-		const w = world({ available: true, templates: TEMPLATES }, { required: true, mode: "buyer", templateId: "tpl_gone" });
+		const w = world(
+			{ available: true, templates: TEMPLATES },
+			{ required: true, mode: "buyer", templateId: "tpl_gone" },
+		);
 		const f = field((await load(w.deps)).blocks as Block[], "waiver_template");
 		expect(f?.type).toBe("select");
 		expect(f?.options?.map((o) => o.value)).toEqual(["tpl_climb", "tpl_swim", "tpl_gone"]);
