@@ -899,7 +899,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -911,7 +911,7 @@
 				"BUILD-PLAN §3.1 Admin"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T044": {
 			"file": "T044-events-inventory-reservation-engine.md",
@@ -2305,7 +2305,6 @@
 			"T106"
 		],
 		"ready": [
-			"T043",
 			"T063",
 			"T072",
 			"T080",
@@ -2319,7 +2318,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T034"
+			"T034",
+			"T043"
 		],
 		"review": [],
 		"done": [
