@@ -368,7 +368,9 @@ describe("T033 signer-fillable fields", () => {
 		process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 		runtime = await createPluginRuntimeTestHost();
 		const budget = withBudget(runtime);
-		const t = (await budget.invokeRoute("templates/create", { name: "W", body: BODY })).value as { template: { id: string } };
+		const t = (await budget.invokeRoute("templates/create", { name: "W", body: BODY })).value as {
+			template: { id: string };
+		};
 		const r = await budget.invokeRoute("envelopes/create", {
 			templateId: t.template.id,
 			signer: { name: "Ada", email: "ada@example.com" },
