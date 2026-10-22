@@ -38,6 +38,13 @@ const fields = session ? sessionFields(session) : [];
 const pdfDoc = session ? pdfDocumentView(session) : undefined;
 const canSign = session?.otp !== "required" && (!pdfDoc || pdfDoc.url !== undefined);
 const bad = (name: string) => (ready?.fields ?? []).includes(name) || undefined;
+// A field to fix is described by the message that says why (WCAG 3.3.1).
+const fix = (name: string) => (bad(name) && ready?.message ? { "aria-invalid": "true", "aria-describedby": "esign-error" } : {});
+// The email-code step (T091) carries its own messages, beside the code box, and both of its forms come
+// back to it (`#esign-otp`), so after a post the next Tab is in the step, not at the top of a long document.
+const needsCode = session?.otp === "required";
+const otpAction = `${action}#esign-otp`;
+const badCode = ["OTP_INVALID", "OTP_EXPIRED", "OTP_LOCKED", "OTP_REQUIRED"].includes(ready?.errorCode ?? "") ? "true" : undefined;
 const pdfPending =
 	(view.kind === "signed" || (view.kind === "closed" && view.status === "completed")) &&
 	!view.download &&
@@ -108,7 +115,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 	{
 		ready && session && (
 			<>
-				{ready.message && <p role="alert" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{ready.message}</p>}
+				{ready.message && !needsCode && <p role="alert" id="esign-error" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{ready.message}</p>}
 				<p>
 					Signing as <strong>{session.signer?.name}</strong>
 					{session.signer?.as ? ` (${session.signer.as})` : ""}
@@ -141,16 +148,29 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 				)}
 				{
 					session.otp === "required" && (
-						<section data-testid="sign-otp" aria-label="Email code">
+						<section id="esign-otp" data-testid="sign-otp" aria-label="Email code">
 							<p>To sign, first enter the code we email to you.</p>
+							{ready.message && <p role="alert" id="esign-error" class="semics-error" data-testid="sign-error" data-code={ready.errorCode}>{ready.message}</p>}
 							{ready.otpSent && <p role="status" data-testid="sign-otp-sent">We emailed you a code. It expires in 10 minutes.</p>}
-							<form method="post" action={action}>
+							<form method="post" action={otpAction}>
 								<button type="submit" name="intent" value="otp-send">Email me a code</button>
 							</form>
-							<form method="post" action={action}>
+							<form method="post" action={otpAction}>
 								<div class="semics-field">
 									<label for="esign-code">Code</label>
-									<input id="esign-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required />
+									<p id="esign-code-hint" class="semics-note">The 6-digit code from the email we sent you.</p>
+									<input
+										id="esign-code"
+										name="code"
+										type="text"
+										inputmode="numeric"
+										autocomplete="one-time-code"
+										pattern="[0-9]{6}"
+										maxlength="6"
+										required
+										aria-describedby={ready.message ? "esign-code-hint esign-error" : "esign-code-hint"}
+										aria-invalid={badCode || undefined}
+									/>
 								</div>
 								<button type="submit" name="intent" value="otp-verify">Verify code</button>
 							</form>
@@ -173,7 +193,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 											data-esign-field
 											data-label={field.label}
 											required={field.required || undefined}
-											aria-invalid={bad(fieldName(field.key)) && "true"}
+											{...fix(fieldName(field.key))}
 										/>
 									</div>
 								))}
@@ -184,7 +204,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 						<legend>Your signature</legend>
 						<div class="semics-field">
 							<label for="esign-name">Type your full name to sign</label>
-							<input id="esign-name" name="typedName" type="text" autocomplete="name" required maxlength="200" aria-invalid={bad("typedName") && "true"} />
+							<input id="esign-name" name="typedName" type="text" autocomplete="name" required maxlength="200" {...fix("typedName")} />
 						</div>
 						<div data-esign-pad-slot data-testid="sign-pad-slot">
 							<slot name="pad" />
@@ -193,11 +213,11 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 						</div>
 					</fieldset>
 					<div class="semics-check">
-						<input id="esign-consent" name="consent" type="checkbox" required aria-invalid={bad("consent") && "true"} />
+						<input id="esign-consent" name="consent" type="checkbox" required {...fix("consent")} />
 						<label for="esign-consent">{session.consent?.wording}</label>
 					</div>
 					<div class="semics-check">
-						<input id="esign-agree" name="agree" type="checkbox" required aria-invalid={bad("agree") && "true"} />
+						<input id="esign-agree" name="agree" type="checkbox" required {...fix("agree")} />
 						<label for="esign-agree">I intend the signature above to be my signature on this document.</label>
 					</div>
 					<p id="esign-missing" class="semics-note" data-esign-missing data-testid="sign-missing" aria-live="polite" hidden></p>

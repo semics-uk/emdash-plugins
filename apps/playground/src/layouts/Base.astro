@@ -99,3 +99,18 @@ const pageCtx = createPublicPageContext({
 		<EmDashBodyEnd page={pageCtx} />
 	</body>
 </html>
+
+<style>
+	/* WCAG 2.5.8 (T101): menu links are at least 24 px tall, so they stay apart when the menu wraps on a phone. */
+	nav {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.25rem 1rem;
+	}
+	nav > a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 1.5rem;
+	}
+</style>

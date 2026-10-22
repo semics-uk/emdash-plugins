@@ -63,6 +63,8 @@ const id = anchorOf(templateId || "none");
 						{view.turnstileSiteKey && (
 							<>
 								<div class="cf-turnstile" data-sitekey={view.turnstileSiteKey} />
+								{/* Compact below 300 px so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
+								<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 								<noscript>
 									<p>This form uses a security check that needs JavaScript.</p>
 								</noscript>

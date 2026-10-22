@@ -167,6 +167,8 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 				{siteKey && (
 					<>
 						<div class="cf-turnstile" data-sitekey={siteKey}></div>
+						{/* Compact below 300 px so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
+						<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						<noscript><p class="semics-note">This form uses a security check that needs JavaScript.</p></noscript>
 						<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 					</>

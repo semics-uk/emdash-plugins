@@ -322,6 +322,8 @@ const when = (iso: string) => {
 				{siteKey && (
 					<>
 						<div class="cf-turnstile" data-sitekey={siteKey}></div>
+						{/* Turnstile is 300 px wide; in a narrower widget use its compact size so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
+						<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						<noscript>
 							<p class="semics-needs-js" data-testid="booking-needs-js">
 								This booking form uses a security check that needs JavaScript. Please turn JavaScript on to
@@ -374,7 +376,12 @@ const when = (iso: string) => {
 						<label for={`${id}-wl-email`}>Email</label>
 						<input id={`${id}-wl-email`} name="email" type="email" autocomplete="email" required maxlength="254" />
 					</div>
-					{siteKey && <div class="cf-turnstile" data-sitekey={siteKey}></div>}
+					{siteKey && (
+						<>
+							<div class="cf-turnstile" data-sitekey={siteKey}></div>
+							<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
+						</>
+					)}
 					<button type="submit" class="semics-secondary">Join the waitlist</button>
 				</form>
 			)}
