@@ -4,7 +4,7 @@ title: "Events: receipt route and waiver-gated check-in"
 phase: 3
 package: events
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T063, T071, T118]
