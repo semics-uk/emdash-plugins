@@ -149,3 +149,15 @@ test("T100 follow-ups: page caching (R62), Pro export expiry (R63), counter swee
 		"paid cancel and refund at 10 and 9 calls": /paid booking \(10 calls\) and `refundBooking` \(9\)/,
 	});
 });
+
+test("SX-FR-06 the docs carry the pairing guide: a client, its pairing string shown once, pasted into Events", () => {
+	says(PAGE("esign"), {
+		"a client with its allowed return URLs": /Create client[^.]*return URLs/,
+		"the pairing string is shown once": /pairing string[^.]*\. It is shown only in that one answer/,
+		"revoking stops a client": /Revoke\*{0,2} stops a client at once/,
+	});
+	says(PAGE("waivers"), {
+		"the return URL is the booking page": /return URL is[^.]*\/booking/,
+		"paste it into the Events setting": /paste it into\W*E-sign pairing string/,
+	});
+});

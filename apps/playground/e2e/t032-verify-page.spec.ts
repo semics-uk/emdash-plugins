@@ -37,7 +37,7 @@ test.beforeAll(async ({ baseURL }) => {
 	}
 });
 
-test("ES-US-6 choosing the signed PDF shows matched, and only the hash is posted", async ({ page }) => {
+test("ES-US-6 SU-FR-10 choosing the signed PDF shows matched, and only the hash is posted", async ({ page }) => {
 	const posts: { url: string; type: string; body: string }[] = [];
 	page.on("request", (r) => {
 		if (r.method() === "POST")

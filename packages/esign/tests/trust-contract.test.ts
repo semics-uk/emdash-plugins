@@ -1,13 +1,11 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
 import { createPluginTestHost } from "@emdash-cms/plugin-test";
 import { describe, expect, it } from "vitest";
 import plugin from "../src/plugin";
+import frozen from "../trust-contract.json";
 
 // T106: the 1.0 trust contract is frozen in trust-contract.json (BUILD-PLAN §9). Adding a capability,
 // an allowed host, a public route or an MCP tool after 1.0 is a major version that operators consent
 // to again, so a change here must come with a major changeset and a new snapshot.
-const frozen = JSON.parse(readFileSync(resolve(import.meta.dirname, "..", "trust-contract.json"), "utf8"));
 
 type Route = { public?: boolean; methods?: string[] };
 

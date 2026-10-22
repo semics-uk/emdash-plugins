@@ -336,7 +336,7 @@ describe("ES-FR-14 public/receipts/lookup", () => {
 		});
 	});
 
-	it("a revoked client can no longer look up its receipts", async () => {
+	it("SX-NFR-06 a revoked client can no longer look up its receipts", async () => {
 		const budget = await host({ [CID]: { revoked: true } });
 		expect(await call(budget, LOOKUP, { request: await lookupFor("R1") })).toMatchObject({
 			ok: false,

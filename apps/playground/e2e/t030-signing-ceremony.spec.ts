@@ -42,7 +42,7 @@ async function watchCsp(page: Page) {
 
 const sha256 = (text: string) => `'sha256-${createHash("sha256").update(text, "utf8").digest("base64")}'`;
 
-test("SU-NFR-01 XSS payload suite: nothing executes and only allowed markup survives", async ({ page }) => {
+test("SU-NFR-01 ES-NFR-05 XSS payload suite: nothing executes and only allowed markup survives", async ({ page }) => {
 	const hits: string[] = [];
 	page.on("dialog", (d) => {
 		hits.push(`dialog ${d.message()}`);
@@ -163,7 +163,7 @@ test("SU-NFR-03 axe finds no serious violations in the ceremony states", async (
 	}
 });
 
-test("SU-NFR-03 works at 320 px: no sideways scrolling and every control reachable", async ({ browser }) => {
+test("SU-NFR-03 SU-NFR-05 works at 320 px: no sideways scrolling and every control reachable", async ({ browser }) => {
 	for (const js of [false, true]) {
 		const context = await browser.newContext({ javaScriptEnabled: js, viewport: { width: 320, height: 800 } });
 		const page = await context.newPage();

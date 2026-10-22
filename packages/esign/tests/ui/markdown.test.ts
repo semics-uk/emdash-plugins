@@ -35,7 +35,7 @@ function linksOf(blocks: Block[]): string[] {
 	return hrefs;
 }
 
-describe("snapshot sanitiser: XSS payload suite (SU-NFR-01)", () => {
+describe("snapshot sanitiser: XSS payload suite (SU-NFR-01, ES-NFR-05)", () => {
 	it(`has at least 40 payloads (${payloads.length})`, () => {
 		expect(payloads.length).toBeGreaterThanOrEqual(40);
 	});

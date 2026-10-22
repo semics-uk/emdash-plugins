@@ -321,7 +321,7 @@ describe("signatures/receipt is idempotent (SX-FR-04, §8.4)", () => {
 		expect(w.booking()).toEqual(booking);
 	});
 
-	it("SX-FR-04 replaying the confirming receipt changes nothing and never counts sold twice", async () => {
+	it("SX-FR-04 SX-NFR-05 replaying the confirming receipt changes nothing and never counts sold twice", async () => {
 		const w = await world({ seats: 1 });
 		const deps = (now: number) => w.deps(now, { step: step([`${ID}-1`]) });
 		await run(deps(T0 + MIN), post(receipt()));

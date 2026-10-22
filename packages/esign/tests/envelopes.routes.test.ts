@@ -326,7 +326,7 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		expect(await auditChain(id)).toHaveLength(2);
 	});
 
-	it("ES-FR-02 a replayed intent is rejected; a new intent for the same ref returns the same envelope", async () => {
+	it("ES-FR-02 ES-NFR-03 a replayed intent is rejected; a new intent for the same ref returns the same envelope", async () => {
 		const { budget, templateId } = await setupIntegration();
 		const token = await sign(payload(templateId));
 		const first = await call(budget, "public/envelopes/from-intent", { intent: token });
@@ -407,7 +407,7 @@ describe("ES-FR-02 public/envelopes/from-intent", () => {
 		expect(r.signingToken).toBeUndefined();
 	});
 
-	it("ES-FR-02 rejects bad, unknown-client, revoked, off-allowlist and wrong-key intents", async () => {
+	it("ES-FR-02 ES-NFR-03 rejects bad, unknown-client, revoked, off-allowlist and wrong-key intents", async () => {
 		const { budget, templateId } = await setupIntegration();
 		const cases: Array<[unknown, string]> = [
 			[{}, "TOKEN_MALFORMED"],

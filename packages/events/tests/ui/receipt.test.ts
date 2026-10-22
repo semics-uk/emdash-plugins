@@ -28,7 +28,7 @@ describe("return page: the receipt fragment (SX-FR-04, §8.2)", () => {
 		return { loc, hist, replaced };
 	}
 
-	it("SX-FR-04 reads #receipt= and clears it with history.replaceState, keeping the query", () => {
+	it("SX-FR-04 SU-FR-09 reads #receipt= and clears it with history.replaceState, keeping the query", () => {
 		const p = page(`#receipt=${RECEIPT}`);
 		expect(takeFragmentToken("receipt", p.loc, p.hist)).toBe(RECEIPT);
 		expect(p.replaced).toEqual(["/booking?ref=ABCDEFGHJK"]);

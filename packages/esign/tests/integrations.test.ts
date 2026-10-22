@@ -58,7 +58,7 @@ describe("T060 clients domain", () => {
 		expect(generateMasterKey()).not.toBe(generateMasterKey());
 	});
 
-	it("allowlist entries follow protocol section 7", () => {
+	it("ES-NFR-04 allowlist entries follow protocol section 7", () => {
 		expect(parseAllowlist("https://events.example/booking\n\n http://localhost:3000/ ")).toEqual({
 			ok: true,
 			entries: ["https://events.example/booking", "http://localhost:3000/"],
@@ -130,7 +130,7 @@ describe("T060 Integrations page", () => {
 		expect((await create(r)).pairing).toMatch(PAIRING);
 	});
 
-	it("shows the pairing string once; the secret is derived and stored nowhere", async () => {
+	it("ES-FR-12 shows the pairing string once; the secret is derived and stored nowhere", async () => {
 		const { r, budget } = await setup();
 		const res = await budget.invokeRoute("admin", {
 			type: "form_submit",
@@ -177,7 +177,7 @@ describe("T060 Integrations page", () => {
 		expect(await r.inspect.storage.list("clients")).toHaveLength(0);
 	});
 
-	it("a revoked client is rejected by from-intent, and revoking is idempotent", async () => {
+	it("ES-FR-12 SX-NFR-06 a revoked client is rejected by from-intent, and revoking is idempotent", async () => {
 		const { r, budget } = await setup();
 		const { pairing } = await create(r);
 		const parsed = parsePairing(pairing as string);

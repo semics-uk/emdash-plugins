@@ -420,7 +420,7 @@ describe("event editor (T044)", () => {
 });
 
 describe("dashboard widget (EV-US-7)", () => {
-	it("meters read the sold and reserved counters", async () => {
+	it("EV-FR-19 meters read the sold and reserved counters", async () => {
 		const { deps } = world();
 		const out = await load(deps, "widget:sales");
 		expect(meter.calls).toBeLessThanOrEqual(2);

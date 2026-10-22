@@ -192,7 +192,7 @@ async function runVector(v: Vector) {
 	}
 }
 
-describe("ES-FR-13 SX-NFR-02 every intent vector through public/envelopes/from-intent", () => {
+describe("ES-FR-13 SX-NFR-02 SX-FR-08 ES-NFR-03 every intent vector through public/envelopes/from-intent", () => {
 	it("the vector file has the 53 intent vectors the route must honour", () => {
 		expect(INTENT_VECTORS).toHaveLength(53);
 	});
@@ -318,7 +318,7 @@ describe("ES-FR-13 SX-NFR-03 from-intent route rules", () => {
 		expect(signer.tokenHash).toBe(await hashToken(first.signingToken as string));
 	});
 
-	it("SX-NFR-02 an off-allowlist return URL is rejected before the nonce is consumed", async () => {
+	it("SX-NFR-02 ES-NFR-04 an off-allowlist return URL is rejected before the nonce is consumed", async () => {
 		const budget = await integration();
 		const p = payload({ returnUrl: "https://evil.example/booking/BK7Q2M" });
 		expect(await call(budget, await sign(p))).toMatchObject({ ok: false, error: { code: "RETURN_URL_NOT_ALLOWED" } });

@@ -85,7 +85,7 @@ async function hmacVerifies(secretB64, prefix, payloadB64, sigB64) {
 	return crypto.subtle.verify("HMAC", key, b64urlDecode(sigB64), new TextEncoder().encode(`${prefix}.${payloadB64}`));
 }
 
-test("SX-NFR-01: vectors.json is well-formed with an expected outcome for every vector", () => {
+test("SX-FR-08 SX-NFR-01: vectors.json is well-formed with an expected outcome for every vector", () => {
 	const doc = loadVectors();
 	assert.equal(doc.protocol, "esign-intent/1");
 	assert.deepEqual(doc.constants.prefixes, PREFIXES);

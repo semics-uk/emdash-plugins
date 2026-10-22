@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 // T053 (EU-FR-05, EU-FR-06): the injected /booking page and the no-JS checkout endpoint.
 
-test("EU-FR-06 /booking sends Referrer-Policy: no-referrer and is not cached", async ({ request }) => {
+test("EU-FR-06 EU-NFR-06 /booking sends Referrer-Policy: no-referrer and is not cached", async ({ request }) => {
 	const response = await request.get("/booking");
 	expect(response.status()).toBe(200);
 	expect(response.headers()["referrer-policy"]).toBe("no-referrer");

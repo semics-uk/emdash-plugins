@@ -48,7 +48,7 @@ const fields = {
 	"cf-turnstile-response": "tok",
 };
 
-describe("/_events/waitlist (EV-US-6)", () => {
+describe("/_events/waitlist (EV-US-6, EU-FR-11)", () => {
 	it("EV-US-6 joins through public/waitlist/join and goes back to the widget with the outcome only", async () => {
 		const h = host({ "public/waitlist/join": joined });
 		const res = await handleWaitlistRequest({ request: post(fields), url, locals: h.locals, redirect, cookies }, {});
@@ -105,7 +105,7 @@ describe("/_events/waitlist (EV-US-6)", () => {
 	});
 });
 
-describe("claiming an offer (EV-FR-16, R34)", () => {
+describe("claiming an offer (EV-FR-16, EU-FR-11, R34)", () => {
 	it("EV-FR-16 claims with the code, keeps the token in the cookie, and continues the booking", async () => {
 		const h = host({
 			"public/waitlist/claim": { success: true, data: { ok: true, bookingRef: REF, accessToken: TOKEN } },

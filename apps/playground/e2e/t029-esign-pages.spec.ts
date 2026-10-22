@@ -16,7 +16,7 @@ test("SU-FR-01 /sign/<token> renders the ceremony shell with a defined state for
 	expect(urls.filter((u) => u.includes(TOKEN) && new URL(u).pathname !== `/sign/${TOKEN}`)).toEqual([]);
 });
 
-test("SU-FR-01 /sign/<token> sends Referrer-Policy: no-referrer and is never cached", async ({ request }) => {
+test("SU-FR-01 EU-NFR-06 /sign/<token> sends Referrer-Policy: no-referrer and is never cached", async ({ request }) => {
 	const response = await request.get(`/sign/${TOKEN}`);
 	expect(response.headers()["referrer-policy"]).toBe("no-referrer");
 	expect(response.headers()["cache-control"]).toContain("no-store");

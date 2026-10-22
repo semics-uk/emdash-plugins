@@ -265,7 +265,7 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 	const RECEIPT = `eyJ2IjoxfQ.${"S".repeat(43)}`;
 	const RETURN = "https://events.example/booking/BK7Q2M?step=waiver";
 
-	it("ES-FR-14 a signed intent envelope returns to the site with the receipt in the fragment, never the query", async () => {
+	it("ES-FR-14 SX-NFR-04 a signed intent envelope returns to the site with the receipt in the fragment, never the query", async () => {
 		const h = host({
 			"public/session": ready,
 			"public/submit": { ok: true, status: "completed", returnUrl: RETURN, receipt: RECEIPT },
@@ -317,7 +317,7 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 		expect(ceremonyRedirect({ kind: "signed" })).toBeUndefined();
 	});
 
-	it("a closed envelope shows its state, with the signed PDF state for the signer", async () => {
+	it("SU-FR-08 a closed envelope shows its state, with the signed PDF state for the signer", async () => {
 		const h = host({
 			"public/session": { ok: true, state: "closed", status: "completed", title: "NDA", pdf: "pending" },
 		});
@@ -418,7 +418,7 @@ describe("handleSignedCopy: the stable 'get my signed copy' page (ES-US-6)", () 
 		download: { url: "/d?e=fresh", expiresAt: "x" },
 	};
 
-	it("ES-US-6 posts the emailed token to public/session and offers the fresh download link", async () => {
+	it("ES-US-6 SU-FR-08 posts the emailed token to public/session and offers the fresh download link", async () => {
 		const h = host({ "public/session": done });
 		const view = await handleSignedCopy({ ...h.ctx, pluginId: "r_abc" }, TOKEN);
 		expect(view).toEqual({ kind: "closed", status: "completed", title: "NDA", pdf: "ready", download: "/d?e=fresh" });

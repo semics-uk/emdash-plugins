@@ -94,7 +94,7 @@ describe("admin pages in the host (EV-FR-11)", () => {
 		}
 	});
 
-	it("EV-US-7 the widget meters match the counters", async () => {
+	it("EV-FR-19 EV-US-7 the widget meters match the counters", async () => {
 		const { r } = await setup();
 		const res = await r.admin.loadWidget("sales");
 		const meterBlock = res.blocks?.find((b: { type: string }) => b.type === "meter") as { value: number; max: number };

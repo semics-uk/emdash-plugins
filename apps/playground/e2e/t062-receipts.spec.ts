@@ -28,7 +28,7 @@ function receiptPayload(token: string, secret: Buffer): Record<string, unknown> 
 
 const now = () => Math.floor(Date.now() / 1000);
 
-test("ES-FR-14 the receipt returns in the fragment only; lookup and catalogue answer the paired client", async ({
+test("ES-FR-14 SX-NFR-04 SU-FR-09 the receipt returns in the fragment only; lookup and catalogue answer the paired client", async ({
 	page,
 	request,
 	baseURL,
