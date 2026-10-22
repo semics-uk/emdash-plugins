@@ -1,0 +1,52 @@
+---
+// e2e-only page (T077): stands in for `/booking` after Stripe's redirect. The playground runs Free
+// only (no Stripe, no paid bookings), so the core's answer is faked: `?state=` picks the booking
+// status `public/booking` would return. It renders the real <BookingStatus>, <PaymentReturn> and
+// the real polling script, and does what the booking page does with the "Pay now" post (Origin
+// check, then redirect to the provider). Never in a production site: it trusts the query.
+import BookingStatus from "@semics-tech/emdash-events/astro/BookingStatus.astro";
+import PaymentReturn from "@semics-tech/emdash-events/astro/PaymentReturn.astro";
+import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { paymentView } from "@semics-tech/emdash-events/astro/lib/payment";
+
+export const prerender = false;
+
+Astro.response.headers.set("Cache-Control", "private, no-store");
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
+if (Astro.request.method === "POST") {
+	const form = await Astro.request.formData().catch(() => new FormData());
+	if (form.get("intent") === "resume") return Astro.redirect("https://checkout.stripe.test/c/pay/cs_test_1", 303);
+}
+
+const REF = "ABCDEFGHJK";
+const status = Astro.url.searchParams.get("state") ?? "awaiting_payment";
+const booking = {
+	bookingRef: REF,
+	status,
+	lines: [{ ticketTypeId: "general", qty: 2 }],
+	totals: { totalMinor: 5000, currency: "GBP" },
+	holdExpiresAt: "2030-01-01T10:00:00.000Z",
+	attendees: [],
+	canCancel: status === "awaiting_payment",
+};
+const payment = paymentView(booking);
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Your booking</title>
+	</head>
+	<body>
+		<main class="semics-booking" data-testid="booking-page">
+			<h1>Your booking</h1>
+			<BookingStatus booking={booking} cancelAction={`/e2e/payment?state=${status}`} />
+			{payment && <PaymentReturn view={payment} bookingRef={REF} action={`/e2e/payment?state=${status}`} />}
+		</main>
+		<script>
+			import "@semics-tech/emdash-events/client/payment";
+		</script>
+	</body>
+</html>

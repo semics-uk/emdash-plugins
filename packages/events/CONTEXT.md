@@ -150,6 +150,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   answers (`/_events/checkout`, the booking page's cancel/redeem) refuses cross-site posts first with
   `isCrossSiteRequest` (403): EmDash sets Astro's `checkOrigin: false`, so nothing else does (T057).
 - Log calls are bridge calls: a path already at 10 must not log (the outbox meters its tick, T057).
+- Payment return (T077, EU-FR-09): Pro's Stripe step sets success and cancel URL to the same `/booking?ref=`, with no `session_id`, so
+  the page never reads any query parameter for state. `src/astro/lib/payment.ts` (`paymentView`, `isPayUrl`) maps the core's status
+  to a `<PaymentReturn>` section (`pending` = `awaiting_payment`: held, webhook maybe late; `confirmed`, `expired`, `cancelled`,
+  `refunded`, `refunded_unavailable`). `src/client/payment.ts` re-reads the page (cookie goes along) at 3, 5, 8, 13, 21, 30 s, then
+  un-hides "we will email you"; no-JS has "Check again" and "Pay now" (`intent=resume` -> `resumePayment`: continue with the cookie
+  token, follow `pay`). Only `https:` pay URLs are followed (`handleCheckoutForm`, `resumePayment`, the suite).
 - UI (T054): `<EventList>` (also the `events-list` block) calls `public/events` through `callPublicRoute` with the
   integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,
   `error` (`data-state`). Time and price formatting is the pure `src/astro/lib/list.ts` (`cardView`,

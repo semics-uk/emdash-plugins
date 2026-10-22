@@ -35,6 +35,9 @@ bundles nothing new into the cores; it calls them through their public routes in
    Events' `forwardReceipt` in-process (no JS needed), then the next token, or after the last / a decline
    `/booking?ref=&waiver=…`. The page sends `ceremonyCsp()` and renders nothing else inline (no own styles).
 
+   After the last receipt (`waiver=signed`) `payOrLand` continues the booking again (no attendees) and follows a `pay` step (T077);
+   anything else lands on `/booking`. The booking cookie is scoped to `/booking`, so a copy scoped to `/_events/waiver` is set
+   when the flow goes to sign (the token is needed here for the retry and for payment).
 3. Retry (T066, `intent=retry`): E-sign refusing an intent leaves the booking held and sends the browser to
    `/_events/waiver?ref=&error=SIGNING_UNAVAILABLE`, which shows a "Try again" form. It continues the booking
    again with the `semics_booking_<ref>` cookie and no `attendees` (Events keeps the stored ones; Pro skips
