@@ -1,0 +1,377 @@
+{
+	"about": "Every functional (FR) and non-functional (NFR) requirement of the five PRDs (Claude Docs, see tasks/reviews/release-1.0.md), for the 1.0 traceability report (scripts/traceability.mjs, T106). edition: where the feature ships (BUILD-PLAN §13); a free requirement needs a test in this repo, a pro one in this repo or the Pro repo. A requirement with `check` has no automated test, for the reason and decision given.",
+	"prds": {
+		"EV": "PRD: semics-events (Events bookings core)",
+		"ES": "PRD: semics-esign (E-signature core)",
+		"EU": "PRD: Events UI layer (@semics-tech/emdash-events/ui)",
+		"SU": "PRD: E-sign UI layer (@semics-tech/emdash-esign/ui)",
+		"SX": "PRD: @semics-tech/emdash-events-suite (bundle)"
+	},
+	"requirements": [
+		{
+			"id": "EV-FR-01",
+			"edition": "free",
+			"title": "Map the site's events collection and its start, end, timezone and venue fields; check it with schema:read"
+		},
+		{
+			"id": "EV-FR-02",
+			"edition": "free",
+			"title": "Booking settings stored per entry in eventConfigs, keyed by entry id"
+		},
+		{
+			"id": "EV-FR-03",
+			"edition": "free",
+			"title": "Ticket types: price in minor units, capacity, sale window, min/max per order, sort order"
+		},
+		{
+			"id": "EV-FR-04",
+			"edition": "free",
+			"title": "Atomic inventory: one reserved counter per ticket type, occurrence and event; undo earlier steps on a miss"
+		},
+		{ "id": "EV-FR-05", "edition": "free", "title": "Checkout in two calls: checkout/reserve and checkout/continue" },
+		{
+			"id": "EV-FR-06",
+			"edition": "free",
+			"title": "Holds of 15 min (free) or 35 min (paid), extended per step up to 60 min; swept every 5 min"
+		},
+		{
+			"id": "EV-FR-07",
+			"edition": "free",
+			"title": "256-bit booking access token, stored only as its SHA-256, never in a plugin route URL"
+		},
+		{
+			"id": "EV-FR-08",
+			"edition": "free",
+			"title": "Confirmation, reminder, broadcast, waitlist and refund emails through a retrying outbox"
+		},
+		{
+			"id": "EV-FR-09",
+			"edition": "free",
+			"title": "Booking and event calendar files behind short-lived signed links"
+		},
+		{
+			"id": "EV-FR-10",
+			"edition": "free",
+			"title": "schema.org Event JSON-LD with offers and availability via page:metadata"
+		},
+		{
+			"id": "EV-FR-11",
+			"edition": "free",
+			"title": "Admin pages (Bookings, Attendees/Check-in, Settings; Pro: Promo codes) and CSV export"
+		},
+		{
+			"id": "EV-FR-12",
+			"edition": "pro",
+			"title": "Signed waiver per attendee or per booking; check-in blocked until other adults sign"
+		},
+		{
+			"id": "EV-FR-13",
+			"edition": "pro",
+			"title": "Stripe Checkout, signed webhook, refunds; a late payment re-reserves or refunds"
+		},
+		{
+			"id": "EV-FR-14",
+			"edition": "pro",
+			"title": "Promo codes: percent, fixed and unlock (the only way to reveal hidden tickets)"
+		},
+		{ "id": "EV-FR-15", "edition": "pro", "title": "Custom questions per event, with answers in exports" },
+		{ "id": "EV-FR-16", "edition": "free", "title": "Waitlist with timed claim offers" },
+		{ "id": "EV-FR-17", "edition": "free", "title": "Recurring events expanded in bounded windows" },
+		{
+			"id": "EV-FR-18",
+			"edition": "pro",
+			"title": "MCP tools: list events, availability, find booking, attendees, check in, cancel, refund"
+		},
+		{
+			"id": "EV-FR-19",
+			"edition": "free",
+			"title": "Dashboard widget with sold/capacity meters (Free) and a 30-day sales chart (Pro)"
+		},
+		{
+			"id": "EV-FR-20",
+			"edition": "free",
+			"title": "Configurable retention: booking personal data deleted 12 months after the event by default"
+		},
+		{ "id": "EV-NFR-01", "edition": "free", "title": "≤ 50 ms CPU per route or hook invocation" },
+		{ "id": "EV-NFR-02", "edition": "free", "title": "≤ 10 subrequests (bridge calls) per invocation" },
+		{
+			"id": "EV-NFR-03",
+			"edition": "free",
+			"title": "reserved ≤ capacity always holds; reserved equals live bookings after a sweep"
+		},
+		{
+			"id": "EV-NFR-04",
+			"edition": "free",
+			"title": "Public write routes use Turnstile (when configured) and are rate-limited per hashed IP"
+		},
+		{ "id": "EV-NFR-05", "edition": "pro", "title": "Stripe webhook replay changes nothing" },
+		{ "id": "EV-NFR-06", "edition": "free", "title": "Public responses carry no other buyer's personal data" },
+		{ "id": "EV-NFR-07", "edition": "free", "title": "Works on Cloudflare and Node with emdash >= 1.2.0 < 2" },
+		{ "id": "EV-NFR-08", "edition": "free", "title": "Times stored in UTC and shown in the event's IANA time zone" },
+
+		{
+			"id": "ES-FR-01",
+			"edition": "free",
+			"title": "Versioned Markdown templates with {{field}} placeholders, a field list and a preview"
+		},
+		{
+			"id": "ES-FR-02",
+			"edition": "free",
+			"title": "Envelope statuses draft, sent, in progress, completed, declined, voided, expired"
+		},
+		{
+			"id": "ES-FR-03",
+			"edition": "free",
+			"title": "Immutable document snapshot per envelope with its SHA-256 (docSha256)"
+		},
+		{
+			"id": "ES-FR-04",
+			"edition": "free",
+			"title": "Ceremony: recorded consent, explicit intent, typed name or drawn strokes, field values"
+		},
+		{ "id": "ES-FR-05", "edition": "free", "title": "Hash-chained audit events plus a final envelope hash" },
+		{ "id": "ES-FR-06", "edition": "free", "title": "Audit events hash salted commitments of personal fields" },
+		{ "id": "ES-FR-07", "edition": "free", "title": "Signed PDF built once at completion, stored, with pdfSha256" },
+		{
+			"id": "ES-FR-08",
+			"edition": "free",
+			"title": "Download returns the stored PDF byte for byte via a short-lived signed link"
+		},
+		{ "id": "ES-FR-09", "edition": "free", "title": "Hash verification route that returns no personal data" },
+		{ "id": "ES-FR-10", "edition": "free", "title": "Invitation and completion emails, with links only" },
+		{
+			"id": "ES-FR-11",
+			"edition": "free",
+			"title": "Admin pages: Envelopes (with audit timeline), Templates, Integrations, Settings"
+		},
+		{
+			"id": "ES-FR-12",
+			"edition": "free",
+			"title": "Integration clients with a pairing string shown once; revocation"
+		},
+		{
+			"id": "ES-FR-13",
+			"edition": "free",
+			"title": "Accept signing intents: HMAC, expiry, single-use nonce, return-URL allowlist; idempotent"
+		},
+		{
+			"id": "ES-FR-14",
+			"edition": "free",
+			"title": "Signed receipts; client-signed receipt lookup and template catalogue"
+		},
+		{ "id": "ES-FR-15", "edition": "pro", "title": "Several signers with parallel or sequential order" },
+		{ "id": "ES-FR-16", "edition": "pro", "title": "Email OTP, limited to a set number of attempts" },
+		{ "id": "ES-FR-17", "edition": "free", "title": "Decline, void and expiry (Free); automatic reminders (Pro)" },
+		{ "id": "ES-FR-18", "edition": "pro", "title": "Public self-serve templates embedded on a page" },
+		{
+			"id": "ES-FR-19",
+			"edition": "pro",
+			"title": "Uploaded PDF templates with fields stamped at entered coordinates"
+		},
+		{ "id": "ES-FR-20", "edition": "pro", "title": "Bulk send" },
+		{
+			"id": "ES-FR-21",
+			"edition": "pro",
+			"title": "MCP tools: list templates, send, status, remind, void (destructive)"
+		},
+		{
+			"id": "ES-FR-22",
+			"edition": "free",
+			"title": "Retention: personal data and signed records on separate configurable periods"
+		},
+		{ "id": "ES-NFR-01", "edition": "free", "title": "≤ 50 ms CPU per invocation" },
+		{
+			"id": "ES-NFR-02",
+			"edition": "free",
+			"title": "Signing and access tokens are 256-bit, stored only as hashes, never in a plugin route URL"
+		},
+		{ "id": "ES-NFR-03", "edition": "free", "title": "Forged, expired or replayed intents and receipts are rejected" },
+		{
+			"id": "ES-NFR-04",
+			"edition": "free",
+			"title": "Return URLs must match the client's allowlist (same origin by default)"
+		},
+		{
+			"id": "ES-NFR-05",
+			"edition": "free",
+			"title": "Template Markdown renders to sanitised HTML with no script execution"
+		},
+		{ "id": "ES-NFR-06", "edition": "free", "title": "The audit chain verifies after the retention purge" },
+		{
+			"id": "ES-NFR-07",
+			"edition": "free",
+			"title": "The product never claims more than simple electronic signatures"
+		},
+
+		{
+			"id": "EU-FR-01",
+			"edition": "free",
+			"title": "eventsUi() descriptor with the Portable Text blocks, no capabilities, storage or routes"
+		},
+		{
+			"id": "EU-FR-02",
+			"edition": "free",
+			"title": "Data loaded at render time through the in-process public route handler"
+		},
+		{
+			"id": "EU-FR-03",
+			"edition": "free",
+			"title": "<EventList> and <EventCard>: date in the event's zone, venue, price range, availability"
+		},
+		{
+			"id": "EU-FR-04",
+			"edition": "free",
+			"title": "<BookingWidget>: tickets, buyer details, Turnstile when enabled, then the next step"
+		},
+		{
+			"id": "EU-FR-05",
+			"edition": "free",
+			"title": "Injected /_events/checkout endpoint takes the plain form post and redirects"
+		},
+		{
+			"id": "EU-FR-06",
+			"edition": "free",
+			"title": "<BookingStatus> page with Referrer-Policy: no-referrer; token only in a POST body"
+		},
+		{
+			"id": "EU-FR-07",
+			"edition": "free",
+			"title": "<TicketPass> with a QR code (encoded by the Pro core, drawn by the UI: R54)"
+		},
+		{ "id": "EU-FR-08", "edition": "free", "title": "<AddToCalendar>: .ics download plus Google and Outlook links" },
+		{ "id": "EU-FR-09", "edition": "free", "title": "Redirect to Stripe Checkout when next is pay, and a return page" },
+		{ "id": "EU-FR-10", "edition": "free", "title": "Custom question fields rendered from the event's question list" },
+		{ "id": "EU-FR-11", "edition": "free", "title": "Waitlist join form when sold out, and the claim page for offers" },
+		{ "id": "EU-NFR-01", "edition": "free", "title": "WCAG 2.2 AA: labelled fields, visible focus, errors announced" },
+		{ "id": "EU-NFR-02", "edition": "free", "title": "Client script ≤ 15 KB gzipped, no framework runtime" },
+		{
+			"id": "EU-NFR-03",
+			"edition": "free",
+			"title": "Server render adds at most 2 in-process plugin calls per component"
+		},
+		{
+			"id": "EU-NFR-04",
+			"edition": "free",
+			"title": "Every user-facing string translatable; layouts work right to left"
+		},
+		{
+			"id": "EU-NFR-05",
+			"edition": "free",
+			"title": "All theming through --events-* custom properties with documented defaults"
+		},
+		{ "id": "EU-NFR-06", "edition": "free", "title": "Pages that carry tokens send Referrer-Policy: no-referrer" },
+		{ "id": "EU-NFR-07", "edition": "free", "title": "Works at 320 px wide with no horizontal scrolling" },
+
+		{
+			"id": "SU-FR-01",
+			"edition": "free",
+			"title": "esignUi() descriptor with componentsEntry, no capabilities, storage or routes"
+		},
+		{
+			"id": "SU-FR-02",
+			"edition": "free",
+			"title": "/sign/[token] page: Referrer-Policy no-referrer, token passed in a POST body"
+		},
+		{ "id": "SU-FR-03", "edition": "free", "title": "Snapshot rendered from Markdown with an allowlist sanitiser" },
+		{
+			"id": "SU-FR-04",
+			"edition": "free",
+			"title": "Consent checkbox showing the versioned consent wording from the core"
+		},
+		{
+			"id": "SU-FR-05",
+			"edition": "free",
+			"title": "Signature pad: pointer events to normalised vector strokes, Clear and Undo"
+		},
+		{ "id": "SU-FR-06", "edition": "free", "title": "Typed signature, always available" },
+		{
+			"id": "SU-FR-07",
+			"edition": "free",
+			"title": "Form fields from the template's field list, validated before submit"
+		},
+		{ "id": "SU-FR-08", "edition": "free", "title": "Completion screen with the download link" },
+		{
+			"id": "SU-FR-09",
+			"edition": "free",
+			"title": "Receipt read from returnUrl#receipt=… and POSTed to the integrating system"
+		},
+		{ "id": "SU-FR-10", "edition": "free", "title": "<VerifyDocument>: SHA-256 in the browser; only the hash is sent" },
+		{
+			"id": "SU-FR-11",
+			"edition": "free",
+			"title": "OTP step, decline flow, waiting-for-others state for sequential signing"
+		},
+		{
+			"id": "SU-FR-12",
+			"edition": "free",
+			"title": "esign-request block for public self-serve templates, with Turnstile"
+		},
+		{
+			"id": "SU-FR-13",
+			"edition": "free",
+			"title": "Optional server-side PDF stamping, used only if Spike S5 fails",
+			"check": "Not applicable: Spike S5 passed, so the signed PDF is built in the core and the UI fallback was dropped (BUILD-PLAN R25, R53)"
+		},
+		{ "id": "SU-NFR-01", "edition": "free", "title": "No script runs from template content" },
+		{
+			"id": "SU-NFR-02",
+			"edition": "free",
+			"title": "CSP on the signing page allows no inline script except the package's hashed one"
+		},
+		{
+			"id": "SU-NFR-03",
+			"edition": "free",
+			"title": "WCAG 2.2 AA; the typed path covers anyone who can't use the pad"
+		},
+		{ "id": "SU-NFR-04", "edition": "free", "title": "A typical waiver's stroke JSON is ≤ 32 KB" },
+		{ "id": "SU-NFR-05", "edition": "free", "title": "Works at 320 px wide; pad usable in portrait on a phone" },
+		{
+			"id": "SU-NFR-06",
+			"edition": "free",
+			"title": "All strings translatable, including the consent wording supplied by the core"
+		},
+
+		{
+			"id": "SX-FR-01",
+			"edition": "free",
+			"title": "eventsSuite(options) returns both packages' cores and UI entries"
+		},
+		{
+			"id": "SX-FR-02",
+			"edition": "free",
+			"title": "<BookingWithWaiver>: reserve, inline signing, receipt, then payment or done"
+		},
+		{
+			"id": "SX-FR-03",
+			"edition": "free",
+			"title": "Intents for other adults issued at confirmation and emailed; tickets carry waiver: pending"
+		},
+		{ "id": "SX-FR-04", "edition": "free", "title": "Check-in refuses an attendee whose waiver is pending" },
+		{
+			"id": "SX-FR-05",
+			"edition": "free",
+			"title": "Reconciliation through receipts/lookup forwarded to signatures/receipt"
+		},
+		{
+			"id": "SX-FR-06",
+			"edition": "free",
+			"title": "Pairing guide in the docs (one-click Connect only if Spike S2 allows)"
+		},
+		{ "id": "SX-FR-07", "edition": "free", "title": "Template catalogue refresh handed to Events' panel" },
+		{
+			"id": "SX-FR-08",
+			"edition": "free",
+			"title": "docs/protocol/esign-intent-v1.md with test vectors both cores run"
+		},
+		{ "id": "SX-NFR-01", "edition": "free", "title": "Each token type has its own HMAC prefix" },
+		{ "id": "SX-NFR-02", "edition": "free", "title": "Intents expire within 30 minutes and never outlive the hold" },
+		{ "id": "SX-NFR-03", "edition": "free", "title": "Each intent nonce can be used once" },
+		{
+			"id": "SX-NFR-04",
+			"edition": "free",
+			"title": "Receipts travel in the URL fragment or a POST body, never a query string"
+		},
+		{ "id": "SX-NFR-05", "edition": "free", "title": "Forwarding the same receipt twice changes nothing" },
+		{ "id": "SX-NFR-06", "edition": "free", "title": "A revoked client's intents and lookups are rejected immediately" }
+	]
+}
