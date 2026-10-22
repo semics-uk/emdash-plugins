@@ -62,6 +62,8 @@ export interface EnvelopeDoc {
 	status: EnvelopeStatus;
 	/** Several signers (E-sign Pro, T090): `sequential` invites each signer once the one before has signed. */
 	routing: "parallel" | "sequential";
+	/** Every signer must verify an emailed one-time code before signing (E-sign Pro, T091). Free only enforces it. */
+	otp?: boolean;
 	delivery: Delivery;
 	clientId?: string;
 	externalRef?: string;
@@ -110,6 +112,8 @@ export interface SignerDoc {
 	createdAt: string;
 	/** First view in an envelope with several signers (T090): each signer's `signer.viewed` is written once. */
 	viewedAt?: string;
+	/** When this signer verified their emailed one-time code (E-sign Pro, T091). */
+	otpVerifiedAt?: string;
 	/** Set by the signing ceremony (domain/signing.ts). Personal data: purged by retention. */
 	signature?: StoredSignature;
 	consentAt?: string;

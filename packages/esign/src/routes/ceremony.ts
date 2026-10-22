@@ -321,6 +321,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		},
 		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant } : {}) },
 		snapshot: text,
+		...(envelope.otp ? { otp: signer.data.otpVerifiedAt ? "verified" : "required" } : {}),
 		...(envelope.signerFields?.length ? { fields: envelope.signerFields } : {}),
 		consent: { version: consent.version, wording: consent.wording, sha256: consent.sha256 },
 	};
@@ -345,6 +346,7 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext, several?: Severa
 	if (envelope.status !== "in_progress") return fail("ENVELOPE_CLOSED");
 	const now = toIso();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
+	if (envelope.otp && !signer.data.otpVerifiedAt) return fail("OTP_REQUIRED");
 	// The signature binds to the document the signer saw; the snapshot is immutable after send.
 	if (envelope.docSha256 === null || fields.value.docSha256 !== envelope.docSha256) {
 		return badRequest([{ path: "docSha256", code: "DOC_CHANGED" }]);

@@ -220,6 +220,17 @@ async function create(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	return { ok: true, envelope: view(id, draft.value) };
 }
 
+type SendStamp = (
+	ctx: PluginContext,
+	settings: Record<string, unknown>,
+	template: TemplateDoc,
+) => Promise<Partial<EnvelopeDoc>>;
+let stamp: SendStamp | undefined;
+/** Edition seam (`seams.ts`): fields stamped on an envelope as `envelopes/send` freezes it, from the settings it read. */
+export const onEnvelopeSend = (fn: SendStamp | undefined) => {
+	stamp = fn;
+};
+
 async function send(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	const id = idOf(routeCtx.input);
 	if (!id) return badRequest();
@@ -241,11 +252,16 @@ async function send(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	);
 	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
 	const token = generateToken();
-	const sent = await sendEnvelope(id, envelope, template.value, {
-		now: toIso(),
-		tokenHash: await hashToken(token),
-		expiryDays: expiryDays(settings.expiryDays),
-	});
+	const sent = await sendEnvelope(
+		id,
+		{ ...envelope, ...(await stamp?.(ctx, settings, template.value)) },
+		template.value,
+		{
+			now: toIso(),
+			tokenHash: await hashToken(token),
+			expiryDays: expiryDays(settings.expiryDays),
+		},
+	);
 	if (!sent.ok) return Array.isArray(sent.error) ? badRequest(sent.error) : fail("ENVELOPE_CLOSED");
 	await snapshots.putMany(sent.value.chunks);
 	const moved = await transitionEnvelope(envelopes, id, "draft", "sent", sent.value.envelope);

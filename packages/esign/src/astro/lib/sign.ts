@@ -18,6 +18,8 @@ export interface SessionData {
 	envelope?: { id: string; title: string; status: string; docSha256: string | null; expiresAt: string | null };
 	signer?: { name: string; as?: string; participant?: string };
 	snapshot?: string;
+	/** An emailed one-time code is needed before signing (E-sign Pro, T091); `verified` once it has been entered. */
+	otp?: "required" | "verified";
 	/** `sha256` is the SHA-256 of `wording`, posted back with the signature (T117). */
 	consent?: { version: string; wording: string; sha256?: string };
 	/** Values the signer fills in (`fieldValues` on submit). */
@@ -124,6 +126,8 @@ export type SignView =
 			fields?: string[];
 			errorCode?: string;
 			message?: string;
+			/** A one-time code was just emailed (T091). */
+			otpSent?: true;
 	  }
 	| { kind: "closed"; status: string; title?: string; pdf?: "pending" | "ready"; download?: string; returnUrl?: string }
 	| { kind: "signed"; returnUrl?: string; download?: string; pdf?: "pending" | "ready"; waiting?: true }
@@ -141,6 +145,12 @@ export const MESSAGES: Record<string, string> = {
 	SESSION_REQUIRED: "Please reload the page and try again.",
 	BAD_REQUEST: "Please check the form and try again.",
 	SIGNING_OUT_OF_TURN: "Another signer has to sign first. You will get an email when it is your turn.",
+	OTP_REQUIRED: "Enter the code we emailed you before signing.",
+	OTP_INVALID: "That code is not right. Check the latest email and try again.",
+	OTP_EXPIRED: "That code has expired. Ask for a new code.",
+	OTP_LOCKED: "Too many wrong codes. Ask for a new code.",
+	OTP_WAIT: "A code was sent a moment ago. Please wait before asking for another.",
+	OTP_SEND_FAILED: "We could not email a code. Please try again shortly.",
 	STROKES_TOO_LARGE: "Your drawn signature is too detailed. Clear it and sign again more simply.",
 };
 
@@ -217,7 +227,23 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 	if (session.state !== "ready") return closedView(session);
 	if (!form) return { kind: "ready", session };
 
-	if (text(form, "intent") === "decline") {
+	const intent = text(form, "intent");
+	if (intent === "otp-send" || intent === "otp-verify") {
+		const verify = intent === "otp-verify";
+		const result = await callPublicRoute<{ ok: true }>(ctx, {
+			method: "POST",
+			path: verify ? "public/otp/verify" : "public/otp/send",
+			body: verify ? { token, code: text(form, "code") } : { token },
+		});
+		if (!result.ok)
+			return { kind: "ready", session, errorCode: result.error.code, message: message(result.error.code) };
+		// A verified code changes what the session offers: load it again.
+		const again = verify
+			? await callPublicRoute<SessionData>(ctx, { method: "POST", path: "public/session", body: { token } })
+			: undefined;
+		return { kind: "ready", session: again?.ok ? again.data : session, ...(verify ? {} : { otpSent: true as const }) };
+	}
+	if (intent === "decline") {
 		const reason = text(form, "reason");
 		const result = await callPublicRoute<Done>(ctx, {
 			method: "POST",

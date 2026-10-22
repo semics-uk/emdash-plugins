@@ -114,7 +114,25 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 						<pre>{session.snapshot}</pre>
 					</details>
 				</section>
-				<form method="post" action={action} data-esign-sign-form data-consent-version={session.consent?.version}>
+				{
+					session.otp === "required" && (
+						<section data-testid="sign-otp" aria-label="Email code">
+							<p>To sign, first enter the code we email to you.</p>
+							{ready.otpSent && <p role="status" data-testid="sign-otp-sent">We emailed you a code. It expires in 10 minutes.</p>}
+							<form method="post" action={action}>
+								<button type="submit" name="intent" value="otp-send">Email me a code</button>
+							</form>
+							<form method="post" action={action}>
+								<div class="semics-field">
+									<label for="esign-code">Code</label>
+									<input id="esign-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required />
+								</div>
+								<button type="submit" name="intent" value="otp-verify">Verify code</button>
+							</form>
+						</section>
+					)
+				}
+				{session.otp !== "required" && <form method="post" action={action} data-esign-sign-form data-consent-version={session.consent?.version}>
 					{
 						fields.length > 0 && (
 							<fieldset>
@@ -159,7 +177,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 					</div>
 					<p id="esign-missing" class="semics-note" data-esign-missing data-testid="sign-missing" aria-live="polite" hidden></p>
 					<button type="submit" name="intent" value="sign" data-esign-sign aria-describedby="esign-missing">Sign document</button>
-				</form>
+				</form>}
 				<form method="post" action={action} class="semics-decline">
 					<div class="semics-field">
 						<label for="esign-reason">Or decline to sign (optional reason)</label>

@@ -63,7 +63,15 @@ export interface SignedPdfInput {
 
 export type PdfSigner = Pick<
 	SignerDoc,
-	"name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion" | "consentSha256" | "fieldValues"
+	| "name"
+	| "as"
+	| "participant"
+	| "signature"
+	| "signedAt"
+	| "consentVersion"
+	| "consentSha256"
+	| "fieldValues"
+	| "otpVerifiedAt"
 >;
 
 export const CERTIFICATE_WORDING =
@@ -194,6 +202,7 @@ export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
 			["Signature SHA-256", signer.signature?.sha256 ?? ""],
 			["Consent version", signer.consentVersion ?? ""],
 			...(signer.consentSha256 ? [["Consent wording SHA-256", signer.consentSha256]] : []),
+			...(signer.otpVerifiedAt ? [["Identity check", "Email one-time code verified"]] : []),
 			["Signed", utc(signer.signedAt)],
 		]),
 		["Completed", utc(envelope.completedAt)],

@@ -1,15 +1,14 @@
 /**
  * T091 (ES-FR-16): what the Free core knows about an email one-time code, which only E-sign Pro issues.
  * An envelope may carry `otp: true`; a signer who has not verified (`otpVerifiedAt`) cannot sign it,
- * and the session says so. A downgrade therefore never opens a hole: Free keeps refusing. The
- * `onEnvelopeSend` seam lets an edition stamp a sent envelope from the settings `envelopes/send` read.
+ * and the session says so. A downgrade therefore never opens a hole: Free keeps refusing. (The
+ * `onEnvelopeSend` seam runs in the sandbox bundle, so E-sign Pro's editions tests cover it.)
  */
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { hashToken, sha256Hex } from "@semics-tech/shared";
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
-import { onEnvelopeSend } from "../src/seams";
 
 const LIMIT = { calls: 10, cpuMs: 50 };
 const TOKEN = "a".repeat(43);
@@ -18,7 +17,6 @@ const CONSENT_SHA256 = await sha256Hex(DEFAULT_CONSENT_WORDING);
 let runtime: PluginRuntimeTestHost | undefined;
 const originalKey = process.env.EMDASH_ENCRYPTION_KEY;
 afterEach(async () => {
-	onEnvelopeSend(undefined);
 	await runtime?.dispose();
 	runtime = undefined;
 	if (originalKey === undefined) delete process.env.EMDASH_ENCRYPTION_KEY;
@@ -39,7 +37,10 @@ async function draft() {
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 	runtime = await createPluginRuntimeTestHost();
 	const budget = withBudget(runtime);
-	const t = (await call(budget, "templates/create", { name: "Lease", body: "I, {{signer.name}}, accept.\n" })) as Body & {
+	const t = (await call(budget, "templates/create", {
+		name: "Lease",
+		body: "I, {{signer.name}}, accept.\n",
+	})) as Body & {
 		template: { id: string };
 	};
 	const created = (await call(budget, "envelopes/create", {
@@ -55,10 +56,11 @@ async function sentEnvelope(otp: boolean) {
 	await call(budget, "envelopes/send", { id });
 	const signerId = `${id}:s1`;
 	const signer = (await host().inspect.storage.get<Doc>("signers", signerId)) as Doc;
-	await host().fixtures.plugin.storage("signers", signerId, { ...signer, tokenHash: await hashToken(TOKEN) });
+	const withToken = { ...signer, tokenHash: await hashToken(TOKEN) };
+	await host().fixtures.plugin.storage("signers", signerId, withToken);
 	const envelope = (await host().inspect.storage.get<Doc>("envelopes", id)) as Doc;
 	if (otp) await host().fixtures.plugin.storage("envelopes", id, { ...envelope, otp: true });
-	return { budget, id, signerId, signer, docSha256: envelope.docSha256 as string };
+	return { budget, id, signerId, signer: withToken, docSha256: envelope.docSha256 as string };
 }
 
 const submitBody = (docSha256: string) => ({
@@ -105,26 +107,5 @@ describe("ES-FR-16 an envelope that needs an email code", () => {
 		await host().fixtures.plugin.storage("signers", signerId, { ...signer, otpVerifiedAt: "2026-10-21T10:00:00.000Z" });
 		expect(await call(budget, "public/submit", submitBody(docSha256))).toMatchObject({ ok: true, status: "completed" });
 		expect(await host().inspect.storage.get<Doc>("envelopes", id)).toMatchObject({ status: "completed" });
-	});
-});
-
-describe("ES-FR-16 onEnvelopeSend: an edition stamps an envelope as it is sent", () => {
-	it("ES-FR-16 the stamp reads the settings envelopes/send already read and costs no bridge call", async () => {
-		const { budget, id } = await draft();
-		const seen: Array<Record<string, unknown>> = [];
-		onEnvelopeSend(async (_ctx, settings) => {
-			seen.push(settings);
-			return { otp: true };
-		});
-		const sent = await budget.invokeRoute("envelopes/send", { id });
-		expectWithinBudget(sent, LIMIT);
-		expect(await host().inspect.storage.get<Doc>("envelopes", id)).toMatchObject({ status: "sent", otp: true });
-		expect(seen[0]).toHaveProperty("expiryDays");
-	});
-
-	it("ES-FR-16 without a stamp the envelope is left as it was", async () => {
-		const { budget, id } = await draft();
-		await call(budget, "envelopes/send", { id });
-		expect(await host().inspect.storage.get<Doc>("envelopes", id)).not.toHaveProperty("otp");
 	});
 });

@@ -68,6 +68,9 @@ export const ERROR_CODES = Object.freeze({
 	/** E-sign Pro sequential routing (T090): an earlier signer has not signed yet. */
 	SIGNING_OUT_OF_TURN: def(409, "Another signer has to sign first. You will get an email when it is your turn."),
 
+	/** E-sign Pro (T091): the envelope needs a verified email one-time code first; the code routes are Pro's. */
+	OTP_REQUIRED: def(403, "Enter the code we emailed you before signing."),
+
 	// --- protocol (docs/protocol/esign-intent-v1.md §9; strings and statuses are verbatim) ---
 	TOKEN_TOO_LARGE: def(413, "The token is too large."),
 	TOKEN_MALFORMED: def(400, "The token is malformed."),
