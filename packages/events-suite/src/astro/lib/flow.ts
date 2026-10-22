@@ -26,6 +26,7 @@ import {
 	bookingCookieOptions,
 	isCrossSiteRequest,
 } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { isPayUrl } from "@semics-tech/emdash-events/astro/lib/payment";
 import { forwardReceipt } from "@semics-tech/emdash-events/astro/lib/receipt";
 import { newIdempotencyKey } from "@semics-tech/emdash-events/astro/lib/widget";
 
@@ -243,7 +244,11 @@ async function proceed(
 	cookies: CookieOp[],
 	accessToken: string,
 ): Promise<WaiverOutcome> {
-	if (next?.type === "pay" && typeof next.url === "string") return redirect(next.url, cookies);
+	if (next?.type === "pay") {
+		return isPayUrl(next.url)
+			? redirect(next.url, cookies)
+			: redirect(`${bookingPage(ref)}&error=PAYMENT_FAILED`, cookies);
+	}
 	if (next?.type !== "sign" || !Array.isArray(next.intents)) return redirect(bookingPage(ref), cookies);
 
 	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
@@ -257,7 +262,12 @@ async function proceed(
 		]);
 	}
 	if (inline.length === 0) return redirect(bookingPage(ref), cookies);
-	return redirect(`${WAIVER_PATH}?ref=${ref}`, [...cookies, flowCookie(ctx.url, ref, inline.slice(0, MAX_INLINE))]);
+	// The token stays on this page's path for the retry button and for payment after the last receipt.
+	return redirect(`${WAIVER_PATH}?ref=${ref}`, [
+		...cookies,
+		retryCookie(ctx.url, ref, accessToken),
+		flowCookie(ctx.url, ref, inline.slice(0, MAX_INLINE)),
+	]);
 }
 
 /**
@@ -291,6 +301,27 @@ function receiptOf(view: SignView): string | undefined {
 	return hash.startsWith("#receipt=") ? hash.slice("#receipt=".length) : undefined;
 }
 
+/**
+ * After the last receipt of a paid waiver booking the booking waits at `awaiting_payment` with no
+ * payment link (T065, T073): ask Events to continue it again (no attendees: it keeps the signed ones)
+ * and follow the `pay` step. Anything else (free, other signers pending, a lapsed hold, no cookie)
+ * keeps the booking page, which shows the booking as it is, with "Pay now" if it needs it.
+ */
+async function payOrLand(ctx: WaiverRequestContext, ids: SuiteIds, ref: string, landed: string): Promise<string> {
+	if (!landed.includes("waiver=signed")) return landed;
+	const accessToken = ctx.cookie(retryCookieName(ref)) || ctx.cookie(bookingCookieName(ref));
+	if (!accessToken) return landed;
+	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
+	const continued = await post<{ next?: { type?: unknown; url?: unknown } }>(
+		call,
+		ids.eventsPluginId,
+		"public/checkout/continue",
+		{ bookingRef: ref, accessToken },
+	);
+	const next = continued.ok ? continued.data.next : undefined;
+	return next?.type === "pay" && isPayUrl(next.url) ? next.url : landed;
+}
+
 async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | null): Promise<WaiverOutcome> {
 	const ref = ctx.url.searchParams.get("ref") ?? "";
 	if (!BOOKING_REF.test(ref)) return redirect(BOOKING_PATH);
@@ -316,11 +347,13 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 		// Signed, declined, or closed meanwhile (another tab): record the outcome with Events.
 		const receipt = receiptOf(view);
 		const landed = receipt ? (await forward(receipt)).location : bookingPage(ref);
-		if (view.kind === "declined" || after.length === 0) return redirect(landed, [flowCookie(ctx.url, ref, [])]);
+		if (view.kind === "declined") return redirect(landed, [flowCookie(ctx.url, ref, [])]);
+		if (after.length === 0) return redirect(await payOrLand(ctx, ids, ref, landed), [flowCookie(ctx.url, ref, []), retryCookie(ctx.url, ref, undefined)]);
 		return redirect(`${WAIVER_PATH}?ref=${ref}`, [flowCookie(ctx.url, ref, after)]);
 	}
 
 	// A GET only looks. An envelope closed meanwhile (signed in another tab) is forwarded and skipped.
+	let landed = bookingPage(ref);
 	while (rest.length > 0) {
 		const [token = "", ...after] = rest;
 		const view = await handleSign(signCtx, token, null);
@@ -329,10 +362,10 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 			return { type: "render", ref, token, remaining: after.length, view, cookies };
 		}
 		const receipt = receiptOf(view);
-		if (receipt) await forward(receipt);
+		if (receipt) landed = (await forward(receipt)).location;
 		rest = after;
 	}
-	return redirect(bookingPage(ref), [flowCookie(ctx.url, ref, [])]);
+	return redirect(await payOrLand(ctx, ids, ref, landed), [flowCookie(ctx.url, ref, []), retryCookie(ctx.url, ref, undefined)]);
 }
 
 /** Everything `/_events/waiver` does for one request. The page applies cookies and redirects. */
