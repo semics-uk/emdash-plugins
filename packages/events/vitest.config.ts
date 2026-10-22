@@ -27,6 +27,7 @@ export default defineConfig({
 					exclude: [
 						...configDefaults.exclude,
 						"tests/shared-bundle*.test.ts",
+						"tests/*.build.test.ts",
 						"tests/contract.test.ts",
 						"tests/inventory.test.ts",
 						"tests/holds.test.ts",
@@ -65,7 +66,8 @@ export default defineConfig({
 					environment: "node",
 					testTimeout,
 					hookTimeout: testTimeout,
-					include: ["tests/shared-bundle.build.test.ts"],
+					// Shared inlining (T003) and the backend size budget (R42, T118).
+					include: ["tests/*.build.test.ts"],
 				},
 			},
 		],

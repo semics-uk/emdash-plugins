@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const packagesDir = fileURLToPath(new URL("../..", import.meta.url));
-const TESTING_IMPORT = /["'](?:@semics-tech\/shared\/testing|[./]*(?:shared\/)?testing\/budget(?:\.ts)?)["']/;
+const TESTING_IMPORT =
+	/["'](?:@semics-tech\/shared\/testing(?:\/[\w-]+)?|[./]*(?:shared\/)?testing\/(?:budget|bundle-size)(?:\.ts)?)["']/;
 
 function sourceFiles(dir: string): string[] {
 	return readdirSync(dir).flatMap((name) => {
@@ -31,7 +32,13 @@ function runtimeFiles(): string[] {
 // reach a sandbox bundle or a UI entry.
 describe("@semics-tech/shared/testing boundary (T007)", () => {
 	it("the import pattern recognises the ways the harness can be imported", () => {
-		for (const spec of ['"@semics-tech/shared/testing"', '"../testing/budget"', "'../../shared/testing/budget.ts'"]) {
+		for (const spec of [
+			'"@semics-tech/shared/testing"',
+			'"@semics-tech/shared/testing/bundle-size"',
+			'"../testing/budget"',
+			"'../../shared/testing/budget.ts'",
+			'"../testing/bundle-size"',
+		]) {
 			expect(spec).toMatch(TESTING_IMPORT);
 		}
 		expect('"@semics-tech/shared"').not.toMatch(TESTING_IMPORT);
