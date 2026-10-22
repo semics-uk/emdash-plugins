@@ -369,6 +369,17 @@ describe("ES-FR-22 retention job", () => {
 		expect(again).toBeLessThanOrEqual(5);
 	});
 
+	it("T100 deletes ended rate-limit counters (hashed IPs under a public salt; KV has no TTL), keeps live ones", async () => {
+		const { r, budget } = await setup();
+		const nowSec = Math.floor(Date.now() / 1000);
+		for (let i = 0; i < 8; i++) await r.fixtures.plugin.kv(`rl:ceremony:h${i}:1`, `1:${nowSec - 60}`);
+		await r.fixtures.plugin.kv("rl:verify:legacy:2", "7");
+		await r.fixtures.plugin.kv("rl:ceremony:live:3", `2:${nowSec + 600}`);
+		await runPass(budget);
+		const keys = (await r.inspect.kv.list()).map((e) => e.id);
+		expect(keys.filter((k) => k.startsWith("rl:"))).toEqual(["rl:ceremony:live:3"]);
+	});
+
 	it("ES-FR-22 deletes sent and failed outbox rows older than the period; pending and recent rows stay", async () => {
 		const { r, budget } = await setup();
 		const old = Date.now() - 400 * DAY;
