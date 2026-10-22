@@ -776,7 +776,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -795,7 +795,7 @@
 			"unblocks": [
 				"T034"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T034": {
 			"file": "T034-phase-1-gate-review-and-budgets.md",
@@ -2275,12 +2275,12 @@
 			"T106"
 		],
 		"ready": [
-			"T033",
 			"T043",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
+			"T033",
 			"T054"
 		],
 		"review": [],

@@ -4,7 +4,7 @@ title: "E-sign: end-to-end send, sign, download, verify"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T025, T026, T027, T028, T030, T031, T032, T009]
@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Runs in CI on Node
 - [ ] Playground fixture that creates and sends an envelope, so the e2e walks `/sign/[token]` → session → submit → signed PDF → `/verify` (T029 covers only the unknown-link and unmatched-hash states)
 - [ ] `public/session` exposes signer-fillable fields so the ceremony renders and posts them (T030 handles them only if present)
+- [ ] Replace the T032 `esign-fixture.mjs` (direct storage writes, no audit chain) with the real send → sign journey, so `/verify` reports `chainVerified: true`
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
