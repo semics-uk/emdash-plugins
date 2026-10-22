@@ -2032,7 +2032,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2047,7 +2047,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T101": {
 			"file": "T101-accessibility-audit-and-fixes.md",
@@ -2102,7 +2102,7 @@
 			"phase": 7,
 			"package": "docs",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2115,7 +2115,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T104": {
 			"file": "T104-release-automation.md",
@@ -2407,11 +2407,10 @@
 			"T106"
 		],
 		"ready": [
-			"T103",
 			"T111"
 		],
 		"in-progress": [
-			"T100"
+			"T103"
 		],
 		"review": [],
 		"done": [
@@ -2500,6 +2499,7 @@
 			"T095",
 			"T096",
 			"T097",
+			"T100",
 			"T101",
 			"T102",
 			"T104",
@@ -2517,7 +2517,7 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T100",
+		"T103",
 		"T106"
 	],
 	"criticalWeight": 3
