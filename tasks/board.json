@@ -2167,7 +2167,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2182,7 +2182,7 @@
 				"Phase 7 exit"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T110": {
 			"file": "T110-cloudflare-staging-and-platform-limit-measurements.md",
@@ -2216,7 +2216,7 @@
 			"phase": 1,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2230,7 +2230,7 @@
 				"EV-NFR-02"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "done"
 		},
 		"T112": {
 			"file": "T112-e-sign-submit-race-path-within-the-call-limit.md",
@@ -2404,11 +2404,10 @@
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [
-			"T106",
-			"T111"
+		"ready": [],
+		"in-progress": [
+			"T106"
 		],
-		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2503,6 +2502,7 @@
 			"T104",
 			"T105",
 			"T110",
+			"T111",
 			"T112",
 			"T113",
 			"T115",
@@ -2515,7 +2515,7 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T111"
+		"T106"
 	],
-	"criticalWeight": 2
+	"criticalWeight": 1
 }
