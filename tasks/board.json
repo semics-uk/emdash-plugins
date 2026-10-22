@@ -2363,7 +2363,7 @@
 			"phase": 6,
 			"package": "suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2377,7 +2377,7 @@
 				"R44"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -2405,8 +2405,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T078",
-			"T119"
+			"T078"
 		],
 		"review": [],
 		"done": [
@@ -2489,7 +2488,8 @@
 			"T115",
 			"T116",
 			"T117",
-			"T118"
+			"T118",
+			"T119"
 		],
 		"blocked": []
 	},
