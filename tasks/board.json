@@ -805,7 +805,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -819,7 +819,7 @@
 				"T060",
 				"T071"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T040": {
 			"file": "T040-events-manifest-storage-and-settings-schema.md",
@@ -2294,12 +2294,12 @@
 			"T106"
 		],
 		"ready": [
-			"T034",
 			"T043",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
+			"T034",
 			"T056"
 		],
 		"review": [],
