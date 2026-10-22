@@ -1860,7 +1860,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1873,7 +1873,7 @@
 			"unblocks": [
 				"T095"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T091": {
 			"file": "T091-e-sign-pro-email-otp.md",
@@ -1979,7 +1979,7 @@
 				"ES-FR-20"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T096": {
 			"file": "T096-e-sign-pro-mcp-tools.md",
@@ -2404,7 +2404,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T095",
 			"T101",
 			"T102",
 			"T106"
@@ -2419,13 +2418,13 @@
 			"T091",
 			"T093",
 			"T094",
+			"T095",
 			"T096",
 			"T100",
 			"T103",
 			"T111"
 		],
 		"in-progress": [
-			"T090",
 			"T120"
 		],
 		"review": [],
@@ -2501,6 +2500,7 @@
 			"T078",
 			"T085",
 			"T087",
+			"T090",
 			"T092",
 			"T097",
 			"T104",
