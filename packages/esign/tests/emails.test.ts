@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { OUTBOX_TASK, runOutboxJob } from "../src/emails/outbox";
 import { completionEmail, invitationEmail } from "../src/emails/templates";
 
 const BASE = { to: "ada@example.com", signerName: "Ada Lovelace", title: "Waiver", sender: "Acme Theatre" };
@@ -48,5 +49,52 @@ describe("ES-FR-10 email templates", () => {
 	it("a title cannot inject a line break into the subject", () => {
 		const m = completionEmail({ ...BASE, title: "A\r\nBcc: x@evil.test", link: LINK });
 		expect(m.subject).not.toMatch(/[\r\n]/);
+	});
+});
+
+describe("T034 the outbox drain's give-up log stays inside 10 bridge calls (R22: log calls count)", () => {
+	it("R22 a full tick in which every message gives up is query + 6 sends + putMany + log = 9 calls", async () => {
+		let calls = 0;
+		const rows = Array.from({ length: 7 }, (_, i) => ({
+			id: `invite-${i}`,
+			data: {
+				message: { to: "ada@example.com", subject: "s", text: "t" },
+				status: "pending",
+				attempts: 4,
+				nextAttemptAt: 0,
+				createdAt: 0,
+			},
+		}));
+		const logged: string[] = [];
+		const count = async () => {
+			calls++;
+		};
+		const ctx = {
+			storage: {
+				outbox: {
+					query: async () => {
+						calls++;
+						return { items: rows };
+					},
+					putMany: count,
+					put: count,
+				},
+			},
+			email: {
+				send: async () => {
+					calls++;
+					throw new Error("transport down");
+				},
+			},
+			log: {
+				error: (message: string) => {
+					calls++;
+					logged.push(message);
+				},
+			},
+		};
+		expect(await runOutboxJob({ name: OUTBOX_TASK } as never, ctx as never, 1_000)).toBe(true);
+		expect(logged).toEqual(["emails given up after repeated failures"]);
+		expect(calls).toBe(9);
 	});
 });

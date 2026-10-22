@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { callPublicRoute, ESIGN_PLUGIN_ID } from "../../src/astro/lib/call";
+import { crossSiteResponse, isCrossSiteRequest } from "../../src/astro/lib/csrf";
 import { handleSign, handleSignedCopy, handleVerify } from "../../src/astro/lib/sign";
 
 const url = new URL("https://site.example/sign/TOKEN");
@@ -101,6 +102,37 @@ describe("callPublicRoute keeps the visitor's request metadata in-process (T034,
 		await handleSign(ctx, TOKEN, null);
 		await handleVerify(ctx, form({ sha256: DOC }));
 		expect(seen.map((r) => r.headers.get("user-agent"))).toEqual(["Mozilla/5.0 Signer", "Mozilla/5.0 Signer"]);
+	});
+});
+
+describe("isCrossSiteRequest: the UI's own CSRF check (T034; EmDash sets Astro checkOrigin off)", () => {
+	const page = new URL("http://localhost/sign/TOKEN");
+	const post = (headers: Record<string, string>, method = "POST") =>
+		new Request("https://sign.example/sign/TOKEN", { method, headers });
+
+	it("trusts Sec-Fetch-Site first", () => {
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "cross-site" }), page)).toBe(true);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-site" }), page)).toBe(true);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-origin", origin: "https://evil.example" }), page)).toBe(false);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "none" }), page)).toBe(false);
+	});
+
+	it("falls back to Origin against the page origin or the Host the browser sent", () => {
+		expect(isCrossSiteRequest(post({ origin: "https://evil.example", host: "sign.example" }), page)).toBe(true);
+		expect(isCrossSiteRequest(post({ origin: "https://sign.example", host: "sign.example" }), page)).toBe(false);
+		expect(isCrossSiteRequest(post({ origin: "http://localhost" }), page)).toBe(false);
+		expect(isCrossSiteRequest(post({ origin: "null", host: "sign.example" }), page)).toBe(true);
+		expect(isCrossSiteRequest(post({}), page)).toBe(false);
+	});
+
+	it("never refuses a GET", () => {
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "cross-site" }, "GET"), page)).toBe(false);
+	});
+
+	it("the refusal is a 403 that is never cached", () => {
+		const res = crossSiteResponse();
+		expect(res.status).toBe(403);
+		expect(res.headers.get("cache-control")).toBe("no-store");
 	});
 });
 

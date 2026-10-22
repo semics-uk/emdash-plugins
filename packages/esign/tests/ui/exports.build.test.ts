@@ -39,6 +39,16 @@ describe("esign package entries (SU-FR-01)", () => {
 		}
 	});
 
+	it("T034 the pages that take form posts refuse cross-site ones before reading the form (CSRF)", () => {
+		for (const page of ["SignPage.astro", "VerifyPage.astro"]) {
+			const source = readFileSync(resolve(root, "src/astro", page), "utf8");
+			const check = source.indexOf("isCrossSiteRequest(Astro.request, Astro.url)");
+			expect(check, page).toBeGreaterThan(-1);
+			expect(check, page).toBeLessThan(source.indexOf("Astro.request.formData()"));
+			expect(source, page).toContain("crossSiteResponse()");
+		}
+	});
+
 	it("T034 the pages hand Astro.request to the helpers, so the core sees the visitor's IP and user agent", () => {
 		for (const page of ["SignPage.astro", "SignedCopyPage.astro", "VerifyPage.astro"]) {
 			const source = readFileSync(resolve(root, "src/astro", page), "utf8");
