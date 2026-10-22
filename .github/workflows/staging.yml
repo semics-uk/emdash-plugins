@@ -1,0 +1,125 @@
+name: Staging nightly
+
+# The playground on Cloudflare staging (T111): every night, build it with Events Pro for the `staging`
+# wrangler environment, deploy it to workers.dev, reseed its D1 database and run the staging checks:
+# the Phase 2 checkout race on D1, the staging Playwright suite (S2 on Worker Loader, a booking, Pro
+# check-in), Lighthouse accessibility, the visitor IP reaching the core, and Cloudflare's CPU figure
+# for one route next to the T007 one (R27).
+#
+# Off until the owner sets it up (tasks/T111 notes, "Owner actions"): environment `staging` with the
+# secrets CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, STAGING_ADMIN_TOKEN and PRO_REPO_TOKEN, and the
+# repository variables STAGING_URL and STAGING_ENABLED=true. Only `semics-staging-*` resources are
+# touched: the build is made with CLOUDFLARE_ENV=staging and checked before `wrangler deploy`.
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+jobs:
+  staging:
+    name: Deploy staging and run the staging checks
+    if: github.repository == 'semics-uk/emdash-plugins' && vars.STAGING_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: staging
+    env:
+      CLOUDFLARE_ENV: staging
+      PLAYGROUND_TARGET: cloudflare
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      STAGING_URL: ${{ vars.STAGING_URL }}
+      # Pro's packages link the public ones as ../../../emdash-plugins/packages/*: check both out side by side.
+      EMDASH_PRO_DIR: ${{ github.workspace }}/emdash-plugins-pro
+    defaults:
+      run:
+        working-directory: emdash-plugins
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: emdash-plugins
+          persist-credentials: false
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: semics-uk/emdash-plugins-pro
+          token: ${{ secrets.PRO_REPO_TOKEN }}
+          path: emdash-plugins-pro
+          persist-credentials: false
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: emdash-plugins/.nvmrc
+          cache: pnpm
+          cache-dependency-path: |
+            emdash-plugins/pnpm-lock.yaml
+            emdash-plugins-pro/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Build Events Pro (development licence key; workers.dev is licence-exempt)
+        run: |
+          pnpm --filter @semics-tech/emdash-events build
+          cd ../emdash-plugins-pro
+          pnpm install --frozen-lockfile
+          SEMICS_ALLOW_DEV_KEY=1 pnpm --filter @semics-tech/emdash-events-pro build
+      - name: Build the playground for the staging environment
+        run: pnpm --filter playground build:staging
+      - name: Check the build deploys only staging resources
+        working-directory: emdash-plugins/apps/playground
+        run: node staging/target.mjs --assert-build
+      - name: Deploy to workers.dev
+        working-directory: emdash-plugins/apps/playground
+        # The site URL is the licence hostname and the base of emailed links.
+        run: pnpm exec wrangler deploy --var "EMDASH_SITE_URL:$STAGING_URL"
+      - name: Seed D1 (replaces every table)
+        working-directory: emdash-plugins/apps/playground
+        env:
+          STAGING_ADMIN_TOKEN: ${{ secrets.STAGING_ADMIN_TOKEN }}
+        run: |
+          node staging/seed-sql.mjs "$RUNNER_TEMP/seed.sql"
+          pnpm exec wrangler d1 execute semics-staging-playground --remote --file "$RUNNER_TEMP/seed.sql"
+      - name: Wait for the deployment
+        run: |
+          for _ in $(seq 1 30); do
+            curl -fsS -o /dev/null "$STAGING_URL/" && exit 0
+            sleep 10
+          done
+          exit 1
+      - name: Phase 2 exit on D1 (100 buyers, last 5 seats; one runner IP, R82)
+        run: node apps/playground/load/checkout.mjs "$STAGING_URL" --shared-ip
+      - name: Reseed D1 (the race filled the runner's per-IP bucket)
+        working-directory: emdash-plugins/apps/playground
+        run: pnpm exec wrangler d1 execute semics-staging-playground --remote --file "$RUNNER_TEMP/seed.sql"
+      - name: Staging Playwright suite (S2 on Worker Loader, booking, Pro check-in)
+        env:
+          STAGING_ADMIN_TOKEN: ${{ secrets.STAGING_ADMIN_TOKEN }}
+          STAGING_EXPECT_PRO: "1"
+        run: pnpm --filter playground e2e:staging
+      - name: Lighthouse accessibility >= 95 (booking page and booking block)
+        working-directory: emdash-plugins/apps/playground
+        run: |
+          for page in events/london-meetup whats-on; do
+            npx --yes lighthouse@12.6.1 "$STAGING_URL/$page" --only-categories=accessibility \
+              --output=json --output-path="$RUNNER_TEMP/lh-${page//\//-}.json" --chrome-flags="--headless=new --no-sandbox" --quiet
+          done
+          node staging/lighthouse.mjs --min 95 "$RUNNER_TEMP"/lh-*.json
+      - name: The visitor IP reaches the core
+        working-directory: emdash-plugins/apps/playground
+        run: node staging/visitor-ip.mjs "$STAGING_URL"
+      - name: Cloudflare CPU for public/events next to the T007 figure (R27)
+        working-directory: emdash-plugins/apps/playground
+        run: node staging/cpu.mjs "$STAGING_URL" --local-ms "${{ vars.T007_PUBLIC_EVENTS_CPU_MS || '50' }}"
+      - name: Keep the Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-playwright
+          path: emdash-plugins/apps/playground/test-results
+          retention-days: 7

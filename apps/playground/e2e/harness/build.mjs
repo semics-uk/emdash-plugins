@@ -3,6 +3,8 @@ import { spawnSync } from "node:child_process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { linkPro } from "../../staging/link-pro.mjs";
+
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 // E2E_SKIP_BUILD=1 reuses the previous build (only for iterating on specs; CI and verify always build).
 if (process.env.E2E_SKIP_BUILD === "1") process.exit(0);
@@ -18,4 +20,6 @@ function run(args) {
 run(["--filter", "@semics-tech/emdash-events", "build"]);
 run(["--filter", "@semics-tech/emdash-esign", "build"]);
 run(["--filter", "@semics-tech/emdash-events-suite", "build"]);
+// The Pro variant (T111): EMDASH_PRO_DIR points at a Pro checkout whose Events Pro is built.
+if (process.env.EMDASH_PRO_DIR) linkPro(root, resolve(process.env.EMDASH_PRO_DIR));
 run(["exec", "astro", "build"]);

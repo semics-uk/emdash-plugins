@@ -69,7 +69,7 @@ test("Pro: an opt-out link stops working once the buyer redeems an emailed booki
 	await requirePro(request);
 	const { email, optOut } = await bookAndNotify(browser, request, "redeemed");
 	// The confirmation email's one-time booking link, redeemed in a fresh browser.
-	const confirmation = await mailTo(request, email, /confirmed/i);
+	const confirmation = await mailTo(request, email, /^Your booking: London Community Meetup$/);
 	const reader = await visitor(browser);
 	await reader.page.goto(linkIn(confirmation, "/booking"));
 	await reader.page.getByRole("button", { name: "Open my booking" }).click();

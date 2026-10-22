@@ -31,7 +31,7 @@ test("Pro: a booked ticket's code checks in once at the door, the second scan is
 	await expect(result).toHaveAttribute("data-tone", "ok");
 	await expect(result).toContainText("Checked in: Katherine Johnson");
 	await enter();
-	await expect(result).toHaveAttribute("data-tone", "error");
+	await expect(result).toHaveAttribute("data-tone", "warn");
 	await expect(result).toContainText("Already checked in");
 	await staff.close();
 });

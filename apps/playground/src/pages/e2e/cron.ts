@@ -26,6 +26,8 @@ interface Runtime {
 }
 
 export async function POST({ url }: { url: URL }): Promise<Response> {
+	// Not on a deployed (Cloudflare) build: running cron on demand is for the local e2e server only (T111).
+	if (!import.meta.env.PLAYGROUND_E2E_HELPERS) return new Response(null, { status: 404 });
 	const task = url.searchParams.get("task") ?? "";
 	const plugin = url.searchParams.get("plugin") ?? "semics-events";
 	if (!task) return new Response(JSON.stringify({ ok: false }), { status: 400 });

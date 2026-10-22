@@ -73,7 +73,12 @@ test("staging.yml builds for the staging environment and deploys only a checked 
 	for (const d of deploys) assert.ok(!/--env(?!\s+staging)/.test(d), `deploy names another env: ${d}`);
 	// The build-output check runs before the deploy in the same job.
 	const check = text.indexOf("staging/target.mjs --assert-build");
-	assert.ok(check > 0 && check < text.indexOf("wrangler deploy"), "assert the staging build before deploying");
+	assert.ok(
+		check > 0 && check < text.indexOf("run: pnpm exec wrangler deploy"),
+		"assert the staging build before deploying",
+	);
+	// The licence hostname and the base of emailed links: without it Pro work answers LICENCE_INVALID.
+	assert.match(text, /wrangler deploy --var "EMDASH_SITE_URL:\$STAGING_URL"/);
 	// The D1 seed only ever touches the staging database.
 	for (const m of text.matchAll(/wrangler d1 execute[^\n]*/g)) assert.match(m[0], /--remote/);
 	assert.match(text, /e2e:staging/);

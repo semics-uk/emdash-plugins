@@ -59,3 +59,11 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
 - `e2e/t103-screenshots.spec.ts` (T103): the registry listing images of both cores (icon, banner, screenshots). Every run
   takes and size-checks them; `T103_WRITE=1` writes them to `packages/<core>/listing/` (commit the result).
   `E2E_PORT` overrides the server port (default 4401) so a second checkout can run its own server.
+- Staging (T111, R80–R83): `PLAYGROUND_TARGET=cloudflare` builds for Cloudflare (`pnpm --filter playground build:staging`:
+  adapter, D1, R2, Worker Loader; `wrangler.jsonc` `env.staging`, all `semics-staging-*`; `src/worker.ts`). `EMDASH_PRO_DIR=<Pro
+  checkout>` links a built Events Pro (`staging/link-pro.mjs`) for either build. `/e2e/mail` and `/e2e/cron` are 404 on Cloudflare.
+  Staging suite `staging/e2e/` (`playwright.staging.config.ts`): `STAGING_URL=… e2e:staging`, or `E2E_PORT=4411 e2e:staging:local`
+  on the local Node build (Pro journeys: check-in R54, opt-out R57; skipped without Pro). `staging/seed-sql.mjs` dumps the e2e seed
+  for `wrangler d1 execute`; `staging/{cpu,lighthouse,visitor-ip}.mjs` are nightly checks (`.github/workflows/staging.yml`). Local
+  Cloudflare run: `build:staging`, seed with `wrangler d1 execute semics-staging-playground --local --file`, `wrangler dev --port 4411
+  --var EMDASH_SITE_URL:http://127.0.0.1:4411`, then `STAGING_URL=http://127.0.0.1:4411 e2e:staging`.

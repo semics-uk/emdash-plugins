@@ -1,0 +1,35 @@
+// Cloudflare config of the playground (T111). Only used by the Cloudflare build
+// (`PLAYGROUND_TARGET=cloudflare`, see staging/build.mjs); the local e2e suite runs the Node build.
+//
+// The top level is local only (`wrangler dev`, Miniflare): no workers.dev URL, no route.
+// `env.staging` is the one deployed environment: the nightly builds with CLOUDFLARE_ENV=staging, checks
+// the output with `staging/target.mjs --assert-build`, then deploys. Every staging resource is named
+// `semics-staging-*`. D1 and R2 have no ids here: wrangler 4 provisions them on the first deploy.
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "semics-local-playground",
+	"main": "./src/worker.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": false,
+	"d1_databases": [{ "binding": "DB", "database_name": "semics-local-playground" }],
+	"r2_buckets": [{ "binding": "MEDIA", "bucket_name": "semics-local-media" }],
+	// Worker Loader: the sandboxed cores run in dynamic workers (paid plan).
+	"worker_loaders": [{ "binding": "LOADER" }],
+	"triggers": { "crons": ["* * * * *"] },
+	"env": {
+		"staging": {
+			"name": "semics-staging-playground",
+			"workers_dev": true,
+			"preview_urls": false,
+			"d1_databases": [{ "binding": "DB", "database_name": "semics-staging-playground" }],
+			"r2_buckets": [{ "binding": "MEDIA", "bucket_name": "semics-staging-media" }],
+			"worker_loaders": [{ "binding": "LOADER" }],
+			// The minute tick drives plugin cron (R23).
+			"triggers": { "crons": ["* * * * *"] },
+			// CPU time per invocation in Workers analytics and logs (R27).
+			"observability": { "enabled": true },
+			"vars": { "PLAYGROUND_ENV": "staging" },
+		},
+	},
+}

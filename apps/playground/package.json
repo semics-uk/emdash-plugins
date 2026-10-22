@@ -32,7 +32,10 @@
 	},
 	"devDependencies": {
 		"@astrojs/check": "^0.9.10",
+		"@astrojs/cloudflare": "14.3.4",
 		"@axe-core/playwright": "4.13.0",
-		"@playwright/test": "1.56.1"
+		"@emdash-cms/cloudflare": "1.2.0",
+		"@playwright/test": "1.56.1",
+		"wrangler": "4.149.0"
 	}
 }

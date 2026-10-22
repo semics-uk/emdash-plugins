@@ -8,9 +8,9 @@ import { DatabaseSync } from "node:sqlite";
 
 const PLUGIN_ID = "semics-events";
 
-export function applyBookingFixtures(root) {
+export function applyBookingFixtures(root, file = resolve(root, "data.db")) {
 	const fixture = JSON.parse(readFileSync(resolve(root, "seed/events-fixture.json"), "utf8"));
-	const db = new DatabaseSync(resolve(root, "data.db"));
+	const db = new DatabaseSync(file);
 	const now = new Date().toISOString();
 	const put = db.prepare(
 		`INSERT INTO _plugin_storage (plugin_id, collection, id, data, revision, created_at, updated_at)

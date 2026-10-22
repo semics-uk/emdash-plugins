@@ -4,7 +4,7 @@
 // limit stays out of the way and only inventory decides. At most `inFlight` requests run at once:
 // the machine is small and every checkout is two sandboxed route calls in workerd.
 //
-//   node load/checkout.mjs [baseURL]   (defaults: http://127.0.0.1:4401, 100 buyers, 16 in flight,
+//   node load/checkout.mjs [baseURL] [--shared-ip]   (defaults: http://127.0.0.1:4401, 100 buyers, 16 in flight,
 //                                       the london-meetup volunteer tickets: 5 seats, 1 per order)
 //
 // Exits non-zero unless exactly `seats` bookings succeed and every other buyer gets SOLD_OUT.
@@ -87,11 +87,25 @@ export async function runCheckoutLoad(options = {}) {
 	return { eventId, booked, refused, maxInFlight };
 }
 
+/**
+ * The Phase 2 exit verdict: exactly `seats` bookings and every other buyer refused SOLD_OUT. With
+ * `sharedIp` (staging: Cloudflare gives the core the runner's real address, so every buyer shares one
+ * per-IP bucket, R82) RATE_LIMITED also counts as a clean refusal; any other outcome still fails.
+ */
+export function loadVerdict(result, { seats, buyers, sharedIp = false }) {
+	const allowed = sharedIp ? ["SOLD_OUT", "RATE_LIMITED"] : ["SOLD_OUT"];
+	const clean = Object.entries(result.refused)
+		.filter(([code]) => allowed.includes(code))
+		.reduce((n, [, count]) => n + count, 0);
+	const ok = result.booked.length === seats && clean === buyers - seats;
+	return { ok, booked: result.booked.length, refused: result.refused };
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
-	const baseURL = process.argv[2] ?? DEFAULTS.baseURL;
-	const seats = 5;
+	const args = process.argv.slice(2);
+	const baseURL = args.find((a) => !a.startsWith("--")) ?? DEFAULTS.baseURL;
 	const result = await runCheckoutLoad({ baseURL });
-	console.log(JSON.stringify({ booked: result.booked.length, refused: result.refused, maxInFlight: result.maxInFlight }));
-	const ok = result.booked.length === seats && result.refused.SOLD_OUT === DEFAULTS.buyers - seats;
-	process.exit(ok ? 0 : 1);
+	const verdict = loadVerdict(result, { seats: 5, buyers: DEFAULTS.buyers, sharedIp: args.includes("--shared-ip") });
+	console.log(JSON.stringify({ ...verdict, maxInFlight: result.maxInFlight }));
+	process.exit(verdict.ok ? 0 : 1);
 }

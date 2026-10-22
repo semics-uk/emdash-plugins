@@ -10,8 +10,8 @@ import { DatabaseSync } from "node:sqlite";
 /** Test-only bearer token. The database it works in is deleted and re-seeded on every run. */
 export const ADMIN_TOKEN = `ec_pat_${"E2eAdminToken".repeat(3)}`;
 
-export function applyEsignAdmin(root) {
-	const db = new DatabaseSync(resolve(root, "data.db"));
+export function applyEsignAdmin(root, file = resolve(root, "data.db")) {
+	const db = new DatabaseSync(file);
 	try {
 		db.prepare(
 			`INSERT INTO users (id, email, name, role, email_verified) VALUES ('e2e-admin', 'admin@example.com', 'E2E Admin', 50, 1)`,
