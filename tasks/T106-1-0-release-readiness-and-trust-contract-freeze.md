@@ -4,7 +4,7 @@ title: "1.0 release readiness and trust-contract freeze"
 phase: 7
 package: repo
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T100, T101, T102, T103, T104, T105]
