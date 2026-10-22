@@ -753,7 +753,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -767,7 +767,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T033": {
 			"file": "T033-e-sign-end-to-end-send-sign-download-verify.md",
@@ -795,7 +795,7 @@
 			"unblocks": [
 				"T034"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T034": {
 			"file": "T034-phase-1-gate-review-and-budgets.md",
@@ -2232,7 +2232,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T033",
 			"T034",
 			"T056",
 			"T057",
@@ -2276,12 +2275,12 @@
 			"T106"
 		],
 		"ready": [
+			"T033",
 			"T043",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T032",
 			"T054"
 		],
 		"review": [],
@@ -2317,6 +2316,7 @@
 			"T029",
 			"T030",
 			"T031",
+			"T032",
 			"T040",
 			"T041",
 			"T042",
@@ -2339,12 +2339,11 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T032",
-		"T033",
-		"T034",
-		"T060",
-		"T061",
-		"T062",
+		"T054",
+		"T056",
+		"T057",
+		"T063",
+		"T064",
 		"T065",
 		"T066",
 		"T067",
