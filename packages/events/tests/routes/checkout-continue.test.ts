@@ -427,6 +427,105 @@ describe("checkout/continue signature step seam (EV-FR-12, R5; Pro fills it)", (
 		});
 	});
 
+	const adults = [
+		{ ticketTypeId: "tt_a", name: "Ada Lovelace" },
+		{ ticketTypeId: "tt_b", name: "Charles Babbage", email: "charles@example.com" },
+	];
+
+	it("T119 F7 once awaiting signatures, continue refuses to re-describe a seat (name, email or under 18) and writes nothing", async () => {
+		for (const changed of [
+			[adults[0], { ...adults[1], name: "Mallory" }],
+			[adults[0], { ...adults[1], email: "mallory@example.com" }],
+			[adults[0], { ...adults[1], minor: true }],
+			[
+				{ ...adults[1], ticketTypeId: "tt_a" },
+				{ ...adults[0], ticketTypeId: "tt_b" },
+			],
+		]) {
+			const w = await world({ types: ["tt_a", "tt_b"] });
+			w.booking().waiver = WAIVER;
+			await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: adults });
+			const before = structuredClone({ booking: w.booking(), attendees: [...w.storage.attendees.docs.entries()] });
+			const seen: Seen = { holds: [] };
+			const { body, calls } = await run(w.deps(T0 + 2 * MIN, { signature: step(seen) }), {
+				...w.input,
+				attendees: changed,
+			});
+			expect(body, JSON.stringify(changed)).toMatchObject({
+				ok: false,
+				error: { code: "BAD_REQUEST" },
+				issues: [{ path: "attendees", code: "ATTENDEES_LOCKED" }],
+			});
+			expect(seen.prepared).toBeUndefined();
+			expect({ booking: w.booking(), attendees: [...w.storage.attendees.docs.entries()] }).toEqual(before);
+			expect(calls).toBeLessThanOrEqual(8);
+		}
+		// The same attendees again (a resubmitted form) are fine: email case and spacing do not count.
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: adults });
+		const same = [adults[0], { ...adults[1], email: " Charles@Example.com " }];
+		const { body } = await run(w.deps(T0 + 2 * MIN, { signature: step({ holds: [] }) }), {
+			...w.input,
+			attendees: same,
+		});
+		expect(body).toMatchObject({ ok: true, status: "awaiting_signature" });
+	});
+
+	it("T119 F6 R44 Free continuing a booking still awaiting signatures (a Pro hold open at the downgrade) keeps its attendees and receipts", async () => {
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: adults });
+		const signed = {
+			...(w.storage.attendees.docs.get(`${ID}-1`) as Doc),
+			status: "valid",
+			signature: { envelopeId: "env_1", status: "completed", docSha256: "a".repeat(64) },
+		};
+		w.storage.attendees.set(`${ID}-1`, signed);
+		const before = structuredClone([...w.storage.attendees.docs.entries()]);
+		// Free: no signature step. Continuing without attendees (the suite's retry) or with them confirms.
+		for (const input of [w.input, { ...w.input, attendees: adults }]) {
+			const { body, calls } = await run(w.deps(T0 + 2 * MIN), input);
+			expect(body).toMatchObject({ ok: true, status: "confirmed" });
+			expect(calls).toBeLessThanOrEqual(CONTINUE_MAX_CALLS);
+			expect([...w.storage.attendees.docs.entries()]).toEqual(before);
+		}
+		expect(w.storage.attendees.docs.get(`${ID}-2`)).toMatchObject({ name: "Charles Babbage", status: "pending" });
+	});
+
+	it("T119 F7 a paid waiver booking awaiting payment keeps an emailed adult who has not signed yet (not the buyer's name)", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], status: "awaiting_payment" });
+		w.booking().waiver = WAIVER;
+		w.storage.attendees.set(`${ID}-1`, {
+			bookingId: ID,
+			ticketTypeId: "tt_a",
+			name: "Ada Lovelace",
+			email: "ada@example.com",
+			status: "valid",
+			code: "code-1",
+			signature: { envelopeId: "env_1", status: "completed", docSha256: "a".repeat(64) },
+		});
+		w.storage.attendees.set(`${ID}-2`, {
+			bookingId: ID,
+			ticketTypeId: "tt_b",
+			name: "Charles Babbage",
+			email: "charles@example.com",
+			status: "pending",
+			code: "code-2",
+		});
+		const before = structuredClone([...w.storage.attendees.docs.entries()]);
+		const pay: NonNullable<ContinueDeps["payment"]> = {
+			prepare: async () => ({
+				ok: true,
+				value: { start: async () => ({ ok: true, value: { url: "https://pay.test/s" } }) },
+			}),
+		};
+		const { body, calls } = await run(w.deps(T0 + MIN, { payment: pay }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
+		expect(calls).toBeLessThanOrEqual(6);
+	});
+
 	it("EV-FR-12 a refusal from the step writes nothing (a code, or input issues)", async () => {
 		for (const refusal of [{ code: "LICENCE_INVALID" }, { issues: [{ path: "attendees.1.email", code: "X" }] }]) {
 			const w = await world();

@@ -46,8 +46,12 @@ describe("return paths (EU-FR-04)", () => {
 			"javascript:alert(1)",
 			"events",
 			"/_events/checkout",
+			// T119 F11: paths that resolve to `//host` (a protocol-relative URL when used as a Location).
+			"/.//evil.example",
+			"/%2e//evil.example",
+			"/x/..//evil.example",
 		]) {
-			expect(safeReturnTo(raw, origin)).toBeUndefined();
+			expect(safeReturnTo(raw, origin), raw).toBeUndefined();
 		}
 	});
 

@@ -287,10 +287,14 @@ describe("attendees page and check-in (EV-US-5)", () => {
 		expect(json(out.blocks)).toContain("https://site.test/_events/sign#intent=abc");
 		expect(asked[0]).toMatchObject({ attendeeId: "bk_1-1", attendee: { status: "pending" }, booking: { ref: "REF1" } });
 		expect((s.attendees.docs.get("bk_1-1") as Doc).checkedInAt).toBeUndefined();
-		// Without the seam (or no link), the refusal still explains itself, with no link.
+		// Pro without a link (no pairing): the refusal still explains itself, with no link.
+		const none = await checkin({ ...deps, signingLink: async () => null });
+		expect(banners(none.blocks)[0]?.description).toContain("waiver");
+		expect(json(none.blocks)).not.toContain("_events/sign");
+		expect((s.attendees.docs.get("bk_1-1") as Doc).checkedInAt).toBeUndefined();
+		// T119 F6, R44: Free (no seam, e.g. after a downgrade) has no waivers to sign, so it checks them in.
 		const free = await checkin(deps);
-		expect(banners(free.blocks)[0]?.description).toContain("waiver");
-		expect(json(free.blocks)).not.toContain("_events/sign");
+		expect(banners(free.blocks)[0]).toMatchObject({ variant: "default", title: expect.stringContaining("Checked in") });
 	});
 
 	it("undoes a check-in", async () => {

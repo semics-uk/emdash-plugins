@@ -6,7 +6,7 @@ import {
 	retryCookieName,
 	type WaiverOutcome,
 } from "../src/astro/lib/flow";
-import { seatField, WAIVER_PATH } from "../src/astro/lib/form";
+import { seatField, WAIVER_MESSAGES, WAIVER_PATH } from "../src/astro/lib/form";
 
 // <BookingWithWaiver> end to end against a faked host (SX-FR-02, SX-FR-03): book → sign inline →
 // receipt → confirmed, through the real UI helpers of both products (`callPublicRoute`,
@@ -588,6 +588,51 @@ describe("retry after e-sign refuses an intent (T066, SX-FR-03)", () => {
 		});
 		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}`);
 		expect(outcome.location).not.toContain(ACCESS);
+	});
+
+	it("T119 F13 the retry cookie is cleared once the flow moves on without this page (done, pay, only email signers)", async () => {
+		const RETRY = { [retryCookieName(REF)]: ACCESS };
+		const emailOnly = () =>
+			ok({
+				bookingRef: REF,
+				status: "awaiting_signature",
+				next: { type: "sign", intents: [{ ref: `${REF}:3`, delivery: "email", as: "self", token: INTENT(3) }] },
+			});
+		for (const [name, answer, location] of [
+			["done (Free after a downgrade)", () => ok({ bookingRef: REF, status: "confirmed", next: { type: "done" } }), `/booking?ref=${REF}`],
+			["pay", () => ok({ bookingRef: REF, next: { type: "pay", url: "https://pay.example/s/1" } }), "https://pay.example/s/1"],
+			["only email signers left", emailOnly, `/booking?ref=${REF}`],
+		] as const) {
+			const h = host({
+				[`${EVENTS} public/checkout/continue`]: answer,
+				[`${ESIGN} public/envelopes/from-intent`]: fromIntent(),
+			});
+			const outcome = expectRedirect(await run(h, retry(), RETRY));
+			expect(outcome.location, name).toBe(location);
+			expect(cookieValue(outcome, retryCookieName(REF))?.options, name).toMatchObject({ maxAge: 0 });
+		}
+	});
+
+	it("T119 F13 a decline ends the flow and clears the retry cookie too", async () => {
+		const h = ceremonyHost();
+		const cookies = { [flowCookieName(REF)]: SIGNING(9), [retryCookieName(REF)]: ACCESS };
+		const outcome = expectRedirect(
+			await run(h, post(`${WAIVER_PATH}?ref=${REF}`, { intent: "decline", reason: "No" }), cookies),
+		);
+		expect(outcome.location).toBe(`/booking?ref=${REF}&waiver=declined`);
+		expect(cookieValue(outcome, retryCookieName(REF))?.options).toMatchObject({ maxAge: 0 });
+	});
+
+	it("T119 F8 too many emailed adults in one order goes back to the widget with its own message", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/checkout/continue`]: () =>
+				refused("BAD_REQUEST", [{ path: "attendees", code: "WAIVER_TOO_MANY_EMAILS" }]),
+			[`${EVENTS} public/booking/cancel`]: () => ok({ status: "cancelled" }),
+		});
+		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, ORDER)));
+		expect(new URL(outcome.location, ORIGIN).searchParams.get("waiver_error")).toBe("WAIVER_TOO_MANY_EMAILS");
+		expect(WAIVER_MESSAGES.WAIVER_TOO_MANY_EMAILS).toMatch(/email/);
 	});
 
 	it("SX-FR-03 a retry for a malformed ref, or from another site, does nothing", async () => {

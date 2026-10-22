@@ -429,6 +429,40 @@ describe("public/booking waiver reconciliation data (SX-FR-05, T066)", () => {
 		expect((await run(bookingStatus, buyer.deps(T0), buyer.input)).body).not.toHaveProperty("waiver");
 	});
 
+	it("T119 F5 a confirmed waiver booking lists the seats still pending (an emailed adult who signed without JavaScript), with lookups, within the target", async () => {
+		const w = await world({ types: ["tt_a", "tt_b", "tt_c"] });
+		w.booking().waiver = WAIVER;
+		(w.storage.attendees.docs.get(`${ID}-1`) as Doc).signature = { envelopeId: "e1", status: "completed" };
+		(w.storage.attendees.docs.get(`${ID}-2`) as Doc).signature = { envelopeId: "e2", status: "completed" };
+		(w.storage.attendees.docs.get(`${ID}-3`) as Doc).status = "pending";
+		const deps = {
+			...w.deps(T0),
+			lookups: async (refs: string[]) => Object.fromEntries(refs.map((r) => [r, `lookup-${r}`])),
+		};
+		const { body, calls } = await run(bookingStatus, deps, w.input);
+		expect(body).toMatchObject({
+			status: "confirmed",
+			waiver: { refs: [`${REF}:3`], lookups: { [`${REF}:3`]: `lookup-${REF}:3` } },
+		});
+		// The confirmed answer already reads the settings (cancel policy): the lookups reuse them.
+		expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);
+		// Once their receipt is in (completed, or a decline on record), the seat is not asked again.
+		(w.storage.attendees.docs.get(`${ID}-3`) as Doc).signature = { envelopeId: "e3", status: "declined" };
+		expect((await run(bookingStatus, deps, w.input)).body).not.toHaveProperty("waiver");
+	});
+
+	it("T119 F6 R44 on Free a confirmed booking's attendee a Pro waiver left pending gets their pass code", async () => {
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		(w.storage.attendees.docs.get(`${ID}-2`) as Doc).status = "pending";
+		const free = (await run(bookingStatus, w.deps(T0), w.input)).body as { attendees: Doc[] };
+		expect(free.attendees.map((a) => a.code)).toEqual(["c0", "c1"]);
+		// Pro (the lookups step is the edition's waiver support) keeps the pass until the waiver is signed.
+		const pro = { ...w.deps(T0), lookups: async () => ({}) };
+		const shown = (await run(bookingStatus, pro, w.input)).body as { attendees: Doc[] };
+		expect(shown.attendees.map((a) => a.code)).toEqual(["c0", undefined]);
+	});
+
 	it("SX-FR-05 at most ten refs are listed, so a large booking stays within the bridge budget", async () => {
 		const w = await waiting(Array.from({ length: 12 }, (_, i) => `tt_${i}`));
 		const { body } = await run(bookingStatus, w.deps(T0), w.input);

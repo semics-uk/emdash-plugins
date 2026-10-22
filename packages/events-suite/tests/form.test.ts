@@ -5,6 +5,7 @@ import {
 	MAX_SEATS,
 	readWaiverForm,
 	readWaiverState,
+	safeReturnPath,
 	seatField,
 	WAIVER_PARAMS,
 	waiverErrorLocation,
@@ -165,6 +166,20 @@ describe("widget error round trip (SX-FR-02)", () => {
 			"https://site.example/x?waiver_error=<script>&waiver_fields=name,evil,attendee.99.name&waiver_event=ev_1",
 		);
 		expect(readWaiverState(url, "ev_1")).toEqual({ code: "INTERNAL", fields: ["name"] });
+	});
+});
+
+describe("safeReturnPath (T119 F11)", () => {
+	const origin = "https://site.example";
+
+	it("T119 F11 keeps a same-site path and drops the widget's own parameters", () => {
+		expect(safeReturnPath("/events/x?a=1&waiver_error=X", origin)).toBe("/events/x?a=1");
+	});
+
+	it("T119 F11 never returns a path starting with // (a protocol-relative Location)", () => {
+		for (const raw of ["/.//evil.example", "/%2e//evil.example", "/x/..//evil.example", "//evil.example", "/\\evil"]) {
+			expect(safeReturnPath(raw, origin), raw).toBeUndefined();
+		}
 	});
 });
 

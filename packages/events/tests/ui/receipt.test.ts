@@ -173,4 +173,61 @@ describe("startDoorSigning: staff open the signing page at check-in (EV-FR-12)",
 			error: "TOKEN_EXPIRED",
 		});
 	});
+
+	const LOOKUP = `${"l".repeat(120)}.${"s".repeat(43)}`;
+
+	it("T119 F5 an emailed adult who signed without JavaScript: the link's lookup fetches the receipt and records it", async () => {
+		const h = host({
+			"semics-esign public/envelopes/from-intent": okData({ envelopeId: "env_3", status: "completed" }),
+			"semics-esign public/receipts/lookup": okData({ state: "terminal", receipt: RECEIPT }),
+			"semics-events signatures/receipt": okData({ status: "confirmed", signature: { status: "completed" } }),
+		});
+		const out = await startDoorSigning(h.ctx, INTENT, { esignPluginId: "semics-esign" }, LOOKUP);
+		expect(out).toEqual({ signed: true });
+		expect(h.seen).toEqual([
+			{ id: "semics-esign", path: "public/envelopes/from-intent", body: { intent: INTENT } },
+			{ id: "semics-esign", path: "public/receipts/lookup", body: { request: LOOKUP } },
+			{ id: "semics-events", path: "signatures/receipt", body: { receipt: RECEIPT } },
+		]);
+	});
+
+	it("T119 F5 no lookup, a malformed one, a pending one or a refused receipt still answer SIGNING_UNAVAILABLE", async () => {
+		const answers = (lookup: unknown, receipt: unknown = okData({ signature: { status: "completed" } })) => ({
+			"semics-esign public/envelopes/from-intent": okData({ envelopeId: "env_3", status: "completed" }),
+			"semics-esign public/receipts/lookup": lookup,
+			"semics-events signatures/receipt": receipt,
+		});
+		const terminal = okData({ state: "terminal", receipt: RECEIPT });
+		for (const [name, h, lookup] of [
+			["no lookup", host(answers(terminal)), undefined],
+			["malformed", host(answers(terminal)), "x"],
+			["pending", host(answers(okData({ state: "pending", receipt: null }))), LOOKUP],
+			["declined", host(answers(terminal, okData({ signature: { status: "declined" } }))), LOOKUP],
+			["refused", host(answers(terminal, { success: true, data: { ok: false, error: { code: "X" } } })), LOOKUP],
+		] as const) {
+			expect(await startDoorSigning(h.ctx, INTENT, { esignPluginId: "semics-esign" }, lookup), name).toEqual({
+				error: "SIGNING_UNAVAILABLE",
+			});
+		}
+	});
+
+	it("T119 F5 the door fragment carries the intent and the lookup: both go into the form, the fragment is cleared", () => {
+		const inputs: Record<string, { value: string }> = { intent: { value: "" }, lookup: { value: "" } };
+		let submitted = 0;
+		const form = {
+			dataset: { semicsFragment: "intent" },
+			querySelector: (sel: string) => inputs[/name="(\w+)"/.exec(sel)?.[1] ?? ""] ?? null,
+			submit: () => void submitted++,
+		};
+		const replaced: string[] = [];
+		const loc = { hash: `#intent=${INTENT}&lookup=${LOOKUP}`, pathname: "/_events/sign", search: "" };
+		const hist = { replaceState: (_s: unknown, _t: string, to: string) => void replaced.push(to) };
+		expect(submitFragmentForms({ querySelectorAll: () => [form] } as never, loc, hist)).toBe(1);
+		expect({ intent: inputs.intent?.value, lookup: inputs.lookup?.value }).toEqual({ intent: INTENT, lookup: LOOKUP });
+		expect(submitted).toBe(1);
+		expect(replaced).toEqual(["/_events/sign"]);
+		// A fragment with a value that is not a token is left alone.
+		const bad = { ...loc, hash: `#intent=${INTENT}&lookup=<x>` };
+		expect(takeFragmentToken("intent", bad, hist)).toBeNull();
+	});
 });
