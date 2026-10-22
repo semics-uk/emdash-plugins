@@ -44,7 +44,7 @@ export const STORAGE_COLLECTIONS = {
 	},
 	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt"], uniqueIndexes: [] },
 	promo_codes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
-	outbox: { indexes: [["status", "nextAttemptAt"]], uniqueIndexes: [] },
+	outbox: { indexes: [["status", "nextAttemptAt"], "to"], uniqueIndexes: [] },
 } as const satisfies Record<string, CollectionDef>;
 
 export type CollectionName = keyof typeof STORAGE_COLLECTIONS;
@@ -213,9 +213,11 @@ export interface BookingDoc {
 	redeemExpiresAt?: string | null;
 	/**
 	 * Salted hash of the client IP that created the booking (never the IP): checkout's rate limit
-	 * counts recent bookings by it. Erased with the booking's personal data.
+	 * counts recent bookings by it. Cleared (`null`) an hour after the booking (T087).
 	 */
-	ipHash?: string;
+	ipHash?: string | null;
+	/** When retention or an admin erased the booking's personal data (T087); counts and totals stay. */
+	erasedAt?: string;
 	createdAt: string;
 }
 

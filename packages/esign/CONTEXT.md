@@ -70,7 +70,7 @@ Budget: from-intent is 8 calls inline and 9 with email delivery (create-only env
 Cron scheduling (T116, R37): `plugin:activate` never runs for a config-declared core, so admin `page_load`s,
 `templates/create` and `public/verify` carry the shared `withScheduleCheck` (1 KV read; +1 the first time to queue
 `ensure-schedules`, which schedules `outbox-drain` and `nonce-sweep`). Not on `from-intent`, `submit`, `session` or admin actions.
-Adding a recurring task means adding it to `RECURRING_TASKS` in `src/plugin.ts` and bumping `SCHEDULES_FLAG` (shared, now v2).
+Adding a recurring task means adding it to `RECURRING_TASKS` in `src/plugin.ts` and bumping `SCHEDULES_FLAG` (shared, now v3).
 
 Signing intents (T061): `src/routes/from-intent.ts`. Templates carry `integrations` ("available to integrations", head
 only, default off, toggle on both template forms); `availableToIntegrations(head)` gates from-intent (else

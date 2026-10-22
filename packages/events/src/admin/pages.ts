@@ -20,6 +20,7 @@ import {
 	toMinor,
 } from "@semics-tech/shared";
 
+import { eraseBookings, type RetentionStorage } from "../cron/retention";
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, validateMapping } from "../domain/mapping";
@@ -55,7 +56,8 @@ type Query = (o: {
 }) => Promise<Page>;
 
 export type AdminStorage = AttendeeStorage &
-	ConfigStorage & {
+	ConfigStorage &
+	RetentionStorage & {
 		bookings: { query: Query };
 		event_configs: { query: Query };
 		attendees: { query: Query };
@@ -215,7 +217,77 @@ async function bookingsPage(
 			...(page.hasMore && page.cursor && !q ? { nextCursor: page.cursor } : {}),
 			emptyText: "No bookings match.",
 		}),
+		...retentionBlocks(),
 	]);
+}
+
+// --- deletion on request (EV-FR-20) -----------------------------------------------------------
+
+const retentionBlocks = (extra: Block[] = []): Block[] => [
+	...extra,
+	header("Delete personal data"),
+	context(
+		"Erases names, emails, answers and IP hashes of one booking (by reference) or of every booking of a buyer (by email), with their attendees. Seat counts and totals stay. Live bookings are never deleted. Older data is erased automatically after the retention period.",
+	),
+	form({
+		fields: [textInput("target", "Booking reference or buyer email")],
+		submit: { label: "Find", actionId: "retention.preview" },
+	}),
+];
+
+const targetQuery = (deps: AdminDeps, target: string) =>
+	deps.storage.bookings.query({
+		where: target.includes("@") ? { email: target } : { ref: target.toUpperCase() },
+		limit: 10,
+	});
+
+async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminResponse> {
+	const page = target ? await targetQuery(deps, target) : { items: [] };
+	const n = page.items.filter((i) => !(i.data as BookingDoc).erasedAt).length;
+	const banner: NoticeInput = n
+		? { severity: "warning", title: `${n} booking${n === 1 ? "" : "s"} found for ${target}` }
+		: { severity: "info", title: "No personal data to delete for that reference or email" };
+	return respond([
+		header("Bookings"),
+		...notices([banner]),
+		...(n
+			? [
+					actions([
+						button("retention.erase", "Delete personal data", {
+							style: "danger",
+							value: target,
+							confirm: {
+								title: "Delete personal data?",
+								text: "Names, emails, answers and IP hashes are removed for good. Seat counts and totals stay.",
+								confirm: "Delete",
+								deny: "Keep",
+								style: "danger",
+							},
+						}),
+					]),
+				]
+			: []),
+		...retentionBlocks(),
+	]);
+}
+
+async function retentionErase(deps: AdminDeps, target: string): Promise<AdminResponse> {
+	const page = target ? await targetQuery(deps, target) : { items: [] };
+	const out = await eraseBookings(deps.storage, page.items, deps.now, { pages: 2 });
+	const banners: NoticeInput[] = [
+		{ severity: "info", title: `Deleted personal data of ${out.erased} booking${out.erased === 1 ? "" : "s"}` },
+		out.kept > 0 && {
+			severity: "warning",
+			title: `${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,
+			description: "A held, awaiting or confirmed booking for an event that has not happened cannot be deleted.",
+		},
+		!out.complete && {
+			severity: "error",
+			title: "Too many attendees to delete in one go",
+			description: "Their names and emails were erased; the bookings were not. Run the deletion again.",
+		},
+	].filter((b): b is NoticeInput => !!b);
+	return respond([header("Bookings"), ...notices(banners), ...retentionBlocks()]);
 }
 
 // --- events (list for attendees and the editor) -----------------------------------------------
@@ -584,6 +656,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 					});
 				return doCheckIn(deps, { code }, eventIdOf(v.eventId));
 			}
+			case "retention.preview":
+				return retentionPreview(deps, str(v.target));
 			case "event.save":
 				return saveEditor(deps, eventIdOf(v.eventId), interaction.block_id, v);
 		}
@@ -608,6 +682,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 					: { severity: "error", title: "Attendee not found" };
 				return attendeesPage(deps, eventId, { extra: notices([banner]) });
 			}
+			case "retention.erase":
+				return retentionErase(deps, str(value));
 			case "events.edit":
 				return openEditor(deps, eventIdOf(value));
 			case "events.page":

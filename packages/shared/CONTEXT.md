@@ -26,4 +26,4 @@ globs at 100% branches: `strictBranches` in `vitest.config.ts`. `outbox.ts` (T01
 public key, product and build date injected at build time, exempt local/preview hosts, `signLicence` for
 issuing) and `gate.ts` (T070: `gateProWork`/`gateProOperation`: no new Pro work without a key, in-flight
 work continues). `schedules.ts` (T116: `withScheduleCheck`, `ensureSchedules`, `runEnsureSchedulesJob`,
-`scheduleTasks`: cores self-schedule recurring crons behind a `cron:scheduled:v2` KV flag; bump the version when a core's recurring list changes). Planned: rrule.
+`scheduleTasks`: cores self-schedule recurring crons behind a `cron:scheduled:v3` KV flag; bump the version when a core's recurring list changes). Planned: rrule.

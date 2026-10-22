@@ -46,7 +46,7 @@
 		},
 		"waitlist": { "indexes": [["eventId", "status"], "offerExpiresAt"] },
 		"promo_codes": { "indexes": ["eventId"], "uniqueIndexes": ["code"] },
-		"outbox": { "indexes": [["status", "nextAttemptAt"]] }
+		"outbox": { "indexes": [["status", "nextAttemptAt"], "to"] }
 	},
 
 	"admin": {

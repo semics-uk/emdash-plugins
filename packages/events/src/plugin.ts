@@ -7,6 +7,7 @@ import {
 } from "@semics-tech/shared";
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
 import { runCron, SWEEP_SCHEDULE, SWEEP_TASK } from "./cron/sweep";
 import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
 import {
@@ -34,6 +35,7 @@ type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: SWEEP_TASK, schedule: SWEEP_SCHEDULE },
 	{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE },
+	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
 ];
 
 /**
@@ -54,6 +56,7 @@ const plugin: SandboxedPlugin = {
 		"page:metadata": pageMetadata,
 		cron: async (event, ctx) => {
 			if (await runEnsureSchedulesJob(event, ctx, RECURRING_TASKS, Date.now())) return;
+			if (await runRetentionJob(event, ctx)) return;
 			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
 		},
 	},
