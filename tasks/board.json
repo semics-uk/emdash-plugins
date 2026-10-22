@@ -753,7 +753,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -767,7 +767,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T033": {
 			"file": "T033-e-sign-end-to-end-send-sign-download-verify.md",
@@ -2276,13 +2276,13 @@
 			"T106"
 		],
 		"ready": [
-			"T032",
 			"T043",
 			"T054",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
+			"T032",
 			"T051"
 		],
 		"review": [],
