@@ -34,9 +34,11 @@ const server = spawn(process.execPath, [resolve(root, "dist/server/entry.mjs")],
 	cwd: root,
 	stdio: "inherit",
 	detached: true, // own process group so one signal reaches workerd too
-	// A fixed, test-only encryption key so secret settings (the e-sign master key, T062) can be saved.
+	// A fixed, test-only encryption key so secret settings (the e-sign master key, T062) can be saved, and
+	// the site URL: e-sign queues no email with a relative link (T117), so the e2e site needs one.
 	env: {
 		EMDASH_ENCRYPTION_KEY: `emdash_enc_v1_${"E".repeat(43)}`,
+		EMDASH_SITE_URL: `http://127.0.0.1:${port}`,
 		...process.env,
 		PORT: port,
 		HOST: "127.0.0.1",

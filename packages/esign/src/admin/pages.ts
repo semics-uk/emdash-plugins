@@ -40,7 +40,7 @@ import { createClientAction, generateKey, integrationsPage, revokeClientAction }
  * or the action id and returns `{ blocks }`. Envelope and template changes go through the private
  * routes (`envelopes/create|send|resend|void`, `templates/*`), so the status machine and the audit
  * chain are the ones the API uses. Bridge calls per interaction: list 3 (list + outbox status),
- * detail 3 to 4, create 3 + 4, void 4 + 3, resend 6 + 1 (a repair adds 2), settings save 1 + at most
+ * detail 3 to 4, create 3 + 4, void 4 + 3, resend 6 + 1 (a repair adds 1), settings save 1 + at most
  * 6 writes. `send` is 9 inside the route (T027 queues the invitation), so it answers with a small
  * confirmation instead of re-reading the envelope.
  */

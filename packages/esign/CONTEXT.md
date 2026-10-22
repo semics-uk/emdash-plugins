@@ -64,7 +64,7 @@ chunks and sets `pdfSha256` + `pdf: { ids, bytes }` with a guarded `updateIf` on
 random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes after re-checking `pdfSha256`;
 `SIGNED_PDF_PENDING` (409) re-arms the job. Links come from `public/session` (signer of a completed envelope:
 `pdf: "pending" | "ready"`, `download`) and `envelopes/get`).
-`public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
+`public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session` with `open: true`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
 Budget: from-intent is 8 calls inline and 9 with email delivery (create-only envelope write first; a retry after a declined/voided/expired envelope is 10 inline, and with email only stores a draft and schedules `intent-finish-<id>` (cron/intent-finish.ts, 8 calls), T113), submit is 9 (others ≤ 8).
 
 Cron scheduling (T116, R37): `plugin:activate` never runs for a config-declared core, so admin `page_load`s,
@@ -121,3 +121,19 @@ set an HTTP status in the sandbox (R38). `envelopes/list` takes `cursor` and ret
 action is `envelopes.page:<status>`. Coverage counts only code imported by tests, not code run inside workerd. `/sign/[token]` and `/verify` refuse cross-site posts with `lib/csrf.ts` (EmDash sets `checkOrigin` off).
 
 Integrations (T060): `/integrations` page (`src/admin/integrations.ts`, `domain/clients.ts`). `client.create` returns the pairing string in that one response (a `code` block) and nothing can show it again; the `clients` doc holds `name, clientId, createdAt, lastUsedAt, revokedAt, returnUrlAllowlist` and no secret (derived per S8). `client.revoke` sets `revokedAt` once (`updateIf` on `revokedAt: null`). Master-key rule: `masterKeyBytes` unchanged (trimmed UTF-8, >= 32 bytes); `integrations.generate-key` sets 32 CSPRNG bytes as base64url, only while no key is set (changing it re-pairs every client); the settings save refuses a typed key under 32 bytes. Allowlist lines follow protocol §7 (https, http only for loopback, no userinfo/query/fragment, max 10). Page load 2 calls, actions 3. Admin actions ride EmDash's own admin API (CSRF-protected); no public route.
+
+Hardening (T117, `tasks/reviews/phase-1.md` findings 5-9, 14-18): `public/session` records the first view only with
+`open: true`; the sign page sends it with its first POST (sign or decline), never on a GET (mail scanners). Session
+returns `consent.sha256`; submit requires `consentSha256` (`INVALID_CONSENT_HASH`; `CONSENT_CHANGED` when the wording
+changed since) and records it on `signer.consented`, the signer and the certificate. Stroke points must be in 0-1.
+The ceremony limiter is one per-IP counter (scope `ceremony`) for session, submit and decline; session reads it before
+the lookup (R29). Session reads `settings.list("consent")`; submit reads that, or `settings.list()` for an integration
+envelope; session and decline `settings.get("integrationMasterKey")` only for an integration envelope (no decrypt
+otherwise; `envelopes/send` still reads `settings.list()`). Budgets: session 5 / first view 8 / wrong token 4; submit 9;
+decline 7 (8 with a master key). Admin events carry `data.userId` from `routeCtx.user` (the admin route passes it to
+the envelope routes). Resend writes a missing `envelope.sent` create-only at seq 1 (after `envelope.created`), so a
+racing event keeps that place (7 calls). `intent-finish` derives the invitation token as
+`HMAC(masterKey, "esign-invite/1." + id)`. The signed PDF is rendered from `parseSnapshot` (`src/astro/lib/markdown.ts`,
+imported by the core: pure, no imports). Without `ctx.site.url`, `queueInvitation`/`queueCompletion` queue nothing and
+return null; send answers `invitation: "SITE_URL_MISSING"`, resend refuses, and the admin shows `SITE_URL_WARNING`. The
+audit timeline's page action is `audit.page:<id>`.
