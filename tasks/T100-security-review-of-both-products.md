@@ -4,7 +4,7 @@ title: "Security review of both products"
 phase: 7
 package: repo
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T078, T087, T097]
@@ -46,6 +46,8 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] E-sign Pro `public/self-serve/start` runs at exactly 10 bridge calls (T093): get it to ≤ 9 so an error-path log can never be the 11th; clean up `ss:cap:<template>:<day>` KV counters
 - [ ] Shared `rateLimit` KV keys (`rl:<scope>:<hash>:<window>`) are never deleted (KV has no TTL; T081): sweep expired windows in both cores' retention jobs
 - [ ] Review the Pro PDF reader's refusal of active content and encrypted files (R53) against malformed and hostile PDFs, including fuzzed xref and object-stream input (follow-up from T094)
+- [ ] Review Events Pro MCP routes (R59): the per-call token hash minted so Free booking routes run as admin is never stored, logged or returned, and every pro/mcp route refuses non-admins (follow-up from T086)
+- [ ] Bring Events Pro MCP cancel and refund on a paid booking (asserted ≤10 bridge calls) down to the 8-call target, or record a §12 exception with the measured count (R22, follow-up from T086)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
