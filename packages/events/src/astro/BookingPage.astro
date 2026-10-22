@@ -9,7 +9,14 @@ import { pluginId } from "virtual:semics-events/config";
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
 import { callPublicRoute } from "./lib/call";
-import { bookingCookieName, bookingCookieOptions, LINK_INVALID, redeemBookingLink } from "./lib/checkout-form";
+import {
+	bookingCookieName,
+	bookingCookieOptions,
+	crossSiteResponse,
+	isCrossSiteRequest,
+	LINK_INVALID,
+	redeemBookingLink,
+} from "./lib/checkout-form";
 import type { BookingView } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
 
@@ -35,6 +42,8 @@ const errorCode = url.searchParams.get("error") ?? "";
 let notice = errorCode ? (MESSAGES[errorCode] ?? "Something went wrong. Please try again.") : "";
 const code = url.searchParams.get("k") ?? "";
 const ctx = { locals: Astro.locals, url, request: Astro.request };
+// The cancel and redeem forms post here: refuse another site's posts (CSRF) before reading them.
+if (isCrossSiteRequest(Astro.request, url)) return crossSiteResponse();
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : undefined;
 
 if (form?.get("intent") === "redeem") {

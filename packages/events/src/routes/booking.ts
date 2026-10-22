@@ -172,9 +172,13 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 	});
 	if (!claimed.applied) return fail(held ? "HOLD_EXPIRED" : "INTERNAL");
 
-	// Event and occurrence counters first: they decide whether the event sells out.
+	// Event and occurrence counters first: they decide whether the event sells out. A stale claim
+	// is a cancel that died after claiming, maybe after releasing: releasing again could under-count
+	// (oversell), so like the sweeper's `close` it releases nothing and drift repair, which does not
+	// count cancelled bookings, settles the counters (an over-count meanwhile is the safe direction).
 	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS);
-	const refs = countersForBooking(b).reverse().slice(0, Math.max(room, 0));
+	const stale = b.releaseClaimedAt != null;
+	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, Math.max(room, 0));
 	await release(storage, refs, { sold: b.status === "confirmed" }).catch(() => undefined);
 
 	const moved = await storage.bookings.updateIf(id, {

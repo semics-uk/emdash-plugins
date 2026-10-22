@@ -19,7 +19,8 @@ import type { BookingDoc, OccurrenceDoc } from "../storage/schema";
  * The booking file sits behind a short-lived signed link (`signLink`/`verifyLink`, purpose
  * `events/booking-ics`, 15 minutes) that carries only the booking ref, never the access token.
  * `public/booking` hands the link's query to the token holder (`bookingCalendarQuery`). The event
- * file is public and carries no booking data. Both write the event in its own time zone
+ * file is public and carries no booking data; like `public/event` it answers `NOT_FOUND` for an
+ * event without a config, in draft, unpublished or orphaned. Both write the event in its own time zone
  * (`DTSTART;TZID=` plus a generated VTIMEZONE).
  *
  * Bridge calls (R22): booking file = link key, booking, event config (+ occurrence) = 3 or 4;
@@ -131,7 +132,7 @@ export async function bookingIcs(deps: IcsDeps, query: URLSearchParams): Promise
 export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<RawResponse> {
 	const eventId = query.get("eventId") ?? "";
 	if (!EVENT_ID_PATTERN.test(eventId)) return failure("BAD_REQUEST");
-	const info = await loadEventInfo(deps, eventId);
+	const info = await loadEventInfo(deps, eventId, undefined, { publicOnly: true });
 	if (!info) return failure("NOT_FOUND");
 	const { items } = await deps.storage.occurrences.query({
 		where: { eventId, status: "open" },

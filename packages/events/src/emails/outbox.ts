@@ -341,11 +341,49 @@ export function drainDepsOf(ctx: PluginContext, now: number): DrainDeps {
 	};
 }
 
-/** The `cron` hook's share for the recurring drain; true when `event` was ours. */
+/** Bridge calls one invocation may make (R22). */
+const MAX_CALLS = 10;
+
+/** `target` with every method call counted in `meter`: each one is a bridge call. */
+function metered<T extends object>(target: T, meter: { calls: number }, depth = 1): T {
+	return new Proxy(target, {
+		get(obj, key, receiver) {
+			const value = Reflect.get(obj, key, receiver);
+			if (typeof value === "function") {
+				return (...args: unknown[]) => {
+					meter.calls++;
+					return value.apply(obj, args);
+				};
+			}
+			return depth > 0 && value && typeof value === "object" ? metered(value, meter, depth - 1) : value;
+		},
+	});
+}
+
+/** Count the bridge calls a drain makes through its deps (storage collections, settings, content, email). */
+function meteredDeps(d: DrainDeps, meter: { calls: number }): DrainDeps {
+	return {
+		...d,
+		storage: metered(d.storage, meter),
+		outbox: metered(d.outbox, meter, 0),
+		settings: metered(d.settings, meter, 0),
+		content: metered(d.content, meter, 0),
+		email: d.email && metered(d.email, meter, 0),
+	};
+}
+
+/**
+ * The `cron` hook's share for the recurring drain; true when `event` was ours. The give-up log is a
+ * bridge call too, so it is written only when the tick left room for it (a full tick of two
+ * confirmations with occurrences is already 10): the row itself still records `failed`.
+ */
 export async function runOutboxJob(event: CronEvent, ctx: PluginContext, now = Date.now()): Promise<boolean> {
 	if (event.name !== OUTBOX_TASK) return false;
-	const result = await drainEventsOutbox(drainDepsOf(ctx, now));
-	if (result.gaveUp > 0) ctx.log.error("emails given up after repeated failures", { count: result.gaveUp });
+	const meter = { calls: 0 };
+	const result = await drainEventsOutbox(meteredDeps(drainDepsOf(ctx, now), meter));
+	if (result.gaveUp > 0 && meter.calls < MAX_CALLS) {
+		ctx.log.error("emails given up after repeated failures", { count: result.gaveUp });
+	}
 	return true;
 }
 

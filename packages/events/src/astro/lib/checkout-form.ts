@@ -39,6 +39,28 @@ export function bookingCookieOptions(url: URL) {
 	};
 }
 
+/**
+ * True for a form post another site made (CSRF): the browser says so in `Sec-Fetch-Site`, or, from
+ * older browsers, an `Origin` that is not this site's. The booking forms check this themselves so
+ * they stay safe on a site that turns off Astro's `security.checkOrigin`; the SameSite=Lax cookie
+ * alone would still let another site start bookings in a visitor's name. Safe methods and clients
+ * that send neither header (not browsers) pass.
+ */
+export function isCrossSiteRequest(request: Request, url: URL): boolean {
+	if (request.method === "GET" || request.method === "HEAD" || request.method === "OPTIONS") return false;
+	const site = request.headers.get("sec-fetch-site");
+	if (site) return site !== "same-origin" && site !== "none";
+	const origin = request.headers.get("origin");
+	return origin !== null && origin !== url.origin;
+}
+
+/** The answer to a refused cross-site post. */
+export const crossSiteResponse = () =>
+	new Response("Cross-site form submissions are not allowed.", {
+		status: 403,
+		headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+	});
+
 const REF_PATTERN = /^[0-9A-HJKMNP-TV-Z]{10}$/;
 /** What the booking page shows for an emailed link that is malformed, expired or already used. */
 export const LINK_INVALID = "LINK_INVALID";
@@ -152,4 +174,25 @@ export async function handleCheckoutForm(
 	const step = next.data.next;
 	if (step?.type === "pay" && step.url) return { location: step.url, cookie };
 	return { location: done, cookie };
+}
+
+/** What `POST /_events/checkout` gets from Astro. */
+export interface CheckoutEndpointContext {
+	request: Request;
+	url: URL;
+	locals: PublicRouteContext["locals"];
+	redirect(location: string, status?: number): Response;
+	cookies: { set(name: string, value: string, options: Record<string, unknown>): void };
+}
+
+/** `POST /_events/checkout`: refuse cross-site posts, then run the form and redirect (303). */
+export async function handleCheckoutRequest(
+	{ request, url, locals, redirect, cookies }: CheckoutEndpointContext,
+	options: CheckoutFormOptions,
+): Promise<Response> {
+	if (isCrossSiteRequest(request, url)) return crossSiteResponse();
+	const form = await request.formData().catch(() => new FormData());
+	const result = await handleCheckoutForm({ locals, url, request }, form, options);
+	if (result.cookie) cookies.set(result.cookie.name, result.cookie.value, bookingCookieOptions(url));
+	return redirect(result.location, 303);
 }
