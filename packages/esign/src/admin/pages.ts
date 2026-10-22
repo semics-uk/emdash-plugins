@@ -22,8 +22,8 @@ import {
 import type { PluginContext } from "emdash/plugin";
 
 import type { AuditEventDoc } from "../domain/audit";
-import type { EnvelopeDoc, SignerDoc } from "../domain/envelopes";
 import { encryptionKeyStatus, isEncryptionKeyMissingError } from "../domain/encryption-key";
+import type { EnvelopeDoc, SignerDoc } from "../domain/envelopes";
 import { ENVELOPE_STATUSES, isEnvelopeStatus } from "../domain/state";
 import { outboxReport } from "../emails/outbox";
 import { downloadLink } from "../routes/download";
@@ -221,16 +221,14 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 		opts.signers
 			? Promise.resolve(opts.signers)
 			: envelope.signerIds.length > 0
-				? signers
-						.getMany(envelope.signerIds)
-						.then((m) =>
-							[...m].map(([sid, s]: [string, SignerDoc]) => ({
-								id: sid,
-								name: s.name,
-								email: s.email,
-								status: s.status,
-							})),
-						)
+				? signers.getMany(envelope.signerIds).then((m) =>
+						[...m].map(([sid, s]: [string, SignerDoc]) => ({
+							id: sid,
+							name: s.name,
+							email: s.email,
+							status: s.status,
+						})),
+					)
 				: Promise.resolve([] as SignerView[]),
 		opts.invite ??
 			(envelope.status === "sent" ? inviteState(deps, envelope.signerIds[0]) : Promise.resolve("n/a" as const)),

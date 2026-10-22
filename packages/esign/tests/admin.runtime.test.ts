@@ -1,7 +1,7 @@
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
-import { afterEach, describe, expect, it } from "vitest";
 import type { PluginContext } from "emdash/plugin";
+import { afterEach, describe, expect, it } from "vitest";
 import { handleAdmin } from "../src/admin/pages";
 import type { AuditEventDoc } from "../src/domain/audit";
 
