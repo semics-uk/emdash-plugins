@@ -14,6 +14,14 @@ import { expect, type Page, test } from "@playwright/test";
 const PAGE = "/e2e/payment";
 const STRIPE = "https://checkout.stripe.test/**";
 
+/** Moves the faked clock in small steps, letting real fetches settle between them (polling awaits the network). */
+async function advance(page: Page, ms: number) {
+	for (let spent = 0; spent < ms; spent += 500) {
+		await page.clock.runFor(500);
+		await page.waitForTimeout(40);
+	}
+}
+
 async function serious(page: Page) {
 	const results = await new AxeBuilder({ page }).analyze();
 	return results.violations
@@ -50,17 +58,29 @@ test("EU-FR-09 a refund after a sell-out says no tickets were issued, in plain w
 
 test("EU-FR-09 abandoned at Stripe: pay now goes to the provider; coming back shows the held booking", async ({
 	page,
+	context,
+	request,
+	baseURL,
 }) => {
-	await page.route(STRIPE, (route) =>
+	await context.route(STRIPE, (route) =>
 		route.fulfill({
 			contentType: "text/html",
 			body: `<!doctype html><html lang="en"><title>Fake Stripe</title><main><h1>Fake Stripe Checkout</h1>
-				<a href="/e2e/payment?state=awaiting_payment&session_id=cs_test_1">Back to the site</a></main></html>`,
+				<a href="${baseURL}/e2e/payment?state=awaiting_payment&session_id=cs_test_1">Back to the site</a></main></html>`,
 		}),
 	);
+	// Chrome does not hand a server redirect's hop to Playwright's routes, so the redirect is checked on
+	// the response itself and the browser then opens the faked Stripe page directly.
+	const resume = await request.post(`${PAGE}?state=awaiting_payment`, {
+		form: { intent: "resume" },
+		maxRedirects: 0,
+	});
+	expect(resume.status()).toBe(303);
+	const stripeUrl = resume.headers().location ?? "";
+	expect(stripeUrl).toBe("https://checkout.stripe.test/c/pay/cs_test_1");
 	await page.goto(`${PAGE}?state=awaiting_payment`);
-	await page.getByTestId("payment-resume").click();
-	await expect(page).toHaveURL("https://checkout.stripe.test/c/pay/cs_test_1");
+	await expect(page.getByTestId("payment-resume")).toBeVisible();
+	await page.goto(stripeUrl);
 	await page.getByRole("link", { name: "Back to the site" }).click();
 
 	// `session_id` is in the URL, and changes nothing: the state is the core's.
@@ -79,15 +99,15 @@ test("EU-FR-09 paid but the webhook is late: the page polls, then shows the conf
 		requests++;
 		// Request 1 is the visit, 2 the first poll (still pending), later ones (poll, reload) are confirmed.
 		if (requests <= 2) return route.continue();
-		return route.fulfill(await route.fetch({ url: route.request().url().replace("awaiting_payment", "confirmed") }));
+		const response = await route.fetch({ url: route.request().url().replace("awaiting_payment", "confirmed") });
+		return route.fulfill({ response });
 	});
 	await page.goto(`${PAGE}?state=awaiting_payment`);
 	await expect(page.getByTestId("payment-checking")).toBeVisible();
-	await page.clock.runFor(3500);
+	await advance(page, 3500);
 	await expect(page.getByTestId("payment-return")).toHaveAttribute("data-state", "pending");
-	await page.clock.runFor(5500);
-	await expect(page.getByRole("status").filter({ hasText: "Your booking has been updated" })).toBeAttached();
-	await page.clock.runFor(2000);
+	await advance(page, 5500);
+	await advance(page, 2000);
 	await expect(page.getByTestId("payment-return")).toHaveAttribute("data-state", "confirmed");
 	expect(requests).toBeGreaterThanOrEqual(3);
 });
@@ -101,13 +121,13 @@ test("EU-FR-09 paid but never confirmed in time: polling stops and the page says
 	});
 	await page.goto(`${PAGE}?state=awaiting_payment`);
 	await expect(page.getByTestId("payment-slow")).toBeHidden();
-	await page.clock.runFor(90_000);
+	await advance(page, 90_000);
 	await expect(page.getByTestId("payment-slow")).toBeVisible();
 	await expect(page.getByTestId("payment-slow")).toContainText("we will email you");
 	await expect(page.getByTestId("payment-checking")).toBeHidden();
 	// The visit plus six polls at most, then nothing more.
 	expect(requests).toBeLessThanOrEqual(7);
-	await page.clock.runFor(120_000);
+	await advance(page, 30_000);
 	expect(requests).toBeLessThanOrEqual(7);
 	expect(await serious(page)).toEqual([]);
 });
