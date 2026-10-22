@@ -4,7 +4,7 @@ title: "Docs site, operator guides and registry listings"
 phase: 7
 package: docs
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T078, T097]
