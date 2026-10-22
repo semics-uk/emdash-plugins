@@ -599,8 +599,16 @@ describe("retry after e-sign refuses an intent (T066, SX-FR-03)", () => {
 				next: { type: "sign", intents: [{ ref: `${REF}:3`, delivery: "email", as: "self", token: INTENT(3) }] },
 			});
 		for (const [name, answer, location] of [
-			["done (Free after a downgrade)", () => ok({ bookingRef: REF, status: "confirmed", next: { type: "done" } }), `/booking?ref=${REF}`],
-			["pay", () => ok({ bookingRef: REF, next: { type: "pay", url: "https://pay.example/s/1" } }), "https://pay.example/s/1"],
+			[
+				"done (Free after a downgrade)",
+				() => ok({ bookingRef: REF, status: "confirmed", next: { type: "done" } }),
+				`/booking?ref=${REF}`,
+			],
+			[
+				"pay",
+				() => ok({ bookingRef: REF, next: { type: "pay", url: "https://pay.example/s/1" } }),
+				"https://pay.example/s/1",
+			],
 			["only email signers left", emailOnly, `/booking?ref=${REF}`],
 		] as const) {
 			const h = host({

@@ -255,9 +255,7 @@ async function proceed(
 ): Promise<WaiverOutcome> {
 	const leave = [...cookies, ...endRetry(ctx, ref)];
 	if (next?.type === "pay") {
-		return isPayUrl(next.url)
-			? redirect(next.url, leave)
-			: redirect(`${bookingPage(ref)}&error=PAYMENT_FAILED`, leave);
+		return isPayUrl(next.url) ? redirect(next.url, leave) : redirect(`${bookingPage(ref)}&error=PAYMENT_FAILED`, leave);
 	}
 	if (next?.type !== "sign" || !Array.isArray(next.intents)) return redirect(bookingPage(ref), leave);
 

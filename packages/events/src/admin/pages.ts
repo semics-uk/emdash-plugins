@@ -474,7 +474,9 @@ async function doCheckIn(
 	eventId: string,
 ): Promise<AdminResponse> {
 	// The signing-link seam is the edition's waiver support: Free (none) does not enforce waivers.
-	const result = await checkIn(deps.storage, target, iso(deps.now), eventId, { waivers: deps.signingLink !== undefined });
+	const result = await checkIn(deps.storage, target, iso(deps.now), eventId, {
+		waivers: deps.signingLink !== undefined,
+	});
 	let banner: NoticeInput;
 	const links: Block[] = [];
 	if (!result.ok && result.reason === "WAIVER_PENDING" && result.waiver && result.id && deps.signingLink) {

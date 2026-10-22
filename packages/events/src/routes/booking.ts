@@ -167,7 +167,8 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 			: undefined;
 	// Free has no waivers (no lookups step): an attendee a Pro waiver left pending on a confirmed booking
 	// gets their pass, and Free check-in admits them (R44, T119 F6).
-	const passFor = (status: string) => status === "valid" || (confirmed && !deps.lookups && b.waiver && status === "pending");
+	const passFor = (status: string) =>
+		status === "valid" || (confirmed && !deps.lookups && b.waiver && status === "pending");
 	return {
 		ok: true,
 		bookingRef: b.ref,

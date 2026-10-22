@@ -91,11 +91,18 @@ export const SIGN_PATH = "/sign/";
 /** Records a completed envelope's receipt, fetched with the door link's lookup request. */
 async function recordSigned(ctx: PublicRouteContext, lookup: unknown, options: ReceiptOptions): Promise<boolean> {
 	if (!options.esignPluginId || !tokenOk(lookup, RECEIPT_MAX)) return false;
-	const found = await post<{ state?: string; receipt?: unknown }>(ctx, options.esignPluginId, "public/receipts/lookup", {
-		request: lookup,
-	});
+	const found = await post<{ state?: string; receipt?: unknown }>(
+		ctx,
+		options.esignPluginId,
+		"public/receipts/lookup",
+		{
+			request: lookup,
+		},
+	);
 	if (!found.ok || found.data.state !== "terminal" || !tokenOk(found.data.receipt, RECEIPT_MAX)) return false;
-	const stored = await post<ReceiptAnswer>(ctx, options.pluginId, "signatures/receipt", { receipt: found.data.receipt });
+	const stored = await post<ReceiptAnswer>(ctx, options.pluginId, "signatures/receipt", {
+		receipt: found.data.receipt,
+	});
 	return stored.ok && stored.data.signature?.status === "completed";
 }
 
