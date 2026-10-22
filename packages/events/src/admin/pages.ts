@@ -441,7 +441,7 @@ async function saveEditor(
 	const state = await loadEventState(id, deps.storage);
 	const stored = state.config;
 	if (!stored) return openEditor(deps, id);
-	const { catalog: _derived, ...config } = stored;
+	const { catalog: _derived, info: _info, ...config } = stored;
 
 	// Send every ticket type (an omitted one would be deleted), but only the changed ones differ
 	// from what is stored, so `config/save` writes only those.

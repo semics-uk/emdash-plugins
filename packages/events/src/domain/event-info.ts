@@ -1,10 +1,15 @@
-import type { OccurrenceDoc } from "../storage/schema";
+import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc } from "../storage/schema";
 
 /**
- * What emails and calendar files need to know about an event: read from the site's content entry
- * (snake_case fields `title`, `starts_at`, `ends_at`, `timezone`, `venue`, in the collection named
- * by the `eventsCollection` setting) and, for a recurring event's booking, the occurrence's start.
- * Costs 2 bridge calls (setting, entry), 3 with an occurrence.
+ * What emails, calendar files and the public event routes need to know about an event: its title,
+ * times, zone and venue. They live in the site's content entry, in the collection and fields the
+ * site owner maps in settings (`eventsCollection`, `fieldStartsAt`, `fieldEndsAt`, `fieldTimezone`,
+ * `fieldVenue`; the site's own fields are snake_case, so the defaults are `starts_at` and so on).
+ *
+ * This is the one place that reads the mapping. The result is denormalised onto the event config
+ * (`EventConfigDoc.info`) when the entry is saved (`content:afterSave`) and when `config/save`
+ * creates a config, so a reader needs one document: `loadEventInfo` takes it from the config and
+ * falls back to the entry only for a config that has no copy yet.
  */
 export interface EventInfo {
 	title: string;
@@ -14,46 +19,103 @@ export interface EventInfo {
 	venue?: string;
 }
 
-export interface EventInfoDeps {
-	settings: { get<T>(key: string): Promise<T | null> };
-	content: { get(collection: string, id: string): Promise<{ data: Record<string, unknown> } | null> };
-	storage: { occurrences: { get(id: string): Promise<unknown> } };
+export interface EventMapping {
+	collection: string;
+	startsAt: string;
+	endsAt: string;
+	timezone: string;
+	venue: string;
 }
 
-const DEFAULT_COLLECTION = "events";
+export interface EventInfoDeps {
+	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
+	content: { get(collection: string, id: string): Promise<{ data: Record<string, unknown> } | null> };
+	storage: {
+		occurrences: { get(id: string): Promise<unknown> };
+		event_configs: { get(id: string): Promise<unknown> };
+	};
+}
 
-const text = (v: unknown): string | undefined => (typeof v === "string" && v.trim() !== "" ? v : undefined);
+const DEFAULTS: EventMapping = {
+	collection: "events",
+	startsAt: "starts_at",
+	endsAt: "ends_at",
+	timezone: "timezone",
+	venue: "venue",
+};
+
+const text = (v: unknown): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim() : undefined);
 const instant = (v: unknown): number | undefined => {
 	const ms = typeof v === "string" ? Date.parse(v) : Number.NaN;
 	return Number.isFinite(ms) ? ms : undefined;
 };
+const iso = (ms: number) => new Date(ms).toISOString();
 
-export async function eventCollection(settings: EventInfoDeps["settings"]): Promise<string> {
-	return text(await settings.get<string>("eventsCollection")) ?? DEFAULT_COLLECTION;
+/** The mapping from a settings listing; an unset (or blank) setting means its default. */
+export function mappingOf(entries: ReadonlyArray<{ key: string; value: unknown }>): EventMapping {
+	const value = (key: string, fallback: string) => text(entries.find((e) => e.key === key)?.value) ?? fallback;
+	return {
+		collection: value("eventsCollection", DEFAULTS.collection),
+		startsAt: value("fieldStartsAt", DEFAULTS.startsAt),
+		endsAt: value("fieldEndsAt", DEFAULTS.endsAt),
+		timezone: value("fieldTimezone", DEFAULTS.timezone),
+		venue: value("fieldVenue", DEFAULTS.venue),
+	};
 }
 
-/** `null` when the entry is gone or has no usable start. */
+/** The public info of an entry's fields, read through the mapping; `null` without a usable start. */
+export function infoOfEntry(data: Record<string, unknown>, mapping: EventMapping): EventInfoDoc | null {
+	const startsAt = instant(data[mapping.startsAt]);
+	if (startsAt === undefined) return null;
+	const endsAt = instant(data[mapping.endsAt]);
+	return {
+		title: text(data.title) ?? "Event",
+		startsAt: iso(startsAt),
+		endsAt: endsAt !== undefined && endsAt > startsAt ? iso(endsAt) : null,
+		timezone: text(data[mapping.timezone]) ?? null,
+		venue: text(data[mapping.venue]) ?? null,
+	};
+}
+
+/** Read an entry's info through the settings (2 bridge calls: settings, entry). */
+export async function readEntryInfo(
+	deps: Pick<EventInfoDeps, "settings" | "content">,
+	eventId: string,
+): Promise<EventInfoDoc | null> {
+	const mapping = mappingOf(await deps.settings.list());
+	const entry = await deps.content.get(mapping.collection, eventId);
+	return entry ? infoOfEntry(entry.data, mapping) : null;
+}
+
+/** A stored info as the emails' shape, with the occurrence's start when the booking has one. */
+export function eventInfoOf(doc: EventInfoDoc, occurrence?: OccurrenceDoc | null): EventInfo | null {
+	const entryStart = instant(doc.startsAt);
+	const startsAt = occurrence ? (instant(occurrence.startsAt) ?? entryStart) : entryStart;
+	if (startsAt === undefined) return null;
+	const duration = entryStart !== undefined ? (instant(doc.endsAt) ?? entryStart) - entryStart : 0;
+	const endsAt = occurrence ? (instant(occurrence.endsAt) ?? startsAt + duration) : instant(doc.endsAt);
+	return {
+		title: text(doc.title) ?? "Event",
+		startsAt,
+		...(endsAt !== undefined && endsAt > startsAt ? { endsAt } : {}),
+		...(doc.timezone ? { timeZone: doc.timezone } : {}),
+		...(doc.venue ? { venue: doc.venue } : {}),
+	};
+}
+
+/**
+ * `null` when the event is gone or has no usable start. One call for the config (which carries
+ * `info`), one more for a recurring event's occurrence; a config without `info` costs two more
+ * (settings, entry).
+ */
 export async function loadEventInfo(
 	deps: EventInfoDeps,
 	eventId: string,
 	occurrenceId?: string,
 ): Promise<EventInfo | null> {
-	const entry = await deps.content.get(await eventCollection(deps.settings), eventId);
-	if (!entry) return null;
-	const d = entry.data;
+	const config = (await deps.storage.event_configs.get(eventId)) as EventConfigDoc | null;
+	const doc = config?.info ?? (await readEntryInfo(deps, eventId));
+	if (!doc) return null;
 	const occurrence = occurrenceId ? ((await deps.storage.occurrences.get(occurrenceId)) as OccurrenceDoc | null) : null;
-	const entryStart = instant(d.starts_at);
-	const startsAt = occurrence ? (instant(occurrence.startsAt) ?? entryStart) : entryStart;
-	if (startsAt === undefined) return null;
-	const duration = entryStart !== undefined ? (instant(d.ends_at) ?? entryStart) - entryStart : 0;
-	const endsAt = occurrence ? (instant(occurrence.endsAt) ?? startsAt + duration) : instant(d.ends_at);
-	const timeZone = text(d.timezone);
-	const venue = text(d.venue);
-	return {
-		title: text(d.title) ?? "Event",
-		startsAt,
-		...(endsAt !== undefined && endsAt > startsAt ? { endsAt } : {}),
-		...(timeZone ? { timeZone } : {}),
-		...(venue ? { venue } : {}),
-	};
+	return eventInfoOf(doc, occurrence);
 }

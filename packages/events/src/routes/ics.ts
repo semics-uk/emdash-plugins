@@ -22,8 +22,9 @@ import type { BookingDoc, OccurrenceDoc } from "../storage/schema";
  * file is public and carries no booking data. Both write the event in its own time zone
  * (`DTSTART;TZID=` plus a generated VTIMEZONE).
  *
- * Bridge calls (R22): booking file = link key, booking, setting, entry (+ occurrence) = 4 or 5;
- * event file = setting, entry, occurrences = 3.
+ * Bridge calls (R22): booking file = link key, booking, event config (+ occurrence) = 3 or 4;
+ * event file = event config, occurrences = 2. A config without a copy of the entry's public info
+ * adds a settings and an entry read (see `loadEventInfo`).
  */
 export const BOOKING_ICS_PURPOSE = "events/booking-ics";
 export const BOOKING_ICS_TTL_MS = 15 * 60 * 1000;
@@ -38,6 +39,7 @@ type Item = { id: string; data: unknown };
 export interface IcsDeps extends Omit<EventInfoDeps, "storage"> {
 	storage: {
 		bookings: { query(o: { where: Record<string, unknown>; limit: number }): Promise<{ items: Item[] }> };
+		event_configs: { get(id: string): Promise<unknown> };
 		occurrences: {
 			get(id: string): Promise<unknown>;
 			query(o: {

@@ -5,6 +5,7 @@ import { BOOKING_CANCEL_ROUTE, BOOKING_ROUTE } from "./booking";
 import { CHECKOUT_CONTINUE_ROUTE } from "./checkout-continue";
 import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
 import { bookingIcsHandler, eventIcsHandler } from "./ics";
+import { EVENT_ROUTE, EVENTS_LIST_ROUTE } from "./public-events";
 import { BOOKING_REDEEM_ROUTE } from "./redeem";
 
 /**
@@ -21,11 +22,9 @@ function route(def: Omit<RouteDef, "handler" | "public">): RouteDef {
 	return { ...def, public: true, handler: notImplemented };
 }
 
-const EVENTS_LIST_CACHE = "public, max-age=60, stale-while-revalidate=300";
-
 export const PUBLIC_ROUTES: Record<string, RouteDef> = {
-	"public/events": route({ methods: ["GET"], cacheControl: EVENTS_LIST_CACHE }),
-	"public/event": route({ methods: ["GET"] }),
+	"public/events": EVENTS_LIST_ROUTE,
+	"public/event": EVENT_ROUTE,
 	"public/checkout/reserve": CHECKOUT_RESERVE_ROUTE,
 	"public/checkout/continue": CHECKOUT_CONTINUE_ROUTE,
 	"public/booking": BOOKING_ROUTE,

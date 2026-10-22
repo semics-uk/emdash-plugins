@@ -90,6 +90,17 @@ export interface EventConfigDoc {
 	orphaned?: boolean;
 	/** Derived from the event's ticket types and occurrences by `config/save` (see `EventCatalog`). */
 	catalog?: EventCatalog | null;
+	/** The event's public info, copied from its content entry (see `src/domain/event-info.ts`). */
+	info?: EventInfoDoc | null;
+}
+
+/** Title, times, zone and venue of an event as ISO strings; written by the content hook and `config/save`. */
+export interface EventInfoDoc {
+	title: string;
+	startsAt: string;
+	endsAt: string | null;
+	timezone: string | null;
+	venue: string | null;
 }
 
 /** What checkout needs from a ticket type, copied onto the event config. */

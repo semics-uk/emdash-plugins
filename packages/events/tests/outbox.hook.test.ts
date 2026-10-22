@@ -40,6 +40,21 @@ async function seed() {
 			venue: "Town Hall",
 		},
 	});
+	// The event's config carries a copy of the entry's public fields (content:afterSave, config/save).
+	await runtime.fixtures.plugin.storage("event_configs", entry.id, {
+		status: "on_sale",
+		capacity: 10,
+		reserved: 0,
+		sold: 0,
+		currency: "GBP",
+		info: {
+			title: "Winter Concert",
+			startsAt: "2026-11-14T19:00:00.000Z",
+			endsAt: "2026-11-14T21:00:00.000Z",
+			timezone: "Europe/London",
+			venue: "Town Hall",
+		},
+	});
 	const token = generateToken();
 	await runtime.fixtures.plugin.storage("bookings", ID, {
 		ref: REF,

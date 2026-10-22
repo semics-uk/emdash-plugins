@@ -1,5 +1,6 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { contentAfterSave } from "./content-hooks";
 import { runCron, scheduleSweeper } from "./cron/sweep";
 import { runOutboxJob, scheduleOutbox } from "./emails/outbox";
 import { ADMIN_ROUTES } from "./routes/admin";
@@ -18,6 +19,7 @@ const plugin: SandboxedPlugin = {
 			await scheduleSweeper(ctx);
 			await scheduleOutbox(ctx);
 		},
+		"content:afterSave": contentAfterSave,
 		cron: async (event, ctx) => {
 			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
 		},

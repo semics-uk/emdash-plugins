@@ -3,7 +3,8 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type ConfigIssue, catalogOf, type ExistingState, validateConfigInput } from "../domain/config";
 import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
-import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
+import { readEntryInfo } from "../domain/event-info";
+import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
  * Private (admin) config routes: `config/get` and `config/save` (EV-FR-02, EV-FR-03). Thin adapters
@@ -74,6 +75,12 @@ export async function saveConfig(
 	newId: () => string,
 	/** State the caller just loaded (the admin editor), so the save does not read it again. */
 	preloaded?: EventState,
+	/**
+	 * Reads the event's public info from its content entry (2 bridge calls). Called once, and only
+	 * for a config that has none yet, so a save after the first costs nothing extra; the content
+	 * hook keeps it fresh afterwards.
+	 */
+	loadInfo?: () => Promise<EventInfoDoc | null>,
 ): Promise<unknown> {
 	const eventId = eventIdOf(input);
 	if (!eventId) return badRequest();
@@ -132,6 +139,8 @@ export async function saveConfig(
 		(state.config && !sameJson(storedCatalog, target) ? 1 : 0);
 	if (calls > MAX_SAVE_CALLS) return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
 
+	const info: EventInfoDoc | null = state.config?.info || !loadInfo ? null : await loadInfo().catch(() => null);
+
 	const effective = {
 		ticketTypes: new Map(existing.ticketTypes),
 		occurrences: new Map(existing.occurrences),
@@ -139,8 +148,8 @@ export async function saveConfig(
 	const writeCatalog = async () => {
 		const entries = <T>(m: Map<string, T>) => [...m].map(([id, data]) => ({ id, data }));
 		const catalog = catalogOf(entries(effective.ticketTypes), entries(effective.occurrences));
-		if (sameJson(storedCatalog, catalog)) return;
-		await storage.event_configs.updateIf(eventId, { where: {}, set: { catalog } });
+		if (sameJson(storedCatalog, catalog) && !info) return;
+		await storage.event_configs.updateIf(eventId, { where: {}, set: { catalog, ...(info ? { info } : {}) } });
 	};
 
 	// 1. Edits, guarded on what is reserved at write time (EV-FR-03).
@@ -185,7 +194,7 @@ export async function saveConfig(
 	if (newTicketTypes.length > 0) await storage.ticket_types.putMany(newTicketTypes);
 	if (newOccurrences.length > 0) await storage.occurrences.putMany(newOccurrences);
 	if (!state.config) {
-		await storage.event_configs.put(eventId, { ...v.config, catalog: target });
+		await storage.event_configs.put(eventId, { ...v.config, catalog: target, ...(info ? { info } : {}) });
 	} else {
 		for (const t of newTicketTypes) effective.ticketTypes.set(t.id, t.data);
 		for (const o of newOccurrences) effective.occurrences.set(o.id, o.data);
@@ -205,7 +214,7 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 			if (!eventId) return badRequest();
 			const state = await loadEventState(eventId, configStorage(ctx));
 			if (!state.config) return toRouteError("NOT_FOUND").body;
-			const { catalog: _derived, ...config } = state.config;
+			const { catalog: _derived, info: _info, ...config } = state.config;
 			return {
 				ok: true,
 				config,
@@ -216,6 +225,15 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 	},
 	"config/save": {
 		handler: (async (routeCtx, ctx) =>
-			saveConfig(configStorage(ctx), routeCtx.input, () => crypto.randomUUID())) as Handler,
+			saveConfig(
+				configStorage(ctx),
+				routeCtx.input,
+				() => crypto.randomUUID(),
+				undefined,
+				() => readEntryInfo(
+					{ settings: ctx.settings, content: ctx.content ?? { get: async () => null } },
+					eventIdOf(routeCtx.input) ?? "",
+				),
+			)) as Handler,
 	},
 };

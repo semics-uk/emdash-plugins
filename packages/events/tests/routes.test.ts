@@ -46,6 +46,8 @@ describe("public routes (route list matches BUILD-PLAN 3.1)", () => {
 		"public/booking/ics",
 		"public/booking/redeem",
 		"public/event/ics",
+		"public/events",
+		"public/event",
 	]);
 	for (const name of EXPECTED.filter((n) => !IMPLEMENTED.has(n))) {
 		it(`${name} is a stub that answers through the shared error registry`, async () => {
