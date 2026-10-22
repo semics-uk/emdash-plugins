@@ -110,6 +110,9 @@ describe("EV-FR-12 waiver toggle on the editor panel", () => {
 		const res = await save(w.deps, { waiver_required: true, waiver_template: "" });
 		expect(text(res.blocks)).toMatch(/template/i);
 		expect(w.config()).toMatchObject({ signature: { required: false } });
+		// The protocol's id64 grammar, so the intents Pro mints are never refused for their template.
+		await save(w.deps, { waiver_required: true, waiver_template: "my waiver!" });
+		expect(w.config()).toMatchObject({ signature: { required: false } });
 	});
 
 	it("R22 Pro panel load and save stay within the design target", async () => {

@@ -71,12 +71,9 @@ async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> 
 }
 
 const WAIVER_UNAVAILABLE: Record<"edition" | "pairing" | "licence", string> = {
-	edition:
-		"Required waivers are an Events Pro feature: with Pro and the E-sign plugin, attendees sign before their booking is confirmed.",
-	pairing:
-		"To require a signed waiver, create an integration client in the E-sign plugin and paste its pairing string into the Events settings.",
-	licence:
-		"Your Events Pro licence is not valid for this site, so waivers cannot be changed. Bookings already made keep their waivers.",
+	edition: "Required waivers need Events Pro and the E-sign plugin.",
+	pairing: "Paste the pairing string from the E-sign plugin into the Events settings to require waivers.",
+	licence: "Your Events Pro licence is not valid for this site, so waivers cannot be changed.",
 };
 
 const MODE_OPTIONS = [
@@ -396,7 +393,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 			values.waiver_mode === "buyer" || values.waiver_mode === "each_attendee"
 				? values.waiver_mode
 				: storedSignature.mode;
-		if (required && !templateId) {
+		if (required && !/^[A-Za-z0-9_-]{1,64}$/.test(templateId)) {
 			return panelForm(state, failure([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers);
 		}
 		signature = { required, mode, ...(templateId ? { templateId } : {}) };

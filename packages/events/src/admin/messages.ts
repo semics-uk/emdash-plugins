@@ -12,7 +12,7 @@ const ISSUE_MESSAGES: Record<string, string> = {
 	UNKNOWN_ID: "An item changed while you were editing. Reload and try again.",
 	TOO_MANY: "That is more items than one event can have.",
 	TOO_MANY_CHANGES: "Too many changes at once: save fewer changes at a time.",
-	WAIVER_TEMPLATE_REQUIRED: "A required waiver needs the id of an E-sign template.",
+	WAIVER_TEMPLATE_REQUIRED: "A required waiver needs an E-sign template id (letters, digits, - and _).",
 };
 
 export function issueMessage(code: string, path = ""): string {
