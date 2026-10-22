@@ -1902,7 +1902,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1912,7 +1912,7 @@
 				"ES-FR-17"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T093": {
 			"file": "T093-e-sign-pro-public-self-serve-templates-and-block.md",
@@ -2407,8 +2407,7 @@
 			"T119"
 		],
 		"in-progress": [
-			"T076",
-			"T092"
+			"T076"
 		],
 		"review": [],
 		"done": [
@@ -2481,6 +2480,7 @@
 			"T077",
 			"T085",
 			"T087",
+			"T092",
 			"T097",
 			"T104",
 			"T110",
