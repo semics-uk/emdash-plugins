@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Document that the "Tickets & booking" editor panel is scoped to the `events` collection in the manifest (T043); sites mapping another collection see it only there, and the admin Event editor page still works for any mapping. Check whether EmDash can scope a panel dynamically and record the answer
 - [ ] Site-owner Stripe setup for Events Pro (T074, Pro README): secret key scopes, webhook endpoint URL with the plugin id, the four event types, `stripeWebhookSecret`
 - [ ] Operator guide: carry over `packages/esign/README.md` "Retention (operators)" (T097, R45), including that the snapshot and certificate keep the signer's name and IP until the signed-records period ends
+- [ ] Correct the docs to match the code (legal brief §12): the certificate keeps the participant (minor) name as well as signer name and IP, and the signed PDF keeps "Details entered by the signer" until the signed-records period ends (README "Retention (operators)" and R45 wording)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

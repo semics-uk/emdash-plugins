@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Legal brief Q-list: OTP is the only identity step above email-link control; update `docs/legal/brief.md` §5 when it lands
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
