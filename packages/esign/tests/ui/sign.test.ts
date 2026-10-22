@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { callPublicRoute, ESIGN_PLUGIN_ID } from "../../src/astro/lib/call";
-import { handleSign } from "../../src/astro/lib/sign";
+import { handleSign, handleSignedCopy } from "../../src/astro/lib/sign";
 
 const url = new URL("https://site.example/sign/TOKEN");
 const DOC = "a".repeat(64);
@@ -164,5 +164,42 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 			status: "completed",
 			pdf: "pending",
 		});
+	});
+});
+
+describe("handleSignedCopy: the stable 'get my signed copy' page (ES-US-6)", () => {
+	const done = {
+		ok: true,
+		state: "closed",
+		status: "completed",
+		title: "NDA",
+		pdf: "ready",
+		download: { url: "/d?e=fresh", expiresAt: "x" },
+	};
+
+	it("ES-US-6 posts the emailed token to public/session and offers the fresh download link", async () => {
+		const h = host({ "public/session": done });
+		const view = await handleSignedCopy({ ...h.ctx, pluginId: "r_abc" }, TOKEN);
+		expect(view).toEqual({ kind: "closed", status: "completed", title: "NDA", pdf: "ready", download: "/d?e=fresh" });
+		expect(h.seen).toHaveLength(1);
+		expect(h.seen[0]?.body).toEqual({ token: TOKEN });
+		expect(h.seen[0]?.url).toContain("/plugins/r_abc/public/session");
+		expect(h.seen[0]?.url).not.toContain(TOKEN);
+	});
+
+	it("ES-US-6 a PDF still being built is pending, an unsigned envelope is not offered a copy", async () => {
+		const pending = host({ "public/session": { ...done, pdf: "pending", download: undefined } });
+		expect(await handleSignedCopy(pending.ctx, TOKEN)).toMatchObject({ kind: "closed", pdf: "pending" });
+		const unsigned = host({ "public/session": ready });
+		expect(await handleSignedCopy(unsigned.ctx, TOKEN)).toEqual({ kind: "unsigned" });
+	});
+
+	it("ES-US-6 an invalid token is a defined error and the token is never logged", async () => {
+		const h = host({ "public/session": { ok: false, error: { code: "SIGNING_TOKEN_INVALID", message: "x" } } });
+		const log = vi.spyOn(console, "log");
+		const err = vi.spyOn(console, "error");
+		const view = await handleSignedCopy(h.ctx, TOKEN);
+		expect(view).toMatchObject({ kind: "error", code: "SIGNING_TOKEN_INVALID" });
+		for (const spy of [log, err]) expect(JSON.stringify(spy.mock.calls)).not.toContain(TOKEN);
 	});
 });

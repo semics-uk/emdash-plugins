@@ -29,7 +29,7 @@ async function setup(options?: { pluginId?: string }) {
 describe("esignIntegration (SU-FR-01, SU-FR-02)", () => {
 	it("SU-FR-01 injects /sign/[token] and /verify, both server-rendered", async () => {
 		const { routes } = await setup();
-		expect(routes.map((r) => r.pattern).sort()).toEqual(["/sign/[token]", "/verify"]);
+		expect(routes.map((r) => r.pattern).sort()).toEqual(["/sign/[token]", "/signed/[token]", "/verify"]);
 		for (const r of routes) {
 			expect(r.prerender).toBe(false);
 			expect(String(r.entrypoint)).toMatch(/^@semics-tech\/emdash-esign\/astro\//);

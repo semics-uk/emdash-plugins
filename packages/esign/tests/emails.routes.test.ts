@@ -276,7 +276,19 @@ describe("ES-FR-10 completion email", () => {
 		expect(rows).toHaveLength(2);
 		const done = rows.find((r) => r.message.subject.startsWith("Signed"));
 		expect(done?.message.to).toBe("ada@example.com");
-		expect(done?.message.text).toContain("https://site.test/_emdash/api/plugins/semics-esign/public/download?");
-		expect(done?.message.text).not.toContain(token);
+		// The email links the stable page, not the 15-minute download link, with a fresh token in its path.
+		const fresh = /https:\/\/site\.test\/signed\/([A-Za-z0-9_-]+)/.exec(done?.message.text ?? "")?.[1] as string;
+		expect(fresh).toBeTruthy();
+		expect(fresh).not.toBe(token);
+		expect(done?.message.text).not.toContain("public/download");
+		expect(done?.message.html).toContain(`/signed/${fresh}`);
+		// The old invitation link no longer opens; the new token yields a fresh download link.
+		expect(await call(budget, "public/session", { token })).toMatchObject({ ok: false });
+		expect(await call(budget, "public/session", { token: fresh })).toMatchObject({
+			ok: true,
+			status: "completed",
+			pdf: "ready",
+			download: { url: expect.stringContaining("public/download?") },
+		});
 	});
 });
