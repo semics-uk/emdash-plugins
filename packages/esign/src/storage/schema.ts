@@ -29,7 +29,7 @@ export const STORAGE_DECLARATIONS: Readonly<Record<CollectionName, StorageDeclar
 	envelopes: {
 		indexes: ["status", "expiresAt", "createdAt", "clientId", "externalRef", "pdfSha256", ["status", "expiresAt"]],
 	},
-	signers: { indexes: ["envelopeId", "email"], uniqueIndexes: ["tokenHash"] },
+	signers: { indexes: ["envelopeId", "email", "copyTokenHash"], uniqueIndexes: ["tokenHash"] },
 	snapshots: { indexes: ["envelopeId"] },
 	artifacts: { indexes: ["envelopeId", ["envelopeId", "kind"]] },
 	audit_events: { indexes: ["envelopeId", ["envelopeId", "seq"]] },

@@ -95,6 +95,8 @@ export interface SignerDoc {
 	participant?: { name: string };
 	status: "pending" | "signed" | "declined";
 	tokenHash: string;
+	/** SHA-256 of the signed-copy token the completion email links (R36); never opens a signing session. */
+	copyTokenHash?: string;
 	createdAt: string;
 	/** Set by the signing ceremony (domain/signing.ts). Personal data: purged by retention. */
 	signature?: StoredSignature;

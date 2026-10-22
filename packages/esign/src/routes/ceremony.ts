@@ -101,6 +101,13 @@ async function findSigner(ctx: PluginContext, token: string): Promise<Signed | n
 	return found && (await verifyToken(token, found.data.tokenHash)) ? found : null;
 }
 
+/** The signer whose signed-copy token this is (R36): only `public/session` accepts it, and only once completed. */
+async function findCopySigner(ctx: PluginContext, token: string): Promise<Signed | null> {
+	const { items } = await stores(ctx).signers.query({ where: { copyTokenHash: await hashToken(token) }, limit: 1 });
+	const found = items[0];
+	return found?.data.copyTokenHash && (await verifyToken(token, found.data.copyTokenHash)) ? found : null;
+}
+
 const isExpired = (envelope: EnvelopeDoc, now: string) => envelope.expiresAt !== null && envelope.expiresAt <= now;
 
 /**
@@ -132,10 +139,14 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	const token = tokenOf(routeCtx.input);
 	if (token === null) return invalidToken(ctx, routeCtx, "session");
 	const { envelopes, snapshots } = stores(ctx);
-	const [signer, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
+	const [found, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
+	const viaCopy = found ? null : await findCopySigner(ctx, token);
+	const signer = found ?? viaCopy;
 	if (!signer) return invalidToken(ctx, routeCtx, "session");
 	const envelope = await envelopes.get(signer.data.envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
+	// A copy token only ever shows the completed envelope's closed state and download link.
+	if (viaCopy && envelope.status !== "completed") return invalidToken(ctx, routeCtx, "session");
 	if (!OPEN.includes(envelope.status) || signer.data.status !== "pending") {
 		const closed = { ok: true, state: "closed", status: envelope.status, title: envelope.title };
 		if (envelope.status !== "completed" || signer.data.status !== "signed") return closed;
