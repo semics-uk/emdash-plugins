@@ -4,10 +4,14 @@
 // in the browser (never uploaded). Its CSP allows only the page's own hashed script and style.
 import { pluginId } from "virtual:semics-esign/config";
 import { verifyCsp } from "./lib/csp";
+import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
 import { handleVerify } from "./lib/sign";
 import VerifyDocument from "./VerifyDocument.astro";
 
 export const prerender = false;
+
+// A cross-site post would spend the visitor's per-IP verify allowance (CSRF, T034).
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");

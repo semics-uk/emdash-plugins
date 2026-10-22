@@ -113,7 +113,9 @@ describe("isCrossSiteRequest: the UI's own CSRF check (T034; EmDash sets Astro c
 	it("trusts Sec-Fetch-Site first", () => {
 		expect(isCrossSiteRequest(post({ "sec-fetch-site": "cross-site" }), page)).toBe(true);
 		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-site" }), page)).toBe(true);
-		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-origin", origin: "https://evil.example" }), page)).toBe(false);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-origin", origin: "https://evil.example" }), page)).toBe(
+			false,
+		);
 		expect(isCrossSiteRequest(post({ "sec-fetch-site": "none" }), page)).toBe(false);
 	});
 

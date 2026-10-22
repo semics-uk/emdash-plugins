@@ -5,10 +5,14 @@
 // the ceremony's own hashed script and style (SU-NFR-02).
 import { pluginId } from "virtual:semics-esign/config";
 import { ceremonyCsp } from "./lib/csp";
+import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
 import { handleSign } from "./lib/sign";
 import SigningCeremony from "./SigningCeremony.astro";
 
 export const prerender = false;
+
+// Sign and decline are form posts: refuse one another site made (CSRF, T034).
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
