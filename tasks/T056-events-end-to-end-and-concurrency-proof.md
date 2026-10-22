@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Runs in CI
 - [ ] Booking page handles `?k=` (T050, R34): show an "Open my booking" button that POSTs, call `public/booking/redeem` server-side, set the `semics_booking_<ref>` cookie, redirect to `/booking?ref=` without `k`; never redeem on GET (mail scanners prefetch). Wire `calendar.query` and attendee `code` from `public/booking` into the pass and calendar link (T055)
+- [ ] `public/events` rows carry the entry slug so `EventCard` links to the event page by default (T054)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

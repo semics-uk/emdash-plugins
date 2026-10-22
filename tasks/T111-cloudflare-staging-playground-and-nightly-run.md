@@ -42,6 +42,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Workflow uses a scoped Cloudflare API token stored as a GitHub secret (owner creates it; needs the GitHub repo)
 - [ ] CI installs `qpdf` so the T016 `qpdf --check` test runs
 - [ ] Lighthouse accessibility ≥ 95 on the booking widget and booking page (moved from T055: not installable offline locally)
+- [ ] Linux CI regenerates the T054 card visual baselines once (macOS Chrome baselines, 3% tolerance)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
