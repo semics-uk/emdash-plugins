@@ -48,6 +48,10 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   answer says the screen needs Events Pro; `/e2e/widgets` shows a pass with a fixed Pro QR matrix.
 - `e2e/t101-accessibility.spec.ts` (T101, R56): axe WCAG 2.2 A/AA on every public page at 1280 and 320 px, Tab/focus ring, reflow,
   the e-sign email-code step (envelope `otp: true` written into `data.db`; `/e2e/ceremony?state=otp&otp=<code>|sent`, `state=fix`).
+- `e2e/t102-i18n.spec.ts` (T102): `/e2e/i18n?kit=events|esign&lang=en|ar` renders every Events or E-sign component with fixed
+  data in one language; ARIA snapshots in `e2e/__snapshots__/t102-i18n.spec.ts/` (regenerate with `--update-snapshots` when UI
+  text changes, and read the diff), the Arabic widget's Book button on the right, the ceremony's quote rule on the right,
+  320 px reflow and axe in Arabic.
 - `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
   `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate

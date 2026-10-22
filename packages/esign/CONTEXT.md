@@ -216,3 +216,10 @@ declaring `permission: "plugins:manage"` (EmDash only registers a tool whose rou
 over them; they wrap Free's `templates/list`, `envelopes/create` + `envelopes/send` (one signer, the send in the one-shot
 `mcp-send-<id>`), `envelopes/get` and `envelopes/void`. A Free route handler's input and output shape is therefore also the MCP
 tools' contract: change one only with the Pro wrappers in mind.
+
+Translations (T102, R58): every text of the UI half comes from `src/i18n/` (en, ar; a copy of the Events module). Components
+and pages take `locale`, else `Astro.currentLocale`, else `en-GB`, and set `lang`/`dir`. Views keep their English `message`
+(1.0 API) but the components show `signMessage(code, locale)` / `startMessage(code, locale)`; `pdfDocumentView(session, locale)`
+adds `pagesLabel`. The inlined scripts hold no text: `ceremony.js` reads the root's `data-messages` (`ceremony.`), `pad.js` the
+slot's (`pad.`, plurals by `Intl.PluralRules`), `verify.js` the file input's (`verify.`). The CSP hashes follow the files, so
+nothing else changes when a script does. Consent wording is the site's setting, not a message. See `docs/i18n.md`.

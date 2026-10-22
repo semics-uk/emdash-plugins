@@ -4,6 +4,7 @@
 // core's `public/mail/opt-out` (Events Pro's route; a Free core answers NOT_FOUND, shown as an invalid link).
 import { pluginId } from "virtual:semics-events/config";
 
+import { pickLocale, translator } from "../i18n/index";
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/checkout-form";
 import { OPT_OUT_MESSAGES, OPT_OUT_PATH, optOut, readOptOutLink } from "./lib/opt-out";
 
@@ -13,6 +14,8 @@ Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
 
 if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
+// The page's language is the site's (Astro i18n), else British English (T102).
+const { t, lang, dir } = translator(pickLocale(Astro.currentLocale));
 let link = readOptOutLink(Astro.url.searchParams);
 let outcome: keyof typeof OPT_OUT_MESSAGES | null = link ? null : "invalid";
 if (Astro.request.method === "POST") {
@@ -24,29 +27,29 @@ if (Astro.request.method === "POST") {
 }
 ---
 <!doctype html>
-<html lang="en">
+<html lang={lang} dir={dir}>
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
-		<title>Email preferences</title>
+		<title>{t("optOut.title")}</title>
 	</head>
 	<body>
 		<main class="semics-events semics-opt-out" data-testid="opt-out-page">
-			<h1>Email preferences</h1>
+			<h1>{t("optOut.title")}</h1>
 			{outcome ? (
 				<p role={outcome === "done" ? "status" : "alert"} data-testid={`opt-out-${outcome}`}>
-					{OPT_OUT_MESSAGES[outcome]}
+					{t(`optOut.${outcome}`)}
 				</p>
 			) : (
 				link && (
 					<form method="post" action={OPT_OUT_PATH} data-testid="opt-out-form">
-						<p>Stop reminders and event updates about booking {link.bookingRef} at this address?</p>
+						<p>{t("optOut.question", { ref: link.bookingRef })}</p>
 						<input type="hidden" name="ref" value={link.bookingRef} />
 						<input type="hidden" name="w" value={link.who} />
 						<input type="hidden" name="s" value={link.sig} />
-						<button type="submit">Stop these emails</button>
+						<button type="submit">{t("optOut.button")}</button>
 					</form>
 				)
 			)}

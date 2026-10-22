@@ -5,6 +5,7 @@
  * button whose same-site POST asks the core's `public/mail/opt-out`. The route is Events Pro's: a Free
  * core answers NOT_FOUND, which the page shows as an invalid link. Cancellation notices are always sent.
  */
+import { t } from "../../i18n/index";
 import { callPublicRoute, type PublicRouteContext } from "./call";
 
 export const OPT_OUT_PATH = "/_events/opt-out";
@@ -16,10 +17,8 @@ export interface OptOutLink {
 	sig: string;
 }
 
-export const OPT_OUT_MESSAGES = {
-	done: "Done. You will get no more reminders or updates about this booking at this address. If the event is cancelled, we will still tell you.",
-	invalid: "This link is not valid any more. Use the link in the most recent email about your booking.",
-} as const;
+/** The outcomes in English (the page shows `optOut.<outcome>` in its language, T102). */
+export const OPT_OUT_MESSAGES = { done: t("en", "optOut.done"), invalid: t("en", "optOut.invalid") } as const;
 
 const REF = /^[0-9A-Z]{10}$/;
 const WHO = /^[\w-]{1,120}$/;

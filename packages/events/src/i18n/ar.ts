@@ -199,6 +199,13 @@ export const ar: Messages = {
 	"checkin.cameraFailed.title": "الكاميرا غير متاحة",
 	"checkin.cameraFailed.message": "اسمح باستخدام الكاميرا، أو اكتب الرمز بدلًا من ذلك.",
 
+	"optOut.title": "تفضيلات البريد الإلكتروني",
+	"optOut.question": "إيقاف التذكيرات وتحديثات الفعالية الخاصة بالحجز {ref} على هذا العنوان؟",
+	"optOut.button": "أوقف هذه الرسائل",
+	"optOut.done":
+		"تم. لن تصلك بعد الآن تذكيرات أو تحديثات عن هذا الحجز على هذا العنوان. إذا أُلغيت الفعالية، فسنبلغك بذلك.",
+	"optOut.invalid": "هذا الرابط لم يعد صالحًا. استخدم الرابط الموجود في أحدث رسالة عن حجزك.",
+
 	"booking.lines.one": "تذكرة واحدة",
 	"booking.lines.other": "{count} تذكرة",
 	"booking.lines.two": "تذكرتان",

@@ -205,6 +205,13 @@ export const en = {
 	"checkin.cameraFailed.title": "Camera not available",
 	"checkin.cameraFailed.message": "Allow the camera, or type the code instead.",
 
+	"optOut.title": "Email preferences",
+	"optOut.question": "Stop reminders and event updates about booking {ref} at this address?",
+	"optOut.button": "Stop these emails",
+	"optOut.done":
+		"Done. You will get no more reminders or updates about this booking at this address. If the event is cancelled, we will still tell you.",
+	"optOut.invalid": "This link is not valid any more. Use the link in the most recent email about your booking.",
+
 	"booking.lines.one": "{count} ticket",
 	"booking.lines.other": "{count} tickets",
 };

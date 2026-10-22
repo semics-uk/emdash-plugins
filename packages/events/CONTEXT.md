@@ -249,6 +249,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   every public page (1280 and 320 px), a visible focus ring on every control, and no sideways scroll at 320 px. Each Turnstile
   box is followed by a one-line inline script that switches it to `data-size=compact` in a container under 300 px.
 
+- Translations (T102, R58): every text of the UI half comes from `src/i18n/` (`en.ts` is the source, `ar.ts` the first
+  right-to-left language; `t`, `translator`, `clientMessages`, `segments`, `pickLocale`). Components take `locale`, else
+  `Astro.currentLocale`, else `en-GB`, and set `lang`/`dir` on their root; pages set them on `<html>`. Helpers take an optional
+  `locale` (`errorMessage`, `fieldMessage`, `statusLabel`, `formatMoney`, `paymentView`, `questionControls`, `promoNote`,
+  `waitlistMessage`); the exported English maps (`ERROR_MESSAGES`, ...) stay for compatibility. Client scripts hold no text: the
+  page renders theirs into `data-messages` (check-in: `checkin.` + `status.`), `data-free`, `data-message`. New UI text goes in
+  `en.ts` and every other table (`scripts/i18n-strings.test.mjs` fails on text in a component, helper or script, and on CSS
+  `left`/`right`). The core never gets message tables (R51). How to add a language: `docs/i18n.md`.
 ## Where things live
 
 `src/domain` pure logic (90% line coverage) · `src/routes` thin adapters · `src/storage/schema.ts`
