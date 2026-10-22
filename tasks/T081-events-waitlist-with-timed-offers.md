@@ -4,7 +4,7 @@ title: "Events: waitlist with timed offers"
 phase: 5
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T057]
