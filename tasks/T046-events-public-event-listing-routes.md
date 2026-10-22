@@ -4,7 +4,7 @@ title: "Events: public event listing routes"
 phase: 2
 package: events
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T042]

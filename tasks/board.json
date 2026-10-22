@@ -968,7 +968,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -981,7 +981,7 @@
 			"unblocks": [
 				"T054"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T047": {
 			"file": "T047-events-checkout-reserve-route.md",
@@ -2281,12 +2281,12 @@
 			"T031",
 			"T032",
 			"T043",
-			"T046",
 			"T051",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
+			"T046",
 			"T113"
 		],
 		"review": [],
