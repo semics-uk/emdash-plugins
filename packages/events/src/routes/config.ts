@@ -77,8 +77,8 @@ export async function saveConfig(
 	preloaded?: EventState,
 	/**
 	 * Reads the event's public info from its content entry (2 bridge calls). Called once, and only
-	 * for a config that has none yet, so a save after the first costs nothing extra; the content
-	 * hook keeps it fresh afterwards.
+	 * when the save creates the config, so later saves cost nothing extra; the content hook keeps it
+	 * fresh afterwards (and fills it in for a config saved before it existed).
 	 */
 	loadInfo?: () => Promise<EventInfoDoc | null>,
 ): Promise<unknown> {
@@ -139,7 +139,7 @@ export async function saveConfig(
 		(state.config && !sameJson(storedCatalog, target) ? 1 : 0);
 	if (calls > MAX_SAVE_CALLS) return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
 
-	const info: EventInfoDoc | null = state.config?.info || !loadInfo ? null : await loadInfo().catch(() => null);
+	const info: EventInfoDoc | null = state.config || !loadInfo ? null : await loadInfo().catch(() => null);
 
 	const effective = {
 		ticketTypes: new Map(existing.ticketTypes),

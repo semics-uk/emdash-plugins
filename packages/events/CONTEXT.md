@@ -68,8 +68,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `NOT_FOUND`; answers carry `available` only (min of type, date, event seats left), never counters,
   capacities, hidden types or booking data. Title/times/zone/venue are read once through the mapping
   settings (`mappingOf`, `infoOfEntry` in `src/domain/event-info.ts`) and copied onto the event config
-  as `info` by `content:afterSave` (`src/content-hooks.ts`) and by `config/save` for a config without
-  one; every reader (listing, emails, ICS) takes `info` from the config and falls back to the entry
+  as `info` by `content:afterSave` (`src/content-hooks.ts`) and by `config/save` when it creates a config
+  (nothing else); every reader (listing, emails, ICS) takes `info` from the config and falls back to the entry
   only when it is missing. `info` is managed like `catalog`: admin edits never diff or send it.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
