@@ -84,6 +84,11 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - JSON-LD (`src/hooks/metadata.ts`, `page:metadata`): schema.org `Event` with offset dates and one
   `Offer` per visible type (3 calls); no counters, `<` is replaced in strings.
 - Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
+- Cron scheduling (T116, R37): EmDash 1.2 never runs `plugin:activate` for a core in `sandboxed: [...]`, so
+  `public/events`, `public/event` and admin `page_load`s are wrapped in `withScheduleCheck` (shared
+  `schedules.ts`): 1 KV read of `cron:scheduled:v1`; when missing, +1 to queue the one-shot `ensure-schedules`,
+  whose tick schedules `sweep-holds` + `outbox-drain` and sets the flag. Never add it to checkout or admin
+  actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.

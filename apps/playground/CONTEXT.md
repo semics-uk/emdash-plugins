@@ -28,7 +28,8 @@ UI natively (`astro.config.mjs`). Used for end-to-end tests only.
   shows the list and card (`theme=dark` for the second snapshot theme); `/spike/s2` reads `public/events`.
 - Emails and cron (T056): `src/e2e/mail-capture.mjs` is the site's email provider (production builds have no dev console
   provider); `GET /e2e/mail?to=` reads delivered messages. `POST /e2e/cron?task=outbox-drain` makes the task due and runs one
-  scheduled batch (EmDash never runs `plugin:activate` for config-declared sandboxed plugins, so it activates the core once).
+  scheduled batch. The cores schedule their own crons (T116: the first public read queues `ensure-schedules`); when the
+  row is still missing the endpoint runs one batch first. It never activates the core.
   The server trusts `X-Forwarded-For` (playwright.config.ts) so specs give each visitor its own IP.
 - `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,

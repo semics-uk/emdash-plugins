@@ -67,6 +67,10 @@ random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes af
 `public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
 Budget: from-intent is 8 calls inline and 9 with email delivery (create-only envelope write first; a retry after a declined/voided/expired envelope is 10 inline, and with email only stores a draft and schedules `intent-finish-<id>` (cron/intent-finish.ts, 8 calls), T113), submit is 9 (others ≤ 8).
 
+Cron scheduling (T116, R37): `plugin:activate` never runs for a config-declared core, so admin `page_load`s,
+`templates/create` and `public/verify` carry the shared `withScheduleCheck` (1 KV read; +1 the first time to queue
+`ensure-schedules`, which schedules `outbox-drain`). Not on `from-intent`, `submit`, `session` or admin actions.
+
 Admin (T028): `src/admin/pages.ts` + private `admin` route (`routes/admin.ts`); pages `/envelopes`, `/templates`,
 `/settings` in the manifest. Actions go through the private routes, plus `envelopes/resend` (fresh token + queued
 invitation for a `sent` envelope whose `invite-<signerId>` outbox row is missing/failed; appends a missing `envelope.sent`

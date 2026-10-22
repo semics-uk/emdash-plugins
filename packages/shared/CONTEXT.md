@@ -19,4 +19,5 @@ Modules so far: `result.ts` (Result, `ERROR_CODES`, `toRouteError`), `money.ts`,
 globs at 100% branches: `strictBranches` in `vitest.config.ts`. `outbox.ts` (T015: `enqueueEmail`, `drainOutbox` with per-tick cap, `outboxStatus`, `OUTBOX_COLLECTION`). `licence.ts` (T070: `semics1.` Ed25519 keys, `createLicenceVerifier(build)` with the
 public key, product and build date injected at build time, exempt local/preview hosts, `signLicence` for
 issuing) and `gate.ts` (T070: `gateProWork`/`gateProOperation`: no new Pro work without a key, in-flight
-work continues). Planned: rrule.
+work continues). `schedules.ts` (T116: `withScheduleCheck`, `ensureSchedules`, `runEnsureSchedulesJob`,
+`scheduleTasks`: cores self-schedule recurring crons behind a `cron:scheduled:v1` KV flag). Planned: rrule.
