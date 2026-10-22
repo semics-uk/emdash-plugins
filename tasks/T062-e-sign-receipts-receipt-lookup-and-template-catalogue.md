@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Events treats an e-sign `from-intent` answer with status `draft` (T113: email retry after a terminal envelope, finished by the `intent-finish-<id>` cron within a minute) as "invitation on its way", not an error
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

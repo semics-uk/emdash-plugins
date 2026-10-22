@@ -4,7 +4,7 @@ title: "E-sign: Block Kit admin (envelopes, templates, settings)"
 phase: 1
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: M
 depends_on: [T021, T022, T014]

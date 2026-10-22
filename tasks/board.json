@@ -658,7 +658,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -673,7 +673,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T029": {
 			"file": "T029-e-sign-ui-descriptor-and-injected-pages.md",
@@ -2277,7 +2277,6 @@
 			"T106"
 		],
 		"ready": [
-			"T028",
 			"T031",
 			"T032",
 			"T043",
@@ -2286,6 +2285,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T028",
 			"T046",
 			"T113"
 		],
