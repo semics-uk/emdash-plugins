@@ -4,7 +4,7 @@ title: "Pro build pipeline and Free→Pro data continuity"
 phase: 4
 package: repo
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T070, T057, T034]
