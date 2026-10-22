@@ -1698,7 +1698,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1710,7 +1710,7 @@
 				"EU-FR-10"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "done"
 		},
 		"T081": {
 			"file": "T081-events-waitlist-with-timed-offers.md",
@@ -2407,7 +2407,6 @@
 			"T106"
 		],
 		"ready": [
-			"T080",
 			"T082",
 			"T083",
 			"T086",
@@ -2492,6 +2491,7 @@
 			"T076",
 			"T077",
 			"T078",
+			"T080",
 			"T081",
 			"T084",
 			"T085",
