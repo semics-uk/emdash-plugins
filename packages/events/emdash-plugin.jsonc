@@ -148,6 +148,24 @@
 				"label": "E-sign pairing string",
 				"description": "Pairing string from the e-sign plugin, for events that require signed waivers. Stored encrypted."
 			},
+			// Secrets an Events Pro build stores (T067). Declared here so a site switched back to Free can
+			// still read its settings: EmDash refuses to list an encrypted value the manifest does not
+			// declare as a secret. Free never reads them.
+			"licenceKey": {
+				"type": "secret",
+				"label": "Licence key (Pro)",
+				"description": "Used by Events Pro only; the Free edition ignores it. Stored encrypted."
+			},
+			"stripeSecretKey": {
+				"type": "secret",
+				"label": "Stripe secret key (Pro)",
+				"description": "Used by Events Pro only, for paid tickets; the Free edition ignores it. Stored encrypted."
+			},
+			"stripeWebhookSecret": {
+				"type": "secret",
+				"label": "Stripe webhook signing secret (Pro)",
+				"description": "Used by Events Pro only, for paid tickets; the Free edition ignores it. Stored encrypted."
+			},
 			"retentionDays": {
 				"type": "number",
 				"label": "Keep booking data (days)",

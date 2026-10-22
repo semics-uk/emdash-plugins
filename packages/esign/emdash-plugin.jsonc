@@ -98,6 +98,14 @@
 				"label": "Integration master key",
 				"type": "secret",
 				"description": "Client secrets are derived from this key; it is never shown again."
+			},
+			// The secret an E-sign Pro build stores (T067). Declared here so a site switched back to Free
+			// can still read its settings: EmDash refuses to list an encrypted value the manifest does not
+			// declare as a secret. Free never reads it.
+			"licenceKey": {
+				"type": "secret",
+				"label": "Licence key (Pro)",
+				"description": "Used by E-sign Pro only; the Free edition ignores it. Stored encrypted."
 			}
 		}
 	}
