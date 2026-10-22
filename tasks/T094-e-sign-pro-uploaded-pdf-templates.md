@@ -7,7 +7,7 @@ edition: pro
 status: backlog
 model: opus-5.5
 size: L
-depends_on: [T067, T110]
+depends_on: [T067, T110, T071]
 spec: [ES-FR-19, Spike S5]
 ---
 

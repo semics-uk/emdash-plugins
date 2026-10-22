@@ -4,7 +4,7 @@ title: "Pro build pipeline and Free→Pro data continuity"
 phase: 4
 package: repo
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T070, T057, T034]
@@ -31,7 +31,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 ## Implementation (green, then refactor)
 
-- `packages/events-pro/`, `packages/esign-pro/` (move to the private repo once it exists)
+- A separate local git repo `../emdash-plugins-pro` (sibling of this one; R40), never committed here: `packages/events-pro/`, `packages/esign-pro/`, its own pnpm workspace linking the public packages with `link:`, its own `pnpm verify`, `scripts/orchestrator/land.sh` support for both repos
 
 ## Acceptance criteria
 

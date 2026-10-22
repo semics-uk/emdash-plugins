@@ -7,7 +7,7 @@ edition: pro
 status: backlog
 model: opus-5.5
 size: S
-depends_on: [T074, T075, T076, T077, T072]
+depends_on: [T074, T075, T076, T077, T072, T071]
 spec: [Phase 4 exit]
 ---
 

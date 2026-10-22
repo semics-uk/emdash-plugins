@@ -7,7 +7,7 @@ edition: pro
 status: backlog
 model: opus-5.5
 size: M
-depends_on: [T073]
+depends_on: [T073, T071]
 spec: [EV-FR-13, EV-NFR-05, R2]
 ---
 

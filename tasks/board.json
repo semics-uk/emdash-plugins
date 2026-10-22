@@ -1337,12 +1337,13 @@
 			"phase": 3,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "backlog",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
 				"T057",
-				"T012"
+				"T012",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-12",
@@ -1351,7 +1352,7 @@
 			"unblocks": [
 				"T064"
 			],
-			"column": "in-progress"
+			"column": "backlog"
 		},
 		"T064": {
 			"file": "T064-events-receipt-route-and-waiver-gated-check-in.md",
@@ -1364,7 +1365,8 @@
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
-				"T063"
+				"T063",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-12",
@@ -1481,7 +1483,7 @@
 			"phase": 4,
 			"package": "repo",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1494,10 +1496,28 @@
 				"Spike S10b"
 			],
 			"unblocks": [
+				"T063",
+				"T064",
 				"T073",
+				"T074",
+				"T075",
+				"T076",
+				"T077",
+				"T078",
+				"T080",
+				"T082",
+				"T083",
+				"T085",
+				"T086",
+				"T090",
+				"T091",
+				"T093",
+				"T094",
+				"T095",
+				"T096",
 				"T104"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T072": {
 			"file": "T072-licence-issuing-worker.md",
@@ -1556,7 +1576,8 @@
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
-				"T073"
+				"T073",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-13",
@@ -1580,7 +1601,8 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T074"
+				"T074",
+				"T071"
 			],
 			"spec": [
 				"EV-US-4"
@@ -1601,7 +1623,8 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T073"
+				"T073",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-14"
@@ -1623,7 +1646,8 @@
 			"size": "S",
 			"depends_on": [
 				"T073",
-				"T055"
+				"T055",
+				"T071"
 			],
 			"spec": [
 				"EU-FR-09"
@@ -1648,7 +1672,8 @@
 				"T075",
 				"T076",
 				"T077",
-				"T072"
+				"T072",
+				"T071"
 			],
 			"spec": [
 				"Phase 4 exit"
@@ -1672,14 +1697,15 @@
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
-				"T057"
+				"T057",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-15",
 				"EU-FR-10"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "backlog"
 		},
 		"T081": {
 			"file": "T081-events-waitlist-with-timed-offers.md",
@@ -1712,13 +1738,14 @@
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
-				"T057"
+				"T057",
+				"T071"
 			],
 			"spec": [
 				"Free and Pro table"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "backlog"
 		},
 		"T083": {
 			"file": "T083-events-pro-reminders-and-broadcasts.md",
@@ -1731,13 +1758,14 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T057"
+				"T057",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-08"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "backlog"
 		},
 		"T084": {
 			"file": "T084-events-recurring-events.md",
@@ -1770,13 +1798,14 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T057"
+				"T057",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-19"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "backlog"
 		},
 		"T086": {
 			"file": "T086-events-pro-mcp-tools.md",
@@ -1789,13 +1818,14 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T057"
+				"T057",
+				"T071"
 			],
 			"spec": [
 				"EV-FR-18"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "backlog"
 		},
 		"T087": {
 			"file": "T087-events-retention-job.md",
@@ -1829,7 +1859,8 @@
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
-				"T067"
+				"T067",
+				"T071"
 			],
 			"spec": [
 				"ES-FR-15"
@@ -1850,7 +1881,8 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T067"
+				"T067",
+				"T071"
 			],
 			"spec": [
 				"ES-FR-16",
@@ -1889,7 +1921,8 @@
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
-				"T067"
+				"T067",
+				"T071"
 			],
 			"spec": [
 				"ES-FR-18",
@@ -1913,7 +1946,8 @@
 			"size": "L",
 			"depends_on": [
 				"T067",
-				"T110"
+				"T110",
+				"T071"
 			],
 			"spec": [
 				"ES-FR-19",
@@ -1933,7 +1967,8 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T090"
+				"T090",
+				"T071"
 			],
 			"spec": [
 				"ES-FR-20"
@@ -1952,7 +1987,8 @@
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
-				"T067"
+				"T067",
+				"T071"
 			],
 			"spec": [
 				"ES-FR-21"
@@ -2299,6 +2335,7 @@
 		"backlog": [
 			"T061",
 			"T062",
+			"T063",
 			"T064",
 			"T065",
 			"T066",
@@ -2309,6 +2346,11 @@
 			"T076",
 			"T077",
 			"T078",
+			"T080",
+			"T082",
+			"T083",
+			"T085",
+			"T086",
 			"T090",
 			"T091",
 			"T092",
@@ -2326,22 +2368,16 @@
 			"T106"
 		],
 		"ready": [
-			"T071",
 			"T072",
-			"T080",
 			"T081",
-			"T082",
-			"T083",
 			"T084",
-			"T085",
-			"T086",
 			"T087",
 			"T111",
 			"T117"
 		],
 		"in-progress": [
 			"T060",
-			"T063"
+			"T071"
 		],
 		"review": [],
 		"done": [
@@ -2407,9 +2443,9 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T060",
-		"T061",
-		"T062",
+		"T071",
+		"T063",
+		"T064",
 		"T065",
 		"T066",
 		"T067",
@@ -2417,5 +2453,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 13
+	"criticalWeight": 14
 }

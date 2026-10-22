@@ -4,10 +4,10 @@ title: "Events: pairing setting and intent issuing"
 phase: 3
 package: events
 edition: pro
-status: in-progress
+status: backlog
 model: opus-5.5
 size: M
-depends_on: [T057, T012]
+depends_on: [T057, T012, T071]
 spec: [EV-FR-12, R5]
 ---
 

@@ -7,7 +7,7 @@ edition: pro
 status: backlog
 model: sonnet-5.5
 size: S
-depends_on: [T073, T055]
+depends_on: [T073, T055, T071]
 spec: [EU-FR-09]
 ---
 
