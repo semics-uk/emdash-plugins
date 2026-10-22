@@ -177,11 +177,62 @@ describe("checkout/continue confirm (EV-FR-07)", () => {
 });
 
 describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
-	const payment = (urls: string[]) => ({
-		start: async ({ holdExpiresAt }: { holdExpiresAt: string }) => {
-			urls.push(holdExpiresAt);
-			return { url: "https://checkout.example/session" };
+	type Prepared = { bookingId: string; booking: Doc; settings: Record<string, unknown> };
+	/** A step that records what it was given; `refuse`/`fail` make `prepare`/`start` refuse. */
+	const payment = (
+		holds: string[],
+		{ seen, refuse, fail }: { seen?: Prepared[]; refuse?: string; fail?: string } = {},
+	): NonNullable<ContinueDeps["payment"]> => ({
+		prepare: async (args) => {
+			seen?.push(structuredClone(args) as unknown as Prepared);
+			if (refuse) return { ok: false, error: { code: refuse } } as never;
+			return {
+				ok: true,
+				value: {
+					start: async (holdExpiresAt: string) => {
+						holds.push(holdExpiresAt);
+						if (fail) return { ok: false, error: { code: fail } } as never;
+						return { ok: true, value: { url: "https://checkout.example/session" } };
+					},
+				},
+			};
 		},
+	});
+
+	it("EV-FR-05 prepare sees the booking as read and the settings checkout loaded, before any write", async () => {
+		const w = await world({ priceMinor: 1500 });
+		const seen: Prepared[] = [];
+		const settings = { list: async () => (meter.calls++, [{ key: "stripeSecretKey", value: "sk_test_x" }]) };
+		await run(w.deps(T0 + MIN, { payment: payment([], { seen }), settings }), w.input);
+		expect(seen).toMatchObject([{ bookingId: ID, booking: { status: "held" }, settings: { stripeSecretKey: "sk_test_x" } }]);
+		// A continue of a booking already awaiting payment is in-flight work: the step sees that status.
+		await run(w.deps(T0 + 2 * MIN, { payment: payment([], { seen }), settings }), w.input);
+		expect(seen[1]?.booking.status).toBe("awaiting_payment");
+	});
+
+	it("EV-FR-05 a refusal from prepare (no licence, no provider key) writes nothing", async () => {
+		const w = await world({ priceMinor: 1500 });
+		const before = structuredClone(w.booking());
+		const holds: string[] = [];
+		const { body } = await run(w.deps(T0 + MIN, { payment: payment(holds, { refuse: "LICENCE_INVALID" }) }), w.input);
+		expect(body).toMatchObject({ ok: false, error: { code: "LICENCE_INVALID" } });
+		expect(w.booking()).toEqual(before);
+		expect(w.storage.attendees.docs.size + w.cron.tasks.size + holds.length).toBe(0);
+	});
+
+	it("EV-FR-05 a provider failure is PAYMENT_FAILED; the booking waits for a retry under its hold", async () => {
+		const w = await world({ priceMinor: 1500 });
+		const { body } = await run(w.deps(T0 + MIN, { payment: payment([], { fail: "PAYMENT_FAILED" }) }), w.input);
+		expect(body).toMatchObject({ ok: false, error: { code: "PAYMENT_FAILED" } });
+		expect(w.booking()).toMatchObject({ status: "awaiting_payment", holdExpiresAt: at(1 + 35) });
+		const retry = await run(w.deps(T0 + 2 * MIN, { payment: payment([]) }), w.input);
+		expect(retry.body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+	});
+
+	it("R22 the paid step leaves the provider three of the eight target calls", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], occurrence: true });
+		const { calls } = await run(w.deps(T0 + MIN, { payment: payment([]) }), w.input);
+		expect(calls).toBe(5);
 	});
 
 	it("EV-FR-05 extends the hold, moves to awaiting_payment, writes pending attendees and re-arms hold-<ref>", async () => {
