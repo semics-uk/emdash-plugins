@@ -1528,7 +1528,7 @@
 			"phase": 4,
 			"package": "licence-worker",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1540,7 +1540,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T073": {
 			"file": "T073-events-pro-stripe-provider-and-checkout-session.md",
@@ -2394,8 +2394,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T064",
-			"T072"
+			"T064"
 		],
 		"review": [],
 		"done": [
@@ -2457,6 +2456,7 @@
 			"T063",
 			"T070",
 			"T071",
+			"T072",
 			"T104",
 			"T110",
 			"T112",
