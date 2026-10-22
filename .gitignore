@@ -14,3 +14,4 @@ apps/playground/uploads/
 scripts/.gate-fixture-*/
 .claude/worktrees/
 .verify.log
+apps/docs/.snippets/

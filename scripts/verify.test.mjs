@@ -187,3 +187,12 @@ test("quiet verify prints a failing gate's output in full and names the log file
 	assert.match(printed, new RegExp(logFile.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 	assert.doesNotMatch(printed, /Never runs/);
 });
+
+test("T103: verify builds the docs and runs their link, snippet and listing tests after the packages are built", async () => {
+	const { steps } = await import("./verify.mjs");
+	const list = steps(repoRoot);
+	const packages = list.findIndex((s) => s.args.includes("./packages/**"));
+	const docs = list.findIndex((s) => s.args.join(" ") === "--filter docs verify");
+	assert.ok(docs !== -1, "a docs gate exists");
+	assert.ok(docs > packages, "the docs gate runs after the packages are built (snippets import their dist)");
+});

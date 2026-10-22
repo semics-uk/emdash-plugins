@@ -4,7 +4,8 @@ import { defineConfig } from "@playwright/test";
 // (e2e/harness/build.mjs), then Playwright starts e2e/harness/serve.mjs, which deletes data.db* and
 // uploads/, seeds seed/seed.json and serves the build on port 4401. Playwright stops the server
 // (and the workerd it spawned) after the run. Uses the system Chrome; never downloads browsers.
-const PORT = 4401;
+// E2E_PORT lets a second checkout run its own server (the default is 4401).
+const PORT = Number(process.env.E2E_PORT ?? 4401);
 const baseURL = `http://127.0.0.1:${PORT}`;
 
 export default defineConfig({
