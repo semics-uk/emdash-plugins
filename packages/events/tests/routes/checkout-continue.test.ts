@@ -260,7 +260,37 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 		const { body, calls } = await run(w.deps(T0 + MIN, { payment: payment([]) }), w.input);
 		expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
 		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
-		expect(calls).toBe(6);
+		// The stored seats are read once and not written back (T078).
+		expect(calls).toBe(5);
+	});
+
+	it("EV-FR-12 T078 'Pay now' on a paid waiver booking keeps an unsigned emailed adult as stored, never the buyer's name", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], status: "awaiting_payment" });
+		w.booking().waiver = { templateId: "tpl_waiver", mode: "each_attendee" };
+		w.storage.attendees.set(`${ID}-1`, {
+			bookingId: ID,
+			ticketTypeId: "tt_a",
+			name: "Ada Lovelace",
+			status: "valid",
+			code: "code-1",
+			signature: { envelopeId: "env_1", status: "completed", docSha256: "a".repeat(64) },
+		});
+		// Charles signs by email: no receipt yet, so his seat has no signature and stays pending.
+		w.storage.attendees.set(`${ID}-2`, {
+			bookingId: ID,
+			ticketTypeId: "tt_b",
+			name: "Charles Babbage",
+			email: "charles@example.com",
+			status: "pending",
+			code: "code-2",
+		});
+		const before = structuredClone([...w.storage.attendees.docs.entries()]);
+		for (let i = 0; i < 2; i++) {
+			const { body, calls } = await run(w.deps(T0 + MIN + i, { payment: payment([]) }), w.input);
+			expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+			expect(calls).toBeLessThanOrEqual(6);
+		}
+		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
 	});
 
 	it("EV-FR-05 extends the hold, moves to awaiting_payment, writes pending attendees and re-arms hold-<ref>", async () => {
