@@ -14,6 +14,13 @@ describe("T057 Origin checks on the no-JS forms", () => {
 		expect(guard).toBeLessThan(page.indexOf("Astro.request.formData()"));
 	});
 
+	it("EV-FR-12 the door signing page checks before it reads the form", () => {
+		const page = read("../../src/astro/DoorSignPage.astro");
+		const guard = page.indexOf("isCrossSiteRequest(Astro.request");
+		expect(guard).toBeGreaterThan(-1);
+		expect(guard).toBeLessThan(page.indexOf("Astro.request.formData()"));
+	});
+
 	it("T057 POST /_events/checkout goes through the checked handler", () => {
 		expect(read("../../src/astro/checkout-endpoint.ts")).toContain("handleCheckoutRequest(");
 	});

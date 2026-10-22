@@ -287,6 +287,29 @@ describe("checkout/continue signature step seam (EV-FR-12, R5; Pro fills it)", (
 		expect(w.storage.outbox.docs.size).toBe(0);
 	});
 
+	it("EV-FR-12 continuing a booking that awaits signatures keeps the attendees whose receipts are in (T064)", async () => {
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: withMinor });
+		const signed = {
+			...(w.storage.attendees.docs.get(`${ID}-1`) as Doc),
+			status: "valid",
+			signature: { envelopeId: "env_1", status: "completed", docSha256: "a".repeat(64) },
+		};
+		w.storage.attendees.set(`${ID}-1`, signed);
+		const seen: Seen = { holds: [] };
+		const { body, calls } = await run(w.deps(T0 + 2 * MIN, { signature: step(seen) }), {
+			...w.input,
+			attendees: withMinor,
+		});
+		expect(body).toMatchObject({ ok: true, status: "awaiting_signature", next: { type: "sign" } });
+		expect(calls).toBeLessThanOrEqual(8);
+		// The step sees the stored signature (so Pro re-issues intents only for seats still unsigned).
+		expect(seen.prepared?.attendees[0]?.data).toMatchObject({ status: "valid", signature: { status: "completed" } });
+		expect(w.storage.attendees.docs.get(`${ID}-1`)).toEqual(signed);
+		expect(w.storage.attendees.docs.get(`${ID}-2`)).toMatchObject({ status: "pending", minor: true });
+	});
+
 	it("EV-FR-12 a refusal from the step writes nothing (a code, or input issues)", async () => {
 		for (const refusal of [{ code: "LICENCE_INVALID" }, { issues: [{ path: "attendees.1.email", code: "X" }] }]) {
 			const w = await world();

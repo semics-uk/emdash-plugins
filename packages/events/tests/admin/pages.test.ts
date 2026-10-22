@@ -263,6 +263,33 @@ describe("attendees page and check-in (EV-US-5)", () => {
 		expect((s.attendees.docs.get("bk_1-1") as Doc).checkedInAt).toBeUndefined();
 	});
 
+	it("EV-FR-12 refuses an attendee whose waiver is pending and shows the signing link (Pro seam)", async () => {
+		const { deps, s } = world();
+		s.bookings.set("bk_1", { ...(s.bookings.docs.get("bk_1") as Doc), waiver: { templateId: "tpl", mode: "each_attendee" } });
+		s.attendees.set("bk_1-1", { ...(s.attendees.docs.get("bk_1-1") as Doc), status: "pending" });
+		const asked: Doc[] = [];
+		const signingLink: NonNullable<AdminDeps["signingLink"]> = async (args) => {
+			asked.push(args as unknown as Doc);
+			return "https://site.test/_events/sign#intent=abc";
+		};
+		const checkin = (d: AdminDeps) =>
+			handleAdmin(d, {
+				type: "block_action",
+				action_id: "attendees.checkin",
+				page: "/attendees",
+				value: { id: "bk_1-1", eventId: "ev1" },
+			});
+		const out = await checkin({ ...deps, signingLink });
+		expect(banners(out.blocks)[0]).toMatchObject({ variant: "error", title: "Waiver not signed" });
+		expect(json(out.blocks)).toContain("https://site.test/_events/sign#intent=abc");
+		expect(asked[0]).toMatchObject({ attendeeId: "bk_1-1", attendee: { status: "pending" }, booking: { ref: "REF1" } });
+		expect((s.attendees.docs.get("bk_1-1") as Doc).checkedInAt).toBeUndefined();
+		// Without the seam (or no link), the refusal still explains itself, with no link.
+		const free = await checkin(deps);
+		expect(banners(free.blocks)[0]?.description).toContain("waiver");
+		expect(json(free.blocks)).not.toContain("_events/sign");
+	});
+
 	it("undoes a check-in", async () => {
 		const { deps, s } = world();
 		await handleAdmin(deps, {

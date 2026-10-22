@@ -14,7 +14,7 @@ interface VitePlugin {
 	load(id: string): string | undefined;
 }
 
-async function setup(options?: { pluginId?: string }) {
+async function setup(options?: { pluginId?: string; esignPluginId?: string }) {
 	const routes: Injected[] = [];
 	let plugins: VitePlugin[] = [];
 	const hook = eventsIntegration(options).hooks["astro:config:setup"];
@@ -30,7 +30,7 @@ async function setup(options?: { pluginId?: string }) {
 describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 	it("EU-FR-05 injects the no-JS checkout endpoint and the booking page, both server-rendered", async () => {
 		const { routes } = await setup();
-		expect(routes.map((r) => r.pattern).sort()).toEqual(["/_events/checkout", "/booking"]);
+		expect(routes.map((r) => r.pattern).sort()).toEqual(["/_events/checkout", "/_events/sign", "/booking"]);
 		for (const r of routes) expect(r.prerender).toBe(false);
 	});
 
@@ -42,5 +42,15 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		};
 		expect(await read()).toContain('"semics-events"');
 		expect(await read({ pluginId: "r_abc123" })).toContain('"r_abc123"');
+	});
+
+	it("EV-FR-12 takes the e-sign core's plugin id for receipt lookups and door signing (null without it)", async () => {
+		const read = async (opts?: { esignPluginId?: string }) => {
+			const { plugins } = await setup(opts);
+			const plugin = plugins.find((p) => p.name === "semics-events-config");
+			return plugin?.load(plugin.resolveId("virtual:semics-events/config") ?? "");
+		};
+		expect(await read()).toContain("export const esignPluginId = null;");
+		expect(await read({ esignPluginId: "r_esign" })).toContain('export const esignPluginId = "r_esign";');
 	});
 });

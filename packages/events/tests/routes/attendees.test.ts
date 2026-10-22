@@ -68,6 +68,25 @@ describe("check-in (EV-US-5)", () => {
 		expect(await checkIn(storage, { id: "zzz" }, iso(NOW))).toMatchObject({ ok: false, reason: "NOT_FOUND" });
 	});
 
+	it("EV-FR-12 refuses an attendee whose waiver is pending, with what the signing link needs", async () => {
+		const { s, storage } = world();
+		const booking = { ...(s.bookings.docs.get("bk_1") as object), waiver: { templateId: "tpl", mode: "each_attendee" } };
+		s.bookings.set("bk_1", booking);
+		s.attendees.set("bk_1-1", { ...(s.attendees.docs.get("bk_1-1") as object), status: "pending" });
+		const out = await checkIn(storage, { code: "CODE-ADA" }, iso(NOW));
+		expect(out).toMatchObject({
+			ok: false,
+			reason: "WAIVER_PENDING",
+			id: "bk_1-1",
+			name: "Ada Lovelace",
+			waiver: { attendee: { code: "CODE-ADA", status: "pending" }, booking: { ref: "REF1" } },
+		});
+		expect((s.attendees.docs.get("bk_1-1") as { checkedInAt?: string }).checkedInAt).toBeUndefined();
+		// The booking check comes first: a pending waiver on an unconfirmed booking is BOOKING_NOT_CONFIRMED.
+		s.bookings.set("bk_1", { ...booking, status: "awaiting_signature" });
+		expect(await checkIn(storage, { code: "CODE-ADA" }, iso(NOW))).toMatchObject({ reason: "BOOKING_NOT_CONFIRMED" });
+	});
+
 	it("EV-US-5 a code from another event is not found when an event is given", async () => {
 		const { storage } = world();
 		expect(await checkIn(storage, { code: "CODE-ADA" }, iso(NOW), "other")).toMatchObject({ reason: "NOT_FOUND" });
