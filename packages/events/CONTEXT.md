@@ -235,6 +235,10 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,
   `src/routes/reply.ts`, `src/domain/time.ts`) rather than a copy per file.
 
+- Accessibility (T101, R56): the playground's `e2e/t101-accessibility.spec.ts` requires zero WCAG 2.2 A/AA axe violations on
+  every public page (1280 and 320 px), a visible focus ring on every control, and no sideways scroll at 320 px. Each Turnstile
+  box is followed by a one-line inline script that switches it to `data-size=compact` in a container under 300 px.
+
 ## Where things live
 
 `src/domain` pure logic (90% line coverage) · `src/routes` thin adapters · `src/storage/schema.ts`

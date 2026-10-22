@@ -186,6 +186,11 @@ an envelope as `envelopes/send` freezes it, from the settings that route already
 shows "Email me a code" and a code box instead of the signing form while `session.otp === "required"` (intents `otp-send` and
 `otp-verify`; the code only in the POST body); UI messages for `OTP_*` codes live in `MESSAGES`. Shared adds `OTP_REQUIRED`; Pro's
 other codes (`OTP_INVALID`, `OTP_EXPIRED`, `OTP_LOCKED`, `OTP_WAIT`, `OTP_SEND_FAILED`, `OTP_NOT_REQUIRED`) are built by Pro.
+Accessibility (T101, R56): while the code is required the step (`#esign-otp`) shows every refusal itself (`role=alert`,
+`id=esign-error`, not at the top), both its forms post to `<action>#esign-otp`, the code box is described by its hint and the
+refusal and is `aria-invalid` for `OTP_INVALID`/`OTP_EXPIRED`/`OTP_LOCKED`/`OTP_REQUIRED`; a sign-form field to fix is
+`aria-describedby="esign-error"`. Every Turnstile box is followed by a one-line inline script that sets `data-size=compact` under
+300 px (WCAG 1.4.10). The playground's `e2e/t101-accessibility.spec.ts` must stay at zero WCAG A/AA axe violations.
 
 Self-serve block (T093, ES-FR-18, SU-FR-12, R50; the route is Pro, the block is MIT source and ships in Free). The `esign-request` Portable
 Text block (`src/astro/SelfServeBlock.astro`, `lib/self-serve.ts`; descriptor field `template` = template id) calls
