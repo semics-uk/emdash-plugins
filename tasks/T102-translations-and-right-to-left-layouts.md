@@ -4,7 +4,7 @@ title: "Translations and right-to-left layouts"
 phase: 7
 package: repo
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T078, T093]
