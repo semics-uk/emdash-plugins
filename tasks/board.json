@@ -2145,7 +2145,7 @@
 			"phase": 7,
 			"package": "docs",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2157,7 +2157,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T106": {
 			"file": "T106-1-0-release-readiness-and-trust-contract-freeze.md",
@@ -2404,8 +2404,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T078",
-			"T105"
+			"T078"
 		],
 		"review": [],
 		"done": [
@@ -2482,6 +2481,7 @@
 			"T092",
 			"T097",
 			"T104",
+			"T105",
 			"T110",
 			"T112",
 			"T113",
