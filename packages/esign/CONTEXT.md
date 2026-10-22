@@ -151,4 +151,11 @@ takes two ticks (audit events first, then signers + envelopes), every tick ≤ 8
 `public/download` is `ENVELOPE_NOT_FOUND`, the PDF job skips purged envelopes). Admin: "Delete personal data" form on
 `/envelopes` (`retention.preview` 2 calls, `retention.erase` 8) via `findForErasure` + `eraseOnRequest`.
 `toIso(ms?)` (shared `time.ts`) is the one ISO-time helper; use it instead of `new Date(x).toISOString()` (bundle, R42).
-E-sign Free backend after T097: 103.7 KiB of 104.
+Expiry (T092, R46): `src/cron/expire.ts`. Hourly `expire` (`17 * * * *`, in `RECURRING_TASKS`; shared flag now v6) plus one-shot
+`expire-more`: one query (`status in [sent, in_progress]`, `expiresAt < now`, oldest first, 2 per tick), then per envelope
+`transitionEnvelope(... "expired")` + `envelope.expired` audit event (3 calls, 8 per tick with the continuation). A signer who
+completes first wins (the guarded update loses; nothing is audited). Reminders are Pro: Free has no reminder code, only the
+`reminderCadenceDays` setting. Envelopes carry a lowercase `signerEmail` (indexed, set in `draftDoc`, cleared by `scrubEnvelope`) so
+`findForErasure` finds drafts by email; it queries `signers` and `envelopes` in parallel (2 calls) and reads the envelopes only
+for signer hits it did not already get. Decline and void need nothing more (T024/T028/T117).
+E-sign Free backend after T092: 103.9 KiB of 104 (admin notices go through `note/info/warn/error`, `toEnvelopes()`/`openEnvelope()`).

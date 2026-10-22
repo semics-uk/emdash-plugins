@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] UI waiting state (SU-FR-11)
+- [ ] Automatic reminders (moved here from T092, which kept Free expiry): a Pro cron task `reminders` (add it to `RECURRING_TASKS`, bump `SCHEDULES_FLAG`) that emails each still-pending signer of a `sent`/`in_progress` envelope every `reminderCadenceDays` (setting exists, Pro-only), follows the outbox scrubbing and absolute-link rules (T113/T117: no site URL, nothing queued), writes a `reminder.sent` audit event, stops at `expiresAt`, is licence-gated (T070), and asserts its budget with `withBudget`
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

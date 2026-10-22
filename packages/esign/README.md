@@ -18,7 +18,8 @@ envelope closed (completed, declined, voided or expired; a draft from its last e
 - after the signed-records period, deletes the PDF, document, audit trail and signer record; `/verify` no longer
   recognises the PDF.
 
-Envelopes still out for signature are never purged; void one to let it age out. To delete one person's data on request,
+Envelopes still out for signature are never purged. An unsigned one expires `expiryDays` after it was sent (an hourly
+job closes it, so retention can age it out); you can also void it. To delete one person's data on request,
 use **Delete personal data** on the Envelopes page (signer email or envelope id). It removes the personal data straight away
 but keeps the signed record for its own period.
 
