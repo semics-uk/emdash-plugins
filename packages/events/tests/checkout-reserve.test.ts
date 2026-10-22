@@ -69,16 +69,18 @@ async function setup({
 	capacity = 50,
 	typeCapacity = capacity,
 	occurrences = false,
+	signature,
 }: {
 	turnstile?: boolean;
 	capacity?: number;
 	typeCapacity?: number;
 	occurrences?: boolean;
+	signature?: Record<string, unknown>;
 } = {}): Promise<Setup> {
 	runtime = await createPluginRuntimeTestHost();
 	const saved = (await runtime.transport.invokeRoute("config/save", {
 		eventId: "entry_1",
-		config: { status: "on_sale", capacity, currency: "GBP" },
+		config: { status: "on_sale", capacity, currency: "GBP", ...(signature ? { signature } : {}) },
 		ticketTypes: [
 			{ name: "Adult", priceMinor: 0, capacity: typeCapacity },
 			{ name: "Child", priceMinor: 0, capacity: typeCapacity, sort: 1 },
@@ -315,5 +317,19 @@ describe("public/checkout/reserve (EV-FR-05)", () => {
 		expectWithinBudget(result, TARGET);
 		const tasks = await s.runtime.inspect.scheduledTasks();
 		expect(JSON.stringify(tasks)).toContain(`hold-${body.bookingRef}`);
+	});
+
+	it("EV-FR-12 a waiver-required event's booking keeps the waiver it was booked under; others carry none", async () => {
+		const s = await setup({ signature: { required: true, templateId: "tpl_waiver", mode: "buyer" } });
+		const { result, body } = await reserve(s, order(s));
+		expectWithinBudget(result, TARGET);
+		const [stored] = await bookings(s);
+		expect(stored?.data).toMatchObject({ ref: body.bookingRef, waiver: { templateId: "tpl_waiver", mode: "buyer" } });
+
+		await s.runtime.dispose();
+		const plain = await setup({ signature: { required: false, templateId: "tpl_waiver" } });
+		await reserve(plain, order(plain));
+		const [none] = await bookings(plain);
+		expect(none?.data).not.toHaveProperty("waiver");
 	});
 });

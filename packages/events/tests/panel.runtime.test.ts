@@ -236,6 +236,14 @@ describe("EV-US-1 editor panel", () => {
 		const res = await r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", values);
 		expect(text(res.blocks)).toContain("Too many changes");
 	});
+
+	it("EV-FR-12 Free: the waiver toggle is disabled with a banner (required waivers are Pro)", async () => {
+		const { r, id } = await setup();
+		const res = await r.admin.loadEditorPanel(PANEL, "events", id);
+		const banners = (res.blocks ?? []).filter((b: { type: string }) => b.type === "banner");
+		expect(text(banners)).toMatch(/waiver/i);
+		expect(text(res.blocks)).not.toContain("waiver_required");
+	});
 });
 
 describe("EV-US-1 event titles in admin lists (T052)", () => {

@@ -220,3 +220,98 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 		expect(w.cron.tasks.size).toBe(0);
 	});
 });
+
+describe("checkout/continue signature step seam (EV-FR-12, R5; Pro fills it)", () => {
+	const WAIVER = { templateId: "tpl_waiver", mode: "each_attendee" };
+	type Prepared = { bookingId: string; settings: Record<string, unknown>; attendees: Array<{ id: string; data: Doc }> };
+	type Seen = { prepared?: Prepared; holds: string[] };
+
+	/** A step that records what it was given and mints one fake intent per attendee. */
+	function step(seen: Seen, refuse?: unknown): NonNullable<ContinueDeps["signature"]> {
+		return {
+			prepare: async (args) => {
+				seen.prepared = args as unknown as Prepared;
+				if (refuse) return { ok: false, error: refuse } as never;
+				return {
+					ok: true,
+					value: {
+						issue: async (holdExpiresAt: string) => {
+							seen.holds.push(holdExpiresAt);
+							return args.attendees.map((a) => ({ ref: `${REF}:${a.id}`, delivery: "inline", token: "t" }));
+						},
+					},
+				};
+			},
+		};
+	}
+
+	const withMinor = [
+		{ ticketTypeId: "tt_a", name: "Ada Lovelace" },
+		{ ticketTypeId: "tt_b", name: "Ada's son", minor: true },
+	];
+
+	it("EV-FR-12 a waiver booking moves to awaiting_signature, writes pending attendees and returns the intents", async () => {
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		const seen: Seen = { holds: [] };
+		const { body, calls } = await run(w.deps(T0 + 5 * MIN, { signature: step(seen) }), {
+			...w.input,
+			attendees: withMinor,
+		});
+		const extended = at(5 + 15);
+		expect(body).toEqual({
+			ok: true,
+			bookingRef: REF,
+			status: "awaiting_signature",
+			holdExpiresAt: extended,
+			next: {
+				type: "sign",
+				intents: [
+					{ ref: `${REF}:${ID}-1`, delivery: "inline", token: "t" },
+					{ ref: `${REF}:${ID}-2`, delivery: "inline", token: "t" },
+				],
+			},
+		});
+		// One settings read serves both the hold settings and the step (licence, pairing).
+		expect(calls).toBeLessThanOrEqual(8);
+		expect(seen.holds).toEqual([extended]);
+		expect(seen.prepared?.bookingId).toBe(ID);
+		expect(w.booking()).toMatchObject({ status: "awaiting_signature", holdExpiresAt: extended });
+		const docs = [...w.storage.attendees.docs.values()] as Doc[];
+		expect(docs).toMatchObject([
+			{ status: "pending", name: "Ada Lovelace" },
+			{ status: "pending", name: "Ada's son", minor: true },
+		]);
+		expect(docs[0]).not.toHaveProperty("minor");
+		expect(w.cron.tasks.get(holdTaskName(REF))?.schedule).toBe(extended);
+		expect(w.storage.outbox.docs.size).toBe(0);
+	});
+
+	it("EV-FR-12 a refusal from the step writes nothing (a code, or input issues)", async () => {
+		for (const refusal of [{ code: "LICENCE_INVALID" }, { issues: [{ path: "attendees.1.email", code: "X" }] }]) {
+			const w = await world();
+			w.booking().waiver = WAIVER;
+			const before = structuredClone(w.booking());
+			const { body } = await run(w.deps(T0 + MIN, { signature: step({ holds: [] }, refusal) }), w.input);
+			if ("code" in refusal) expect(body).toMatchObject({ ok: false, error: { code: "LICENCE_INVALID" } });
+			else expect(body).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" }, issues: refusal.issues });
+			expect(w.booking()).toEqual(before);
+			expect(w.storage.attendees.docs.size + w.cron.tasks.size).toBe(0);
+		}
+	});
+
+	it("EV-FR-12 a booking without a waiver never reaches the step", async () => {
+		const w = await world();
+		const seen: Seen = { holds: [] };
+		const { body } = await run(w.deps(T0 + MIN, { signature: step(seen) }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "confirmed" });
+		expect(seen.prepared).toBeUndefined();
+	});
+
+	it("EV-FR-12 Free (no step) ignores a waiver: Pro features off, the booking still confirms", async () => {
+		const w = await world();
+		w.booking().waiver = WAIVER;
+		const { body } = await run(w.deps(T0 + MIN), w.input);
+		expect(body).toMatchObject({ ok: true, status: "confirmed" });
+	});
+});
