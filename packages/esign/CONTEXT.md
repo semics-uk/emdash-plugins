@@ -67,6 +67,13 @@ random bytes, hex, in KV `esign:download-link-key`), returns the stored bytes af
 `public/submit` accepts only an `in_progress` envelope; a `sent` one is `SESSION_REQUIRED` (409, R31: the first view, `public/session`, does `sent → in_progress`), so there is no audit-head race or rebuild path.
 Budget: from-intent is 8 calls inline and 9 with email delivery (create-only envelope write first; a retry after a declined/voided/expired envelope is 10 inline, and with email only stores a draft and schedules `intent-finish-<id>` (cron/intent-finish.ts, 8 calls), T113), submit is 9 (others ≤ 8).
 
+Admin (T028): `src/admin/pages.ts` + private `admin` route (`routes/admin.ts`); pages `/envelopes`, `/templates`,
+`/settings` in the manifest. Actions go through the private routes, plus `envelopes/resend` (fresh token + queued
+invitation for a `sent` envelope whose `invite-<signerId>` outbox row is missing/failed; appends a missing `envelope.sent`
+event, audit seq starts at 0) and `envelopes/void`. `send` is 9 calls, so the admin answers it with a small
+confirmation instead of re-reading. The sandbox cannot read the env: the encryption banner shows after a failed
+secret save or when a stored secret is unreadable.
+
 UI (T029-T030): `/sign/[token]` = `SignPage.astro` → `handleSign` (`src/astro/lib/sign.ts`) → `<SigningCeremony>`.
 The snapshot is rendered only via `lib/markdown.ts` (allowlisted tree, `{text}` output, http(s)/mailto links; 100%
 branches). The page's CSP is `ceremonyCsp()`: only the inlined `src/client/ceremony.js` (plain JS, `?raw`) and

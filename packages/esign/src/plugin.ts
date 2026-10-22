@@ -3,6 +3,7 @@ import { runCompletionEmailJob } from "./cron/completion-email";
 import { runIntentFinishJob } from "./cron/intent-finish";
 import { runPdfJob } from "./cron/pdf";
 import { runOutboxJob, scheduleOutbox } from "./emails/outbox";
+import { ADMIN_ROUTES } from "./routes/admin";
 import { CEREMONY_HANDLERS } from "./routes/ceremony";
 import { downloadHandler } from "./routes/download";
 import { ENVELOPE_ROUTES, fromIntentHandler } from "./routes/envelopes";
@@ -28,6 +29,7 @@ const plugin: SandboxedPlugin = {
 			"public/verify": verifyHandler,
 			...CEREMONY_HANDLERS,
 		}),
+		...ADMIN_ROUTES,
 		...TEMPLATE_ROUTES,
 		...ENVELOPE_ROUTES,
 	},

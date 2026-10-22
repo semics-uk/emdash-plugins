@@ -1,6 +1,8 @@
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
+import type { PluginContext } from "emdash/plugin";
+import { handleAdmin } from "../src/admin/pages";
 import type { AuditEventDoc } from "../src/domain/audit";
 
 // The real plugin in workerd: the host validates every Block Kit response (ES-FR-11, ES-US-4).
@@ -87,8 +89,8 @@ describe("ES-FR-11 admin pages in the host", () => {
 		expect(text(form)).toContain("field:event");
 		const id = await draft(r, templateId);
 		const sent = await r.admin.act("/envelopes", "envelope.send", { value: id });
-		const out = text(sent);
-		expect(out).toContain("Envelope sent");
+		expect(text(sent)).toContain("Envelope sent");
+		const out = text(await r.admin.act("/envelopes", "envelope.open", { value: id }));
 		expect(out.indexOf("Envelope created")).toBeGreaterThan(-1);
 		expect(out.indexOf("Envelope created")).toBeLessThan(out.indexOf("Envelope sent"));
 		const signer = (await r.inspect.storage.get("signers", `${id}:s1`)) as { tokenHash: string };
@@ -149,7 +151,11 @@ describe("ES-FR-11 admin pages in the host", () => {
 		const signer = (await r.inspect.storage.get("signers", `${id}:s1`)) as Record<string, unknown>;
 		const lone = "lone";
 		await r.fixtures.plugin.storage("envelopes", lone, { ...env, signerIds: [`${lone}:s1`] });
-		await r.fixtures.plugin.storage("signers", `${lone}:s1`, { ...signer, envelopeId: lone, tokenHash: "f".repeat(64) });
+		await r.fixtures.plugin.storage("signers", `${lone}:s1`, {
+			...signer,
+			envelopeId: lone,
+			tokenHash: "f".repeat(64),
+		});
 		const detail = await r.admin.act("/envelopes", "envelope.open", { value: lone });
 		expect(text(detail)).toContain("Resend invitation");
 		const resent = await r.admin.act("/envelopes", "envelope.resend", { value: lone });
@@ -158,8 +164,12 @@ describe("ES-FR-11 admin pages in the host", () => {
 	});
 
 	it("ES-FR-11 the outbox banner shows without a mail transport", async () => {
-		const { r } = await setup();
-		const res = await r.admin.loadPage("/envelopes");
+		const empty = { get: async () => null, query: async () => ({ items: [] }) };
+		const ctx = { storage: { envelopes: empty, outbox: empty }, log: { error: () => {} } } as unknown as PluginContext;
+		const res = await handleAdmin(
+			{ ctx, origin: "http://localhost", now: 0 },
+			{ type: "page_load", page: "/envelopes" },
+		);
 		expect(text(res)).toContain("No email transport");
 	});
 

@@ -31,6 +31,12 @@
 		"outbox": { "indexes": [["status", "nextAttemptAt"]] }
 	},
 	"admin": {
+		// Block Kit pages, answered by the private `admin` route (src/admin/pages.ts).
+		"pages": [
+			{ "path": "/envelopes", "label": "Envelopes", "icon": "file" },
+			{ "path": "/templates", "label": "Templates", "icon": "file-text" },
+			{ "path": "/settings", "label": "Settings", "icon": "gear" }
+		],
 		"settingsSchema": {
 			"senderName": {
 				"label": "Sender name",

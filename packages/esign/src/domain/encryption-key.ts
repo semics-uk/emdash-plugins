@@ -25,8 +25,10 @@ export function encryptionKeyStatus(value: string | null | undefined): Encryptio
 
 export function isEncryptionKeyMissingError(error: unknown): boolean {
 	const code = "PLUGIN_SETTING_ENCRYPTION_KEY_MISSING";
-	if (typeof error === "string") return error.includes(code);
-	if (error instanceof Error) return error.message.includes(code);
+	// `ctx.settings.set` in the sandbox throws `PluginSettingEncryptionError: Plugin secret settings require ...`.
+	const text = (message: string) => message.includes(code) || message.includes("PluginSettingEncryptionError");
+	if (typeof error === "string") return text(error);
+	if (error instanceof Error) return text(error.message) || error.name === "PluginSettingEncryptionError";
 	if (typeof error === "object" && error !== null) return (error as { code?: unknown }).code === code;
 	return false;
 }

@@ -27,6 +27,14 @@ describe("ES encryptionKeyStatus: admin banner when EMDASH_ENCRYPTION_KEY is mis
 	it("recognises the host's missing-key error code", () => {
 		expect(isEncryptionKeyMissingError({ code: "PLUGIN_SETTING_ENCRYPTION_KEY_MISSING" })).toBe(true);
 		expect(isEncryptionKeyMissingError(new Error("PLUGIN_SETTING_ENCRYPTION_KEY_MISSING"))).toBe(true);
+		expect(
+			isEncryptionKeyMissingError(
+				new Error("PluginSettingEncryptionError: Plugin secret settings require EMDASH_ENCRYPTION_KEY"),
+			),
+		).toBe(true);
+		expect(isEncryptionKeyMissingError(Object.assign(new Error("x"), { name: "PluginSettingEncryptionError" }))).toBe(
+			true,
+		);
 		expect(isEncryptionKeyMissingError({ code: "OTHER" })).toBe(false);
 		expect(isEncryptionKeyMissingError(null)).toBe(false);
 		expect(isEncryptionKeyMissingError("PLUGIN_SETTING_ENCRYPTION_KEY_MISSING")).toBe(true);

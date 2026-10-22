@@ -16,13 +16,21 @@ import {
 	type EsignClient,
 	generateToken,
 	hashToken,
+	type OutboxRecord,
 	type RandomBytes,
 	toRouteError,
 	verifyIntentToken,
 } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler, SandboxedPlugin } from "emdash/plugin";
 import { scheduleIntentFinish } from "../cron/intent-finish";
-import { type AuditEventDoc, type AuditInput, appendAuditEvent, initialAuditEvents, newPiiSalt } from "../domain/audit";
+import {
+	type AuditEventDoc,
+	type AuditInput,
+	appendAuditEvent,
+	auditEventId,
+	initialAuditEvents,
+	newPiiSalt,
+} from "../domain/audit";
 import {
 	buildDraft,
 	createdAuditEvent,
@@ -88,6 +96,7 @@ export interface Stores {
 	nonces: Collection<NonceDoc>;
 	audit_events: Collection<AuditEventDoc>;
 	artifacts: Collection<ArtifactChunkDoc>;
+	outbox: Collection<OutboxRecord>;
 }
 
 export const stores = (ctx: PluginContext) => ctx.storage as unknown as Stores;
@@ -274,6 +283,64 @@ async function get(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	};
 }
 
+/**
+ * Admin "resend invitation" (T027 follow-up). A `sent` envelope whose invitation is not in the
+ * outbox (queueing threw after the signer was stored) or whose row gave up (`failed`) gets a fresh
+ * signing token (only the hash is stored, so the old mail cannot be resent) and a new queued
+ * invitation under the same deterministic outbox id. If the failed `send` also never wrote its
+ * `envelope.sent` audit event, it is appended now. At most 8 bridge calls.
+ */
+async function resend(routeCtx: { input?: unknown }, ctx: PluginContext) {
+	const id = idOf(routeCtx.input);
+	if (!id) return badRequest();
+	const { envelopes, signers, outbox, audit_events } = stores(ctx);
+	const envelope = await envelopes.get(id);
+	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
+	const signerId = envelope.signerIds[0];
+	if (envelope.status !== "sent" || signerId === undefined) return fail("ENVELOPE_CLOSED");
+	const [senderName, queued, sentEvent] = await Promise.all([
+		ctx.settings.get<string>("senderName"),
+		outbox.get(`invite-${signerId}`),
+		audit_events.get(auditEventId(id, 1)),
+	]);
+	if (queued && queued.status !== "failed") {
+		return { ok: false, error: { code: "INVITATION_QUEUED", message: "The invitation is already queued or sent." } };
+	}
+	const token = generateToken();
+	const rotated = await withUniqueToken(token, undefined, (tokenHash) =>
+		signers.updateIf(signerId, { where: { status: "pending" }, set: { tokenHash } }),
+	);
+	if (!rotated.value.applied) return fail("ENVELOPE_CLOSED");
+	await queueInvitation(ctx, {
+		signerId,
+		envelope,
+		token: rotated.token,
+		senderSetting: senderName,
+		now: Date.now(),
+	});
+	if (!sentEvent) await appendAudit(ctx, id, envelope, sentAuditEvent(envelope, "admin"));
+	const { name, email, status } = rotated.value.data;
+	return {
+		ok: true,
+		envelope: view(id, envelope),
+		signers: [{ id: signerId, order: rotated.value.data.order, name, email, status }],
+		repaired: !sentEvent,
+	};
+}
+
+/** Admin void: any non-terminal envelope, through the status machine, with its audit event (4 calls). */
+async function voidEnvelope(routeCtx: { input?: unknown }, ctx: PluginContext) {
+	const id = idOf(routeCtx.input);
+	if (!id) return badRequest();
+	const envelope = await stores(ctx).envelopes.get(id);
+	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
+	const at = new Date().toISOString();
+	const moved = await transitionEnvelope(stores(ctx).envelopes, id, envelope.status, "voided", { updatedAt: at });
+	if (!moved.ok) return fail("ENVELOPE_CLOSED");
+	await appendAudit(ctx, id, moved.value, { type: "envelope.voided", at, actor: "admin" });
+	return { ok: true, envelope: view(id, moved.value) };
+}
+
 const LIST_LIMIT = 100;
 
 async function list(routeCtx: { input?: unknown }, ctx: PluginContext) {
@@ -292,6 +359,8 @@ export const ENVELOPE_ROUTES: Record<string, RouteDef> = {
 	"envelopes/send": { handler: send as Handler },
 	"envelopes/get": { handler: get as Handler },
 	"envelopes/list": { handler: list as Handler },
+	"envelopes/resend": { handler: resend as Handler },
+	"envelopes/void": { handler: voidEnvelope as Handler },
 	"outbox/status": { handler: (async (_r, ctx) => ({ ok: true, ...(await outboxReport(ctx)) })) as Handler },
 };
 
