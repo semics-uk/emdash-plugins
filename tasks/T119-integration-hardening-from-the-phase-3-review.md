@@ -4,7 +4,7 @@ title: "Integration: hardening from the Phase 3 review"
 phase: 6
 package: suite
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T067]

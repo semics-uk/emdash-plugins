@@ -1668,7 +1668,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1688,7 +1688,7 @@
 				"T102",
 				"T103"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T080": {
 			"file": "T080-events-pro-custom-attendee-questions.md",
@@ -2363,7 +2363,7 @@
 			"phase": 6,
 			"package": "suite",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2377,7 +2377,7 @@
 				"R44"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2390,7 +2390,6 @@
 			"T106"
 		],
 		"ready": [
-			"T078",
 			"T080",
 			"T081",
 			"T082",
@@ -2403,10 +2402,12 @@
 			"T094",
 			"T096",
 			"T105",
-			"T111",
+			"T111"
+		],
+		"in-progress": [
+			"T078",
 			"T119"
 		],
-		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
