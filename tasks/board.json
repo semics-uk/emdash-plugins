@@ -2318,7 +2318,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2331,7 +2331,7 @@
 				"R29"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T118": {
 			"file": "T118-bundle-size-headroom-for-pro-builds.md",
@@ -2397,7 +2397,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T117",
 			"T118"
 		],
 		"review": [],
@@ -2464,7 +2463,8 @@
 			"T112",
 			"T113",
 			"T115",
-			"T116"
+			"T116",
+			"T117"
 		],
 		"blocked": []
 	},
