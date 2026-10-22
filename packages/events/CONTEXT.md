@@ -103,8 +103,9 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
 - Cron scheduling (T116, R37): EmDash 1.2 never runs `plugin:activate` for a core in `sandboxed: [...]`, so
   `public/events`, `public/event` and admin `page_load`s are wrapped in `withScheduleCheck` (shared
-  `schedules.ts`): 1 KV read of `cron:scheduled:v9` (v9 since T081: `waitlist`); when missing, +1 to queue the one-shot `ensure-schedules`,
-  whose tick schedules every recurring task (Free: 4, plus Pro's 4 in the Pro build: 9 calls with the flag) and sets the flag. Never add
+  `schedules.ts`): 1 KV read of `cron:scheduled:v10` (v10 since T084: `occurrences`); when missing, +1 to queue the one-shot `ensure-schedules`,
+  whose tick schedules every Free recurring task (5, 6 calls with the flag) and sets the flag; the Pro build only queues its own
+  one-shot `ensure-schedules-pro` there (+1), whose tick schedules Pro's 4. Never add
   it to checkout or admin actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
@@ -173,6 +174,15 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `public/waitlist/claim` (= redeem for a held offer; entry -> `claimed`) then continues the booking (`claimOfferLink`).
   The widget's join form posts to the injected `/_events/waitlist` (Origin check). Retention deletes entries older than
   the period; the admin deletion by email deletes a person's entries (`email` index).
+- Recurring events (T084, EV-FR-17): `config.recurrence` holds an RRULE in the shared subset (`parseRrule`, else
+  `INVALID_RECURRENCE`); the series starts at `info.startsAt` in `info.timezone`. The recurring `occurrences` task
+  (`src/cron/occurrences.ts`, `*/10`) keeps the next 20 dates within 60 days (never past `MAX_OCCURRENCES`): it plans from
+  each config's catalog (no reads for events with nothing to do), takes one event per tick (turns by the ten-minute slot,
+  KV `cron:occurrences` pages past 100 configs) and saves through `saveConfig` with the stored dates passed back
+  unchanged: either one stale series date without bookings is removed (rule or start changed; past ones only when out
+  of room) or the missing dates are created (ids `r-<eventId>-<start base36>`, entry length, event capacity). Booked
+  dates are never moved or deleted. <= 8 calls. The panel has a "Repeats (RRULE)" text field; clearing the rule keeps
+  the dates already made.
 - Payment return (T077, EU-FR-09): Pro's Stripe step sets success and cancel URL to the same `/booking?ref=`, with no `session_id`, so
   the page never reads any query parameter for state. `src/astro/lib/payment.ts` (`paymentView`, `isPayUrl`) maps the core's status
   to a `<PaymentReturn>` section (`pending` = `awaiting_payment`: held, webhook maybe late; `confirmed`, `expired`, `cancelled`,
@@ -203,7 +213,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   falling back to `info.title` then the id.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
-- Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 112 KiB (111.6 after T081, 110.9 after the T084 trims; recurrence measured at +4.5 KiB, see T084 Notes) (`tests/bundle-size.build.test.ts`; the
+- Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 116 KiB (R51; 115.9 after T084's recurring events, 110.9 before them) (`tests/bundle-size.build.test.ts`; the
   registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,
