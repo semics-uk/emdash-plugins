@@ -233,6 +233,10 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `src/astro/lib/opt-out.ts`): opening it changes nothing, its same-site POST calls Pro's `public/mail/opt-out`
   (Free: NOT_FOUND, shown as an invalid link). Opted-out recipients are `mailOptOut` on the booking (`buyer` or an
   attendee id), a field the Free backend never reads.
+- MCP tools (T086, EV-FR-18, R59; Pro's): seven tools on private Pro routes `pro/mcp/*` that declare `plugins:manage`, like
+  E-sign Pro's (R55). They wrap Free's `public/events`, `public/event`, booking status and cancel (run on the admin's
+  authority: a per-call token hash on the booking read, cancel cutoff 0) and Pro's `checkin/code` and full refund. Free
+  routes are unchanged and the Free backend gained nothing; a Free route a tool reuses is part of the tool's contract.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 116 KiB (R51; 115.9 after T084's recurring events, 110.9 before them) (`tests/bundle-size.build.test.ts`; the
