@@ -12,8 +12,8 @@ import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/
 import { afterEach, describe, expect, it } from "vitest";
 import { completionTaskName } from "../src/cron/completion-email";
 import { pdfTaskName } from "../src/cron/pdf";
-import { OUTBOX_TASK, outboxReport, runOutboxJob } from "../src/emails/outbox";
 import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
+import { OUTBOX_TASK, outboxReport, runOutboxJob } from "../src/emails/outbox";
 
 /** The default consent wording's SHA-256, which a submit posts back (T117). */
 const CONSENT_SHA256 = await sha256Hex(DEFAULT_CONSENT_WORDING);

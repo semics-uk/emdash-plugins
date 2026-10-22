@@ -118,7 +118,11 @@ function snapshotBlocks(text: string): PdfBlock[] {
 				case "list":
 					b.items.forEach((item, i) => {
 						const marker = b.ordered ? `${(b.start ?? 1) + i}.` : "\u2022";
-						out.push({ type: "paragraph", text: `${marker} ${inlineText(item)}`, ...(quoted ? { font: "italic" as const } : {}) });
+						out.push({
+							type: "paragraph",
+							text: `${marker} ${inlineText(item)}`,
+							...(quoted ? { font: "italic" as const } : {}),
+						});
 					});
 					break;
 				case "quote":

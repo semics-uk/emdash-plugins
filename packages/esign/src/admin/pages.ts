@@ -27,7 +27,7 @@ import { masterKeyTooShort } from "../domain/clients";
 import { encryptionKeyStatus, isEncryptionKeyMissingError } from "../domain/encryption-key";
 import type { EnvelopeDoc, SignerDoc } from "../domain/envelopes";
 import { ENVELOPE_STATUSES, isEnvelopeStatus } from "../domain/state";
-import { outboxReport } from "../emails/outbox";
+import { outboxReport, SITE_URL_WARNING, siteOrigin } from "../emails/outbox";
 import { downloadLink } from "../routes/download";
 import { ENVELOPE_ROUTES, stores } from "../routes/envelopes";
 import { TEMPLATE_ROUTES } from "../routes/templates";
@@ -45,13 +45,15 @@ import { createClientAction, generateKey, integrationsPage, revokeClientAction }
  * confirmation instead of re-reading the envelope.
  */
 type Reply = Record<string, unknown> & { ok?: boolean; error?: { code?: string; message?: string } };
-type RouteFn = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<Reply>;
+type RouteFn = (routeCtx: { input?: unknown; user?: { id?: unknown } | null }, ctx: PluginContext) => Promise<Reply>;
 
 export interface AdminDeps {
 	ctx: PluginContext;
 	/** Site origin: Block Kit external links must be absolute. */
 	origin: string;
 	now: number;
+	/** The host-authenticated admin (`routeCtx.user`), passed to the routes for the audit chain (T117). */
+	user?: { id?: unknown } | null;
 }
 
 export type AdminInteraction =
@@ -66,7 +68,7 @@ export interface AdminResponse {
 const respond = (blocks: Block[]): AdminResponse => ({ blocks });
 const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const run = (deps: AdminDeps, route: unknown, input: unknown): Promise<Reply> =>
-	((route as { handler: unknown }).handler as RouteFn)({ input }, deps.ctx);
+	((route as { handler: unknown }).handler as RouteFn)({ input, user: deps.user ?? null }, deps.ctx);
 
 const envelopeRoute = (name: string) => ENVELOPE_ROUTES[name];
 const templateRoute = (name: string) => TEMPLATE_ROUTES[name];
@@ -116,9 +118,14 @@ const EVENT_LABELS: Record<string, string> = {
 
 // --- envelopes --------------------------------------------------------------------------------
 
+/** No site URL: emails with links are not queued (T117), and this says why. */
+const siteUrlBanner = (deps: AdminDeps): NoticeInput | false =>
+	!siteOrigin(deps.ctx) && { severity: "warning", title: "Set the site URL", message: SITE_URL_WARNING };
+
 async function outboxBanners(deps: AdminDeps): Promise<Array<NoticeInput | false>> {
 	const report = await outboxReport(deps.ctx);
 	return [
+		siteUrlBanner(deps),
 		report.state === "no_transport" && {
 			severity: "warning" as const,
 			title: "No email transport",
@@ -298,6 +305,7 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 						? "The email gave up after repeated failures. Resend invitation queues a fresh email with a new signing link."
 						: "The invitation was never queued. Resend invitation queues it with a new signing link.",
 			},
+			needsResend && siteUrlBanner(deps),
 		]),
 		...(opts.extra ?? []),
 		fieldsBlock([
@@ -329,7 +337,8 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 				at: data.at,
 				actor: data.actor,
 			})),
-			pageActionId: "audit.page",
+			// A Free chain is a handful of events (200 are read); the action just redraws this page (T117).
+			pageActionId: `audit.page:${id}`,
 			emptyText: "No events yet.",
 		}),
 	]);
@@ -359,9 +368,14 @@ async function sendEnvelope(deps: AdminDeps, id: string): Promise<AdminResponse>
 			actions([button("envelope.open", "Open envelope", { value: id }), back("envelopes.back", "Back to envelopes")]),
 		]);
 	}
+	const unqueued = reply.invitation === "SITE_URL_MISSING";
 	return respond([
 		header("Envelope"),
-		...notices([{ severity: "info", title: "Envelope sent", message: "The signer's invitation is queued." }]),
+		...notices([
+			unqueued
+				? { severity: "warning", title: "Envelope sent, but no invitation was queued", message: SITE_URL_WARNING }
+				: { severity: "info", title: "Envelope sent", message: "The signer's invitation is queued." },
+		]),
 		actions([button("envelope.open", "Open envelope", { value: id }), back("envelopes.back", "Back to envelopes")]),
 	]);
 }
@@ -825,6 +839,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 		if (interaction.action_id.startsWith("envelopes.page:")) {
 			return envelopesPage(deps, interaction.action_id.slice(15), [], str(interaction.value, 500) || undefined);
 		}
+		if (interaction.action_id.startsWith("audit.page:")) return detailPage(deps, idOf(interaction.action_id.slice(11)));
 		switch (interaction.action_id) {
 			case "envelopes.back":
 			case "envelopes.page":

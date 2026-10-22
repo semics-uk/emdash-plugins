@@ -41,7 +41,8 @@ const host = () => runtime as PluginRuntimeTestHost;
 
 async function start(site: string | null = SITE): Promise<BudgetedHost> {
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
-	runtime = await createPluginRuntimeTestHost(site ? { site: { name: "Acme", url: site } } : {});
+	// The test host defaults to a site URL; an empty one is a site where none is configured.
+	runtime = await createPluginRuntimeTestHost({ site: { name: "Acme", url: site ?? "" } });
 	return withBudget(runtime);
 }
 

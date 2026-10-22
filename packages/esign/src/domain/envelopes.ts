@@ -479,8 +479,11 @@ export async function envelopeIdForRef(cid: string, ref: string, attempt: number
 /** Who started an envelope: an admin (private routes) or an integration (a verified intent). */
 export type EnvelopeActor = "admin" | "integration";
 
-/** The `envelope.created` audit event (ES-FR-05); the signer's name and email are personal fields. */
-export function createdAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): AuditInput {
+/**
+ * The `envelope.created` audit event (ES-FR-05); the signer's name and email are personal fields.
+ * `userId` is the acting admin's user id (`routeCtx.user.id`, T117): an opaque id, never an email.
+ */
+export function createdAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor, userId?: string): AuditInput {
 	const { signer, clientId, externalRef } = envelope;
 	return {
 		type: "envelope.created",
@@ -495,6 +498,7 @@ export function createdAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): 
 			as: signer.as,
 			...(clientId === undefined ? {} : { clientId }),
 			...(externalRef === undefined ? {} : { externalRef }),
+			...(userId ? { userId } : {}),
 		},
 		personal: {
 			name: signer.name,
@@ -504,8 +508,8 @@ export function createdAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): 
 	};
 }
 
-/** The `envelope.sent` audit event for an envelope `sendEnvelope` just froze (`at` = the send time). */
-export function sentAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): AuditInput {
+/** The `envelope.sent` audit event for an envelope `sendEnvelope` just froze (`at` = the send time; `userId` as above). */
+export function sentAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor, userId?: string): AuditInput {
 	return {
 		type: "envelope.sent",
 		at: envelope.updatedAt,
@@ -514,6 +518,7 @@ export function sentAuditEvent(envelope: EnvelopeDoc, actor: EnvelopeActor): Aud
 			docSha256: envelope.docSha256,
 			expiresAt: envelope.expiresAt,
 			signerIds: envelope.signerIds.join(","),
+			...(userId ? { userId } : {}),
 		},
 		personal: { email: envelope.signer.email },
 	};

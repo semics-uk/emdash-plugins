@@ -9,7 +9,7 @@
  */
 import { generateToken } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
-import { queueCompletion } from "../emails/outbox";
+import { queueCompletion, siteOrigin } from "../emails/outbox";
 import { stores, withUniqueToken } from "../routes/envelopes";
 
 export const COMPLETION_TASK_PREFIX = "completion-email-";
@@ -38,6 +38,8 @@ export async function queueCompletionEmail(ctx: PluginContext, envelopeId: strin
 	if (queued) return false;
 	const signerId = envelope.signerIds[0];
 	if (signerId === undefined) return false;
+	// No site URL: no email with a relative link (T117); the token is not rotated for nothing.
+	if (!siteOrigin(ctx)) return false;
 	// The signing token is left alone (the sign page's poll still holds it): the copy token is its own credential.
 	const rotated = await withUniqueToken(generateToken(), undefined, (copyTokenHash) =>
 		stores(ctx).signers.updateIf(signerId, { where: { status: "signed" }, set: { copyTokenHash } }),

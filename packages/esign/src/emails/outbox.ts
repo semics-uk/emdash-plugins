@@ -52,9 +52,15 @@ export function outboxStorage(ctx: PluginContext): OutboxStorage {
 	};
 }
 
+/**
+ * The site's origin for links in emails, or "" when no site URL is configured (EmDash's site URL
+ * setting or config). Emails are never queued with a relative link (T117): the callers
+ * skip queueing and the admin shows `SITE_URL_WARNING`.
+ */
 export function siteOrigin(ctx: PluginContext): string {
 	try {
-		return new URL(ctx.site.url).origin;
+		const { origin } = new URL(ctx.site.url);
+		return origin === "null" ? "" : origin;
 	} catch {
 		return "";
 	}
@@ -64,18 +70,27 @@ export function siteOrigin(ctx: PluginContext): string {
 export const senderOf = (ctx: PluginContext, setting: unknown): string =>
 	typeof setting === "string" && setting.trim() !== "" ? setting.trim() : ctx.site.name;
 
-/** Queues the signing invitation: one storage call. Deterministic id, so a retry overwrites. */
-export function queueInvitation(
+/** Why emails are not being queued, for the admin (T117). */
+export const SITE_URL_WARNING =
+	"The site URL is not set, so signing invitations and signed-copy emails are not queued (their links would not work). Set the site URL in EmDash's settings, then use Resend invitation.";
+
+/**
+ * Queues the signing invitation: one storage call. Deterministic id, so a retry overwrites. Without a
+ * site URL nothing is queued (0 calls) and the result is null.
+ */
+export async function queueInvitation(
 	ctx: PluginContext,
 	args: { signerId: string; envelope: EnvelopeDoc; token: string; senderSetting: unknown; now: number },
-): Promise<string> {
+): Promise<string | null> {
 	const { signerId, envelope, token, now } = args;
+	const origin = siteOrigin(ctx);
+	if (!origin) return null;
 	const message = invitationEmail({
 		to: envelope.signer.email,
 		signerName: envelope.signer.name,
 		title: envelope.title,
 		sender: senderOf(ctx, args.senderSetting),
-		link: `${siteOrigin(ctx)}/sign/${token}`,
+		link: `${origin}/sign/${token}`,
 		expiresAt: envelope.expiresAt,
 	});
 	return enqueueEmail(outboxStorage(ctx), message, now, () => `invite-${signerId}`);
@@ -84,18 +99,21 @@ export function queueInvitation(
 /**
  * Queues the "signed" email: one storage call. It links the stable signed-copy page `/signed/<token>`
  * (the signer's fresh token, ES-US-6), never the 15-minute download link. Like the invitation, the
- * queued row holds the token in clear until the drain sends it and scrubs the row.
+ * queued row holds the token in clear until the drain sends it and scrubs the row. Without a site URL nothing is queued
+ * (0 calls) and the result is null.
  */
-export function queueCompletion(
+export async function queueCompletion(
 	ctx: PluginContext,
 	args: { envelopeId: string; envelope: EnvelopeDoc; token: string; senderSetting: unknown; now: number },
-): Promise<string> {
+): Promise<string | null> {
+	const origin = siteOrigin(ctx);
+	if (!origin) return null;
 	const input: CompletionInput = {
 		to: args.envelope.signer.email,
 		signerName: args.envelope.signer.name,
 		title: args.envelope.title,
 		sender: senderOf(ctx, args.senderSetting),
-		link: `${siteOrigin(ctx)}/signed/${args.token}`,
+		link: `${origin}/signed/${args.token}`,
 	};
 	return enqueueEmail(outboxStorage(ctx), completionEmail(input), args.now, () => `complete-${args.envelopeId}`);
 }

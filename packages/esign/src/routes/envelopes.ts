@@ -18,8 +18,10 @@ import {
 	type AuditInput,
 	appendAuditEvent,
 	auditEventId,
+	extendAuditChain,
 	initialAuditEvents,
 	newPiiSalt,
+	writeAuditEvents,
 } from "../domain/audit";
 import {
 	buildDraft,
@@ -36,11 +38,20 @@ import {
 import type { ArtifactChunkDoc } from "../domain/pdf";
 import { canTransition, isEnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { type TemplateDoc, versionDocId } from "../domain/templates";
-import { outboxReport, queueInvitation } from "../emails/outbox";
+import { outboxReport, queueInvitation, SITE_URL_WARNING, siteOrigin } from "../emails/outbox";
 import { downloadLink } from "./download";
 
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
+/** What the handlers read of the route context: the input and, on a private route, the acting user (T117). */
+export interface EnvelopeRouteCtx {
+	input?: unknown;
+	user?: { id?: unknown } | null;
+}
+type Handler = (routeCtx: EnvelopeRouteCtx, ctx: PluginContext) => Promise<unknown>;
+
+/** The acting admin's user id for the audit chain (T117): the host-authenticated `routeCtx.user`, never the email. */
+const userIdOf = (routeCtx: EnvelopeRouteCtx): string | undefined =>
+	typeof routeCtx.user?.id === "string" && routeCtx.user.id.length > 0 ? routeCtx.user.id : undefined;
 
 // --- storage access (the slice of StorageCollection each handler uses) ---
 
@@ -175,7 +186,7 @@ async function appendAudit(ctx: PluginContext, id: string, envelope: EnvelopeDoc
 
 // --- private routes ---
 
-async function create(routeCtx: { input?: unknown }, ctx: PluginContext) {
+async function create(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	const fields = parseDraftInput(routeCtx.input);
 	if (!fields.ok) return badRequest(fields.error);
 	const { templateId, templateVersion } = fields.value;
@@ -195,11 +206,13 @@ async function create(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	const id = crypto.randomUUID();
 	await envelopes.put(id, draft.value);
 	// A fresh UUID: nobody else can be writing this chain yet.
-	await audit_events.putMany(await initialAuditEvents(id, [createdAuditEvent(draft.value, "admin")], piiSalt));
+	await audit_events.putMany(
+		await initialAuditEvents(id, [createdAuditEvent(draft.value, "admin", userIdOf(routeCtx))], piiSalt),
+	);
 	return { ok: true, envelope: view(id, draft.value) };
 }
 
-async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
+async function send(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	const id = idOf(routeCtx.input);
 	if (!id) return badRequest();
 	const { envelopes, templates, snapshots, signers } = stores(ctx);
@@ -231,7 +244,7 @@ async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
 	// The token goes out in the invitation email (T027); it is never returned.
 	const stored = await insertSigner(signers, sent.value.signer, token);
-	await queueInvitation(ctx, {
+	const queued = await queueInvitation(ctx, {
 		signerId: sent.value.signer.id,
 		envelope: moved.value,
 		token: stored,
@@ -239,8 +252,9 @@ async function send(routeCtx: { input?: unknown }, ctx: PluginContext) {
 		now: Date.now(),
 	});
 	// Only the winner of the guarded draft → sent update gets here, so at most one `sent` event.
-	await appendAudit(ctx, id, moved.value, sentAuditEvent(moved.value, "admin"));
-	return { ok: true, envelope: view(id, moved.value) };
+	await appendAudit(ctx, id, moved.value, sentAuditEvent(moved.value, "admin", userIdOf(routeCtx)));
+	// No site URL: no invitation with a relative link was queued (T117); the admin says so.
+	return { ok: true, envelope: view(id, moved.value), ...(queued ? {} : { invitation: "SITE_URL_MISSING" }) };
 }
 
 async function get(routeCtx: { input?: unknown }, ctx: PluginContext) {
@@ -275,9 +289,12 @@ async function get(routeCtx: { input?: unknown }, ctx: PluginContext) {
  * outbox (queueing threw after the signer was stored) or whose row gave up (`failed`) gets a fresh
  * signing token (only the hash is stored, so the old mail cannot be resent) and a new queued
  * invitation under the same deterministic outbox id. If the failed `send` also never wrote its
- * `envelope.sent` audit event, it is appended now. At most 8 bridge calls.
+ * `envelope.sent` audit event, it is written now at its own place, right after `envelope.created`,
+ * with a create-only write: if anything else already took that place (a view, a decline or a void
+ * that raced this resend), the envelope has moved on and no `envelope.sent` is added after it (T117).
+ * Without a site URL nothing is changed (no relative link is ever queued). At most 7 bridge calls.
  */
-async function resend(routeCtx: { input?: unknown }, ctx: PluginContext) {
+async function resend(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	const id = idOf(routeCtx.input);
 	if (!id) return badRequest();
 	const { envelopes, signers, outbox, audit_events } = stores(ctx);
@@ -285,10 +302,13 @@ async function resend(routeCtx: { input?: unknown }, ctx: PluginContext) {
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	const signerId = envelope.signerIds[0];
 	if (envelope.status !== "sent" || signerId === undefined) return fail("ENVELOPE_CLOSED");
-	const [senderName, queued, sentEvent] = await Promise.all([
+	if (!siteOrigin(ctx)) return { ok: false, error: { code: "SITE_URL_MISSING", message: SITE_URL_WARNING } };
+	const createdId = auditEventId(id, 0);
+	const sentId = auditEventId(id, 1);
+	const [senderName, queued, opening] = await Promise.all([
 		ctx.settings.get<string>("senderName"),
 		outbox.get(`invite-${signerId}`),
-		audit_events.get(auditEventId(id, 1)),
+		audit_events.getMany([createdId, sentId]),
 	]);
 	if (queued && queued.status !== "failed") {
 		return { ok: false, error: { code: "INVITATION_QUEUED", message: "The invitation is already queued or sent." } };
@@ -305,18 +325,28 @@ async function resend(routeCtx: { input?: unknown }, ctx: PluginContext) {
 		senderSetting: senderName,
 		now: Date.now(),
 	});
-	if (!sentEvent) await appendAudit(ctx, id, envelope, sentAuditEvent(envelope, "admin"));
+	let repaired = false;
+	if (!opening.has(sentId)) {
+		// The position after `envelope.created` (the genesis when even that is missing), create-only.
+		const repair = await extendAuditChain(
+			id,
+			opening.get(createdId) ?? null,
+			[sentAuditEvent(envelope, "admin", userIdOf(routeCtx))],
+			envelope.piiSalt,
+		);
+		repaired = await writeAuditEvents(audit_events, repair);
+	}
 	const { name, email, status } = rotated.value.data;
 	return {
 		ok: true,
 		envelope: view(id, envelope),
 		signers: [{ id: signerId, order: rotated.value.data.order, name, email, status }],
-		repaired: !sentEvent,
+		repaired,
 	};
 }
 
 /** Admin void: any non-terminal envelope, through the status machine, with its audit event (4 calls). */
-async function voidEnvelope(routeCtx: { input?: unknown }, ctx: PluginContext) {
+async function voidEnvelope(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	const id = idOf(routeCtx.input);
 	if (!id) return badRequest();
 	const envelope = await stores(ctx).envelopes.get(id);
@@ -327,7 +357,12 @@ async function voidEnvelope(routeCtx: { input?: unknown }, ctx: PluginContext) {
 		updatedAt: at,
 	});
 	if (!moved.ok) return fail("ENVELOPE_CLOSED");
-	await appendAudit(ctx, id, moved.value, { type: "envelope.voided", at, actor: "admin" });
+	await appendAudit(ctx, id, moved.value, {
+		type: "envelope.voided",
+		at,
+		actor: "admin",
+		...(userIdOf(routeCtx) ? { data: { userId: userIdOf(routeCtx) as string } } : {}),
+	});
 	return { ok: true, envelope: view(id, moved.value) };
 }
 

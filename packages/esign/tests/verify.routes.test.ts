@@ -4,6 +4,7 @@ import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/
 import { afterEach, describe, expect, it } from "vitest";
 import { pdfTaskName } from "../src/cron/pdf";
 import type { AuditEventDoc } from "../src/domain/audit";
+import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 
 /** R22: target ≤ 8 bridge calls; submit is at 9 since it schedules the PDF job (hard limit 10). */
 const TARGET = { calls: 8, cpuMs: 50 };
@@ -21,6 +22,8 @@ afterEach(async () => {
 
 const BODY = "# Waiver\n\nI, {{signer.name}}, accept the {{event}} terms.\n";
 const TOKEN = "t".repeat(43);
+/** The default consent wording's SHA-256, which a submit posts back (T117). */
+const CONSENT_SHA256 = await sha256Hex(DEFAULT_CONSENT_WORDING);
 
 type Body = Record<string, unknown> & { ok: boolean; error?: { code: string } };
 
@@ -66,6 +69,7 @@ const submitBody = (s: Sent) => ({
 	consent: true,
 	intent: true,
 	docSha256: s.docSha256,
+	consentSha256: CONSENT_SHA256,
 	signature: { kind: "typed", typedName: "Ada Lovelace" },
 });
 
@@ -74,7 +78,7 @@ const envelopeOf = async (id: string) =>
 
 /** A completed envelope whose signed PDF is stored; returns its `pdfSha256`. */
 async function completed(s: Sent): Promise<string> {
-	await call(s.budget, "public/session", { token: TOKEN });
+	await call(s.budget, "public/session", { token: TOKEN, open: true });
 	await call(s.budget, "public/submit", submitBody(s), SUBMIT);
 	const job = await s.budget.invokeHook("cron", {
 		name: pdfTaskName(s.id),

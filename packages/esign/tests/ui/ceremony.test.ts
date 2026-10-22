@@ -32,7 +32,7 @@ const ready = {
 	envelope: { id: "e1", title: "NDA", status: "in_progress", docSha256: DOC, expiresAt: null },
 	signer: { name: "Ada" },
 	snapshot: "Hello",
-	consent: { version: "1", wording: "I agree to sign electronically." },
+	consent: { version: "1", wording: "I agree to sign electronically.", sha256: "c".repeat(64) },
 };
 
 function form(entries: Record<string, string>) {
@@ -210,6 +210,7 @@ describe("drawn signatures and field values in handleSign (SU-FR-05, SU-FR-06)",
 		expect(submitted(h.seen)).toEqual({
 			token: TOKEN,
 			docSha256: DOC,
+			consentSha256: "c".repeat(64),
 			consent: true,
 			intent: true,
 			signature: {

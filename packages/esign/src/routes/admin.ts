@@ -8,7 +8,10 @@ import { type AdminDeps, type AdminInteraction, handleAdmin } from "../admin/pag
  * with `{ blocks }`. Admin only: it is not a public route.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown; request?: { url?: string } }, ctx: PluginContext) => Promise<unknown>;
+type Handler = (
+	routeCtx: { input?: unknown; request?: { url?: string }; user?: { id?: unknown } | null },
+	ctx: PluginContext,
+) => Promise<unknown>;
 
 export const ADMIN_ROUTES: Record<string, RouteDef> = {
 	admin: {
@@ -19,7 +22,7 @@ export const ADMIN_ROUTES: Record<string, RouteDef> = {
 			} catch {
 				// No usable request URL: keep the fallback.
 			}
-			const deps: AdminDeps = { ctx, origin, now: Date.now() };
+			const deps: AdminDeps = { ctx, origin, now: Date.now(), user: routeCtx.user ?? null };
 			return handleAdmin(deps, routeCtx.input as AdminInteraction);
 		}) as Handler,
 	},
