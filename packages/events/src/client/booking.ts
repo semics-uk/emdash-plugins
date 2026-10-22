@@ -13,7 +13,7 @@
  * `validateCheckoutFields` (`src/astro/lib/widget.ts`); a test keeps them identical.
  */
 
-export type BookingField = "occurrence" | "tickets" | "name" | "email";
+export type BookingField = "occurrence" | "promo" | "tickets" | "name" | "email";
 
 export interface BookingValues {
 	name: string;
@@ -23,7 +23,8 @@ export interface BookingValues {
 	occurrenceId: string;
 }
 
-const FIELDS: readonly BookingField[] = ["occurrence", "tickets", "name", "email"];
+// `promo` is only ever set by the server (a refused code); listing it clears that error on a resubmit.
+const FIELDS: readonly BookingField[] = ["occurrence", "promo", "tickets", "name", "email"];
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** 32 random bytes as 43 unpadded base64url characters. */
@@ -102,7 +103,8 @@ export function enhance(form: HTMLFormElement): void {
 	const key = form.elements.namedItem("idempotencyKey");
 	if (key instanceof HTMLInputElement) key.value = freshKey();
 
-	const button = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+	// The promo code's Apply button sits inside the widget but belongs to its own form.
+	const button = form.querySelector<HTMLButtonElement>('button[type="submit"]:not([data-promo-apply])');
 	if (button) button.disabled = false;
 
 	const qtyInputs = Array.from(form.querySelectorAll<HTMLInputElement>('input[name^="qty:"]'));

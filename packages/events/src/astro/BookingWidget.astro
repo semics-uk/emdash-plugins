@@ -7,6 +7,7 @@ import { pluginId } from "virtual:semics-events/config";
 
 import { callPublicRoute } from "./lib/call";
 import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
+import { PROMO_PATH, type PromoView, promoCookieName, promoView } from "./lib/promo";
 import {
 	anchorId,
 	ERROR_MESSAGES,
@@ -29,6 +30,8 @@ interface Props {
 	/** Overrides the site key from `public/event`. */
 	turnstileSiteKey?: string;
 	locale?: string;
+	/** The applied promo code's view, when the page already has it (`null`: none). */
+	promo?: PromoView | null;
 }
 
 const { event: eventId, heading = "Book tickets", locale = "en-GB" } = Astro.props;
@@ -43,11 +46,30 @@ if (!data) {
 }
 
 const id = anchorId(eventId);
+// Promo codes are Events Pro's (T078): the field shows only when the core says it takes them. An
+// applied code lives in an HttpOnly cookie (`/_events/promo`), never the URL, and is checked again here.
+const takesCodes = data?.promoCodes === true;
+let promo: PromoView | null = Astro.props.promo ?? null;
+if (takesCodes && Astro.props.promo === undefined) {
+	let code = "";
+	try {
+		code = Astro.cookies.get(promoCookieName(eventId))?.value ?? "";
+	} catch {
+		// A prerendered page has no cookies.
+	}
+	if (code) promo = await promoView(Astro, { eventId, code, currency: data?.currency, locale }, { pluginId });
+}
+const promoForm = `${id}-promo-form`;
 const siteKey = Astro.props.turnstileSiteKey ?? data?.turnstileSiteKey ?? "";
 const state = readWidgetState(Astro.url, eventId);
 const returnTo = safeReturnTo(`${Astro.url.pathname}${Astro.url.search}`, Astro.url.origin) ?? "";
 const occurrences = data?.occurrences ?? [];
-const ticketTypes = data?.ticketTypes ?? [];
+const listed = new Set((data?.ticketTypes ?? []).map((t) => t.id));
+// An unlock code's hidden types join the list (reserve checks the code again before it sells them).
+const ticketTypes = [
+	...(data?.ticketTypes ?? []),
+	...(takesCodes ? (promo?.hiddenTypes ?? []) : []).filter((t) => !listed.has(t.id)),
+] as PublicEvent["ticketTypes"];
 const onSale = data?.status === "on_sale" && ticketTypes.length > 0;
 const bad = (field: WidgetField) => state.fields.includes(field);
 const errId = (field: WidgetField) => `${id}-${field}-error`;
@@ -68,6 +90,13 @@ const when = (iso: string) => {
 		!onSale ? (
 			<p data-testid="booking-unavailable">Booking is not available for this event right now.</p>
 		) : (
+			<>
+			{takesCodes && (
+				<form id={promoForm} method="post" action={PROMO_PATH} hidden>
+					<input type="hidden" name="eventId" value={eventId} />
+					<input type="hidden" name="returnTo" value={returnTo} />
+				</form>
+			)}
 			<form
 				method="post"
 				action={CHECKOUT_PATH}
@@ -105,6 +134,40 @@ const when = (iso: string) => {
 						<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={FIELD_MESSAGES.occurrence}>
 							{bad("occurrence") ? FIELD_MESSAGES.occurrence : ""}
 						</p>
+					</div>
+				)}
+
+				{takesCodes && (
+					<div class="semics-field semics-promo">
+						{promo && <input type="hidden" name="promoCode" value={promo.code} />}
+						<label for={`${id}-promo`}>Promo code</label>
+						<div class="semics-promo-row">
+							<input
+								id={`${id}-promo`}
+								form={promoForm}
+								name="promoCode"
+								type="text"
+								autocomplete="off"
+								autocapitalize="characters"
+								spellcheck="false"
+								maxlength="60"
+								value={promo?.code ?? ""}
+								data-field="promo"
+								aria-invalid={invalid("promo")}
+								aria-describedby={`${errId("promo")}${promo ? ` ${id}-promo-note` : ""}`}
+							/>
+							<button type="submit" form={promoForm} class="semics-secondary" data-promo-apply>
+								{promo ? "Update code" : "Apply code"}
+							</button>
+						</div>
+						<p class="semics-field-error" id={errId("promo")} data-error-for="promo" data-message={FIELD_MESSAGES.promo}>
+							{bad("promo") ? FIELD_MESSAGES.promo : ""}
+						</p>
+						{promo && (
+							<p class="semics-promo-note" id={`${id}-promo-note`} data-testid="promo-note">
+								{promo.note}
+							</p>
+						)}
 					</div>
 				)}
 
@@ -194,6 +257,7 @@ const when = (iso: string) => {
 
 				<button type="submit" disabled={siteKey ? true : undefined}>Book</button>
 			</form>
+			</>
 		)
 	}
 </section>
@@ -319,6 +383,25 @@ const when = (iso: string) => {
 		background: var(--_accent);
 		color: var(--_accent-fg);
 		cursor: pointer;
+	}
+	.semics-promo-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+	.semics-promo-row input {
+		flex: 1 1 10rem;
+		min-inline-size: 0;
+	}
+	.semics-booking-widget button.semics-secondary {
+		padding-inline: 1rem;
+		border: 1px solid var(--_accent);
+		background: var(--_bg);
+		color: var(--_accent);
+	}
+	.semics-promo-note {
+		margin: 0;
+		color: var(--_muted);
 	}
 	.semics-booking-widget button:disabled {
 		opacity: 0.6;

@@ -148,6 +148,8 @@ export async function handleCheckoutForm(
 	if (invalid.length > 0) return refuse("BAD_REQUEST", invalid);
 
 	const turnstileToken = text(form, "cf-turnstile-response");
+	// Only a typed code is sent: Free's reserve refuses unknown keys, and only Pro offers the field.
+	const promoCode = text(form, "promoCode");
 	const reserved = await callPublicRoute<{ bookingRef: string; accessToken?: string }>(ctx, {
 		method: "POST",
 		path: "public/checkout/reserve",
@@ -159,11 +161,13 @@ export async function handleCheckoutForm(
 			buyer,
 			idempotencyKey: text(form, "idempotencyKey") || (options.newKey ?? newIdempotencyKey)(),
 			...(turnstileToken ? { turnstileToken } : {}),
+			...(promoCode ? { promoCode } : {}),
 		},
 	});
 	if (!reserved.ok) {
 		const { code, issues } = reserved.error;
-		return refuse(code, code === "BAD_REQUEST" ? fieldsFromIssues(issues) : []);
+		const fields: WidgetField[] = code.startsWith("PROMO_") ? ["promo"] : [];
+		return refuse(code, code === "BAD_REQUEST" ? fieldsFromIssues(issues) : fields);
 	}
 
 	const { bookingRef, accessToken } = reserved.data;

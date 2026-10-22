@@ -30,6 +30,8 @@ export interface PublicEvent {
 	turnstileSiteKey?: string;
 	/** True when the event requires a signed waiver (T066): the booking form then asks for attendees. */
 	waiver?: boolean;
+	/** True when the core takes promo codes (Events Pro, T078): the widget then shows a code field. */
+	promoCodes?: boolean;
 }
 
 /** What `POST public/booking` answers (T049), plus the optional fields later tasks add. */
@@ -52,10 +54,10 @@ export interface BookingView {
 	waiver?: { refs: string[]; lookups?: Record<string, string> };
 }
 
-export type WidgetField = "occurrence" | "tickets" | "name" | "email";
+export type WidgetField = "occurrence" | "promo" | "tickets" | "name" | "email";
 
 /** In form order: the first one is where focus goes. */
-export const WIDGET_FIELDS: readonly WidgetField[] = ["occurrence", "tickets", "name", "email"];
+export const WIDGET_FIELDS: readonly WidgetField[] = ["occurrence", "promo", "tickets", "name", "email"];
 
 export const WIDGET_PARAMS = { error: "booking_error", fields: "booking_fields", event: "booking_event" } as const;
 
@@ -64,6 +66,7 @@ export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
 export const FIELD_MESSAGES: Record<WidgetField, string> = {
 	occurrence: "Choose a date.",
+	promo: "Check the code, or leave it empty.",
 	tickets: "Choose at least one ticket.",
 	name: "Enter your name.",
 	email: "Enter a valid email address.",
@@ -77,6 +80,9 @@ export const ERROR_MESSAGES: Record<string, string> = {
 	TURNSTILE_FAILED: "The security check did not pass. Please try again.",
 	HOLD_EXPIRED: "Your hold on these tickets expired. Please start again.",
 	NOT_FOUND: "This event is not taking bookings.",
+	PROMO_INVALID: "That code is not valid for this event.",
+	PROMO_EXHAUSTED: "That code has been used up.",
+	PROMO_ORDER_TOO_LARGE: "That code can't be used on an order this large. Order fewer ticket types at once.",
 	INTERNAL: "Something went wrong. Please try again.",
 };
 
