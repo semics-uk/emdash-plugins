@@ -1293,7 +1293,7 @@
 			"phase": 3,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1307,7 +1307,7 @@
 			"unblocks": [
 				"T062"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T062": {
 			"file": "T062-e-sign-receipts-receipt-lookup-and-template-catalogue.md",
@@ -1328,7 +1328,7 @@
 			"unblocks": [
 				"T065"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T063": {
 			"file": "T063-events-pairing-setting-and-intent-issuing.md",
@@ -2333,7 +2333,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T062",
 			"T064",
 			"T065",
 			"T066",
@@ -2359,6 +2358,7 @@
 			"T106"
 		],
 		"ready": [
+			"T062",
 			"T072",
 			"T073",
 			"T080",
@@ -2374,7 +2374,6 @@
 			"T117"
 		],
 		"in-progress": [
-			"T061",
 			"T063"
 		],
 		"review": [],
@@ -2432,6 +2431,7 @@
 			"T056",
 			"T057",
 			"T060",
+			"T061",
 			"T070",
 			"T071",
 			"T110",
