@@ -11,6 +11,10 @@
  * folded into `finalHash`, so that is how it is enforced). It is `null` when the chain is longer than
  * one page of events and so was not checked.
  *
+ * After retention (R45): the personal-data purge leaves the chain verifiable, so a signed PDF still
+ * matches with `chainVerified: true`. When the signed-records period ends the PDF, chain and
+ * `pdfSha256` are deleted and the PDF is `{ matched: false }`, like any hash the site never issued.
+ *
  * Per-IP rate limit (`rateLimit`, 20 per 10 minutes). Bridge calls: limiter (2), envelope by
  * `pdfSha256` (1), events (1) = 4 (R22 target ≤ 8).
  */

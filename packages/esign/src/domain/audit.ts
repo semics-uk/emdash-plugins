@@ -13,8 +13,10 @@
  * **Personal fields** (name, email, participant name, IP, user agent) are never hashed raw. Each becomes a
  * commitment `SHA256(piiSalt ‖ value)` (the envelope's 32-byte random `piiSalt`, as hex) that is
  * hashed into the chain, while the raw value sits beside it in `personal`, outside the hash. The
- * retention purge sets `personal` to null (`purgePersonal`) and the chain still verifies; a value
- * disclosed later (e.g. printed on the certificate) can still be proven against its commitment.
+ * retention purge (cron/retention.ts) sets `personal` to null (`purgePersonal`) and the chain still
+ * verifies. Until then a value disclosed later (e.g. printed on the certificate) can be proven against
+ * its commitment; the purge also deletes the envelope's `piiSalt` (R28), after which it cannot, and a
+ * low-variety value (an IP, an email) cannot be guessed from its commitment either.
  *
  * **No forks:** an event's id is `<envelopeId>:a<seq, 6 digits>`, and `appendAuditEvent` writes it
  * with a create-only `compareAndSet(id, null, …)`. Two writers that read the same head race for the

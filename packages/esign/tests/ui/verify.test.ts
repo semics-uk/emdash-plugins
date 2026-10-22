@@ -100,4 +100,10 @@ describe("verify page client (SU-FR-02, ES-US-6)", () => {
 		expect(directives["frame-ancestors"]).toEqual(["'none'"]);
 		expect(header).not.toMatch(/unsafe-|\*|https?:/);
 	});
+
+	it("R45 a fingerprint that is not found says signed records are deleted after their retention period", () => {
+		const page = readFileSync(resolve(root, "src/astro/VerifyDocument.astro"), "utf8");
+		expect(page).toContain('data-testid="verify-retention"');
+		expect(page).toMatch(/deleted when their retention\s+period ends/);
+	});
 });

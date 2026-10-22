@@ -10,6 +10,7 @@ import { runCompletionEmailJob } from "./cron/completion-email";
 import { runIntentFinishJob } from "./cron/intent-finish";
 import { NONCE_SWEEP_SCHEDULE, NONCE_SWEEP_TASK, runNonceSweepJob } from "./cron/nonce-sweep";
 import { runPdfJob } from "./cron/pdf";
+import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
 import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
 import { ADMIN_ROUTES } from "./routes/admin";
 import { catalogHandler } from "./routes/catalog";
@@ -34,6 +35,8 @@ const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE },
 	// T061: joined the list after T116, so the shared schedule flag moved to v2.
 	{ name: NONCE_SWEEP_TASK, schedule: NONCE_SWEEP_SCHEDULE },
+	// T097: the shared flag moved to v5.
+	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
 ];
 
 const PUBLIC = publicRoutes({
@@ -57,6 +60,7 @@ const plugin: SandboxedPlugin = {
 			if (await runCompletionEmailJob(event, ctx)) return;
 			if (await runIntentFinishJob(event, ctx)) return;
 			if (await runNonceSweepJob(event, ctx)) return;
+			if (await runRetentionJob(event, ctx)) return;
 			await runPdfJob(event, ctx);
 		},
 	},

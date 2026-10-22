@@ -12,6 +12,7 @@
  * R22), which runs the same job. Nonces are created at most one per intent, so a backlog only
  * builds up after a burst or a long outage; the recurring tick would clear it anyway.
  */
+import { toIso } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
 export const NONCE_SWEEP_TASK = "nonce-sweep";
@@ -50,7 +51,7 @@ export interface NonceSweepReport {
 /** One sweep: deletes nonces whose `expiresAt` is before `now`, oldest first. */
 export async function sweepNonces(deps: NonceSweepDeps): Promise<NonceSweepReport> {
 	const { nonces, cron, now, page = NONCE_SWEEP_PAGE, pages = NONCE_SWEEP_PAGES } = deps;
-	const before = new Date(now).toISOString();
+	const before = toIso(now);
 	let deleted = 0;
 	let more = false;
 	for (let i = 0; i < pages; i++) {
@@ -64,7 +65,7 @@ export async function sweepNonces(deps: NonceSweepDeps): Promise<NonceSweepRepor
 		more = due.hasMore === true;
 		if (!more) break;
 	}
-	if (more) await cron?.schedule(NONCE_SWEEP_MORE_TASK, { schedule: new Date(now + CONTINUE_AFTER_MS).toISOString() });
+	if (more) await cron?.schedule(NONCE_SWEEP_MORE_TASK, { schedule: toIso(now + CONTINUE_AFTER_MS) });
 	return { deleted, more };
 }
 

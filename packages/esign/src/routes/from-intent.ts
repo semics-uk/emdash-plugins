@@ -11,7 +11,7 @@
  * create-only document `nonces/<cid>.<nonce>` with ISO `expiresAt` = `exp` + 60 s; the hourly
  * `nonce-sweep` (cron/nonce-sweep.ts) deletes it after that.
  */
-import { generateToken, hashToken, type RandomBytes, verifyIntentToken } from "@semics-tech/shared";
+import { generateToken, hashToken, type RandomBytes, toIso, verifyIntentToken } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
 import { scheduleIntentFinish } from "../cron/intent-finish";
 import { initialAuditEvents, newPiiSalt } from "../domain/audit";
@@ -67,14 +67,14 @@ function siteOrigin(ctx: PluginContext): string | undefined {
  */
 export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
 	const nowMs = (deps.now ?? Date.now)();
-	const now = new Date(nowMs).toISOString();
+	const now = toIso(nowMs);
 	const { envelopes, signers, snapshots, templates, nonces } = stores(ctx);
 	const clients = integrationClients(ctx);
 
 	const consumeNonce = async (cid: string, nonce: string, expiresAt: number): Promise<boolean> => {
 		const id = `${cid}.${nonce}`;
 		try {
-			const doc = { nonce: id, cid, expiresAt: new Date(expiresAt * 1000).toISOString() };
+			const doc = { nonce: id, cid, expiresAt: toIso(expiresAt * 1000) };
 			return (await nonces.compareAndSet(id, null, doc)).applied;
 		} catch (error) {
 			if (isUniqueViolation(error)) return false;

@@ -11,6 +11,7 @@ import {
 	notices,
 	table,
 	textInput,
+	toIso,
 } from "@semics-tech/shared";
 
 import {
@@ -155,7 +156,7 @@ export async function createClientAction(deps: AdminDeps, values: Record<string,
 	const result = await createClient(
 		clientStore(deps),
 		{ name: text(values.name, 200), returnUrlAllowlist: allowlist.entries, masterKey: key },
-		{ now: new Date(deps.now).toISOString() },
+		{ now: toIso(deps.now) },
 	);
 	if (!result.ok) {
 		const message =
@@ -178,7 +179,7 @@ export async function createClientAction(deps: AdminDeps, values: Record<string,
 
 export async function revokeClientAction(deps: AdminDeps, clientId: string): Promise<AdminResponse> {
 	const store = clientStore(deps);
-	const done = await revokeClient(store, clientId, new Date(deps.now).toISOString());
+	const done = await revokeClient(store, clientId, toIso(deps.now));
 	const key = await masterKey(deps);
 	return render(
 		deps,

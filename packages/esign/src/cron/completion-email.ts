@@ -7,7 +7,7 @@
  * page issues a fresh download link on each visit (T032). A separate task keeps the PDF job at 7 bridge calls; this one is envelope (1),
  * sender setting (1), queued row (1), copy-token write (1), outbox put (1): 5.
  */
-import { generateToken } from "@semics-tech/shared";
+import { generateToken, toIso } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import { queueCompletion, siteOrigin } from "../emails/outbox";
 import { stores, withUniqueToken } from "../routes/envelopes";
@@ -21,7 +21,7 @@ export interface CompletionCron {
 
 export function scheduleCompletionEmail(cron: CompletionCron | undefined, envelopeId: string, at: number) {
 	return cron?.schedule(completionTaskName(envelopeId), {
-		schedule: new Date(at).toISOString(),
+		schedule: toIso(at),
 		data: { envelopeId },
 	});
 }

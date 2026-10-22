@@ -39,7 +39,7 @@
  * event can land between submit's head read and its write and there is no rebuild path. A `sent`
  * envelope is `SESSION_REQUIRED` and nothing is written.
  */
-import { hashToken, type RateLimitStore, rateLimit, sha256Hex, verifyToken } from "@semics-tech/shared";
+import { hashToken, type RateLimitStore, rateLimit, sha256Hex, toIso, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
 import { schedulePdfJob } from "../cron/pdf";
 import {
@@ -253,7 +253,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		if (!envelope.pdfSha256) return { ...closed, pdf: "pending" };
 		return { ...closed, pdf: "ready", download: await downloadLink(ctx, signer.data.envelopeId, Date.now()) };
 	}
-	const now = new Date().toISOString();
+	const now = toIso();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 
 	const [chunks, consent] = await Promise.all([
@@ -313,7 +313,7 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	if (envelope.status === "sent") return fail("SESSION_REQUIRED");
 	if (envelope.status !== "in_progress") return fail("ENVELOPE_CLOSED");
-	const now = new Date().toISOString();
+	const now = toIso();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 	// The signature binds to the document the signer saw; the snapshot is immutable after send.
 	if (envelope.docSha256 === null || fields.value.docSha256 !== envelope.docSha256) {
@@ -404,7 +404,7 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	const envelope = await envelopes.get(envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	if (!canTransition(envelope.status, "declined")) return fail("ENVELOPE_CLOSED");
-	const now = new Date().toISOString();
+	const now = toIso();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 
 	const moved = await transitionEnvelope(envelopes, envelopeId, envelope.status, "declined", {

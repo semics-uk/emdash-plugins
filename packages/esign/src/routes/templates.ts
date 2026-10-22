@@ -1,4 +1,4 @@
-import { toRouteError } from "@semics-tech/shared";
+import { toIso, toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import {
@@ -59,7 +59,7 @@ export const TEMPLATE_ROUTES: Record<string, RouteDef> = {
 	"templates/create": {
 		handler: (async (routeCtx, ctx) => {
 			const id = crypto.randomUUID();
-			const result = createTemplate(routeCtx.input, { id, now: new Date().toISOString() });
+			const result = createTemplate(routeCtx.input, { id, now: toIso() });
 			if (!result.ok) return badRequest(result.error);
 			const { head, versions } = result.value;
 			await store(ctx).putMany([{ id, data: head }, ...versions]);
@@ -72,7 +72,7 @@ export const TEMPLATE_ROUTES: Record<string, RouteDef> = {
 			if (!id) return badRequest();
 			const existing = await loadHead(ctx, id);
 			if (!existing) return notFound();
-			const result = updateTemplate(existing, routeCtx.input, { id, now: new Date().toISOString() });
+			const result = updateTemplate(existing, routeCtx.input, { id, now: toIso() });
 			if (!result.ok) return badRequest(result.error);
 			await store(ctx).putMany([{ id, data: result.value.head }, result.value.version]);
 			return { ok: true, template: view(id, result.value.head) };
@@ -114,7 +114,7 @@ export const TEMPLATE_ROUTES: Record<string, RouteDef> = {
 			const existing = await loadHead(ctx, id);
 			if (!existing) return notFound();
 			if (existing.status === "archived") return { ok: true, template: view(id, existing) };
-			const archived = archiveTemplate(existing, new Date().toISOString());
+			const archived = archiveTemplate(existing, toIso());
 			await store(ctx).putMany([{ id, data: archived }]);
 			return { ok: true, template: view(id, archived) };
 		}) as Handler,

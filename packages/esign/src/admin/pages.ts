@@ -22,6 +22,7 @@ import {
 	toggle,
 } from "@semics-tech/shared";
 import type { PluginContext } from "emdash/plugin";
+import { eraseOnRequest, findForErasure } from "../cron/retention";
 
 import type { AuditEventDoc } from "../domain/audit";
 import { masterKeyTooShort } from "../domain/clients";
@@ -199,6 +200,56 @@ async function envelopesPage(
 			...(nextCursor ? { nextCursor } : {}),
 			emptyText: "No envelopes match.",
 		}),
+		header(DELETE),
+		form({
+			fields: [textInput("subject", "Signer email or envelope id")],
+			submit: { label: "Find", actionId: "retention.preview" },
+		}),
+	]);
+}
+
+// --- deletion on request (ES-FR-22, T097) -----------------------------------------------------
+
+const DELETE = "Delete personal data";
+const KEEPS = "Signed records stay for their own period; open envelopes and pending PDFs are skipped.";
+
+/** Preview (2 calls), then the danger button runs the purge (8 calls at most). */
+async function erasure(deps: AdminDeps, subject: string, run: boolean): Promise<AdminResponse> {
+	const found = await findForErasure(deps.ctx, subject);
+	const n = found.due.length;
+	if (run && n > 0) await eraseOnRequest(deps.ctx, found, deps.now);
+	return respond([
+		header(DELETE),
+		...notices([
+			{
+				severity: run ? "info" : "warning",
+				title:
+					run && n > 0
+						? "Personal data deleted"
+						: n + found.open > 0
+							? `${n} envelope(s) to delete, ${found.open} kept for now`
+							: "No envelopes found",
+				message: KEEPS,
+			},
+		]),
+		actions([
+			...(!run && n > 0
+				? [
+						button("retention.erase", DELETE, {
+							style: "danger",
+							value: subject,
+							confirm: {
+								title: `${DELETE}?`,
+								text: "This cannot be undone.",
+								confirm: "Delete",
+								deny: "Keep",
+								style: "danger",
+							},
+						}),
+					]
+				: []),
+			back("envelopes.back", "Back to envelopes"),
+		]),
 	]);
 }
 
@@ -261,7 +312,7 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 
 	// Download link: signed PDF, short-lived, made when the page is drawn.
 	let pdf: Block | null = null;
-	if (envelope.status === "completed") {
+	if (envelope.status === "completed" && !envelope.recordsPurgedAt) {
 		if (envelope.pdfSha256) {
 			const link15 = await downloadLink(deps.ctx, id, deps.now);
 			pdf = actions([
@@ -309,6 +360,13 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 			needsResend && siteUrlBanner(deps),
 		]),
 		...(opts.extra ?? []),
+		...(envelope.personalPurgedAt
+			? [
+					context(
+						`Personal data deleted ${envelope.personalPurgedAt}${envelope.recordsPurgedAt ? "; signed records deleted" : ""} (retention).`,
+					),
+				]
+			: []),
 		fieldsBlock([
 			{ label: "Status", value: envelope.status.replaceAll("_", " ") },
 			{ label: "Template", value: `${envelope.templateId} v${envelope.templateVersion}` },
@@ -834,6 +892,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return saveSettings(deps, v);
 			case "client.create":
 				return createClientAction(deps, v);
+			case "retention.preview":
+				return erasure(deps, str(v.subject), false);
 		}
 	} else {
 		const id = idOf(interaction.value);
@@ -853,6 +913,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return voidEnvelope(deps, id);
 			case "envelope.resend":
 				return resendInvitation(deps, id);
+			case "retention.erase":
+				return erasure(deps, id, true);
 			case "envelope.new":
 				return newEnvelopeForm(deps, id);
 			case "integrations.generate-key":

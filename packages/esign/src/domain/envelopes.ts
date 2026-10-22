@@ -28,6 +28,7 @@ import {
 	sha256Hex,
 	TemplateError,
 	templateFields,
+	toIso,
 } from "@semics-tech/shared";
 import type { AuditInput } from "./audit";
 import type { StoredPdf } from "./pdf";
@@ -85,6 +86,10 @@ export interface EnvelopeDoc {
 	piiSalt: string;
 	createdAt: string;
 	updatedAt: string;
+	/** Set by the retention purge (cron/retention.ts), which also deletes `piiSalt`. */
+	personalPurgedAt?: string;
+	/** Set when the signed-records period ended: the envelope is a tombstone (R45). */
+	recordsPurgedAt?: string;
 }
 
 export interface SignerDoc {
@@ -441,7 +446,7 @@ export async function sendEnvelope(
 			snapshot: { ids: chunks.map((c) => c.id), length: text.length },
 			signerIds: [signerId],
 			sentAt: ctx.now,
-			expiresAt: new Date(Date.parse(ctx.now) + ctx.expiryDays * DAY_MS).toISOString(),
+			expiresAt: toIso(Date.parse(ctx.now) + ctx.expiryDays * DAY_MS),
 			updatedAt: ctx.now,
 		},
 		chunks,

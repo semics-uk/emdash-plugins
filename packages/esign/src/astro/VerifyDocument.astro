@@ -50,7 +50,13 @@ const { view, action = "/verify" } = Astro.props;
 						</p>
 					</>
 				) : (
-					<p>No signed document with that fingerprint was found.</p>
+					<>
+						<p>No signed document with that fingerprint was found.</p>
+						<p data-testid="verify-retention">
+							Signed records are deleted when their retention period ends, so a document signed long ago may
+							no longer be listed.
+						</p>
+					</>
 				)}
 			</section>
 		)

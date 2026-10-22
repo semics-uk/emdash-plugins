@@ -19,6 +19,7 @@ import {
 	sha256Hex,
 	signLink,
 	toHex,
+	toIso,
 	toRouteError,
 	verifyLink,
 } from "@semics-tech/shared";
@@ -69,7 +70,7 @@ export async function downloadLink(
 		now,
 		ttlMs: DOWNLOAD_TTL_MS,
 	});
-	const expiresAt = new Date(Number(query.get("exp")) * 1000).toISOString();
+	const expiresAt = toIso(Number(query.get("exp")) * 1000);
 	return { url: `/_emdash/api/plugins/${ctx.plugin.id}/public/download?${query}`, expiresAt };
 }
 
@@ -102,7 +103,8 @@ async function download(routeCtx: { request?: { url?: string } }, ctx: PluginCon
 
 	const { envelopes, artifacts } = stores(ctx);
 	const envelope = await envelopes.get(envelopeId);
-	if (!envelope || envelope.status !== "completed") return errorResponse("ENVELOPE_NOT_FOUND");
+	if (!envelope || envelope.status !== "completed" || envelope.recordsPurgedAt)
+		return errorResponse("ENVELOPE_NOT_FOUND");
 	if (!envelope.pdfSha256 || !envelope.pdf) {
 		await schedulePdfJob(ctx.cron, envelopeId, now);
 		return errorResponse("SIGNED_PDF_PENDING");

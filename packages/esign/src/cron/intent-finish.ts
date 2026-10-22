@@ -21,7 +21,7 @@
  * derived from what storage holds; only an email-delivery intent's first token is made this way, and a
  * resend or the completion email still use random tokens.
  */
-import { encodeBase64Url, hashToken, hmacSha256Key } from "@semics-tech/shared";
+import { encodeBase64Url, hashToken, hmacSha256Key, toIso } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import { initialAuditEvents } from "../domain/audit";
 import { createdAuditEvent, pickTemplateVersion, sendEnvelope, sentAuditEvent } from "../domain/envelopes";
@@ -41,7 +41,7 @@ export interface IntentFinishCron {
 /** Schedules (or re-arms) the task for `envelopeId` at `at` (one bridge call). */
 export function scheduleIntentFinish(cron: IntentFinishCron | undefined, envelopeId: string, at: number) {
 	return cron?.schedule(intentFinishTaskName(envelopeId), {
-		schedule: new Date(at).toISOString(),
+		schedule: toIso(at),
 		data: { envelopeId },
 	});
 }
@@ -69,7 +69,7 @@ export async function finishIntent(ctx: PluginContext, envelopeId: string, now: 
 	if (!masterKey) return "skipped";
 	const token = await intentInviteToken(masterKey, envelopeId);
 	const sent = await sendEnvelope(envelopeId, envelope, template.value, {
-		now: new Date(now).toISOString(),
+		now: toIso(now),
 		tokenHash: await hashToken(token),
 		expiryDays: expiryDays(settings.expiryDays),
 	});

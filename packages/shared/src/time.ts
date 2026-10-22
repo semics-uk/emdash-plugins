@@ -97,3 +97,6 @@ export function formatInZone(
 	formatter(timeZone);
 	return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(new Date(utcMs));
 }
+
+/** ISO 8601 UTC text of epoch milliseconds (default: now). One helper keeps the sandboxed bundles small (R42). */
+export const toIso = (ms: number = Date.now()): string => new Date(ms).toISOString();

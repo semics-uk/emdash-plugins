@@ -11,7 +11,14 @@
  * `send` at 9 (it queues the invitation). Create and send write the envelope's opening
  * `audit_events` (domain/audit.ts).
  */
-import { generateToken, hashToken, type OutboxRecord, type RandomBytes, toRouteError } from "@semics-tech/shared";
+import {
+	generateToken,
+	hashToken,
+	type OutboxRecord,
+	type RandomBytes,
+	toIso,
+	toRouteError,
+} from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import {
 	type AuditEventDoc,
@@ -60,6 +67,7 @@ export interface Collection<T> {
 	getMany(ids: string[]): Promise<Map<string, T>>;
 	put(id: string, data: T): Promise<void>;
 	putMany(items: Array<{ id: string; data: T }>): Promise<void>;
+	deleteMany(ids: string[]): Promise<number>;
 	compareAndSet(id: string, expectedRevision: string | null, data: T): Promise<{ applied: boolean }>;
 	updateIf(
 		id: string,
@@ -201,7 +209,7 @@ async function create(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	);
 	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
 	const piiSalt = newPiiSalt();
-	const draft = buildDraft(fields.value, template.value, { now: new Date().toISOString(), piiSalt });
+	const draft = buildDraft(fields.value, template.value, { now: toIso(), piiSalt });
 	if (!draft.ok) return badRequest(draft.error);
 	const id = crypto.randomUUID();
 	await envelopes.put(id, draft.value);
@@ -234,7 +242,7 @@ async function send(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	if (!template.ok) return fail("TEMPLATE_NOT_FOUND");
 	const token = generateToken();
 	const sent = await sendEnvelope(id, envelope, template.value, {
-		now: new Date().toISOString(),
+		now: toIso(),
 		tokenHash: await hashToken(token),
 		expiryDays: expiryDays(settings.expiryDays),
 	});
@@ -351,7 +359,7 @@ async function voidEnvelope(routeCtx: EnvelopeRouteCtx, ctx: PluginContext) {
 	if (!id) return badRequest();
 	const envelope = await stores(ctx).envelopes.get(id);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
-	const at = new Date().toISOString();
+	const at = toIso();
 	const moved = await transitionEnvelope(stores(ctx).envelopes, id, envelope.status, "voided", {
 		closedAt: at,
 		updatedAt: at,

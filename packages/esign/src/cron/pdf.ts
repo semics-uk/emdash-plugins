@@ -13,6 +13,7 @@
  * (3); chunk `putMany` (1); guarded envelope update (1) = 6. A re-arm is envelope + 3 reads + one
  * schedule = 5. A job for an envelope that already has its PDF stops after the first read.
  */
+import { toIso } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import { type AuditEventDoc, finalEnvelopeHash, verifyAuditChain } from "../domain/audit";
 import { joinSnapshot } from "../domain/envelopes";
@@ -36,7 +37,7 @@ export interface PdfCron {
 /** Schedules (or re-arms) the job for `envelopeId` at `at` (one bridge call). */
 export function schedulePdfJob(cron: PdfCron | undefined, envelopeId: string, at: number, attempt = 0) {
 	return cron?.schedule(pdfTaskName(envelopeId), {
-		schedule: new Date(at).toISOString(),
+		schedule: toIso(at),
 		data: { envelopeId, attempt },
 	});
 }
@@ -51,7 +52,8 @@ export async function generateSignedPdf(
 ): Promise<PdfJobResult> {
 	const { envelopes, signers, snapshots, audit_events, artifacts } = stores(ctx);
 	const envelope = await envelopes.get(envelopeId);
-	if (!envelope || envelope.status !== "completed" || envelope.pdfSha256) return "skipped";
+	// After the retention purge the signer's details are gone: never render a PDF from what is left.
+	if (!envelope || envelope.status !== "completed" || envelope.pdfSha256 || envelope.personalPurgedAt) return "skipped";
 	const signerId = envelope.signerIds[0];
 	if (!signerId || !envelope.snapshot || !envelope.docSha256) return "skipped";
 
@@ -92,7 +94,7 @@ export async function generateSignedPdf(
 		set: {
 			pdfSha256: sha256,
 			pdf: { ids: items.map((item) => item.id), bytes: bytes.length },
-			updatedAt: new Date(options.now).toISOString(),
+			updatedAt: toIso(options.now),
 		},
 	});
 	if (!recorded.applied) return "skipped";

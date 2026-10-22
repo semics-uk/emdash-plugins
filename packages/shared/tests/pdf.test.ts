@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { measureText, type PdfDocument, renderPdf, toWinAnsi, wrapText } from "../src/pdf";
+import { unitsOf } from "../src/pdf/fonts";
 import { padStrokes, waiverDocument } from "./fixtures/pdf-waiver";
 import { type ParsedPage, parsePdf, pdfText } from "./helpers/pdf-parse";
 
@@ -448,5 +449,26 @@ describe("T016 PDF writer: input hardening (ES-FR-07)", () => {
 		expect(from?.[0]).toBe(MARGIN);
 		expect(to?.[0]).toBe(MARGIN + 60);
 		expect((from?.[1] as number) - (to?.[1] as number)).toBe(60);
+	});
+});
+
+describe("T097 packed Helvetica widths (R42 bundle trim)", () => {
+	const sum = (font: "regular" | "bold") => {
+		let units = 0;
+		for (let c = 0x20; c < 0x100; c++) units += unitsOf(String.fromCharCode(c), font);
+		return units;
+	};
+	it("decode to the AFM widths the unpacked tables held", () => {
+		// Totals over 0x20-0xFF of the tables before packing, and a few AFM values per range.
+		expect(sum("regular")).toBe(118723);
+		expect(sum("bold")).toBe(123009);
+		expect(measureText("@", 1000)).toBe(1015);
+		expect(measureText("@", 1000, "bold")).toBe(975);
+		expect(measureText("W", 1000)).toBe(944);
+		expect(measureText("\u20ac", 1000)).toBe(556);
+		expect(measureText("\u2030", 1000)).toBe(1000);
+		expect(measureText("\u00ff", 1000)).toBe(500);
+		expect(measureText("\u00ff", 1000, "bold")).toBe(556);
+		expect(measureText("a", 1000, "italic")).toBe(measureText("a", 1000));
 	});
 });

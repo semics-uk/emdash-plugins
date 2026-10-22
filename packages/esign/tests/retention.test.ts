@@ -73,7 +73,9 @@ async function sent(budget: BudgetedHost, templateId: string, email = "ada@examp
 
 /** Signs a sent envelope and stores its PDF; returns the `pdfSha256`. */
 async function complete(budget: BudgetedHost, id: string): Promise<string> {
-	const docSha256 = await sha256Hex(canonicalSnapshot(renderTemplate(BODY, { "signer.name": "Ada Lovelace", event: "Gig" })));
+	const docSha256 = await sha256Hex(
+		canonicalSnapshot(renderTemplate(BODY, { "signer.name": "Ada Lovelace", event: "Gig" })),
+	);
 	await budget.invokeRoute("public/session", { token: TOKEN, open: true });
 	const submit = await budget.invokeRoute("public/submit", {
 		token: TOKEN,
@@ -95,7 +97,8 @@ async function complete(budget: BudgetedHost, id: string): Promise<string> {
 	return env.pdfSha256 as string;
 }
 
-const envelopeOf = async (id: string) => (await host().inspect.storage.get<EnvelopeDoc>("envelopes", id)) as EnvelopeDoc;
+const envelopeOf = async (id: string) =>
+	(await host().inspect.storage.get<EnvelopeDoc>("envelopes", id)) as EnvelopeDoc;
 const signerOf = async (id: string) => host().inspect.storage.get<SignerDoc>("signers", `${id}:s1`);
 const eventsOf = async (id: string) =>
 	((await host().inspect.storage.list<AuditEventDoc>("audit_events")) as Row<AuditEventDoc>[])
@@ -140,7 +143,11 @@ async function runPass(budget: BudgetedHost, max = 40): Promise<number> {
 }
 
 const verify = (budget: BudgetedHost, sha256: string) =>
-	budget.invokeRoute("public/verify", { sha256 }, { meta: { ip: "203.0.113.9", userAgent: null, referer: null, geo: null } });
+	budget.invokeRoute(
+		"public/verify",
+		{ sha256 },
+		{ meta: { ip: "203.0.113.9", userAgent: null, referer: null, geo: null } },
+	);
 
 describe("ES-FR-22 retention job", () => {
 	it("ES-NFR-06 chain verifies after purge, piiSalt is deleted and /verify still matches the signed PDF", async () => {
@@ -212,15 +219,23 @@ describe("ES-FR-22 retention job", () => {
 		expect((await artifactsOf(id)).map((a) => a.id).sort()).toEqual([...pdfIds].sort());
 		expect((await verify(budget, sha)).value).toMatchObject({ matched: true });
 
-		// Past the signed-records period.
-		await age(id, 7 * 366 * DAY);
+		// The operator shortens the signed-records period to 5 years: now it has ended (dates only move
+		// forward, so the pass resumes from the floor the previous pass left).
+		await host().fixtures.plugin.setting("retentionSignedRecordsYears", 5);
 		await runPass(budget);
 		expect(await artifactsOf(id)).toEqual([]);
 		for (const sid of snapshotIds) expect(await host().inspect.storage.get("snapshots", sid)).toBeNull();
 		expect(await eventsOf(id)).toEqual([]);
 		expect(await signerOf(id)).toBeNull();
 		const tomb = await envelopeOf(id);
-		expect(tomb).toMatchObject({ status: "completed", title: "", pdfSha256: null, pdf: null, snapshot: null, signerIds: [] });
+		expect(tomb).toMatchObject({
+			status: "completed",
+			title: "",
+			pdfSha256: null,
+			pdf: null,
+			snapshot: null,
+			signerIds: [],
+		});
 		expect(tomb.recordsPurgedAt).toBeTruthy();
 		expect((await verify(budget, sha)).value).toEqual({ ok: true, matched: false });
 	});
@@ -395,7 +410,7 @@ describe("ES-FR-22 deletion on request (admin)", () => {
 		expectWithinBudget(preview, TARGET);
 		const shown = JSON.stringify(preview.value);
 		expect(shown).toContain("retention.erase");
-		expect(shown).toContain("still open");
+		expect(shown).toContain("1 envelope(s) to delete, 1 kept for now");
 
 		const erased = await click(budget, "retention.erase", "ada@example.com");
 		expectWithinBudget(erased, TARGET);
@@ -425,6 +440,24 @@ describe("ES-FR-22 deletion on request (admin)", () => {
 		const erased = await click(budget, "retention.erase", id);
 		expectWithinBudget(erased, TARGET);
 		expect((await envelopeOf(id)).personalPurgedAt).toBeTruthy();
+
+		// Completed, but the signed PDF is not made yet: it needs the signer's details, so it waits.
+		const pending = await sent(budget, templateId, "bob@example.com", "p".repeat(43));
+		await budget.invokeRoute("public/session", { token: "p".repeat(43), open: true });
+		const docSha256 = (await envelopeOf(pending)).docSha256;
+		await budget.invokeRoute("public/submit", {
+			token: "p".repeat(43),
+			consent: true,
+			intent: true,
+			docSha256,
+			consentSha256: CONSENT_SHA256,
+			signature: { kind: "typed", typedName: "Bob" },
+			fieldValues: {},
+		});
+		expect((await envelopeOf(pending)).status).toBe("completed");
+		const waiting = await click(budget, "retention.erase", "bob@example.com");
+		expect(JSON.stringify(waiting.value)).toContain("0 envelope(s) to delete, 1 kept for now");
+		expect((await envelopeOf(pending)).personalPurgedAt).toBeUndefined();
 
 		const none = await click(budget, "retention.erase", "nobody@example.com");
 		expectWithinBudget(none, TARGET);

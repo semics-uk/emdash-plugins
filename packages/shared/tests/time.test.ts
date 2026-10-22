@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatInZone, isValidTimeZone, utcOffsetMinutes, utcToZoned, zonedToUtc } from "../src/time";
+import { formatInZone, isValidTimeZone, toIso, utcOffsetMinutes, utcToZoned, zonedToUtc } from "../src/time";
 
 const utc = (s: string) => Date.parse(s);
 
@@ -77,5 +77,12 @@ describe("time zones (EV-FR-09)", () => {
 
 	it("throws on an invalid zone", () => {
 		expect(() => utcOffsetMinutes(0, "Nope/Zone")).toThrow(RangeError);
+	});
+});
+
+describe("toIso", () => {
+	it("formats epoch milliseconds as ISO 8601 UTC, now by default", () => {
+		expect(toIso(0)).toBe("1970-01-01T00:00:00.000Z");
+		expect(Math.abs(Date.parse(toIso()) - Date.now())).toBeLessThan(1000);
 	});
 });
