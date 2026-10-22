@@ -4,7 +4,7 @@ title: "E-sign Pro: several signers and routing"
 phase: 6
 package: esign
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T067, T071]
