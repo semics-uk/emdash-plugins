@@ -4,7 +4,7 @@ title: "E-sign: accept signing intents"
 phase: 3
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T060]

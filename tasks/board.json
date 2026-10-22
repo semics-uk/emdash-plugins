@@ -1293,7 +1293,7 @@
 			"phase": 3,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1307,7 +1307,7 @@
 			"unblocks": [
 				"T062"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T062": {
 			"file": "T062-e-sign-receipts-receipt-lookup-and-template-catalogue.md",
@@ -2367,7 +2367,6 @@
 			"T106"
 		],
 		"ready": [
-			"T061",
 			"T072",
 			"T081",
 			"T084",
@@ -2376,6 +2375,7 @@
 			"T117"
 		],
 		"in-progress": [
+			"T061",
 			"T071"
 		],
 		"review": [],
