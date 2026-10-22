@@ -64,8 +64,8 @@ function queuedToken(rowId: string, page: "sign" | "signed"): string | null {
 export const readInviteToken = (envelopeId: string) => queuedToken(`invite-${envelopeId}:s1`, "sign");
 
 /**
- * The token in the completion email (`complete-<envelopeId>`): the job that queues it rotates the
- * signer's token, so the invitation link stops working and this one opens `/signed/<token>`.
+ * The copy token in the completion email (`complete-<envelopeId>`): it opens `/signed/<token>`; the
+ * signing token is not rotated (T115), so the invitation link still works.
  */
 export async function waitForCompletionToken(envelopeId: string): Promise<string> {
 	const deadline = Date.now() + 30_000;

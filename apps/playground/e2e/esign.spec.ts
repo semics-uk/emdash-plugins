@@ -34,6 +34,11 @@ test("ES-US-1..6 send, sign with a drawn signature, download the PDF, verify it"
 	await page.mouse.up();
 	await page.getByRole("button", { name: "Sign document" }).click();
 	await expect(page.getByTestId("sign-done")).toBeVisible();
+	// T115: the page's own poll still holds the signing token (the completion email mints a separate copy
+	// token), so the download link appears here once the job has stored the PDF.
+	await expect(page.getByTestId("sign-done").getByRole("link", { name: /download the signed pdf/i })).toBeVisible({
+		timeout: 30_000,
+	});
 
 	// What was stored: the drawn strokes, the typed name and the signer-filled field.
 	expect(signerDoc(sent.envelopeId)).toMatchObject({
@@ -43,7 +48,6 @@ test("ES-US-1..6 send, sign with a drawn signature, download the PDF, verify it"
 	});
 
 	// The one-shot job builds the PDF; the completion email then links the stable "signed copy" page.
-	// (The sign page's own poll would race the token rotation that email causes: see the T033 notes.)
 	const done = await waitForPdf(request, sent.envelopeId);
 	const copyToken = await waitForCompletionToken(sent.envelopeId);
 	await page.goto(`/signed/${copyToken}`);
