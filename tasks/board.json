@@ -1352,7 +1352,7 @@
 			"unblocks": [
 				"T064"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T064": {
 			"file": "T064-events-receipt-route-and-waiver-gated-check-in.md",
@@ -1483,7 +1483,7 @@
 			"phase": 4,
 			"package": "repo",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1517,7 +1517,7 @@
 				"T096",
 				"T104"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T072": {
 			"file": "T072-licence-issuing-worker.md",
@@ -1563,7 +1563,7 @@
 				"T076",
 				"T077"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T074": {
 			"file": "T074-events-pro-stripe-webhook-and-late-payments.md",
@@ -1705,7 +1705,7 @@
 				"EU-FR-10"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T081": {
 			"file": "T081-events-waitlist-with-timed-offers.md",
@@ -1745,7 +1745,7 @@
 				"Free and Pro table"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T083": {
 			"file": "T083-events-pro-reminders-and-broadcasts.md",
@@ -1765,7 +1765,7 @@
 				"EV-FR-08"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T084": {
 			"file": "T084-events-recurring-events.md",
@@ -1805,7 +1805,7 @@
 				"EV-FR-19"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T086": {
 			"file": "T086-events-pro-mcp-tools.md",
@@ -1825,7 +1825,7 @@
 				"EV-FR-18"
 			],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T087": {
 			"file": "T087-events-retention-job.md",
@@ -2132,7 +2132,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T105": {
 			"file": "T105-legal-brief-for-the-consent-and-retention-review.md",
@@ -2334,22 +2334,15 @@
 	"columns": {
 		"backlog": [
 			"T062",
-			"T063",
 			"T064",
 			"T065",
 			"T066",
 			"T067",
-			"T073",
 			"T074",
 			"T075",
 			"T076",
 			"T077",
 			"T078",
-			"T080",
-			"T082",
-			"T083",
-			"T085",
-			"T086",
 			"T090",
 			"T091",
 			"T092",
@@ -2362,21 +2355,27 @@
 			"T101",
 			"T102",
 			"T103",
-			"T104",
 			"T105",
 			"T106"
 		],
 		"ready": [
+			"T063",
 			"T072",
+			"T073",
+			"T080",
 			"T081",
+			"T082",
+			"T083",
 			"T084",
+			"T085",
+			"T086",
 			"T087",
+			"T104",
 			"T111",
 			"T117"
 		],
 		"in-progress": [
-			"T061",
-			"T071"
+			"T061"
 		],
 		"review": [],
 		"done": [
@@ -2434,6 +2433,7 @@
 			"T057",
 			"T060",
 			"T070",
+			"T071",
 			"T110",
 			"T112",
 			"T113",
@@ -2443,7 +2443,6 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T071",
 		"T063",
 		"T064",
 		"T065",
@@ -2453,5 +2452,5 @@
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 14
+	"criticalWeight": 12
 }
