@@ -116,7 +116,8 @@ function enhanceSlot(slot) {
 		make(doc, "canvas", {
 			class: "semics-pad-canvas",
 			role: "img",
-			"aria-label": "Signature drawing area. Optional: draw with a finger, pen or mouse. Typing your name is enough to sign.",
+			"aria-label":
+				"Signature drawing area. Optional: draw with a finger, pen or mouse. Typing your name is enough to sign.",
 			"data-testid": "sign-pad",
 		})
 	);
@@ -127,7 +128,12 @@ function enhanceSlot(slot) {
 	const status = make(doc, "p", { class: "semics-note", "aria-live": "polite", "data-esign-pad-status": "" });
 	const bar = make(doc, "div", { class: "semics-pad-bar" });
 	bar.append(undo, clear);
-	const label = make(doc, "p", { class: "semics-note" }, "Optional: draw your signature below. Your typed name is still required.");
+	const label = make(
+		doc,
+		"p",
+		{ class: "semics-note" },
+		"Optional: draw your signature below. Your typed name is still required.",
+	);
 	wrap.append(label, canvas, bar, status);
 	slot.insertBefore(wrap, input);
 

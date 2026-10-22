@@ -79,3 +79,5 @@ The snapshot is rendered only via `lib/markdown.ts` (allowlisted tree, `{text}` 
 branches). The page's CSP is `ceremonyCsp()`: only the inlined `src/client/ceremony.js` (plain JS, `?raw`) and
 `CEREMONY_CSS`, by hash; any new client script must be added there. Pad strokes go in the hidden
 `signatureStrokes` input as `{ v, w, h, strokes }` and are normalised to 0-1 points for `public/submit`.
+
+Pad (T031): `src/client/pad.js` (inlined, hashed as `PAD_SCRIPT`, second `script-src` hash) fills `[data-esign-pad-slot]` with a canvas, Undo and Clear and writes `{ v: 1, w: 600, h: 200, strokes }` (whole-pixel points, max 64 strokes / 1500 points) to `signatureStrokes`. `PublicRouteContext.pluginId` makes `handleSign` call the integration's configured core id.

@@ -18,17 +18,18 @@ let cached: Promise<string> | undefined;
 
 /** The header value for any page that renders <SigningCeremony> and nothing else inline. */
 export function ceremonyCsp(): Promise<string> {
-	cached ??= Promise.all([cspSource(CEREMONY_SCRIPT), cspSource(PAD_SCRIPT), cspSource(CEREMONY_CSS)]).then(([script, pad, style]) =>
-		[
-			"default-src 'none'",
-			`script-src ${script} ${pad}`,
-			`style-src ${style}`,
-			"img-src 'self' data:",
-			"connect-src 'self'",
-			"form-action 'self'",
-			"base-uri 'none'",
-			"frame-ancestors 'none'",
-		].join("; "),
+	cached ??= Promise.all([cspSource(CEREMONY_SCRIPT), cspSource(PAD_SCRIPT), cspSource(CEREMONY_CSS)]).then(
+		([script, pad, style]) =>
+			[
+				"default-src 'none'",
+				`script-src ${script} ${pad}`,
+				`style-src ${style}`,
+				"img-src 'self' data:",
+				"connect-src 'self'",
+				"form-action 'self'",
+				"base-uri 'none'",
+				"frame-ancestors 'none'",
+			].join("; "),
 	);
 	return cached;
 }
