@@ -1779,7 +1779,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -1790,7 +1790,7 @@
 				"EV-FR-17"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T085": {
 			"file": "T085-events-pro-sales-reports.md",
@@ -2419,7 +2419,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T084",
 			"T094"
 		],
 		"review": [],
@@ -2494,6 +2493,7 @@
 			"T077",
 			"T078",
 			"T081",
+			"T084",
 			"T085",
 			"T087",
 			"T090",
@@ -2517,7 +2517,7 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T084"
+		"T094"
 	],
 	"criticalWeight": 3
 }
