@@ -259,3 +259,71 @@ describe("public/booking/cancel (EV-US-4)", () => {
 		expect(w.counter("occurrences", "oc1")).toMatchObject({ reserved: 1, sold: 1 });
 	});
 });
+
+describe("public/booking waiver reconciliation data (SX-FR-05, T066)", () => {
+	const WAIVER = { templateId: "tpl_waiver", mode: "each_attendee" };
+
+	async function waiting(types = ["tt_a", "tt_b"]) {
+		const w = await world({ status: "awaiting_signature", types, occurrence: false });
+		w.booking().waiver = WAIVER;
+		for (const [i] of types.entries()) (w.storage.attendees.docs.get(`${ID}-${i + 1}`) as Doc).status = "pending";
+		return w;
+	}
+
+	it("SX-FR-05 a booking awaiting signatures lists the refs still unsigned, never a signed seat", async () => {
+		const w = await waiting();
+		(w.storage.attendees.docs.get(`${ID}-1`) as Doc).signature = { envelopeId: "env_1", status: "completed" };
+		const { body, calls } = await run(bookingStatus, w.deps(T0), w.input);
+		expect(body).toMatchObject({ status: "awaiting_signature", waiver: { refs: [`${REF}:2`] } });
+		expect(body).not.toHaveProperty("waiver.lookups");
+		expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);
+	});
+
+	it("SX-FR-05 mode buyer: one ref, the booking's", async () => {
+		const w = await waiting();
+		w.booking().waiver = { ...WAIVER, mode: "buyer" };
+		const { body } = await run(bookingStatus, w.deps(T0), w.input);
+		expect(body).toMatchObject({ waiver: { refs: [REF] } });
+	});
+
+	it("SX-FR-05 a booking without a waiver, a confirmed one and a fully signed one carry no waiver data", async () => {
+		const plain = await world({ status: "awaiting_signature" });
+		expect((await run(bookingStatus, plain.deps(T0), plain.input)).body).not.toHaveProperty("waiver");
+		const confirmed = await world();
+		confirmed.booking().waiver = WAIVER;
+		expect((await run(bookingStatus, confirmed.deps(T0), confirmed.input)).body).not.toHaveProperty("waiver");
+		const signed = await waiting(["tt_a"]);
+		(signed.storage.attendees.docs.get(`${ID}-1`) as Doc).signature = { envelopeId: "e", status: "completed" };
+		expect((await run(bookingStatus, signed.deps(T0), signed.input)).body).not.toHaveProperty("waiver");
+	});
+
+	it("SX-FR-05 the Pro lookups step mints a request per ref from the settings, within the design target", async () => {
+		const w = await waiting();
+		const seen: Array<{ refs: string[]; settings: Record<string, unknown> }> = [];
+		const deps = {
+			...w.deps(T0),
+			settings: {
+				list: async () => {
+					meter.calls++;
+					return [{ key: "esignPairing", value: "p" }];
+				},
+			},
+			lookups: async (refs: string[], settings: Record<string, unknown>) => {
+				seen.push({ refs, settings });
+				return Object.fromEntries(refs.map((r) => [r, `lookup-${r}`]));
+			},
+		};
+		const { body, calls } = await run(bookingStatus, deps, w.input);
+		expect(body).toMatchObject({
+			waiver: { refs: [`${REF}:1`, `${REF}:2`], lookups: { [`${REF}:1`]: `lookup-${REF}:1`, [`${REF}:2`]: `lookup-${REF}:2` } },
+		});
+		expect(seen[0]?.settings).toMatchObject({ esignPairing: "p" });
+		expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);
+	});
+
+	it("SX-FR-05 at most ten refs are listed, so a large booking stays within the bridge budget", async () => {
+		const w = await waiting(Array.from({ length: 12 }, (_, i) => `tt_${i}`));
+		const { body } = await run(bookingStatus, w.deps(T0), w.input);
+		expect((body as { waiver: { refs: string[] } }).waiver.refs).toHaveLength(10);
+	});
+});

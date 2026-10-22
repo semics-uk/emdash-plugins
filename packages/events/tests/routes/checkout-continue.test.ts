@@ -389,6 +389,22 @@ describe("checkout/continue signature step seam (EV-FR-12, R5; Pro fills it)", (
 		expect(w.storage.attendees.docs.get(`${ID}-2`)).toMatchObject({ status: "pending", minor: true });
 	});
 
+	it("SX-FR-02 a retry without attendees re-issues for the stored attendees instead of replanning them in the buyer's name (T066)", async () => {
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: withMinor });
+		const before = structuredClone([...w.storage.attendees.docs.values()]);
+		const seen: Seen = { holds: [] };
+		const { body, calls } = await run(w.deps(T0 + 2 * MIN, { signature: step(seen) }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "awaiting_signature", next: { type: "sign" } });
+		expect(calls).toBeLessThanOrEqual(8);
+		expect(seen.prepared?.attendees.map((a) => a.data)).toMatchObject([
+			{ name: "Ada Lovelace" },
+			{ name: "Ada's son", minor: true },
+		]);
+		expect([...w.storage.attendees.docs.values()]).toEqual(before);
+	});
+
 	it("EV-FR-12 a refusal from the step writes nothing (a code, or input issues)", async () => {
 		for (const refusal of [{ code: "LICENCE_INVALID" }, { issues: [{ path: "attendees.1.email", code: "X" }] }]) {
 			const w = await world();

@@ -125,3 +125,50 @@ describe("EV-FR-12 waiver toggle on the editor panel", () => {
 		expect(meter.calls).toBeLessThanOrEqual(8);
 	});
 });
+
+describe("SX-FR-07 catalogue refresh on the editor panel (T066)", () => {
+	const TEMPLATES = [
+		{ id: "tpl_climb", name: "Climbing waiver" },
+		{ id: "tpl_swim", name: "Swim waiver" },
+	];
+	type Opt = { label: string; value: string };
+	const field = (blocks: Block[], id: string) => fields(blocks).find((f) => f.action_id === id) as
+		| (Field & { options?: Opt[] })
+		| undefined;
+	const press = (deps: PanelDeps) =>
+		handlePanel(deps, { type: "block_action", action_id: "panel.templates.refresh" }, EVENT);
+
+	it("SX-FR-07 with a cached catalogue the template field is a select of the templates, keeping the saved one", async () => {
+		const w = world({ available: true, templates: TEMPLATES }, { required: true, mode: "buyer", templateId: "tpl_gone" });
+		const f = field((await load(w.deps)).blocks as Block[], "waiver_template");
+		expect(f?.type).toBe("select");
+		expect(f?.options?.map((o) => o.value)).toEqual(["tpl_climb", "tpl_swim", "tpl_gone"]);
+		expect(f?.options?.[0]?.label).toBe("Climbing waiver");
+		expect(f?.initial_value).toBe("tpl_gone");
+		const saved = await save(w.deps, { waiver_required: true, waiver_template: "tpl_swim" });
+		expect(text(saved.blocks)).toContain("Saved");
+		expect(w.config()).toMatchObject({ signature: { required: true, templateId: "tpl_swim" } });
+	});
+
+	it("SX-FR-07 without a catalogue the field stays a text input, and there is no refresh button unless Pro offers one", async () => {
+		const w = world({ available: true });
+		const blocks = (await load(w.deps)).blocks as Block[];
+		expect(field(blocks, "waiver_template")?.type).toBe("text_input");
+		expect(text(blocks)).not.toContain("panel.templates.refresh");
+	});
+
+	it("SX-FR-07 Refresh templates asks the seam for a link to the suite page and shows it", async () => {
+		const w = world({ available: true, refresh: async () => "https://site.test/_events/templates#catalog=tok.sig" });
+		expect(text((await load(w.deps)).blocks)).toContain("panel.templates.refresh");
+		const res = await press(w.deps);
+		expect(text(res.blocks)).toContain("https://site.test/_events/templates#catalog=tok.sig");
+		expect(text(res.blocks)).toContain('"kind":"external"');
+	});
+
+	it("SX-FR-07 Refresh without a minted link says so, and Free ignores the action", async () => {
+		const none = world({ available: true, refresh: async () => null });
+		expect(text((await press(none.deps)).blocks)).toMatch(/pairing|paste|could not/i);
+		const free = world();
+		expect(text((await press(free.deps)).blocks)).not.toContain("https://");
+	});
+});
