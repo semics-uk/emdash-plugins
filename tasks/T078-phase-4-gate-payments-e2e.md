@@ -4,7 +4,7 @@ title: "Phase 4 gate: payments E2E"
 phase: 4
 package: events
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T074, T075, T076, T077, T072, T071]
