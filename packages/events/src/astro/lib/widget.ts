@@ -12,6 +12,10 @@ export interface PublicEvent {
 	currency: string;
 	/** IANA zone the event's dates are shown in (the entry's `timezone` field). */
 	timezone?: string;
+	/** The event's own start, end and venue (the mapped entry fields), when the core has them. */
+	startsAt?: string;
+	endsAt?: string | null;
+	venue?: string | null;
 	ticketTypes: Array<{
 		id: string;
 		name: string;

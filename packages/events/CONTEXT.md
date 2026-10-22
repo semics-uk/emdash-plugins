@@ -58,11 +58,19 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   to drift repair.
 - Emails and calendar (`src/emails`, `src/routes/ics.ts`, `redeem.ts`, T050): outbox rows hold ids only;
   `outbox-drain` (every minute) runs the shared `drainOutbox` over an adapter (`OutboxDoc` ISO strings
-  <-> `OutboxRecord` numbers) whose `email.send` renders at send time from fresh reads, one message
-  per tick (8-9 calls). The link is `/booking?ref=&k=<one-time code>` (hash in `redeemHash`); the
+  <-> `OutboxRecord` numbers) whose `email.send` renders at send time from fresh reads, two messages
+  per tick (`OUTBOX_PER_TICK`; a `prefetch` reads bookings, attendees, configs, occurrences once per tick: 9-10 calls). The link is `/booking?ref=&k=<one-time code>` (hash in `redeemHash`); the
   page POSTs it to `public/booking/redeem` for a fresh access token (R34). `public/booking` also
   returns `calendar.query` (`signLink`, `events/booking-ics`, 15 min, key in KV `events:link-key`) and
-  valid attendees' `code` (R33). Event fields for emails/ICS come from `src/domain/event-info.ts`.
+  valid attendees' `code` (R33). Event fields for emails/ICS come from `src/domain/event-info.ts` (see Public event routes).
+- Public event routes (`src/routes/public-events.ts`, T046): `public/events` (cached 60 s, one query) and
+  `public/event` (`GET { eventId }`, the `PublicEvent` shape, 4 calls). A draft or orphaned event is
+  `NOT_FOUND`; answers carry `available` only (min of type, date, event seats left), never counters,
+  capacities, hidden types or booking data. Title/times/zone/venue are read once through the mapping
+  settings (`mappingOf`, `infoOfEntry` in `src/domain/event-info.ts`) and copied onto the event config
+  as `info` by `content:afterSave` (`src/content-hooks.ts`) and by `config/save` for a config without
+  one; every reader (listing, emails, ICS) takes `info` from the config and falls back to the entry
+  only when it is missing. `info` is managed like `catalog`: admin edits never diff or send it.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.

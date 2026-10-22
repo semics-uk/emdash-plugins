@@ -1,6 +1,6 @@
 // Booking fixtures (T055): puts the events core's storage for seed/events-fixture.json straight
 // into the freshly seeded database, as `config/save` would write it (counter-free catalog on the
-// event config, ticket types with zero counters). Saving through the admin route needs a signed-in
+// event config and the entry's public info, ticket types with zero counters). Saving through the admin route needs a signed-in
 // admin, which a production build has no bypass for. Runs after `emdash seed`, before the server.
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -18,7 +18,9 @@ export function applyBookingFixtures(root) {
 	);
 	try {
 		for (const [slug, event] of Object.entries(fixture)) {
-			const entry = db.prepare("SELECT id FROM ec_events WHERE slug = ?").get(slug);
+			const entry = db
+				.prepare("SELECT id, title, starts_at, ends_at, timezone, venue FROM ec_events WHERE slug = ?")
+				.get(slug);
 			if (!entry) throw new Error(`[e2e] fixture event ${slug} is not in the seed`);
 			const catalog = { ticketTypes: {}, occurrences: {} };
 			let sort = 0;
@@ -61,6 +63,14 @@ export function applyBookingFixtures(root) {
 				waitlistEnabled: false,
 				recurrence: null,
 				catalog,
+				// The copy of the entry's public fields that content:afterSave keeps (T046).
+				info: {
+					title: entry.title,
+					startsAt: new Date(entry.starts_at).toISOString(),
+					endsAt: entry.ends_at ? new Date(entry.ends_at).toISOString() : null,
+					timezone: entry.timezone ?? null,
+					venue: entry.venue ?? null,
+				},
 			};
 			put.run(PLUGIN_ID, "event_configs", entry.id, JSON.stringify(config), crypto.randomUUID(), now, now);
 		}
