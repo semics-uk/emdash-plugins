@@ -1,4 +1,16 @@
-import { formatInZone, isValidTimeZone } from "@semics-tech/shared";
+// The UI ships as source, so it cannot import the private @semics-tech/shared (scripts/ui-imports.test.mjs).
+function isValidTimeZone(timeZone: string): boolean {
+	try {
+		new Intl.DateTimeFormat("en-GB", { timeZone });
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+function formatInZone(utcMs: number, timeZone: string, locale: string, options: Intl.DateTimeFormatOptions): string {
+	return new Intl.DateTimeFormat(locale, { ...options, timeZone }).format(new Date(utcMs));
+}
 
 import { formatMoney } from "./widget";
 
