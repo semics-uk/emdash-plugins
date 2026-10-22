@@ -43,6 +43,9 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   booking through it (no JS, an under-18 attendee), the C0 refusal, and `/_events/waiver` with an intent minted like Events
   Pro (flow cookie `semics_waiver_<ref>` set by the test): ceremony under `ceremonyCsp()`, receipt forwarded in-process
   (Free's `signatures/receipt` is a stub, so the notice is `waiver=failed`).
+- `e2e/t082-check-in.spec.ts` (T082): `/_events/check-in` at 320 px (overflow, 44 px targets, axe); Pro's `checkin/code`
+  answers are played by `page.route` mocks (checked in, waiver pending with the sign link, a foreign link dropped), Free's own
+  answer says the screen needs Events Pro; `/e2e/widgets` shows a pass with a fixed Pro QR matrix.
 - `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
   `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate

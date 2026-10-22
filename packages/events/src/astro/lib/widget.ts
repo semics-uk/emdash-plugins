@@ -56,7 +56,8 @@ export interface BookingView {
 	lines: Array<{ ticketTypeId: string; qty: number }>;
 	totals: { totalMinor: number; currency: string };
 	holdExpiresAt?: string;
-	attendees: Array<{ name: string; ticketTypeId?: string; status: string; code?: string }>;
+	/** `qr`: Events Pro's QR matrix of `code` (T082), drawn by `<TicketPass>`; Free sends none. */
+	attendees: Array<{ name: string; ticketTypeId?: string; status: string; code?: string; qr?: unknown }>;
 	canCancel: boolean;
 	cancelBy?: string;
 	/** A short-lived signed query for `public/booking/ics`, issued by the core (T050). */

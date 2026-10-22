@@ -111,8 +111,10 @@ test("EV-FR-11 on the Free core the screen says it needs Events Pro (or a sign-i
 	await expect(page.getByTestId("checkin-result")).toContainText(/Events Pro|Sign in/);
 });
 
-test("EV-FR-11 a ticket pass with a QR draws it as an SVG that fits at 320 px", async ({ page }) => {
-	await page.setViewportSize({ width: 320, height: 640 });
+test("EV-FR-11 a ticket pass with a QR draws it as an SVG that fits at 320 px", async ({ browser }) => {
+	// Without JavaScript: the same page's Turnstile test widget (300 px plus margins) is not the pass.
+	const context = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 320, height: 640 } });
+	const page = await context.newPage();
 	await page.goto("/e2e/widgets");
 	const qr = page.getByTestId("ticket-qr");
 	await expect(qr).toBeVisible();
@@ -120,4 +122,5 @@ test("EV-FR-11 a ticket pass with a QR draws it as an SVG that fits at 320 px", 
 	const box = await qr.boundingBox();
 	expect(box && box.width >= 120 && box.x + box.width <= 320).toBe(true);
 	expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+	await context.close();
 });

@@ -1,0 +1,183 @@
+---
+// Injected at `/_events/check-in` by the integration: the staff check-in screen for phones at the
+// door (EV-FR-11, EV-FR-12, T082). Staff pick the event, then type the code from a ticket or scan its
+// QR with the camera (where the browser has `BarcodeDetector`). `src/client/checkin.ts` posts each
+// code to the core's private `checkin/code` route with the staff member's admin session, so only
+// signed-in staff can check anyone in; the route is Events Pro's (Free answers 404 and the screen
+// says so; the admin's Attendees page checks people in on every edition). The page itself shows no
+// booking data: it lists the events from `public/events` only.
+import { pluginId } from "virtual:semics-events/config";
+
+import { callPublicRoute } from "./lib/call";
+import type { PublicEventSummary } from "./lib/list";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const listed = await callPublicRoute<{ events?: PublicEventSummary[] }>(
+	{ locals: Astro.locals, url: Astro.url, request: Astro.request },
+	{ path: "public/events" },
+);
+const events = listed.ok ? (listed.data.events ?? []).slice(0, 100) : [];
+const wanted = (Astro.url.searchParams.get("event") ?? "").slice(0, 200);
+const options = events.map((e) => ({ id: e.eventId, title: e.title || e.eventId }));
+if (wanted && !options.some((o) => o.id === wanted)) options.unshift({ id: wanted, title: wanted });
+const api = `/_emdash/api/plugins/${encodeURIComponent(pluginId)}/checkin/code`;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Check in</title>
+	</head>
+	<body>
+		<main class="semics-events semics-checkin" data-testid="checkin-page">
+			<h1>Check in</h1>
+			<form class="semics-checkin-form" data-semics-checkin data-api={api} autocomplete="off">
+				<label for="semics-checkin-event">Event</label>
+				<select id="semics-checkin-event" name="eventId">
+					<option value="">Any event</option>
+					{options.map((o) => <option value={o.id} selected={o.id === wanted}>{o.title}</option>)}
+				</select>
+				<label for="semics-checkin-code">Check-in code</label>
+				<input
+					id="semics-checkin-code"
+					name="code"
+					type="text"
+					inputmode="text"
+					autocapitalize="off"
+					spellcheck="false"
+					maxlength="200"
+					required
+					autofocus
+				/>
+				<button type="submit">Check in</button>
+			</form>
+			<button type="button" class="semics-checkin-camera" data-semics-checkin-camera hidden>Scan with camera</button>
+			<video class="semics-checkin-video" data-semics-checkin-video playsinline muted hidden></video>
+			<p class="semics-checkin-note" data-semics-checkin-nocamera hidden>
+				This browser cannot scan QR codes: type the code from the ticket instead.
+			</p>
+			<div class="semics-checkin-result" role="status" aria-live="polite" data-semics-checkin-result data-testid="checkin-result"></div>
+			<noscript>
+				<p class="semics-checkin-note">This screen needs JavaScript. Check people in from the Attendees page in the admin.</p>
+			</noscript>
+		</main>
+		<script>
+			import "../client/checkin.ts";
+		</script>
+	</body>
+</html>
+
+<style>
+	.semics-checkin {
+		box-sizing: border-box;
+		max-inline-size: 32rem;
+		margin: 0 auto;
+		padding: 1rem;
+		font-family: system-ui, sans-serif;
+		color: var(--events-fg, #1a1a1a);
+		background: var(--events-bg, #ffffff);
+		overflow-wrap: anywhere;
+	}
+	.semics-checkin h1 {
+		margin: 0 0 1rem;
+		font-size: 1.5rem;
+	}
+	.semics-checkin-form {
+		display: grid;
+		gap: 0.5rem;
+	}
+	.semics-checkin label {
+		font-weight: 600;
+	}
+	.semics-checkin select,
+	.semics-checkin input,
+	.semics-checkin button {
+		box-sizing: border-box;
+		inline-size: 100%;
+		min-block-size: 44px;
+		padding: 0.5rem 0.75rem;
+		font: inherit;
+		font-size: 1.125rem;
+		border-radius: var(--events-radius, 6px);
+	}
+	.semics-checkin select,
+	.semics-checkin input {
+		border: 2px solid var(--events-border, #6b6b6b);
+		background: #ffffff;
+		color: #1a1a1a;
+	}
+	.semics-checkin input {
+		font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	}
+	.semics-checkin button {
+		border: 0;
+		background: var(--events-accent, #1d4ed8);
+		color: #ffffff;
+		font-weight: 700;
+		cursor: pointer;
+	}
+	.semics-checkin .semics-checkin-camera {
+		margin-block-start: 0.75rem;
+		background: #ffffff;
+		color: var(--events-accent, #1d4ed8);
+		border: 2px solid currentColor;
+	}
+	.semics-checkin-video {
+		display: block;
+		inline-size: 100%;
+		margin-block-start: 0.75rem;
+		border-radius: var(--events-radius, 6px);
+		background: #000000;
+	}
+	.semics-checkin-video[hidden],
+	.semics-checkin [hidden] {
+		display: none;
+	}
+	.semics-checkin-note {
+		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-checkin-result {
+		margin-block-start: 1rem;
+		border-radius: var(--events-radius, 6px);
+	}
+	.semics-checkin-result[data-tone] {
+		padding: 1rem;
+		border: 3px solid;
+	}
+	.semics-checkin-result[data-tone="ok"] {
+		background: #e7f6ec;
+		border-color: #1e7a3c;
+		color: #0f3d1e;
+	}
+	.semics-checkin-result[data-tone="warn"] {
+		background: #fff4d6;
+		border-color: #8a5a00;
+		color: #4a3000;
+	}
+	.semics-checkin-result[data-tone="error"] {
+		background: #fde8e8;
+		border-color: #b3261e;
+		color: #5c0f0a;
+	}
+	.semics-checkin-result :global(p) {
+		margin: 0 0 0.5rem;
+	}
+	.semics-checkin-result :global(.semics-checkin-title) {
+		font-size: 1.375rem;
+		font-weight: 700;
+	}
+	.semics-checkin-result :global(.semics-checkin-link) {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 44px;
+		color: inherit;
+		font-weight: 700;
+	}
+</style>

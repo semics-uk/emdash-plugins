@@ -219,6 +219,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   and an `onSaved` callback so the result renders without a read back: load = 3 calls, save <= 8. Messages for refusals
   live in `src/admin/messages.ts`. Admin event lists read titles with one `content.list` (mapped collection, 100 entries),
   falling back to `info.title` then the id.
+- QR passes and the check-in screen (T082, R54; Pro's): Events Pro's `public/booking` adds `qr: { size, bits }` (row-major
+  modules, four per hex digit) beside each pass's `code`; `<TicketPass qr>` draws it as an SVG through `qrPath`
+  (`src/astro/lib/pass.ts`, which drops anything malformed); Free sends none, and the encoder lives only in Pro. The integration
+  injects `/_events/check-in` (`CheckIn.astro`, noindex, no-referrer): an event select from `public/events`, a code field and,
+  where the browser has `BarcodeDetector`, a camera; `src/client/checkin.ts` (no imports) posts `{ code, eventId? }` to the
+  private `checkin/code` route with the admin session (`X-EmDash-Request: 1`) and shows the answer (`checkInView`); a pending
+  waiver's `signLink` is shown only when it is this site's `/_events/sign` (`safeSignLink`). Free has no such route (404: "needs
+  Events Pro"); the Block Kit Attendees page stays the check-in on every edition. The Free backend gained nothing.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 116 KiB (R51; 115.9 after T084's recurring events, 110.9 before them) (`tests/bundle-size.build.test.ts`; the

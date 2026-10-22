@@ -175,7 +175,7 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 							<section aria-labelledby="semics-passes-title">
 								<h2 id="semics-passes-title">Tickets</h2>
 								{passes.map((a) => (
-									<TicketPass name={a.name} code={a.code ?? ""} status={a.status} />
+									<TicketPass name={a.name} code={a.code ?? ""} status={a.status} qr={a.qr} />
 								))}
 							</section>
 						)}
