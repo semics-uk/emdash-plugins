@@ -111,7 +111,7 @@ function adapt(
 	const rows = new Map<string, OutboxDoc>();
 	return {
 		put: async () => {
-			throw new Error("events enqueue outbox rows themselves (T048, T049)");
+			throw new Error("unsupported"); // events enqueue outbox rows themselves (T048, T049)
 		},
 		putMany: (items) =>
 			collection.putMany(
@@ -256,7 +256,7 @@ function eventDeps(d: DrainDeps, tick: Tick): EventInfoDeps {
 /** The booking's event (or date) for an email; a missing entry fails the row so the drain retries it. */
 async function eventOf(d: DrainDeps, tick: Tick, booking: BookingDoc): Promise<EventInfo> {
 	const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
-	if (!event) throw new Error("event entry not found");
+	if (!event) throw new Error("no event");
 	return event;
 }
 
@@ -335,7 +335,7 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 
 async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxMessage | null> {
 	const bookingId = doc.payload.bookingId;
-	if (typeof bookingId !== "string") throw new Error(`outbox row has no bookingId (kind ${doc.kind})`);
+	if (typeof bookingId !== "string") throw new Error(`no bookingId (${doc.kind})`);
 	if (doc.kind === "booking_confirmed") return renderConfirmation(d, tick, bookingId);
 	if (doc.kind === "booking_cancelled") return renderCancellation(d, tick, bookingId);
 	if (doc.kind === "waitlist_offer") return renderOffer(d, tick, bookingId);
@@ -346,7 +346,7 @@ async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxM
 		const event = await eventOf(d, tick, booking);
 		return custom({ doc, booking, event, siteName: d.siteName });
 	}
-	throw new Error(`unknown outbox kind ${doc.kind}`);
+	throw new Error(`unknown kind ${doc.kind}`);
 }
 
 /** One drain tick over the events outbox. */
@@ -359,7 +359,7 @@ export async function drainEventsOutbox(d: DrainDeps): Promise<DrainResult> {
 		email: send && {
 			send: async (stub) => {
 				const row = stubs.get(stub);
-				if (!row) throw new Error("outbox message has no row");
+				if (!row) throw new Error("no row");
 				const message = await render(d, tick, row.doc);
 				if (message) await send.send(message);
 			},
