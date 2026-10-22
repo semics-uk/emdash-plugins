@@ -98,6 +98,32 @@ describe("EV-FR-08 confirmation from the outbox", () => {
 		expect(row(w, "x1").lastError).toContain("mystery");
 	});
 
+	it("T075 an edition's renderer takes its own kinds, given the booking and the event already read", async () => {
+		const w = await world();
+		w.storage.outbox.set("r1", {
+			...row(w, `confirm-${ID}`),
+			kind: "booking_refunded",
+			payload: { bookingId: ID, reason: "x" },
+		});
+		w.storage.outbox.docs.delete(`confirm-${ID}`);
+		const seen: unknown[] = [];
+		const render = {
+			booking_refunded: async (i: {
+				booking: { ref: string };
+				event: { title: string };
+				doc: { payload: unknown };
+			}) => {
+				seen.push([i.booking.ref, i.event.title, i.doc.payload]);
+				return { to: "ada@example.com", subject: "Refund", text: "refunded" };
+			},
+		};
+		const result = await drainEventsOutbox({ ...w.deps(), render } as never);
+		expect(result.sent).toBe(1);
+		expect(seen).toEqual([[REF, "Winter Concert", { bookingId: ID, reason: "x" }]]);
+		expect(w.sent[0]?.subject).toBe("Refund");
+		expect(row(w, "r1").status).toBe("sent");
+	});
+
 	it("EV-FR-08 does nothing without a mail transport", async () => {
 		const w = await world();
 		const result = await drainEventsOutbox(w.deps({ email: undefined }));

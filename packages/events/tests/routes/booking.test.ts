@@ -5,6 +5,7 @@ import {
 	BOOKING_MAX_CALLS,
 	BOOKING_TARGET_CALLS,
 	type BookingDeps,
+	type RefundStep,
 	type BookingRouteStorage,
 	bookingStatus,
 	cancelBooking,
@@ -32,7 +33,9 @@ async function world({
 	occurrence = true,
 	startsInHours = 48,
 	settings = [] as Array<{ key: string; value: unknown }>,
+	paid = false,
 }: {
+	paid?: boolean;
 	status?: string;
 	types?: string[];
 	occurrence?: boolean;
@@ -65,6 +68,7 @@ async function world({
 		answers: {},
 		accessTokenHash: await hashToken(token),
 		createdAt: at(-1),
+		...(paid ? { payment: { provider: "stripe", ref: "cs_1" } } : {}),
 	});
 	for (const [i, t] of types.entries()) {
 		storage.attendees.set(`${ID}-${i + 1}`, {
@@ -257,6 +261,84 @@ describe("public/booking/cancel (EV-US-4)", () => {
 		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 1, sold: 1 });
 		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ reserved: 1, sold: 1 });
 		expect(w.counter("occurrences", "oc1")).toMatchObject({ reserved: 1, sold: 1 });
+	});
+});
+
+describe("public/booking/cancel of a paid booking (EV-US-4, T075)", () => {
+	const ok = (): RefundStep & { seen: unknown[] } => {
+		const seen: unknown[] = [];
+		return {
+			seen,
+			calls: () => 2,
+			run: async (b, settings) => {
+				seen.push({ status: b.status, claimed: b.releaseClaimedAt, key: settings.stripeSecretKey });
+				meter.calls += 2;
+				return { ok: true, mail: { kind: "booking_refunded", payload: { reason: "cancelled" } } };
+			},
+		};
+	};
+	const keyed = [{ key: "stripeSecretKey", value: "sk_test_1" }];
+
+	it("T075 without a refund step a paid confirmed booking is never cancelled", async () => {
+		const w = await world({ paid: true });
+		const before = structuredClone(w.booking());
+		const { body } = await run(cancelBooking, w.deps(T0), w.input);
+		expect(body).toMatchObject({ ok: false, error: { code: "CANCEL_NOT_ALLOWED" } });
+		expect(w.booking()).toEqual(before);
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 1, sold: 1 });
+		expect(w.storage.outbox.docs.size).toBe(0);
+	});
+
+	it("T075 the refund step runs after the claim and before the seats are released, then the status moves", async () => {
+		const w = await world({ paid: true, settings: keyed });
+		const step = ok();
+		const seats: unknown[] = [];
+		w.storage.event_configs.beforeUpdate = () => seats.push(step.seen.length);
+		const { body, calls } = await run(cancelBooking, { ...w.deps(T0), refund: step }, w.input);
+		expect(body).toMatchObject({ ok: true, status: "cancelled" });
+		expect(step.seen).toEqual([{ status: "confirmed", claimed: at(0), key: "sk_test_1" }]);
+		expect(seats).toEqual([1]);
+		expect(w.booking()).toMatchObject({ status: "cancelled" });
+		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ reserved: 0, sold: 0 });
+		expect(w.storage.outbox.docs.get(`cancel-${ID}`)).toMatchObject({
+			kind: "booking_refunded",
+			payload: { bookingId: ID, bookingRef: REF, reason: "cancelled" },
+		});
+		expect(calls).toBeLessThanOrEqual(BOOKING_MAX_CALLS);
+	});
+
+	it("T075 the step's calls come out of the counters' room, so the largest order stays within 10", async () => {
+		const w = await world({ paid: true, settings: keyed, types: ["tt_a", "tt_b", "tt_c"] });
+		const { body } = await run(cancelBooking, { ...w.deps(T0), refund: ok() }, w.input);
+		expect(body).toMatchObject({ ok: true, status: "cancelled" });
+		expect(w.counter("event_configs", "ev1").reserved).toBe(0);
+	});
+
+	it("T075 a refund that cannot be made refuses the cancel and clears the claim: nothing else changes", async () => {
+		const w = await world({ paid: true, settings: keyed });
+		const refund: RefundStep = { calls: () => 2, run: async () => ({ ok: false }) };
+		const { body } = await run(cancelBooking, { ...w.deps(T0), refund }, w.input);
+		expect(body).toMatchObject({ ok: false, error: { code: "PAYMENT_FAILED" } });
+		expect(w.booking()).toMatchObject({ status: "confirmed", releaseClaimedAt: null });
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 1, sold: 1 });
+		expect(w.storage.outbox.docs.size).toBe(0);
+	});
+
+	it("T075 outside the cutoff the step is never called", async () => {
+		const w = await world({ paid: true, settings: keyed });
+		const step = ok();
+		const { body } = await run(cancelBooking, { ...w.deps(T0 + 30 * HOUR), refund: step }, w.input);
+		expect(body).toMatchObject({ ok: false, error: { code: "CANCEL_NOT_ALLOWED" } });
+		expect(step.seen).toEqual([]);
+	});
+
+	it("T075 a free booking never touches the step", async () => {
+		const w = await world({ settings: keyed });
+		const step = ok();
+		const { body } = await run(cancelBooking, { ...w.deps(T0), refund: step }, w.input);
+		expect(body).toMatchObject({ ok: true, status: "cancelled" });
+		expect(step.seen).toEqual([]);
+		expect(w.storage.outbox.docs.get(`cancel-${ID}`)).toMatchObject({ kind: "booking_cancelled" });
 	});
 });
 
