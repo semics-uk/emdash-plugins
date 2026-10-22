@@ -4,7 +4,7 @@ title: "E-sign Pro: public self-serve templates and block"
 phase: 6
 package: esign
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T067, T071]
