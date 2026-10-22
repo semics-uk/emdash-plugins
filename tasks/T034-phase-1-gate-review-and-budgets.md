@@ -50,11 +50,11 @@ pnpm --filter playground e2e
 ## Notes
 
 - Review record, severity scale, checklist and budget table: `tasks/reviews/phase-1.md`. No Severity 1; four
-  Severity 2 fixed test-first (visitor IP/UA lost on in-process UI calls, R38; consent wording overclaim,
+  Severity 2 fixed test-first (visitor IP/UA lost on in-process UI calls, R39; consent wording overclaim,
   ES-NFR-07; signer-entered values not bound or printed; unsalted `signatureSha256`, R28). Severity 3-4 filed on
-  T097, T100, T105 and the new T116; two were already on T061/T062.
+  T097, T100, T105 and the new T117; two were already on T061/T062.
 - HTTP status: not possible for sandboxed JSON routes in EmDash 1.2 (a returned value is always 200, a thrown
-  error 400 `ROUTE_ERROR`); closed with R37 and a note in protocol §9. The raw `public/download` already uses
+  error 400 `ROUTE_ERROR`); closed with R38 and a note in protocol §9. The raw `public/download` already uses
   `toRouteError().status`.
 - Coverage: the ~54% figure counts only code a test imports; workerd-run routes, cron and admin are exercised by
   host tests but invisible to v8. Instrumenting the sandbox bundle is not supported by the test host; decision

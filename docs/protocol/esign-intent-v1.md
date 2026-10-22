@@ -355,7 +355,7 @@ Stable strings. New codes may be added within `/1`; existing ones never change m
 | `TOKEN_REPLAYED` | 9 | Intent nonce already consumed | 409 |
 | `PAIRING_MALFORMED` | — | Pairing string fails §3 (settings validation) | 400 |
 
-The HTTP column is what an implementation that controls its status codes sends. A sandboxed EmDash core cannot set the status of a JSON route response (BUILD-PLAN R37), so `semics-esign` returns the same error body inside the host's `{ "success": true, "data": … }` wrapper with status 200; clients MUST branch on `ok` and `error.code`, never on the status.
+The HTTP column is what an implementation that controls its status codes sends. A sandboxed EmDash core cannot set the status of a JSON route response (BUILD-PLAN R38), so `semics-esign` returns the same error body inside the host's `{ "success": true, "data": … }` wrapper with status 200; clients MUST branch on `ok` and `error.code`, never on the status.
 
 Route-level codes outside token verification: `TEMPLATE_NOT_FOUND` (404), `REF_UNKNOWN` (Events
 receipt for a `ref` it never issued, 404), `RATE_LIMITED` (429).

@@ -96,6 +96,6 @@ Phase 1 review (T034, `tasks/reviews/phase-1.md`): `bindSignature(docSha256, sig
 `piiSalt ‖ JSON([docSha256, kind, typedName, strokes, [[key, value]…]])`, so the entered values are covered and a purged
 name cannot be guessed (R28); the signed PDF prints the entered values under "Details entered by the signer". Pages pass
 `request: Astro.request` to `callPublicRoute`, which copies the visitor's headers (minus cookie, authorization, Referer,
-body framing) and `cf` onto in-process calls (R38): without it `requestMeta` has no IP or user agent. JSON routes cannot
-set an HTTP status in the sandbox (R37). `envelopes/list` takes `cursor` and returns `nextCursor`; the admin table's page
+body framing) and `cf` onto in-process calls (R39): without it `requestMeta` has no IP or user agent. JSON routes cannot
+set an HTTP status in the sandbox (R38). `envelopes/list` takes `cursor` and returns `nextCursor`; the admin table's page
 action is `envelopes.page:<status>`. Coverage counts only code imported by tests, not code run inside workerd. `/sign/[token]` and `/verify` refuse cross-site posts with `lib/csrf.ts` (EmDash sets `checkOrigin` off).

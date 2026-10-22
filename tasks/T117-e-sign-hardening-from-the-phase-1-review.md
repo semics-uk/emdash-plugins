@@ -1,5 +1,5 @@
 ---
-id: T116
+id: T117
 title: "E-sign: hardening from the Phase 1 review"
 phase: 6
 package: esign
@@ -11,7 +11,7 @@ depends_on: [T034]
 spec: [ES-FR-04, ES-FR-05, ES-NFR-02, R29]
 ---
 
-# T116 · E-sign: hardening from the Phase 1 review
+# T117 · E-sign: hardening from the Phase 1 review
 
 ## Definition
 
