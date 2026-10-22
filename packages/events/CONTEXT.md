@@ -53,6 +53,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `start(holdExpiresAt)` (Pro Stripe, T073: 5 Free calls + fetch + payment record = 7). A waiver booking already
   `awaiting_payment` keeps its signed attendees (`keepSigned`, +1 = 8). The
   status graph and next-step rule live in `src/domain/booking-state.ts`.
+- Payment webhook (Pro, T074): the Pro build replaces the `webhooks/stripe` stub and composes the Free domain
+  modules directly (`booking-state`, `holds`: `planExpiries`/`expireBookings`, `inventory`: `reserve`,
+  `release`, `confirmSold`, `planReservation`), so keep their signatures stable. It confirms an
+  `awaiting_payment` booking guarded on `{ status, releaseClaimedAt: null }` and sets `payment: { provider, ref }`;
+  a late payment (R2) moves `expired` → `confirmed` (guarded on the read `releaseClaimedAt`, then cleared) after
+  re-reserving from the config's `catalog`, or `expired` → `refunded_unavailable` after a refund.
 - Booking status and cancel (`src/routes/booking.ts`, T049): `{ bookingRef, accessToken }` in the POST
   body; unknown ref and wrong token are the same `NOT_FOUND`. Cancel claims (`releaseClaimedAt`),
   releases seats, then moves to `cancelled`, then queues `cancel-<bookingId>`. Held bookings may always
