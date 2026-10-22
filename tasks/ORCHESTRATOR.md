@@ -58,6 +58,9 @@ in full; the per-package `CONTEXT.md` files summarise them.
   `pro-agent-<id>`; the Pro README has the steps (`extendCore`, `licence.gate`, `pro.json`, edition tests).
 - `land.sh` lands the public branch, then calls `land-pro.sh` for the matching Pro worktree.
 - Run the Pro repo's own `pnpm verify` before landing a Pro task.
+- R44: every Pro secret setting is first declared in the Free manifest (labelled "(Pro)"), or a downgrade to
+  Free breaks every settings read; the Pro generator refuses a Pro-only secret.
+- After landing a Pro task whose agent repointed `node_modules` links, run `pnpm install` in the Pro repo.
 
 ## Commands and conventions
 

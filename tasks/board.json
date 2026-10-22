@@ -2007,7 +2007,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2022,7 +2022,7 @@
 				"T103",
 				"T105"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T100": {
 			"file": "T100-security-review-of-both-products.md",
@@ -2405,12 +2405,12 @@
 			"T093",
 			"T094",
 			"T096",
-			"T097",
 			"T111",
 			"T119"
 		],
 		"in-progress": [
-			"T077"
+			"T077",
+			"T097"
 		],
 		"review": [],
 		"done": [
