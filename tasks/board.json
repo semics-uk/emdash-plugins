@@ -1837,7 +1837,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1849,7 +1849,7 @@
 			"unblocks": [
 				"T100"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T090": {
 			"file": "T090-e-sign-pro-several-signers-and-routing.md",
@@ -2393,8 +2393,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T064",
-			"T087"
+			"T064"
 		],
 		"review": [],
 		"done": [
@@ -2457,6 +2456,7 @@
 			"T070",
 			"T071",
 			"T072",
+			"T087",
 			"T104",
 			"T110",
 			"T112",
