@@ -1549,7 +1549,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1566,7 +1566,7 @@
 				"T076",
 				"T077"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T074": {
 			"file": "T074-events-pro-stripe-webhook-and-late-payments.md",
@@ -1591,7 +1591,7 @@
 				"T075",
 				"T078"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T075": {
 			"file": "T075-events-pro-refunds.md",
@@ -1635,7 +1635,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T077": {
 			"file": "T077-events-ui-payment-redirect-and-return-pages.md",
@@ -1658,7 +1658,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T078": {
 			"file": "T078-phase-4-gate-payments-e2e.md",
@@ -2359,10 +2359,7 @@
 	"columns": {
 		"backlog": [
 			"T067",
-			"T074",
 			"T075",
-			"T076",
-			"T077",
 			"T078",
 			"T090",
 			"T091",
@@ -2380,6 +2377,9 @@
 			"T106"
 		],
 		"ready": [
+			"T074",
+			"T076",
+			"T077",
 			"T080",
 			"T081",
 			"T082",
@@ -2389,8 +2389,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T066",
-			"T073"
+			"T066"
 		],
 		"review": [],
 		"done": [
@@ -2455,6 +2454,7 @@
 			"T070",
 			"T071",
 			"T072",
+			"T073",
 			"T085",
 			"T087",
 			"T104",
@@ -2469,12 +2469,11 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T073",
 		"T074",
 		"T075",
 		"T078",
 		"T100",
 		"T106"
 	],
-	"criticalWeight": 9
+	"criticalWeight": 7
 }
