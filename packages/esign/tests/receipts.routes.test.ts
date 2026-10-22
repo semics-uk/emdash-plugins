@@ -177,8 +177,14 @@ async function intent(budget: BudgetedHost, ref: string, cid = CID, over: Partia
 }
 
 /** Opens the session (sent -> in_progress) so the envelope can be submitted (R31). */
-async function view(budget: BudgetedHost, token: string): Promise<Body & { envelope: { docSha256: string } }> {
-	return (await call(budget, "public/session", { token })) as Body & { envelope: { docSha256: string } };
+async function view(
+	budget: BudgetedHost,
+	token: string,
+): Promise<Body & { envelope: { docSha256: string }; consent: { sha256: string } }> {
+	return (await call(budget, "public/session", { token, open: true })) as Body & {
+		envelope: { docSha256: string };
+		consent: { sha256: string };
+	};
 }
 
 async function submit(budget: BudgetedHost, token: string): Promise<Body> {
@@ -189,6 +195,7 @@ async function submit(budget: BudgetedHost, token: string): Promise<Body> {
 		{
 			token,
 			docSha256: session.envelope.docSha256,
+			consentSha256: session.consent.sha256,
 			consent: true,
 			intent: true,
 			signature: { kind: "typed", typedName: "Ada Lovelace" },

@@ -6,7 +6,11 @@ import { pdfTaskName } from "../src/cron/pdf";
 import type { AuditEventDoc } from "../src/domain/audit";
 import { type SnapshotChunkDoc, snapshotChunks } from "../src/domain/envelopes";
 import { ARTIFACT_CHUNK_CHARS, type ArtifactChunkDoc } from "../src/domain/pdf";
+import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 import { DOWNLOAD_PURPOSE, LINK_KEY } from "../src/routes/download";
+
+/** The default consent wording's SHA-256, which a submit posts back (T117). */
+const CONSENT_SHA256 = await sha256Hex(DEFAULT_CONSENT_WORDING);
 
 /** R22: target ≤ 8 bridge calls; submit is at 9 since it schedules the PDF job (hard limit 10). */
 const TARGET = { calls: 8, cpuMs: 50 };
@@ -74,11 +78,12 @@ const submitBody = (s: Sent, signature: unknown = { kind: "typed", typedName: "A
 	consent: true,
 	intent: true,
 	docSha256: s.docSha256,
+	consentSha256: CONSENT_SHA256,
 	signature,
 });
 
 async function signed(s: Sent, signature?: unknown): Promise<void> {
-	await call(s.budget, "public/session", { token: TOKEN });
+	await call(s.budget, "public/session", { token: TOKEN, open: true });
 	const r = await call(s.budget, "public/submit", submitBody(s, signature), SUBMIT);
 	expect(r).toMatchObject({ ok: true, status: "completed" });
 }

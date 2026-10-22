@@ -174,10 +174,14 @@ export async function waitForPdf(request: APIRequestContext, envelopeId: string)
 
 /** Signs through the public routes only (no browser): session, then submit with a typed signature. */
 export async function signViaRoutes(request: APIRequestContext, sent: Sent): Promise<void> {
-	const session = await route<{ envelope: { docSha256: string } }>(request, "public/session", { token: sent.token });
+	const session = await route<{ envelope: { docSha256: string }; consent: { sha256: string } }>(request, "public/session", {
+		token: sent.token,
+		open: true,
+	});
 	await route(request, "public/submit", {
 		token: sent.token,
 		docSha256: session.envelope.docSha256,
+		consentSha256: session.consent.sha256,
 		consent: true,
 		intent: true,
 		signature: { kind: "typed", typedName: SIGNER.name },

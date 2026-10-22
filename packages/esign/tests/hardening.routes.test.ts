@@ -59,7 +59,7 @@ interface Sent {
 }
 
 /** A sent envelope whose signer token is known. */
-async function sent(budget?: BudgetedHost): Promise<Sent> {
+async function sent(budget?: BudgetedHost, token = TOKEN): Promise<Sent> {
 	const b = budget ?? (await start());
 	const tpl = await templateId(b);
 	const created = (
@@ -72,7 +72,7 @@ async function sent(budget?: BudgetedHost): Promise<Sent> {
 	const id = created.envelope.id;
 	await b.invokeRoute("envelopes/send", { id });
 	const signer = await host().inspect.storage.get<Record<string, unknown>>("signers", `${id}:s1`);
-	await host().fixtures.plugin.storage("signers", `${id}:s1`, { ...signer, tokenHash: await hashToken(TOKEN) });
+	await host().fixtures.plugin.storage("signers", `${id}:s1`, { ...signer, tokenHash: await hashToken(token) });
 	const snapshot = canonicalSnapshot(renderTemplate(BODY, { "signer.name": "Ada Lovelace", event: "Gig" }));
 	return {
 		budget: b,
@@ -212,6 +212,8 @@ describe("T117 (T062 review): plain signing never decrypts secrets", () => {
 	it("session, submit and decline work for a non-integration envelope while a stored secret is unreadable", async () => {
 		const budget = await start();
 		const a = await sent(budget);
+		const other = "u".repeat(43);
+		const b = await sent(budget, other);
 		// An encrypted value this host cannot open (as after EMDASH_ENCRYPTION_KEY is lost or changed).
 		await host().fixtures.plugin.setting("integrationMasterKey", { $emdash: "plugin-setting", v: 1, data: "x" });
 		expect(await call(budget, "public/session", { token: TOKEN })).toMatchObject({ ok: true, state: "ready" });
@@ -220,8 +222,7 @@ describe("T117 (T062 review): plain signing never decrypts secrets", () => {
 		expect(await call(budget, "public/session", { token: TOKEN })).toMatchObject({ ok: true, state: "closed" });
 
 		// A second envelope declines the same way.
-		const b = await sent(budget);
-		expect(await call(budget, "public/decline", { token: TOKEN })).toMatchObject({ ok: true, status: "declined" });
+		expect(await call(budget, "public/decline", { token: other })).toMatchObject({ ok: true, status: "declined" });
 		expect((await envelopeOf(b.id))?.status).toBe("declined");
 	});
 });

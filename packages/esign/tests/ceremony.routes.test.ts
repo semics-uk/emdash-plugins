@@ -3,7 +3,7 @@ import { canonicalSnapshot, hashToken, renderTemplate, sha256Hex } from "@semics
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { type AuditEventDoc, finalEnvelopeHash, verifyAuditChain } from "../src/domain/audit";
-import { bindSignature } from "../src/domain/signing";
+import { bindSignature, DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 
 /** R22: target ≤ 8 bridge calls per route; submit is at 9 since it schedules the signed-PDF job (T025). */
 const TARGET = { calls: 8, cpuMs: 50 };
@@ -20,6 +20,8 @@ afterEach(async () => {
 
 const BODY = "I, {{signer.name}}, accept the {{event}} terms.\n";
 const TOKEN = "t".repeat(43);
+/** The default consent wording's SHA-256, which a submit posts back (T117). */
+const CONSENT_SHA256 = await sha256Hex(DEFAULT_CONSENT_WORDING);
 
 type Body = Record<string, unknown> & { ok: boolean; error?: { code: string } };
 
@@ -65,12 +67,13 @@ const good = (s: Sent, over: Record<string, unknown> = {}) => ({
 	consent: true,
 	intent: true,
 	docSha256: s.docSha256,
+	consentSha256: CONSENT_SHA256,
 	signature: { kind: "typed", typedName: "Ada Lovelace" },
 	...over,
 });
 
-/** The ceremony always opens the page first: `public/session` does the `sent -> in_progress` view transition. */
-const view = (s: Sent) => call(s.budget, "public/session", { token: TOKEN });
+/** The ceremony always opens the page first: `public/session` with `open` does the `sent -> in_progress` view transition. */
+const view = (s: Sent) => call(s.budget, "public/session", { token: TOKEN, open: true });
 
 async function chain(id: string): Promise<AuditEventDoc[]> {
 	const rows = (await runtime?.inspect.storage.list<AuditEventDoc>("audit_events")) ?? [];
@@ -85,7 +88,7 @@ const envelopeOf = (id: string) => runtime?.inspect.storage.get<Record<string, u
 describe("ES-FR-04 public/session", () => {
 	it("ES-FR-04 returns the snapshot, consent wording and the signer's own name, and records the first view", async () => {
 		const s = await sent();
-		const r = await call(s.budget, "public/session", { token: TOKEN });
+		const r = await call(s.budget, "public/session", { token: TOKEN, open: true });
 		expect(r).toMatchObject({
 			ok: true,
 			state: "ready",
@@ -103,7 +106,7 @@ describe("ES-FR-04 public/session", () => {
 		expect((await chain(s.id)).map((e) => e.type)).toEqual(["envelope.created", "envelope.sent", "signer.viewed"]);
 
 		// A second view changes nothing and adds no event.
-		const again = await call(s.budget, "public/session", { token: TOKEN });
+		const again = await call(s.budget, "public/session", { token: TOKEN, open: true });
 		expect(again).toMatchObject({ ok: true, state: "ready" });
 		expect(await chain(s.id)).toHaveLength(3);
 	});
@@ -190,7 +193,7 @@ describe("ES-FR-04 public/submit", () => {
 
 	it("ES-FR-04 a completed submit stores the signature, writes the audit events and completes the envelope", async () => {
 		const s = await sent();
-		await call(s.budget, "public/session", { token: TOKEN });
+		await call(s.budget, "public/session", { token: TOKEN, open: true });
 		const strokes = [
 			[
 				[0.1, 0.2],

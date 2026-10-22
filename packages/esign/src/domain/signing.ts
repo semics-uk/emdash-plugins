@@ -3,8 +3,10 @@
  * `docSha256`, and the audit events a view, a signature and a decline produce. No I/O.
  *
  * A submission needs the ESIGN consent flag and the separate intent flag (both literally `true`),
- * the `docSha256` the signer saw (it must still match the envelope's), and a signature: a typed
- * name, drawn strokes (normalised `[x, y]` points, at most 32 KB as JSON), or both. The signature is
+ * the `docSha256` the signer saw (it must still match the envelope's), the `consentSha256` of the
+ * consent wording the signer was shown (it must still match the configured wording; T117), and a
+ * signature: a typed name, drawn strokes (`[x, y]` points normalised to the unit box 0-1, at most
+ * 32 KB as JSON), or both. The signature is
  * bound to the document and the signer's entered values by `bindSignature` (salted with the envelope's piiSalt).
  */
 import { err, ok, type Result, sha256Hex } from "@semics-tech/shared";
@@ -31,6 +33,8 @@ export type SubmitIssueCode =
 	| "CONSENT_REQUIRED"
 	| "INTENT_REQUIRED"
 	| "INVALID_DOC_HASH"
+	| "INVALID_CONSENT_HASH"
+	| "CONSENT_CHANGED"
 	| "INVALID_SIGNATURE"
 	| "STROKES_TOO_LARGE"
 	| "INVALID_FIELDS"
@@ -43,14 +47,17 @@ export interface SubmitIssue {
 
 export interface SubmitFields {
 	docSha256: string;
+	/** SHA-256 of the consent wording the page showed (`public/session` returns it as `consent.sha256`). */
+	consentSha256: string;
 	signature: Omit<StoredSignature, "sha256">;
 	fieldValues: Record<string, string>;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
+/** A pad point as `public/submit` takes it: two finite numbers in the unit box (the pad normalises to 0-1). */
 const isPoint = (p: unknown): boolean =>
-	Array.isArray(p) && p.length === 2 && p.every((n) => typeof n === "number" && Number.isFinite(n));
+	Array.isArray(p) && p.length === 2 && p.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1);
 
 function cleanStrokes(v: unknown): Result<number[][][], SubmitIssue> {
 	const bad = (code: SubmitIssueCode) => err({ path: "signature.strokes", code });
@@ -98,12 +105,17 @@ export function parseSubmit(input: unknown): Result<SubmitFields, SubmitIssue[]>
 	if (input.intent !== true) issues.push({ path: "intent", code: "INTENT_REQUIRED" });
 	const docSha256 = typeof input.docSha256 === "string" && SHA256_HEX.test(input.docSha256) ? input.docSha256 : null;
 	if (docSha256 === null) issues.push({ path: "docSha256", code: "INVALID_DOC_HASH" });
+	const consentSha256 =
+		typeof input.consentSha256 === "string" && SHA256_HEX.test(input.consentSha256) ? input.consentSha256 : null;
+	if (consentSha256 === null) issues.push({ path: "consentSha256", code: "INVALID_CONSENT_HASH" });
 	const signature = parseSignature(input.signature);
 	if (!signature.ok) issues.push(signature.error);
 	const fieldValues = cleanFieldValues(input.fieldValues);
 	if (fieldValues === null) issues.push({ path: "fieldValues", code: "INVALID_FIELDS" });
-	if (issues.length > 0 || docSha256 === null || !signature.ok || fieldValues === null) return err(issues);
-	return ok({ docSha256, signature: signature.value, fieldValues });
+	if (issues.length > 0 || docSha256 === null || consentSha256 === null || !signature.ok || fieldValues === null) {
+		return err(issues);
+	}
+	return ok({ docSha256, consentSha256, signature: signature.value, fieldValues });
 }
 
 /** The optional decline reason: trimmed, no control characters, at most 500 code points. */
@@ -150,11 +162,16 @@ export function viewedAuditEvent(at: string, docSha256: string, who: RequestPers
 	return { type: "signer.viewed", at, actor: "signer", data: { docSha256 }, personal: requestPersonal(who) };
 }
 
-/** The three events of a completed single-signer envelope: consented, signed, completed. */
+/**
+ * The three events of a completed single-signer envelope: consented, signed, completed. The consent
+ * event records the SHA-256 of the wording that was shown beside its version, so the text is
+ * identified even when the admin edited it without bumping the version (T117).
+ */
 export function signedAuditEvents(args: {
 	at: string;
 	docSha256: string;
 	consentVersion: string;
+	consentSha256: string;
 	signature: StoredSignature;
 	signerName: string;
 	who: RequestPersonal;
@@ -165,7 +182,7 @@ export function signedAuditEvents(args: {
 			type: "signer.consented",
 			at,
 			actor: "signer",
-			data: { docSha256, consentVersion: args.consentVersion, intent: true },
+			data: { docSha256, consentVersion: args.consentVersion, consentSha256: args.consentSha256, intent: true },
 			personal: requestPersonal(args.who),
 		},
 		{

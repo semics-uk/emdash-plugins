@@ -2,8 +2,10 @@ import { callPublicRoute, type PublicRouteContext } from "./call.ts";
 
 /**
  * The signing page's logic (SU-FR-01), kept out of the `.astro` file so it is testable. The token is
- * the page path; here it only ever goes into POST bodies. `public/session` is always called first
- * (it records the first view: R31), and a submit is bound to the document hash that session returned.
+ * the page path; here it only ever goes into POST bodies. `public/session` is always called first. A
+ * GET only looks (mail scanners prefetch emailed links, T117); the first POST, sign or decline, asks it
+ * to `open` the envelope, which records the first view (R31). A submit is bound to the document hash
+ * and the consent wording's hash that session returned.
  */
 
 export interface SessionData {
@@ -16,7 +18,8 @@ export interface SessionData {
 	envelope?: { id: string; title: string; status: string; docSha256: string | null; expiresAt: string | null };
 	signer?: { name: string; as?: string; participant?: string };
 	snapshot?: string;
-	consent?: { version: string; wording: string };
+	/** `sha256` is the SHA-256 of `wording`, posted back with the signature (T117). */
+	consent?: { version: string; wording: string; sha256?: string };
 	/** Values the signer fills in (`fieldValues` on submit). */
 	fields?: SessionField[];
 	/** A closed integration envelope: where to return, and its signed receipt (T062). */
@@ -194,7 +197,12 @@ function closedView(session: SessionData): SignView {
 
 /** Loads the session, and when `form` is a POST, performs the sign or decline it asks for. */
 export async function handleSign(ctx: PublicRouteContext, token: string, form: FormData | null): Promise<SignView> {
-	const first = await callPublicRoute<SessionData>(ctx, { method: "POST", path: "public/session", body: { token } });
+	// Only a form post (a person acting) opens the envelope; a GET may be a mail scanner (T117).
+	const first = await callPublicRoute<SessionData>(ctx, {
+		method: "POST",
+		path: "public/session",
+		body: form ? { token, open: true } : { token },
+	});
 	if (!first.ok) return { kind: "error", code: first.error.code, message: message(first.error.code) };
 	const session = first.data;
 	if (session.state !== "ready") return closedView(session);
@@ -239,6 +247,7 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 		body: {
 			token,
 			docSha256: session.envelope?.docSha256 ?? "",
+			consentSha256: session.consent?.sha256 ?? "",
 			consent: true,
 			intent: true,
 			signature: strokes?.ok ? { kind: "drawn", typedName, strokes: strokes.strokes } : { kind: "typed", typedName },

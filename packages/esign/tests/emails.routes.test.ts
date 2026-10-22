@@ -13,6 +13,10 @@ import { afterEach, describe, expect, it } from "vitest";
 import { completionTaskName } from "../src/cron/completion-email";
 import { pdfTaskName } from "../src/cron/pdf";
 import { OUTBOX_TASK, outboxReport, runOutboxJob } from "../src/emails/outbox";
+import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
+
+/** The default consent wording's SHA-256, which a submit posts back (T117). */
+const CONSENT_SHA256 = await sha256Hex(DEFAULT_CONSENT_WORDING);
 
 /** R22: target ≤ 8, hard limit 10. Send and the PDF job each gain one outbox write. */
 const TARGET = { calls: 8, cpuMs: 50 };
@@ -244,7 +248,7 @@ describe("ES-FR-10 completion email", () => {
 		await call(budget, "envelopes/send", { id }, ONE_MORE);
 		const token = tokenIn((await outbox())[0]?.message.text ?? "");
 
-		await call(budget, "public/session", { token });
+		await call(budget, "public/session", { token, open: true });
 		const snapshot = canonicalSnapshot(renderTemplate(BODY, { "signer.name": "Ada Lovelace", event: "Gig" }));
 		const submitted = await call(
 			budget,
@@ -254,6 +258,7 @@ describe("ES-FR-10 completion email", () => {
 				consent: true,
 				intent: true,
 				docSha256: await sha256Hex(snapshot),
+				consentSha256: CONSENT_SHA256,
 				signature: { kind: "typed", typedName: "Ada Lovelace" },
 			},
 			ONE_MORE,

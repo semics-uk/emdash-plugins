@@ -104,6 +104,8 @@ export interface SignerDoc {
 	signature?: StoredSignature;
 	consentAt?: string;
 	consentVersion?: string;
+	/** SHA-256 of the consent wording the signer was shown (T117). */
+	consentSha256?: string;
 	signedAt?: string;
 	fieldValues?: Record<string, string>;
 	declinedAt?: string;

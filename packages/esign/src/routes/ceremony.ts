@@ -3,30 +3,43 @@
  *
  * The signer's token travels in the POST body (never the URL) and is looked up by its SHA-256
  * (`signers.tokenHash`, compared again with `verifyToken`). A wrong, unknown or already used token
- * is `SIGNING_TOKEN_INVALID`; each such failure counts against a per-IP rate limit (`rateLimit`
- * from shared), so the happy path pays nothing for it.
+ * is `SIGNING_TOKEN_INVALID`; each such failure counts against one per-IP limit shared by the three
+ * routes (`rateLimit` from shared, 20 per 10 minutes). `public/session`, which every ceremony opens
+ * with, reads that counter before its lookup and refuses an IP over the limit without looking the
+ * token up (R29, T117). Submit (9 calls) and decline only count; a 256-bit token makes guessing moot
+ * either way.
+ *
+ * The first view (`sent -> in_progress`, `signer.viewed`) is recorded only when the caller asks with
+ * `open: true`, which the sign page sends with its first POST (sign or decline), never on a GET: mail
+ * scanners prefetch emailed links, so a GET is no evidence that the signer opened the document (T117).
+ *
+ * Settings are read only as far as the envelope needs (T062 review, T117): the consent wording by its
+ * `consent` prefix, the integration master key (a secret) only for an integration's envelope, so a
+ * missing or changed `EMDASH_ENCRYPTION_KEY` never blocks a plain signature.
  *
  * Status changes go only through `transitionEnvelope`, whose guarded update is the arbiter when
  * two requests race: the loser gets `ENVELOPE_CLOSED` before it writes anything else.
  *
  * Bridge calls (R22 target ≤ 8; the hard limit is 10):
- *  - session, first view: signer + settings (2), envelope (1), snapshot (1), transition (1),
- *    audit head + create-only write (2) = 7; later views skip the last two = 5;
- *  - submit: signer + settings (2), envelope (1), audit head (1), transition (1), signer update (1),
+ *  - session: limiter read (1), signer (1), envelope (1), snapshot and consent settings (2) = 5; the first
+ *    view (`open`) adds the transition (1) and the audit head + create-only write (2) = 8; a wrong token
+ *    is the limiter read, the signer and copy-token lookups and the counter write = 4; a completed
+ *    envelope is limiter, signer, envelope, download-link key (+ the master key for an integration) = 4-5;
+ *  - submit: signer (1), envelope (1), settings (1), audit head (1), transition (1), signer update (1),
  *    audit first event + `putMany` of the rest (2), the signed-PDF one-shot (1) = 9 (T025: the PDF
  *    is rendered by that job, not here). The head is read before the transition so the envelope's
  *    `finalHash` (which covers the chain head) is written by that one update;
- *  - session on a completed envelope: signer + settings (2), envelope (1), download-link key (1) = 4;
- *  - decline: signer + settings (2), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 8.
+ *  - decline: signer (1), envelope (1), transition (1), signer update (1), audit head + 2 writes (3) = 7,
+ *    plus the master key (1) for an integration's envelope = 8.
  *
  * Submit, decline and a closed session answer an integration's envelope with its `returnUrl` and
- * signed receipt (T062, protocol §8.2), minted from the settings already read: no extra calls.
+ * signed receipt (T062, protocol §8.2), minted from that one master-key read.
  *
- * Submit accepts only an `in_progress` envelope (R31): the first view (`sent -> in_progress`, which writes
- * `signer.viewed`) is `public/session`'s job, so no event can land between submit's head read and its
- * write and there is no rebuild path. A `sent` envelope is `SESSION_REQUIRED` and nothing is written.
+ * Submit accepts only an `in_progress` envelope (R31): the first view is `public/session`'s job, so no
+ * event can land between submit's head read and its write and there is no rebuild path. A `sent`
+ * envelope is `SESSION_REQUIRED` and nothing is written.
  */
-import { hashToken, type RateLimitStore, rateLimit, verifyToken } from "@semics-tech/shared";
+import { hashToken, type RateLimitStore, rateLimit, sha256Hex, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
 import { schedulePdfJob } from "../cron/pdf";
 import {
@@ -65,6 +78,8 @@ const MAX_TOKEN_LENGTH = 200;
 const FAILURES_PER_WINDOW = 20;
 const FAILURE_WINDOW_SECONDS = 600;
 const RATE_SALT = "esign-ceremony/1";
+/** One counter for the three routes, so a failure anywhere counts toward the session gate. */
+const RATE_SCOPE = "ceremony";
 
 type Signed = { id: string; data: SignerDoc };
 
@@ -86,16 +101,46 @@ function tokenInUrl(request: Request | undefined): boolean {
 	}
 }
 
-/** The failure every bad token gets, after counting it against the caller's IP (2 calls). */
-async function invalidToken(ctx: PluginContext, routeCtx: RouteInput, scope: string) {
-	const kv: RateLimitStore = { get: (key) => ctx.kv.get<string>(key), set: (key, value) => ctx.kv.set(key, value) };
-	const limited = await rateLimit(kv, routeCtx.requestMeta?.ip ?? "unknown", Date.now(), {
-		scope,
-		limit: FAILURES_PER_WINDOW,
-		windowSeconds: FAILURE_WINDOW_SECONDS,
-		salt: RATE_SALT,
-	});
-	return fail(limited.ok ? "SIGNING_TOKEN_INVALID" : "RATE_LIMITED");
+/**
+ * The caller's per-IP failure counter. `blocked()` reads it (1 call) and gates the session lookup;
+ * `fail()` answers a bad token after counting it (1 more call after `blocked()`, else 2), or with
+ * `RATE_LIMITED` once over the limit. The counter is read at most once per request.
+ */
+function failureLimiter(ctx: PluginContext, routeCtx: RouteInput) {
+	const reads = new Map<string, Promise<string | null | undefined>>();
+	let pending: { key: string; value: string } | undefined;
+	const store: RateLimitStore = {
+		get: (key) => {
+			let read = reads.get(key);
+			if (!read) {
+				read = ctx.kv.get<string>(key);
+				reads.set(key, read);
+			}
+			return read;
+		},
+		// Deferred: only a failure writes the counter.
+		set: async (key, value) => {
+			pending = { key, value };
+		},
+	};
+	const now = Date.now();
+	const check = () =>
+		rateLimit(store, routeCtx.requestMeta?.ip ?? "unknown", now, {
+			scope: RATE_SCOPE,
+			limit: FAILURES_PER_WINDOW,
+			windowSeconds: FAILURE_WINDOW_SECONDS,
+			salt: RATE_SALT,
+		});
+	return {
+		async blocked(): Promise<boolean> {
+			return !(await check()).ok;
+		},
+		async fail() {
+			const limited = await check();
+			if (limited.ok && pending) await ctx.kv.set(pending.key, pending.value);
+			return fail(limited.ok ? "SIGNING_TOKEN_INVALID" : "RATE_LIMITED");
+		},
+	};
 }
 
 /** The signer holding `token` (one indexed query on the hash), confirmed with a constant-time compare. */
@@ -112,6 +157,13 @@ async function findCopySigner(ctx: PluginContext, token: string): Promise<Signed
 	return found?.data.copyTokenHash && (await verifyToken(token, found.data.copyTokenHash)) ? found : null;
 }
 
+/** Whether answering for this envelope needs the integration master key (its receipt, T062). */
+const needsMasterKey = (envelope: EnvelopeDoc) => Boolean(envelope.returnUrl && envelope.clientId);
+
+/** The master key, read (and decrypted) only for an integration's envelope: 1 call then, none otherwise. */
+const masterKeyFor = (ctx: PluginContext, envelope: EnvelopeDoc): Promise<unknown> =>
+	needsMasterKey(envelope) ? ctx.settings.get("integrationMasterKey") : Promise.resolve(undefined);
+
 /**
  * Where the ceremony returns the signer, with the receipt for an integration's envelope (protocol
  * §8.2): `returnUrl`, plus `receipt` when the envelope is terminal and an integration created it. The
@@ -125,6 +177,25 @@ async function returnTo(id: string, envelope: EnvelopeDoc, masterKey: unknown) {
 
 const settingOf = (settings: ReadonlyArray<{ key: string; value: unknown }>, key: string) =>
 	settings.find((s) => s.key === key)?.value;
+
+/**
+ * The consent version and wording (with the wording's SHA-256) in one call: by the `consent` prefix,
+ * which decrypts nothing, or, with `withMasterKey` for an integration's envelope, every setting.
+ */
+async function consentSettings(ctx: PluginContext, withMasterKey: boolean) {
+	const settings = await (withMasterKey ? ctx.settings.list() : ctx.settings.list("consent"));
+	const setting = (key: string, fallback: string) => {
+		const value = settingOf(settings, key);
+		return typeof value === "string" && value.length > 0 ? value : fallback;
+	};
+	const wording = setting("consentWording", DEFAULT_CONSENT_WORDING);
+	return {
+		version: setting("consentVersion", DEFAULT_CONSENT_VERSION),
+		wording,
+		sha256: await sha256Hex(wording),
+		masterKey: settingOf(settings, "integrationMasterKey"),
+	};
+}
 
 const isExpired = (envelope: EnvelopeDoc, now: string) => envelope.expiresAt !== null && envelope.expiresAt <= now;
 
@@ -154,24 +225,28 @@ async function writeChain(
 
 async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	if (tokenInUrl(routeCtx.request)) return fail("TOKEN_IN_QUERY");
+	const limiter = failureLimiter(ctx, routeCtx);
 	const token = tokenOf(routeCtx.input);
-	if (token === null) return invalidToken(ctx, routeCtx, "session");
+	if (token === null) return limiter.fail();
+	// R29: an IP over the failure limit is refused before its token is looked up.
+	if (await limiter.blocked()) return fail("RATE_LIMITED");
+	const open = obj(routeCtx.input).open === true;
 	const { envelopes, snapshots } = stores(ctx);
-	const [found, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
+	const found = await findSigner(ctx, token);
 	const viaCopy = found ? null : await findCopySigner(ctx, token);
 	const signer = found ?? viaCopy;
-	if (!signer) return invalidToken(ctx, routeCtx, "session");
+	if (!signer) return limiter.fail();
 	const envelope = await envelopes.get(signer.data.envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	// A copy token only ever shows the completed envelope's closed state and download link.
-	if (viaCopy && envelope.status !== "completed") return invalidToken(ctx, routeCtx, "session");
+	if (viaCopy && envelope.status !== "completed") return limiter.fail();
 	if (!OPEN.includes(envelope.status) || signer.data.status !== "pending") {
 		const closed = {
 			ok: true,
 			state: "closed",
 			status: envelope.status,
 			title: envelope.title,
-			...(viaCopy ? {} : await returnTo(signer.data.envelopeId, envelope, settingOf(settings, "integrationMasterKey"))),
+			...(viaCopy ? {} : await returnTo(signer.data.envelopeId, envelope, await masterKeyFor(ctx, envelope))),
 		};
 		if (envelope.status !== "completed" || signer.data.status !== "signed") return closed;
 		// The signer of a completed envelope gets the signed PDF's short-lived link once it is stored.
@@ -181,12 +256,15 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	const now = new Date().toISOString();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 
-	const chunks = envelope.snapshot ? await snapshots.getMany(envelope.snapshot.ids) : new Map();
+	const [chunks, consent] = await Promise.all([
+		envelope.snapshot ? snapshots.getMany(envelope.snapshot.ids) : Promise.resolve(new Map()),
+		consentSettings(ctx, false),
+	]);
 	const text = joinSnapshot([...chunks.values()]);
 	if (text === null) return fail("INTERNAL");
 
 	let status = envelope.status;
-	if (envelope.status === "sent") {
+	if (open && envelope.status === "sent") {
 		// The first view: only the winner of the guarded update records it.
 		const moved = await transitionEnvelope(envelopes, signer.data.envelopeId, "sent", "in_progress", {
 			updatedAt: now,
@@ -200,10 +278,6 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 			if (!appended.ok) throw new Error("audit chain contention");
 		}
 	}
-	const setting = (key: string, fallback: string) => {
-		const value = settingOf(settings, key);
-		return typeof value === "string" && value.length > 0 ? value : fallback;
-	};
 	const { participant } = signer.data;
 	return {
 		ok: true,
@@ -218,10 +292,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant } : {}) },
 		snapshot: text,
 		...(envelope.signerFields?.length ? { fields: envelope.signerFields } : {}),
-		consent: {
-			version: setting("consentVersion", DEFAULT_CONSENT_VERSION),
-			wording: setting("consentWording", DEFAULT_CONSENT_WORDING),
-		},
+		consent: { version: consent.version, wording: consent.wording, sha256: consent.sha256 },
 	};
 }
 
@@ -229,14 +300,14 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 
 async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	if (tokenInUrl(routeCtx.request)) return fail("TOKEN_IN_QUERY");
+	const limiter = failureLimiter(ctx, routeCtx);
 	const token = tokenOf(routeCtx.input);
-	if (token === null) return invalidToken(ctx, routeCtx, "submit");
+	if (token === null) return limiter.fail();
 	const fields = parseSubmit(routeCtx.input);
 	if (!fields.ok) return badRequest(fields.error);
 	const { envelopes, signers, audit_events } = stores(ctx);
-	const [signer, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
-	const consentVersion = settingOf(settings, "consentVersion");
-	if (!signer || signer.data.status !== "pending") return invalidToken(ctx, routeCtx, "submit");
+	const signer = await findSigner(ctx, token);
+	if (!signer || signer.data.status !== "pending") return limiter.fail();
 	const envelopeId = signer.data.envelopeId;
 	const envelope = await envelopes.get(envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
@@ -247,6 +318,11 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	// The signature binds to the document the signer saw; the snapshot is immutable after send.
 	if (envelope.docSha256 === null || fields.value.docSha256 !== envelope.docSha256) {
 		return badRequest([{ path: "docSha256", code: "DOC_CHANGED" }]);
+	}
+	// The consent recorded is the wording the signer was shown: if it has changed since, they see it again.
+	const consent = await consentSettings(ctx, needsMasterKey(envelope));
+	if (fields.value.consentSha256 !== consent.sha256) {
+		return badRequest([{ path: "consentSha256", code: "CONSENT_CHANGED" }]);
 	}
 
 	// The signer fills in exactly the fields the sender declared; required ones must have a value.
@@ -262,8 +338,6 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	];
 	if (fieldIssues.length > 0) return badRequest(fieldIssues);
 
-	const version =
-		typeof consentVersion === "string" && consentVersion.length > 0 ? consentVersion : DEFAULT_CONSENT_VERSION;
 	const signature = await bindSignature(envelope.docSha256, fields.value.signature, {
 		fieldValues: given,
 		salt: envelope.piiSalt,
@@ -272,7 +346,8 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	const inputs = signedAuditEvents({
 		at: now,
 		docSha256: envelope.docSha256,
-		consentVersion: version,
+		consentVersion: consent.version,
+		consentSha256: consent.sha256,
 		signature,
 		signerName: signer.data.name,
 		who,
@@ -293,7 +368,8 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 			status: "signed",
 			signature,
 			consentAt: now,
-			consentVersion: version,
+			consentVersion: consent.version,
+			consentSha256: consent.sha256,
 			signedAt: now,
 			fieldValues: fields.value.fieldValues,
 			...who,
@@ -308,7 +384,7 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 		ok: true,
 		status: "completed",
 		completedAt: now,
-		...(await returnTo(envelopeId, moved.value, settingOf(settings, "integrationMasterKey"))),
+		...(await returnTo(envelopeId, moved.value, consent.masterKey)),
 	};
 }
 
@@ -316,13 +392,14 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 
 async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	if (tokenInUrl(routeCtx.request)) return fail("TOKEN_IN_QUERY");
+	const limiter = failureLimiter(ctx, routeCtx);
 	const token = tokenOf(routeCtx.input);
-	if (token === null) return invalidToken(ctx, routeCtx, "decline");
+	if (token === null) return limiter.fail();
 	const reason = cleanReason(obj(routeCtx.input).reason);
 	if (reason === null) return badRequest([{ path: "reason", code: "INVALID_INPUT" }]);
 	const { envelopes, signers } = stores(ctx);
-	const [signer, settings] = await Promise.all([findSigner(ctx, token), ctx.settings.list()]);
-	if (!signer || signer.data.status !== "pending") return invalidToken(ctx, routeCtx, "decline");
+	const signer = await findSigner(ctx, token);
+	if (!signer || signer.data.status !== "pending") return limiter.fail();
 	const envelopeId = signer.data.envelopeId;
 	const envelope = await envelopes.get(envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
@@ -349,7 +426,7 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	return {
 		ok: true,
 		status: "declined",
-		...(await returnTo(envelopeId, moved.value, settingOf(settings, "integrationMasterKey"))),
+		...(await returnTo(envelopeId, moved.value, await masterKeyFor(ctx, moved.value))),
 	};
 }
 
