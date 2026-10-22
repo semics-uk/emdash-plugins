@@ -40,7 +40,8 @@ import { badRequest, fail } from "./reply";
  * A one-ticket-type order is 5 calls; the largest is 9. A replay is 2 (query, `outbox.get`).
  * The paid step: query, `settings.list` (shared with the step's `prepare`, which reads the licence
  * and provider key from it and may refuse before any write), `extendHold` (status + hold in one
- * write), attendees, the `hold-<ref>` re-arm: 5 calls, then the provider's own `start`.
+ * write), attendees, the `hold-<ref>` re-arm: 5 calls (6 for a waiver booking awaiting payment,
+ * whose signed attendees are kept), then the provider's own `start`.
  * The signature step (a booking with a `waiver`, Pro only): query, `settings.list` (shared with the
  * step, which reads the licence and pairing from it), `extendHold` → `awaiting_signature`,
  * attendees, the re-arm: 5 calls; the step mints its intents without bridge calls. Continuing a
@@ -199,7 +200,8 @@ async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item
 	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
 	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
 	const { holdExpiresAt } = extended.value;
-	await storage.attendees.putMany(docs);
+	// A waiver booking awaiting payment has its receipts in: keep the signed seats (1 call).
+	await storage.attendees.putMany(b.waiver && b.status === status ? await keepSigned(storage, docs) : docs);
 	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
 	const session = await prepared.value.start(holdExpiresAt);
 	if (!session.ok) return fail(session.error.code);
