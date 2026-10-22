@@ -4,7 +4,7 @@ title: "Events: pairing setting and intent issuing"
 phase: 3
 package: events
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T057, T012, T071]
