@@ -286,6 +286,22 @@
 						}
 					]
 				}
+			},
+			{
+				"id": "photo-consent",
+				"slug": "photo-consent",
+				"status": "published",
+				"data": {
+					"title": "Photo consent",
+					"content": [
+						{
+							"_type": "esign-request",
+							"_key": "c1",
+							"template": "photo-consent-template",
+							"heading": "Photo consent form"
+						}
+					]
+				}
 			}
 		],
 		"posts": [
