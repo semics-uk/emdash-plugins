@@ -50,7 +50,7 @@ async function setup(): Promise<BudgetedHost> {
 }
 
 async function createTemplate(budget: BudgetedHost, body = BODY): Promise<string> {
-	const r = (await budget.invokeRoute("templates/create", { name: "Waiver", body })).value as {
+	const r = (await budget.invokeRoute("templates/create", { name: "Waiver", body, integrations: true })).value as {
 		template: { id: string };
 	};
 	return r.template.id;

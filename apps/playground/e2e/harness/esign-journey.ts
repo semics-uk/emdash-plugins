@@ -42,39 +42,50 @@ export async function route<T = Record<string, unknown>>(
 	return (reply.data ?? reply) as T;
 }
 
-/** The clear-text token of a queued email (`/<page>/<token>`), or null when the row is missing or scrubbed. */
-function queuedToken(rowId: string, page: "sign" | "signed"): string | null {
-	const db = new DatabaseSync(resolve(root, "data.db"), { readOnly: true });
-	try {
-		const row = db
-			.prepare(`SELECT data FROM _plugin_storage WHERE plugin_id = 'semics-esign' AND collection = 'outbox' AND id = ?`)
-			.get(rowId) as { data: string } | undefined;
-		return row?.data.match(new RegExp(`/${page}/([A-Za-z0-9_-]{43})`))?.[1] ?? null;
-	} finally {
-		db.close();
-	}
+interface Mail {
+	to: string;
+	subject: string;
+	text: string;
 }
 
 /**
- * The signing token. Only its hash is stored on the signer; the token itself travels in the queued
- * invitation (outbox `invite-<signerId>`, clear text until the one-minute drain sends and scrubs it, R32).
- * The test reads it straight after the send. A drain tick could still land in that window, so a scrubbed
- * row makes the caller start a new envelope.
+ * The email the site delivered to `to` whose subject matches (T056 mail capture, `/e2e/mail`). Between
+ * looks it runs the e-sign outbox drain once (`/e2e/cron`), which sends what is due: the drain renders
+ * and sends the message, then scrubs the outbox row (R32), so the captured email is the one place the
+ * link's token can be read, exactly as the signer receives it.
  */
-export const readInviteToken = (envelopeId: string) => queuedToken(`invite-${envelopeId}:s1`, "sign");
+async function mailTo(request: APIRequestContext, to: string, subject: RegExp): Promise<Mail> {
+	for (let tick = 0; tick < 30; tick++) {
+		const { messages } = (await (await request.get(`/e2e/mail?to=${encodeURIComponent(to)}`)).json()) as {
+			messages: Mail[];
+		};
+		const found = messages.find((m) => subject.test(m.subject));
+		if (found) return found;
+		const ran = await request.post("/e2e/cron?task=outbox-drain&plugin=semics-esign");
+		if (!ran.ok()) throw new Error(`e2e cron: ${ran.status()}`);
+		await new Promise((resolve) => setTimeout(resolve, 200));
+	}
+	throw new Error(`no email "${subject}" to ${to}`);
+}
+
+/** The token in an emailed `/<page>/<token>` link. */
+function linkToken(mail: Mail, page: "sign" | "signed"): string {
+	const token = mail.text.match(new RegExp(`/${page}/([A-Za-z0-9_-]{43})`))?.[1];
+	if (!token) throw new Error(`no /${page}/ link in "${mail.subject}"`);
+	return token;
+}
+
+/** The signing token, from the invitation email's `/sign/<token>` link (only its hash is stored). */
+export async function readInviteToken(request: APIRequestContext, email: string): Promise<string> {
+	return linkToken(await mailTo(request, email, /asks you to sign/), "sign");
+}
 
 /**
- * The copy token in the completion email (`complete-<envelopeId>`): it opens `/signed/<token>`; the
- * signing token is not rotated (T115), so the invitation link still works.
+ * The copy token in the completion email: it opens `/signed/<token>`; the signing token is not rotated
+ * (T115), so the invitation link still works.
  */
-export async function waitForCompletionToken(envelopeId: string): Promise<string> {
-	const deadline = Date.now() + 30_000;
-	for (;;) {
-		const token = queuedToken(`complete-${envelopeId}`, "signed");
-		if (token) return token;
-		if (Date.now() > deadline) throw new Error("the completion email was not queued in time");
-		await new Promise((resolve) => setTimeout(resolve, 500));
-	}
+export async function waitForCompletionToken(request: APIRequestContext, sent: Sent): Promise<string> {
+	return linkToken(await mailTo(request, sent.email, /^Signed: /), "signed");
 }
 
 /** The stored signer document (read-only, straight from the site database). */
@@ -93,37 +104,39 @@ export function signerDoc(envelopeId: string): Record<string, unknown> {
 export interface Sent {
 	envelopeId: string;
 	token: string;
+	/** The signer's address, unique per envelope so its emails are told apart in the mailbox. */
+	email: string;
 }
 
-/** Admin: create a template, create an envelope with a signer-fillable field, send it, read the token. */
+let signerSeq = 0;
+
+/** Admin: create a template, create an envelope with a signer-fillable field, send it, read the emailed link. */
 export async function createAndSend(request: APIRequestContext, name = "Venue hire agreement"): Promise<Sent> {
-	for (let attempt = 0; attempt < 3; attempt++) {
-		const { template } = await route<{ template: { id: string } }>(
-			request,
-			"templates/create",
-			{
-				name,
-				body: "# Venue hire\n\nI, {{signer.name}}, agree to hire {{venue}} for the event.\n\nSigned for {{company}}.\n",
-			},
-			true,
-		);
-		const { envelope } = await route<{ envelope: { id: string } }>(
-			request,
-			"envelopes/create",
-			{
-				templateId: template.id,
-				title: name,
-				signer: SIGNER,
-				fields: { venue: "The Old Library", company: "Analytical Engines Ltd" },
-				signerFields: SIGNER_FIELDS,
-			},
-			true,
-		);
-		await route(request, "envelopes/send", { id: envelope.id }, true);
-		const token = readInviteToken(envelope.id);
-		if (token) return { envelopeId: envelope.id, token };
-	}
-	throw new Error("the invitation was scrubbed by the outbox drain three times in a row");
+	signerSeq += 1;
+	const email = `ada.${Date.now()}.${signerSeq}@example.com`;
+	const { template } = await route<{ template: { id: string } }>(
+		request,
+		"templates/create",
+		{
+			name,
+			body: "# Venue hire\n\nI, {{signer.name}}, agree to hire {{venue}} for the event.\n\nSigned for {{company}}.\n",
+		},
+		true,
+	);
+	const { envelope } = await route<{ envelope: { id: string } }>(
+		request,
+		"envelopes/create",
+		{
+			templateId: template.id,
+			title: name,
+			signer: { ...SIGNER, email },
+			fields: { venue: "The Old Library", company: "Analytical Engines Ltd" },
+			signerFields: SIGNER_FIELDS,
+		},
+		true,
+	);
+	await route(request, "envelopes/send", { id: envelope.id }, true);
+	return { envelopeId: envelope.id, token: await readInviteToken(request, email), email };
 }
 
 export interface Receipt {

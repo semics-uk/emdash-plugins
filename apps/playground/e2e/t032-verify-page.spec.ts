@@ -26,7 +26,7 @@ test.beforeAll(async ({ baseURL }) => {
 		const sent = await createAndSend(api, "Verify page agreement");
 		await signViaRoutes(api, sent);
 		const done = await waitForPdf(api, sent.envelopeId);
-		SIGNED_COPY_TOKEN = await waitForCompletionToken(sent.envelopeId);
+		SIGNED_COPY_TOKEN = await waitForCompletionToken(api, sent);
 		const { download } = await route<{ download: { url: string } }>(api, "public/session", { token: SIGNED_COPY_TOKEN });
 		SIGNED_PDF = await (await api.get(download.url)).body();
 		SIGNED_PDF_SHA256 = sha256(SIGNED_PDF);

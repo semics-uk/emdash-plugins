@@ -49,7 +49,7 @@ test("ES-US-1..6 send, sign with a drawn signature, download the PDF, verify it"
 
 	// The one-shot job builds the PDF; the completion email then links the stable "signed copy" page.
 	const done = await waitForPdf(request, sent.envelopeId);
-	const copyToken = await waitForCompletionToken(sent.envelopeId);
+	const copyToken = await waitForCompletionToken(request, sent);
 	await page.goto(`/signed/${copyToken}`);
 	const link = page.getByRole("link", { name: /download the signed pdf/i });
 	await expect(link).toBeVisible();

@@ -43,7 +43,7 @@ async function setup(): Promise<{ budget: BudgetedHost; templateId: string }> {
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 	runtime = await createPluginRuntimeTestHost({ site: { name: "Acme Theatre", url: "https://site.test" } });
 	const budget = withBudget(runtime);
-	const t = (await budget.invokeRoute("templates/create", { name: "Waiver", body: BODY })).value as {
+	const t = (await budget.invokeRoute("templates/create", { name: "Waiver", body: BODY, integrations: true })).value as {
 		template: { id: string };
 	};
 	return { budget, templateId: t.template.id };

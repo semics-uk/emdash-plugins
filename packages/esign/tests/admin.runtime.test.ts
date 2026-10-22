@@ -83,6 +83,38 @@ describe("ES-FR-11 admin pages in the host", () => {
 		expect(head).toMatchObject({ version: 2, name: "Waiver 2" });
 	});
 
+	it("ES-FR-13 the template forms carry an 'available to integrations' toggle that sets the flag", async () => {
+		const { r, templateId } = await setup();
+		const page = await r.admin.loadPage("/templates");
+		expect(text(page)).toContain('"action_id":"integrations"');
+		const res = await r.admin.submit("/templates", "template.create", {
+			name: "Waiver for Events",
+			description: "",
+			body: "Hello {{signer.name}}",
+			integrations: true,
+		});
+		expect(text(res)).toContain("Template created");
+		const rows = (await r.inspect.storage.list("templates")) as Row<{ name: string; integrations: boolean }>[];
+		const flagged = rows.find((x) => x.data.name === "Waiver for Events");
+		expect(flagged?.data.integrations).toBe(true);
+		expect((await r.inspect.storage.get("templates", templateId)) as { integrations: boolean }).toMatchObject({
+			integrations: false,
+		});
+
+		// The editor shows the current value and saving can turn it on.
+		const open = text(await r.admin.act("/templates", "template.edit", { value: templateId }));
+		expect(open).toMatch(/"action_id":"integrations"[^}]*"initial_value":false|"initial_value":false[^}]*"action_id":"integrations"/);
+		await r.admin.submit(
+			"/templates",
+			"template.save",
+			{ name: "Waiver", description: "", body: BODY, integrations: true },
+			{ blockId: `template:${templateId}` },
+		);
+		expect((await r.inspect.storage.get("templates", templateId)) as { integrations: boolean }).toMatchObject({
+			integrations: true,
+		});
+	});
+
 	it("ES-US-4 create, send, then the detail shows the audit events in order without secrets", async () => {
 		const { r, templateId } = await setup();
 		const form = await r.admin.act("/templates", "envelope.new", { value: templateId });
