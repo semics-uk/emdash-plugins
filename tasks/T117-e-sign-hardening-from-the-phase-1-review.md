@@ -44,6 +44,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] The audit timeline table's `audit.page` action has a handler or the table drops paging (a Free chain is a handful of events; 200 are shown)
 - [ ] Invitation and completion emails refuse to queue a relative link when `ctx.site.url` is unset (today the link is `/sign/<token>`), and the admin shows why
 - [ ] Budgets unchanged or lower; asserted with `expectWithinBudget`
+- [ ] Signing must not depend on decrypting secrets when the envelope has no integration: `public/session`, `submit` and `decline` read only the non-secret settings they need, and decrypt the master key only for integration envelopes, so a missing or changed `EMDASH_ENCRYPTION_KEY` never blocks a plain signature (T062 review)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
