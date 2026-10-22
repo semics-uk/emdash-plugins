@@ -48,6 +48,10 @@ import { badRequest, fail } from "./reply";
  * attendees, the re-arm: 5 calls; the step mints its intents without bridge calls. Continuing a
  * booking already awaiting signatures first reads its attendees (6), so seats whose receipts are
  * in keep them (`signatures/receipt`, T064) and the step can skip those seats.
+ * Once a waiver booking's intents are out (`awaiting_signature`, or `awaiting_payment` after its
+ * receipts), its stored attendees are fixed: continue writes them back as stored and refuses
+ * `attendees` that re-describe a seat (`ATTENDEES_LOCKED`, T119 F7), in Free too, so a Pro hold
+ * still open at a downgrade keeps its receipts (F6, R44). That read is the one extra call above.
  *
  * Pro plugs in through `checkoutContinueRoute({ payment, signature })` (`src/seams.ts`); the
  * declared route is the Free one, with neither step.
@@ -138,6 +142,10 @@ interface Checkout {
 	deps: ContinueDeps;
 	id: string;
 	attendees: readonly AttendeeInput[] | undefined;
+	/** The documents written are the stored attendees (`lockedAttendees`), read with one call. */
+	stored?: boolean;
+	/** Bridge calls spent before the step (the stored attendees' read). */
+	reads: number;
 }
 
 const done = (b: Pick<BookingDoc, "ref">) => ({
@@ -181,7 +189,7 @@ async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknow
 		const fresh = (await storage.bookings.get(c.id)) as BookingDoc | null;
 		return fresh?.status === "confirmed" ? finishConfirmed(c, fresh) : fail("HOLD_EXPIRED");
 	}
-	const room = CONTINUE_MAX_CALLS - 2 - AFTER_SOLD_CALLS;
+	const room = CONTINUE_MAX_CALLS - 2 - c.reads - AFTER_SOLD_CALLS;
 	await confirmSold(storage, countersForBooking(b).slice(0, room)).catch(() => undefined);
 	await fulfil(c, b, docs);
 	return done(b);
@@ -202,7 +210,9 @@ async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item
 	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
 	const { holdExpiresAt } = extended.value;
 	// A waiver booking awaiting payment has its receipts in: keep the signed seats (1 call).
-	await storage.attendees.putMany(b.waiver && b.status === status ? await keepSigned(storage, docs) : docs);
+	await storage.attendees.putMany(
+		b.waiver && b.status === status && !c.stored ? await keepSigned(storage, docs) : docs,
+	);
 	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
 	const session = await prepared.value.start(holdExpiresAt);
 	if (!session.ok) return fail(session.error.code);
@@ -237,9 +247,9 @@ function reissued(docs: Item[]): Item[] {
 }
 
 /**
- * A retry of a booking awaiting signatures that names no attendees (T066: e-sign refused an intent
- * and the visitor tries again) keeps the stored ones: planning none would put every seat in the
- * buyer's name. Null when any seat is missing.
+ * The stored attendees of a booking whose intents are out (T066, T119): null when any seat is missing.
+ * A retry that names no attendees (e-sign refused an intent and the visitor tries again) keeps them:
+ * planning none would put every seat in the buyer's name.
  */
 async function storedAttendees(storage: ContinueStorage, id: string, b: BookingDoc): Promise<Item[] | null> {
 	const ids = seatIds(id, b);
@@ -247,11 +257,42 @@ async function storedAttendees(storage: ContinueStorage, id: string, b: BookingD
 	return ids.every((i) => stored.has(i)) ? ids.map((i) => ({ id: i, data: stored.get(i) })) : null;
 }
 
+/** What a seat's intent was minted for: its ticket type, the person and whether they are under 18. */
+const seatKey = (d: Item) => {
+	const a = d.data as AttendeeDoc;
+	return JSON.stringify([d.id, a.ticketTypeId, a.name, a.email, a.minor === true]);
+};
+
+/**
+ * A waiver booking past its first signature step has intents out, so e-sign may hold an envelope for
+ * every seat: its stored attendees are the booking's from then on (T119 F7). Continue keeps them, and
+ * refuses `attendees` that would re-describe a seat (`ATTENDEES_LOCKED`; the buyer cancels and books
+ * again). Free does the same, so a Pro hold still open at a downgrade keeps its receipts (F6, R44).
+ */
+const intentsOut = (b: BookingDoc) =>
+	Boolean(b.waiver) && (b.status === "awaiting_signature" || b.status === "awaiting_payment");
+
+async function lockedAttendees(c: Checkout, b: BookingDoc): Promise<Result<Item[], InputIssue[]> | null> {
+	c.reads = 1;
+	const kept = await storedAttendees(c.deps.storage, c.id, b);
+	if (!kept) return null;
+	if (c.attendees) {
+		const asked = attendeesFor(c, b, "pending", c.attendees);
+		if (!asked.ok) return asked;
+		if (asked.value.map(seatKey).join() !== kept.map(seatKey).join()) {
+			return { ok: false, error: [{ path: "attendees", code: "ATTENDEES_LOCKED" }] };
+		}
+	}
+	c.stored = true;
+	return { ok: true, value: kept };
+}
+
 /** The Pro signature step: extend the hold, move to `awaiting_signature`, re-arm, return the intents. */
 async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: Item[]): Promise<unknown> {
 	const { storage, now, cron } = c.deps;
 	const settings = await settingsOf(c.deps);
-	const docs = b.status === "awaiting_signature" ? reissued(await keepSigned(storage, planned)) : planned;
+	const docs =
+		b.status === "awaiting_signature" ? reissued(c.stored ? planned : await keepSigned(storage, planned)) : planned;
 	const attendees = docs as Array<{ id: string; data: AttendeeDoc }>;
 	const prepared = await step.prepare({ bookingId: c.id, booking: b, attendees, settings });
 	if (!prepared.ok) {
@@ -280,7 +321,7 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	if (!found || !booking || !(await verifyToken(input.accessToken, booking.accessTokenHash))) {
 		return fail("NOT_FOUND");
 	}
-	const c: Checkout = { deps, id: found.id, attendees: input.attendees };
+	const c: Checkout = { deps, id: found.id, attendees: input.attendees, reads: 0 };
 
 	switch (checkoutState(booking, deps.now)) {
 		case "confirmed":
@@ -298,13 +339,9 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	const signature = signing ? deps.signature : undefined;
 	const step = nextStep(booking, { signaturePending: signature !== undefined });
 	if (!step) return fail("INTERNAL");
-	const kept =
-		signature && booking.status === "awaiting_signature" && !c.attendees
-			? await storedAttendees(deps.storage, found.id, booking)
-			: null;
-	const planned = kept
-		? { ok: true as const, value: kept }
-		: attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
+	const planned =
+		(intentsOut(booking) ? await lockedAttendees(c, booking) : null) ??
+		attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
 	if (!planned.ok) return badRequest(planned.error);
 	if (step.type === "sign" && signature) return sign(c, booking, signature, planned.value);
 	return step.type === "done" ? confirm(c, booking, planned.value) : pay(c, booking, step.status, planned.value);
