@@ -1623,7 +1623,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1636,7 +1636,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T077": {
 			"file": "T077-events-ui-payment-redirect-and-return-pages.md",
@@ -1902,7 +1902,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1912,7 +1912,7 @@
 				"ES-FR-17"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T093": {
 			"file": "T093-e-sign-pro-public-self-serve-templates-and-block.md",
@@ -2391,7 +2391,6 @@
 			"T106"
 		],
 		"ready": [
-			"T076",
 			"T080",
 			"T081",
 			"T082",
@@ -2400,7 +2399,6 @@
 			"T086",
 			"T090",
 			"T091",
-			"T092",
 			"T093",
 			"T094",
 			"T096",
@@ -2408,7 +2406,10 @@
 			"T111",
 			"T119"
 		],
-		"in-progress": [],
+		"in-progress": [
+			"T076",
+			"T092"
+		],
 		"review": [],
 		"done": [
 			"T000",

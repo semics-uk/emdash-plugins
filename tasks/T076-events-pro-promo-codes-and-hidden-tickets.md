@@ -4,7 +4,7 @@ title: "Events Pro: promo codes and hidden tickets"
 phase: 4
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T073, T071]
