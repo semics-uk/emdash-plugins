@@ -1575,7 +1575,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1591,7 +1591,7 @@
 				"T075",
 				"T078"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T075": {
 			"file": "T075-events-pro-refunds.md",
@@ -2377,7 +2377,6 @@
 			"T106"
 		],
 		"ready": [
-			"T074",
 			"T076",
 			"T077",
 			"T080",
@@ -2389,7 +2388,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T066"
+			"T066",
+			"T074"
 		],
 		"review": [],
 		"done": [
