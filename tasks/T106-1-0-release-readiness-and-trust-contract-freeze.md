@@ -41,6 +41,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Decide whether custom attendee answers (R52) should show on the booking page and in emails, and whether waitlist-offer bookings need them; record as a §12 row (follow-up from T080)
 - [ ] Decide and record (§12) the uploaded-PDF follow-ups from T094: a several-signer PDF send route, offering PDF templates to integrations, self-serve and bulk send, and deleting unreferenced pdf_files chunks
 - [ ] Decide whether the outbox drain's 2 messages a minute is acceptable for Events Pro broadcasts (a 500-recipient broadcast takes ~4 h) or needs a faster Pro drain; record as a §12 row (follow-up from T083)
+- [ ] Decide whether the suite's pages (BookingWithWaiver, /_events/waiver, /_events/templates) get translations before 1.0; record as a §12 row (follow-up from T102)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

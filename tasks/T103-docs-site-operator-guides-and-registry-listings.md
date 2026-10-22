@@ -4,7 +4,7 @@ title: "Docs site, operator guides and registry listings"
 phase: 7
 package: docs
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: M
 depends_on: [T078, T097]
@@ -42,6 +42,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Correct the docs to match the code (legal brief §12): the certificate keeps the participant (minor) name as well as signer name and IP, and the signed PDF keeps "Details entered by the signer" until the signed-records period ends (README "Retention (operators)" and R45 wording)
 - [ ] Operator guide: an amount mismatch (R49) is refunded automatically with only Stripe's refund receipt (no plugin email) and a warning in the logs; tell site owners where to look
 - [ ] Docs explain that custom attendee answers are collected once per booking (R52), appear in the attendee CSV, and are not shown on the booking page, in emails or on waitlist-offer bookings (follow-up from T080)
+- [ ] Docs link docs/i18n.md and state plainly that emails, calendar files, the admin and the suite's waiver/templates pages stay English (R58, follow-up from T102)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
