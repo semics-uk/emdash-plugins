@@ -60,9 +60,8 @@ jobs:
           if ls playwright.config.* apps/playground/playwright.config.* >/dev/null 2>&1; then
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Install Playwright browsers
-        if: steps.playwright.outputs.present == 'true'
-        run: pnpm exec playwright install --with-deps chromium
+      # The playground suite uses the runner's system Chrome (`channel: "chrome"`), so no browser download.
+      # `pnpm --filter playground e2e` builds the packages and the site, seeds, serves and runs Playwright.
       - name: Run end-to-end tests
         if: steps.playwright.outputs.present == 'true'
-        run: pnpm exec playwright test
+        run: pnpm --filter playground e2e
