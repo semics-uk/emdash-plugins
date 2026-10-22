@@ -16,7 +16,7 @@
  */
 import { callPublicRoute, type PublicRouteContext } from "./call";
 import { type CheckoutEndpointContext, crossSiteResponse, isCrossSiteRequest } from "./checkout-form";
-import { anchorId, formatMoney, safeReturnTo, widgetErrorLocation } from "./widget";
+import { anchorId, formatMoney, promoRefusal, safeReturnTo, widgetErrorLocation } from "./widget";
 
 export const PROMO_PATH = "/_events/promo";
 /** How long an applied code is remembered for the event (it is checked again on every render). */
@@ -64,7 +64,7 @@ export function promoCodeOf(raw: unknown): string {
 }
 
 /** The refusal codes the widget has messages for; anything else (Free has no such route) is PROMO_INVALID. */
-const KEPT = new Set(["PROMO_EXHAUSTED", "RATE_LIMITED"]);
+const KEPT = new Set(["PROMO_EXHAUSTED", "PROMO_UNAVAILABLE", "RATE_LIMITED"]);
 
 async function checkCode(
 	ctx: PublicRouteContext,
@@ -77,7 +77,10 @@ async function checkCode(
 		pluginId,
 		body: { eventId: input.eventId, code: input.code },
 	});
-	if (!result.ok) return { ok: false, code: KEPT.has(result.error.code) ? result.error.code : "PROMO_INVALID" };
+	if (!result.ok) {
+		const code = promoRefusal(result.error.code);
+		return { ok: false, code: KEPT.has(code) ? code : "PROMO_INVALID" };
+	}
 	const hiddenTypes = Array.isArray(result.data.hiddenTypes) ? result.data.hiddenTypes : [];
 	return { ok: true, check: { ...result.data, hiddenTypes } };
 }

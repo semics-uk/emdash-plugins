@@ -3,6 +3,7 @@ import { isPayUrl } from "./payment";
 import {
 	fieldsFromIssues,
 	newIdempotencyKey,
+	promoRefusal,
 	safeReturnTo,
 	validateCheckoutFields,
 	type WidgetField,
@@ -165,7 +166,8 @@ export async function handleCheckoutForm(
 		},
 	});
 	if (!reserved.ok) {
-		const { code, issues } = reserved.error;
+		const { issues } = reserved.error;
+		const code = promoCode ? promoRefusal(reserved.error.code) : reserved.error.code;
 		const fields: WidgetField[] = code.startsWith("PROMO_") ? ["promo"] : [];
 		return refuse(code, code === "BAD_REQUEST" ? fieldsFromIssues(issues) : fields);
 	}

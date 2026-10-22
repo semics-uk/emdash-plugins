@@ -83,10 +83,14 @@ export const ERROR_MESSAGES: Record<string, string> = {
 	PROMO_INVALID: "That code is not valid for this event.",
 	PROMO_EXHAUSTED: "That code has been used up.",
 	PROMO_ORDER_TOO_LARGE: "That code can't be used on an order this large. Order fewer ticket types at once.",
+	PROMO_UNAVAILABLE: "That code can't be used right now. Remove it to book without it.",
 	INTERNAL: "Something went wrong. Please try again.",
 };
 
 export const errorMessage = (code: string) => ERROR_MESSAGES[code] ?? ERROR_MESSAGES.INTERNAL;
+
+/** A refusal of an order or check with a code: Pro's licence codes (it lapsed) mean the code can't be used (T120). */
+export const promoRefusal = (code: string) => (code.startsWith("LICENCE_") ? "PROMO_UNAVAILABLE" : code);
 
 /** 32 random bytes as 43 unpadded base64url characters: a fresh key for each checkout attempt. */
 export function newIdempotencyKey(): string {
