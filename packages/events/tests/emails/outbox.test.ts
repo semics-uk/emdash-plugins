@@ -129,29 +129,78 @@ describe("EV-FR-09 cancellation from the outbox", () => {
 	});
 });
 
+/** A second booking of the same event (and a third), each with its own attendee and outbox row. */
+function addBooking(w: Awaited<ReturnType<typeof world>>, suffix: string) {
+	const id = `bk_${suffix.padEnd(32, "0")}`;
+	w.storage.bookings.set(id, { ...w.booking(), ref: `REF${suffix}`.padEnd(10, "A").slice(0, 10), email: `${suffix}@example.com` });
+	w.storage.attendees.set(`${id}-1`, {
+		bookingId: id,
+		eventId: "ev1",
+		ticketTypeId: "tt_a",
+		name: `Guest ${suffix}`,
+		email: `${suffix}@example.com`,
+		code: `code-${suffix}_x-Y`,
+		status: "valid",
+	});
+	w.storage.outbox.set(`confirm-${id}`, { ...row(w, `confirm-${ID}`), to: `${suffix}@example.com`, payload: { bookingId: id } });
+	return id;
+}
+
 describe("R22 outbox drain budget", () => {
-	it("R22 drains one message per tick: 8 bridge calls for a one-off event, 9 for an occurrence", async () => {
-		expect(OUTBOX_PER_TICK).toBe(1);
+	it("R22 drains two messages per tick: 9 bridge calls for one-off events, 10 with occurrences", async () => {
+		expect(OUTBOX_PER_TICK).toBe(2);
 		const one = await world();
-		await drainEventsOutbox(one.deps());
-		expect(meter.calls).toBe(8);
+		addBooking(one, "b");
+		meter.calls = 0;
+		const result = await drainEventsOutbox(one.deps());
+		expect(result.sent).toBe(2);
+		expect(meter.calls).toBe(9);
 		meter.calls = 0;
 		const rec = await world({ occurrence: true });
-		await drainEventsOutbox(rec.deps());
+		const b = addBooking(rec, "b");
+		rec.storage.bookings.set(b, { ...(rec.storage.bookings.docs.get(b) as Doc), occurrenceId: "oc1" });
+		meter.calls = 0;
+		expect((await drainEventsOutbox(rec.deps())).sent).toBe(2);
+		expect(meter.calls).toBe(10);
+	});
+
+	it("R22 reads the event once from its config: no settings or content calls", async () => {
+		const w = await world();
+		let contentReads = 0;
+		const deps = w.deps({
+			content: {
+				get: async () => {
+					contentReads++;
+					return null;
+				},
+			},
+		});
+		expect((await drainEventsOutbox(deps)).sent).toBe(1);
+		expect(contentReads).toBe(0);
+		expect(w.sent[0]?.text).toContain("Winter Concert");
+	});
+
+	it("T046 a config without a copy of the entry falls back to reading the entry (settings, entry)", async () => {
+		const w = await world({ denormalised: false });
+		meter.calls = 0;
+		expect((await drainEventsOutbox(w.deps())).sent).toBe(1);
+		expect(w.sent[0]?.text).toContain("Winter Concert");
 		expect(meter.calls).toBe(9);
 	});
 
-	it("R22 a second queued message waits for the next tick", async () => {
+	it("R22 a third queued message waits for the next tick", async () => {
 		const w = await world();
-		w.storage.outbox.set("confirm-other", { ...row(w, `confirm-${ID}`) });
+		addBooking(w, "b");
+		addBooking(w, "c");
 		const first = await drainEventsOutbox(w.deps());
-		expect(first).toMatchObject({ sent: 1, remainingHint: true });
+		expect(first).toMatchObject({ sent: 2, remainingHint: true });
 		expect((await drainEventsOutbox(w.deps())).sent).toBe(1);
 	});
 
 	it("R22 an empty tick is one bridge call", async () => {
 		const w = await world();
 		w.storage.outbox.docs.clear();
+		meter.calls = 0;
 		await drainEventsOutbox(w.deps());
 		expect(meter.calls).toBe(1);
 	});

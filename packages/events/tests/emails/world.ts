@@ -18,6 +18,7 @@ export async function world({
 	kind = "booking_confirmed",
 	title = "Winter Concert",
 	names = ["Ada Lovelace", "Grace Hopper"],
+	denormalised = true,
 }: {
 	timezone?: string;
 	status?: string;
@@ -25,6 +26,8 @@ export async function world({
 	kind?: "booking_confirmed" | "booking_cancelled";
 	title?: string;
 	names?: string[];
+	/** Whether the event config carries `info` (the copy of the entry's public fields). */
+	denormalised?: boolean;
 } = {}) {
 	const storage = makeStore();
 	const kv = new FakeKv();
@@ -72,6 +75,24 @@ export async function world({
 		nextAttemptAt: new Date(NOW).toISOString(),
 		status: "pending",
 	});
+	storage.event_configs.set("ev1", {
+		status: "on_sale",
+		capacity: 100,
+		reserved: 0,
+		sold: 0,
+		currency: "GBP",
+		...(denormalised
+			? {
+					info: {
+						title,
+						startsAt: new Date(START).toISOString(),
+						endsAt: new Date(START + 2 * 3_600_000).toISOString(),
+						timezone,
+						venue: "Town Hall, Market Street",
+					},
+				}
+			: {}),
+	});
 	const sent: Array<{ to: string; subject: string; text: string; html?: string }> = [];
 	const content = {
 		get: async (collection: string, id: string) => {
@@ -90,9 +111,9 @@ export async function world({
 		},
 	};
 	const settings = {
-		get: async <T>(_key: string): Promise<T | null> => {
+		list: async (): Promise<Array<{ key: string; value: unknown }>> => {
 			meter.calls++;
-			return null;
+			return [];
 		},
 	};
 	const deps = (over: Partial<DrainDeps> = {}): DrainDeps => ({
