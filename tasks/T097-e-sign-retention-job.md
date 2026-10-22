@@ -41,6 +41,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Purge old outbox rows (sent and failed) as part of retention (T027/T113)
 - [ ] Personal data purged covers every copy (T034 review): on `signers` the name, email, `ip`, `ua`, `signature` (typed name and strokes), `fieldValues`, `declineReason`, `tokenHash` and `copyTokenHash`; on `envelopes` the `signer` block, `fieldValues` (intent prefill) and `returnUrl`; consumed `nonces`. The signed record (`snapshots`, `artifacts`, the chain) keeps what it printed (the snapshot may contain `{{signer.name}}`/`{{signer.email}}`, the certificate prints the signer's name and IP) until the signed-records period; document that in the operator guide
 - [ ] `src/domain/audit.ts` header comment says a value disclosed later can still be proven against its commitment; after the purge deletes `piiSalt` it cannot (R28). Correct it with the purge
+- [ ] Free Events is at 100.3 KiB of the 104 KiB budget after T087: any further Free Events code must be offset by trimming (R42)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

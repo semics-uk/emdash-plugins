@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Emails via outbox
+- [ ] Waitlist rows that hold an email get an `email` index and are covered by the T087 retention job and the admin "Delete personal data" action
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
