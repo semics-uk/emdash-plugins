@@ -4,10 +4,10 @@
 // a Cloudflare Cron Trigger) does. The executor claims due tasks atomically, so a timer tick at the
 // same moment can't run the task twice.
 //
-// EmDash 1.2 runs `plugin:install`/`plugin:activate` at boot only for native config plugins, so a
-// sandboxed core declared in `sandboxed: [...]` never schedules its crons (no `outbox-drain` row)
-// until an admin re-enables it. When the task is missing this runs the core's activate lifecycle
-// first, as that re-enable would (follow-up recorded in tasks/T056).
+// EmDash 1.2 never runs `plugin:activate` for a sandboxed core declared in `sandboxed: [...]`, so
+// the cores schedule their own recurring tasks (T116, R37): the first public read or admin page
+// load queues a one-shot `ensure-schedules` task that the next batch runs. When the task row is
+// still missing, this runs that batch first instead of activating the core.
 import { withEmDashRuntime } from "emdash/middleware";
 
 export const prerender = false;
@@ -23,34 +23,30 @@ interface Runtime {
 		};
 	};
 	runScheduledTasksWithStats(): Promise<{ processed: number }>;
-	runPluginActivateLifecycle(pluginId: string): Promise<void>;
 }
 
 export async function POST({ url }: { url: URL }): Promise<Response> {
 	const task = url.searchParams.get("task") ?? "";
 	const plugin = url.searchParams.get("plugin") ?? "semics-events";
 	if (!task) return new Response(JSON.stringify({ ok: false }), { status: 400 });
-	const due = new Date(Date.now() - 1000).toISOString();
 	const result = await withEmDashRuntime(async (runtime) => {
 		const rt = runtime as unknown as Runtime;
 		const makeDue = async () => {
 			const { numUpdatedRows } = await rt.db
 				.updateTable("_emdash_cron_tasks")
-				.set({ next_run_at: due })
+				.set({ next_run_at: new Date(Date.now() - 1000).toISOString() })
 				.where("plugin_id", "=", plugin)
 				.where("task_name", "=", task)
 				.executeTakeFirst();
 			return Number(numUpdatedRows);
 		};
 		let scheduled = await makeDue();
-		let activated = false;
 		if (scheduled === 0) {
-			await rt.runPluginActivateLifecycle(plugin);
-			activated = true;
+			await rt.runScheduledTasksWithStats();
 			scheduled = await makeDue();
 		}
 		const { processed } = await rt.runScheduledTasksWithStats();
-		return { scheduled, activated, processed };
+		return { scheduled, processed };
 	});
 	return new Response(JSON.stringify({ ok: true, ...result }), {
 		headers: { "content-type": "application/json", "cache-control": "no-store" },

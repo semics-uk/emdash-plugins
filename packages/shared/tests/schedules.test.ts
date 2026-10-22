@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
 	ENSURE_SCHEDULES_TASK,
 	ensureSchedules,
+	isPageLoad,
 	runEnsureSchedulesJob,
 	SCHEDULES_FLAG,
 	type ScheduleCtx,
 	scheduleRecurring,
+	withScheduleCheck,
 } from "../src/schedules";
 
 // T116 (R37): cores self-schedule their recurring crons because EmDash 1.2 never runs
@@ -101,5 +103,28 @@ describe("scheduleRecurring and the ensure job", () => {
 		expect(await runEnsureSchedulesJob({ name: ENSURE_SCHEDULES_TASK }, ours.ctx, TASKS, NOW)).toBe(true);
 		expect(ours.scheduled.map((t) => t.name)).toEqual(["sweep-holds", "outbox-drain"]);
 		expect(ours.kv.has(SCHEDULES_FLAG)).toBe(true);
+	});
+});
+
+describe("withScheduleCheck", () => {
+	type Handler = (r: { input?: unknown }, c: ScheduleCtx) => Promise<unknown>;
+	const route = { public: true, handler: async (r: { input?: unknown }) => ({ echoed: r.input }) };
+
+	it("runs the check before the handler and keeps the rest of the definition", async () => {
+		const { ctx, log } = fakeCtx();
+		const wrapped = withScheduleCheck(route, undefined, () => NOW);
+		expect(wrapped.public).toBe(true);
+		expect(await (wrapped.handler as Handler)({ input: 1 }, ctx)).toEqual({ echoed: 1 });
+		expect(log).toEqual([`kv.get ${SCHEDULES_FLAG}`, `cron.schedule ${ENSURE_SCHEDULES_TASK}`]);
+	});
+
+	it("skips the check when the predicate says so (admin actions)", async () => {
+		const { ctx, log } = fakeCtx();
+		const handler = withScheduleCheck(route, isPageLoad).handler as Handler;
+		await handler({ input: { type: "block_action" } }, ctx);
+		await handler({ input: null }, ctx);
+		expect(log).toEqual([]);
+		await handler({ input: { type: "page_load", page: "/x" } }, ctx);
+		expect(log).toEqual([`kv.get ${SCHEDULES_FLAG}`, `cron.schedule ${ENSURE_SCHEDULES_TASK}`]);
 	});
 });

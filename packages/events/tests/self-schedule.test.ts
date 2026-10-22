@@ -23,6 +23,12 @@ async function setup() {
 	return { r: runtime, budget: withBudget(runtime) };
 }
 
+/** One scheduler tick a second from now (the host clock is frozen at creation; the sandbox's is not). */
+const tick = (r: PluginRuntimeTestHost) => {
+	r.scheduled.setTime(new Date(Date.now() + 1000));
+	return r.scheduled.run();
+};
+
 const taskNames = async (r: PluginRuntimeTestHost) =>
 	(await r.inspect.scheduledTasks()).map((t) => String(t.name)).sort();
 
@@ -38,30 +44,33 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 		expect(await taskNames(r)).toEqual([]);
 	});
 
-	it.each(ALWAYS_HIT)("%s queues the ensure task once, and its cron tick schedules both crons", async (route, input) => {
-		const { r, budget } = await setup();
-		const first = await budget.invokeRoute(route, input);
-		expectWithinBudget(first, TARGET);
-		expect(first.calls.filter(isCheck)).toHaveLength(1);
-		expect(await taskNames(r)).toEqual([ENSURE_SCHEDULES_TASK]);
+	it.each(ALWAYS_HIT)(
+		"%s queues the ensure task once, and its cron tick schedules both crons",
+		async (route, input) => {
+			const { r, budget } = await setup();
+			const first = await budget.invokeRoute(route, input);
+			expectWithinBudget(first, TARGET);
+			expect(first.calls.filter(isCheck)).toHaveLength(1);
+			expect(await taskNames(r)).toEqual([ENSURE_SCHEDULES_TASK]);
 
-		const tick = await budget.measure("ensure tick", () => r.scheduled.run());
-		expectWithinBudget(tick, TARGET);
-		expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
-		const tasks = await r.inspect.scheduledTasks();
-		expect(tasks).toEqual(
-			expect.arrayContaining([
-				expect.objectContaining({ name: "sweep-holds", schedule: "*/5 * * * *" }),
-				expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
-			]),
-		);
-		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
-	});
+			const ran = await budget.measure("ensure tick", () => tick(r));
+			expectWithinBudget(ran, TARGET);
+			expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
+			const tasks = await r.inspect.scheduledTasks();
+			expect(tasks).toEqual(
+				expect.arrayContaining([
+					expect.objectContaining({ name: "sweep-holds", schedule: "*/5 * * * *" }),
+					expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
+				]),
+			);
+			expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
+		},
+	);
 
 	it("once scheduled, every always-hit path makes only the one KV check and schedules nothing", async () => {
 		const { r, budget } = await setup();
 		await budget.invokeRoute("public/events", {});
-		await r.scheduled.run();
+		await tick(r);
 		for (const [route, input] of ALWAYS_HIT) {
 			const res = await budget.invokeRoute(route, input);
 			expectWithinBudget(res, TARGET);
@@ -70,13 +79,15 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 		}
 	});
 
-	it("activation (registry installs) schedules both crons and sets the flag, so no ensure task follows", async () => {
+	it("activation (registry installs) still schedules both crons; the ensure task then sets the flag once", async () => {
 		const { r, budget } = await setup();
-		await r.actions.plugin.activate();
-		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
-		const res = await budget.invokeRoute("public/events", {});
-		expect(res.calls.filter(isSchedule)).toEqual([]);
+		const activated = await budget.measure("activate", () => r.actions.plugin.activate());
+		expect(activated.calls.filter(isSchedule)).toHaveLength(2);
 		expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
+		await budget.invokeRoute("public/events", {});
+		await tick(r);
+		expect(await taskNames(r)).toEqual(["outbox-drain", "sweep-holds"]);
+		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
 	});
 
 	it("leaves the routes nearest the limit alone: checkout reserve/continue and admin actions make no check", async () => {

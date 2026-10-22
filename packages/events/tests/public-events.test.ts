@@ -84,7 +84,8 @@ describe("EV-FR-03 public/events", () => {
 		await save(draft.id, "draft");
 
 		const r = await budget.invokeRoute("public/events", {});
-		expectWithinBudget(r, { calls: 2 });
+		// One query, plus the T116 schedule check (1 KV read; +1 cron write on a site's first call).
+		expectWithinBudget(r, { calls: 3 });
 		const body = r.value as { ok: boolean; events: Array<Record<string, unknown>> };
 		expect(body.ok).toBe(true);
 		expect(body.events.map((e) => e.title)).toEqual(["Sooner Gig", "Later Gig"]);
