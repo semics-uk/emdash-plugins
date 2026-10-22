@@ -283,6 +283,16 @@ describe("T057 cross-site form posts are refused (CSRF), whatever the site's che
 		expect(isCrossSiteRequest(new Request(site, { headers: { origin: "https://evil.example" } }), site)).toBe(false);
 	});
 
+	it("T057 compares Origin with the Host the browser used when Astro rewrote the URL to localhost", () => {
+		// Astro without `security.allowedDomains` builds Request.url as http://localhost:<port>.
+		const local = new URL("http://localhost:4401/_events/checkout");
+		const at = (origin: string, host: string) =>
+			new Request(local, { method: "POST", headers: { origin, host, "content-type": "multipart/form-data" } });
+		expect(isCrossSiteRequest(at("http://127.0.0.1:4401", "127.0.0.1:4401"), local)).toBe(false);
+		expect(isCrossSiteRequest(at("https://evil.example", "127.0.0.1:4401"), local)).toBe(true);
+		expect(isCrossSiteRequest(at("http://127.0.0.1:9999", "127.0.0.1:4401"), local)).toBe(true);
+	});
+
 	it("T057 POST /_events/checkout answers 403 to a cross-site post and calls no route", async () => {
 		const h = host({ success: true, data: { ok: true, bookingRef: "ABCDEFGHJK", accessToken: TOKEN } }, {});
 		const body = new URLSearchParams({ ...goodForm, idempotencyKey: KEY });
