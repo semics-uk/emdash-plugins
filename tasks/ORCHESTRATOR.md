@@ -49,6 +49,16 @@ in full; the per-package `CONTEXT.md` files summarise them.
    same worktree (new session). Before relaunching anything, kill leftover processes:
    `pgrep -fl "workerd|dist/server/entry"`.
 
+## Pro tasks (R40, R41)
+
+- Pro code lives only in `/Users/semics/code/semics/emdash-plugins-pro` (separate git repo, no remote yet;
+  never commit Pro code to this repo). It links this repo's main checkout with `link:`.
+- A Pro agent still gets a public worktree (for any MIT seam it needs, test-first, landed first) and
+  creates its own Pro worktree at `/Users/semics/code/semics/.pro-worktrees/agent-<id>` on branch
+  `pro-agent-<id>`; the Pro README has the steps (`extendCore`, `licence.gate`, `pro.json`, edition tests).
+- `land.sh` lands the public branch, then calls `land-pro.sh` for the matching Pro worktree.
+- Run the Pro repo's own `pnpm verify` before landing a Pro task.
+
 ## Commands and conventions
 
 - Environment: `export PATH="$HOME/.nvm/versions/node/v24.21.0/bin:/opt/homebrew/bin:$PATH"`; always
