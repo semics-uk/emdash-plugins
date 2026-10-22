@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 
 import { handleCheckoutForm } from "../../src/astro/lib/checkout-form";
 import { handlePromoRequest, PROMO_PATH, promoCookieName, promoNote, promoView } from "../../src/astro/lib/promo";
-import { anchorId, readWidgetState } from "../../src/astro/lib/widget";
+import { anchorId, errorMessage, readWidgetState } from "../../src/astro/lib/widget";
 
 const url = new URL("https://site.example/_events/promo");
 const KEY = "k".repeat(40);
@@ -74,6 +74,20 @@ describe("the order carries the code (EV-FR-14)", () => {
 			expect(loc.searchParams.get("booking_fields")).toBe("promo");
 			expect(out.location).not.toContain("SECRET");
 			expect(readWidgetState(loc, "ev1")).toEqual({ code, fields: ["promo"] });
+		}
+	});
+
+	it("T120 F9 a lapsed licence at reserve with a code says the code cannot be used, on the promo field", async () => {
+		for (const code of ["LICENCE_EXPIRED", "LICENCE_INVALID"]) {
+			const refused = { success: true, data: { ok: false, error: { code, message: "licence" } } };
+			const h = host({ "public/checkout/reserve": refused });
+			const out = await handleCheckoutForm({ locals: h.locals, url }, form({ ...order, promoCode: "SPRING25" }), {});
+			const loc = new URL(out.location, url);
+			expect(loc.searchParams.get("booking_error")).toBe("PROMO_UNAVAILABLE");
+			expect(loc.searchParams.get("booking_fields")).toBe("promo");
+			const state = readWidgetState(loc, "ev1");
+			expect(state).toEqual({ code: "PROMO_UNAVAILABLE", fields: ["promo"] });
+			expect(errorMessage(state.code ?? "")).toMatch(/code can't be used/);
 		}
 	});
 });
@@ -146,6 +160,13 @@ describe("applying a code (EV-FR-14, T078)", () => {
 		});
 		const slow = await handlePromoRequest(endpoint(limited, apply).ctx, {});
 		expect(new URL(slow.headers.get("location") ?? "", url).searchParams.get("booking_error")).toBe("RATE_LIMITED");
+
+		// T120 F9: Pro without a valid licence answers a licence code: the code cannot be used right now.
+		const lapsed = host({
+			"public/promo/check": { success: true, data: { ok: false, error: { code: "LICENCE_EXPIRED", message: "x" } } },
+		});
+		const off = await handlePromoRequest(endpoint(lapsed, apply).ctx, {});
+		expect(new URL(off.headers.get("location") ?? "", url).searchParams.get("booking_error")).toBe("PROMO_UNAVAILABLE");
 
 		const garbled = host({ "public/promo/check": unlock });
 		await handlePromoRequest(endpoint(garbled, { ...apply, promoCode: "x".repeat(200) }).ctx, {});
