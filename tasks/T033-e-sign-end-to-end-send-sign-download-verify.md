@@ -4,7 +4,7 @@ title: "E-sign: end-to-end send, sign, download, verify"
 phase: 1
 package: esign
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T025, T026, T027, T028, T030, T031, T032, T009]
