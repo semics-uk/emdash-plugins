@@ -1549,7 +1549,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1566,7 +1566,7 @@
 				"T076",
 				"T077"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T074": {
 			"file": "T074-events-pro-stripe-webhook-and-late-payments.md",
@@ -2381,7 +2381,6 @@
 			"T106"
 		],
 		"ready": [
-			"T073",
 			"T080",
 			"T081",
 			"T082",
@@ -2391,7 +2390,8 @@
 			"T111"
 		],
 		"in-progress": [
-			"T065"
+			"T065",
+			"T073"
 		],
 		"review": [],
 		"done": [
