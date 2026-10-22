@@ -2122,7 +2122,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2135,7 +2135,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T105": {
 			"file": "T105-legal-brief-for-the-consent-and-retention-review.md",
@@ -2393,10 +2393,10 @@
 			"T085",
 			"T086",
 			"T087",
-			"T104",
 			"T111"
 		],
 		"in-progress": [
+			"T104",
 			"T118"
 		],
 		"review": [],

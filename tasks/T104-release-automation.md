@@ -4,7 +4,7 @@ title: "Release automation"
 phase: 7
 package: repo
 edition: free
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T002, T071]
