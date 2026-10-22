@@ -1,0 +1,78 @@
+---
+// <EventCard event>: one event from `public/events`, server-rendered, no client JavaScript. The start
+// is shown in the event's own time zone. Text only (Astro escapes every expression). Themed with
+// `--events-*` custom properties.
+import { cardView, type PublicEventSummary } from "./lib/list";
+
+interface Props {
+	event: PublicEventSummary;
+	/** Where the title links to (the event's page); the title is plain text without it. */
+	href?: string;
+	locale?: string;
+	/** Heading level of the title, so the card fits under the page's own headings. */
+	headingLevel?: 2 | 3 | 4;
+}
+
+const { event, href, locale = "en-GB", headingLevel = 3 } = Astro.props;
+const view = cardView(event, locale);
+const Heading = `h${headingLevel}` as "h3";
+---
+<article class="semics-events semics-event-card" data-testid="event-card" data-event-id={view.eventId}>
+	<Heading class="semics-event-title">{href ? <a href={href}>{view.title}</a> : view.title}</Heading>
+	<p class="semics-event-when" data-testid="event-when">
+		<time datetime={view.datetime}>{view.when}</time>
+	</p>
+	{view.venue && <p class="semics-event-venue" data-testid="event-venue">{view.venue}</p>}
+	{
+		(view.price || view.badge) && (
+			<p class="semics-event-meta">
+				{view.price && <span class="semics-event-price" data-testid="event-price">{view.price}</span>}
+				{view.badge && <span class="semics-event-badge" data-testid="event-badge">{view.badge}</span>}
+			</p>
+		)
+	}
+</article>
+
+<style>
+	.semics-event-card {
+		--_fg: var(--events-fg, #1a1a1a);
+		--_muted: var(--events-muted, #4a4a4a);
+		--_bg: var(--events-bg, #ffffff);
+		--_border: var(--events-border, #6b6b6b);
+		--_accent: var(--events-accent, #0b57d0);
+		box-sizing: border-box;
+		padding: 1rem;
+		border: 1px solid var(--_border);
+		border-radius: var(--events-radius, 6px);
+		background: var(--_bg);
+		color: var(--_fg);
+		font-family: var(--events-font, system-ui, sans-serif);
+	}
+	.semics-event-title {
+		margin: 0 0 0.25rem;
+		font-size: 1.125rem;
+	}
+	.semics-event-title a {
+		color: var(--_accent);
+	}
+	.semics-event-when,
+	.semics-event-venue {
+		margin: 0.125rem 0;
+		color: var(--_muted);
+	}
+	.semics-event-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin: 0.5rem 0 0;
+	}
+	.semics-event-price {
+		font-weight: 600;
+	}
+	.semics-event-badge {
+		padding: 0 0.5rem;
+		border: 1px solid var(--_border);
+		border-radius: 999px;
+		color: var(--_muted);
+	}
+</style>

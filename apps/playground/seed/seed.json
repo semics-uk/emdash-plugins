@@ -277,6 +277,12 @@
 							"_key": "w2",
 							"heading": "Upcoming events",
 							"limit": 3
+						},
+						{
+							"_type": "events-booking",
+							"_key": "w3",
+							"event": "london-meetup",
+							"heading": "Book the London meetup"
 						}
 					]
 				}

@@ -1,16 +1,15 @@
 ---
-// Spike S2 (T004) probe page: server-renders the sandboxed core's public/probe route. The route
-// was removed after the spike, so this page now always shows the defined error state; T009 owns it.
-// `?plugin=` targets another plugin ID so the not-enabled error state can be exercised.
-import { callPublicRoute, EVENTS_PLUGIN_ID } from "@semics-tech/emdash-events/astro";
+// Spike S2 probe page (repointed by T054): server-renders the sandboxed core's real `public/events`
+// route through `callPublicRoute`. `?plugin=` targets another plugin ID so the not-enabled error
+// state can be exercised.
+import { callPublicRoute } from "@semics-tech/emdash-events/astro";
+import { pluginId as configuredId } from "virtual:semics-events/config";
 
 export const prerender = false;
 
-const pluginId = Astro.url.searchParams.get("plugin") ?? EVENTS_PLUGIN_ID;
-const result = await callPublicRoute<{ pluginId: string; method: string; echo: unknown }>(Astro, {
-	method: "POST",
-	path: "public/probe",
-	body: { ping: "s2" },
+const pluginId = Astro.url.searchParams.get("plugin") ?? configuredId;
+const result = await callPublicRoute<{ events: Array<{ title: string }> }>(Astro, {
+	path: "public/events",
 	pluginId,
 });
 ---
@@ -26,11 +25,11 @@ const result = await callPublicRoute<{ pluginId: string; method: string; echo: u
 				result.ok ? (
 					<dl>
 						<dt>Plugin</dt>
-						<dd data-testid="s2-plugin-id">{result.data.pluginId}</dd>
+						<dd data-testid="s2-plugin-id">{pluginId}</dd>
 						<dt>Method</dt>
-						<dd data-testid="s2-method">{result.data.method}</dd>
-						<dt>Echo</dt>
-						<dd data-testid="s2-echo">{JSON.stringify(result.data.echo)}</dd>
+						<dd data-testid="s2-method">GET</dd>
+						<dt>Events</dt>
+						<dd data-testid="s2-echo">{result.data.events.map((e) => e.title).join(",")}</dd>
 					</dl>
 				) : (
 					<p role="alert">

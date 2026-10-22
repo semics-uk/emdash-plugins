@@ -6,5 +6,19 @@
 			"tt_london_general": { "name": "General admission", "priceMinor": 0, "capacity": 50, "maxPerOrder": 6 },
 			"tt_london_helper": { "name": "Volunteer <helper>", "priceMinor": 0, "capacity": 5, "maxPerOrder": 1 }
 		}
+	},
+	"nyc-workshop": {
+		"currency": "USD",
+		"capacity": 40,
+		"ticketTypes": {
+			"tt_nyc_seat": { "name": "Workshop seat", "priceMinor": 2500, "capacity": 40, "maxPerOrder": 4 }
+		}
+	},
+	"sydney-conference": {
+		"currency": "AUD",
+		"capacity": 200,
+		"ticketTypes": {
+			"tt_sydney_pass": { "name": "Conference pass", "priceMinor": 0, "capacity": 200, "maxPerOrder": 4 }
+		}
 	}
 }

@@ -12,6 +12,8 @@ export default defineConfig({
 	fullyParallel: false,
 	workers: 1,
 	reporter: "list",
+	// One baseline per theme, shared by every OS (the card is small and uses only system fonts).
+	snapshotPathTemplate: "{testDir}/__snapshots__/{testFileName}/{arg}{ext}",
 	use: { baseURL, channel: "chrome", headless: true },
 	webServer: {
 		command: "node ./e2e/harness/serve.mjs",

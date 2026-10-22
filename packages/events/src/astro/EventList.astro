@@ -1,26 +1,77 @@
 ---
-// Spike S6: the `events-list` Portable Text block. The data is static until the public events
-// route exists (T046). Portable Text passes the block as `node`; manual template use passes props.
+// <EventList> and the `events-list` Portable Text block (EU-FR-03): upcoming events from the core's
+// `public/events` route (cached 60 s), server-rendered with no client JavaScript. Portable Text
+// passes the block as `node`; templates pass props. `events` skips the route when the page already
+// has the answer. Every failure renders a defined state.
+import { pluginId as configuredId } from "virtual:semics-events/config";
+
+import EventCard from "./EventCard.astro";
+import { callPublicRoute } from "./lib/call";
+import { listView, type PublicEventSummary } from "./lib/list";
+
 interface Props {
 	node?: { heading?: string; limit?: number };
 	heading?: string;
 	limit?: number;
+	locale?: string;
+	events?: PublicEventSummary[];
+	/** The core's plugin id; defaults to the integration's. */
+	pluginId?: string;
+	/** Link target for each event (`eventId` in, URL out), when the site has event pages. */
+	hrefFor?: (event: PublicEventSummary) => string | undefined;
 }
 
 const props = Astro.props as Props;
 const heading = props.node?.heading ?? props.heading ?? "Upcoming events";
-const limit = props.node?.limit ?? props.limit ?? 3;
+const limit = Number(props.node?.limit ?? props.limit ?? 3);
+const locale = props.locale ?? "en-GB";
 
-const events = [
-	{ title: "London Community Meetup", when: "First Thursday, 7pm" },
-	{ title: "Summer Workshop", when: "Saturdays in July" },
-	{ title: "Autumn Open Day", when: "12 October" },
-	{ title: "Winter Social", when: "14 December" },
-].slice(0, Math.max(0, limit));
+let events = props.events;
+let failed = false;
+if (!events) {
+	const result = await callPublicRoute<{ events?: PublicEventSummary[] }>(Astro, {
+		path: "public/events",
+		pluginId: props.pluginId ?? configuredId,
+	});
+	if (result.ok) events = result.data.events ?? [];
+	else failed = true;
+}
+const cards = listView(events ?? [], { limit: Number.isFinite(limit) ? limit : 3, locale });
+const byId = new Map((events ?? []).map((e) => [e.eventId, e]));
+const state = failed ? "error" : cards.length === 0 ? "empty" : "ok";
 ---
-<section class="semics-events-list" data-testid="events-list">
-	<h2>{heading}</h2>
-	<ul>
-		{events.map((event) => <li>{event.title} <small>{event.when}</small></li>)}
-	</ul>
+<section class="semics-events semics-event-list" data-testid="event-list" data-state={state} aria-labelledby="semics-event-list-title">
+	<h2 id="semics-event-list-title">{heading}</h2>
+	{
+		failed ? (
+			<p role="alert" data-testid="event-list-error">Events are unavailable right now.</p>
+		) : cards.length === 0 ? (
+			<p data-testid="event-list-empty">No upcoming events right now.</p>
+		) : (
+			<ul class="semics-event-items">
+				{cards.map((card) => {
+					const event = byId.get(card.eventId) as PublicEventSummary;
+					return (
+						<li>
+							<EventCard event={event} href={props.hrefFor?.(event)} locale={locale} headingLevel={3} />
+						</li>
+					);
+				})}
+			</ul>
+		)
+	}
 </section>
+
+<style>
+	.semics-event-list {
+		color: var(--events-fg, #1a1a1a);
+		font-family: var(--events-font, system-ui, sans-serif);
+	}
+	.semics-event-items {
+		display: grid;
+		gap: 0.75rem;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+</style>

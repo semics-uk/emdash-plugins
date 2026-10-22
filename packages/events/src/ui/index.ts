@@ -22,6 +22,17 @@ export function createPlugin(): ResolvedPlugin {
 		admin: {
 			portableTextBlocks: [
 				{
+					type: "events-booking",
+					label: "Book an event",
+					icon: "code",
+					description: "A booking form for one event",
+					category: "Events",
+					fields: [
+						{ type: "text_input", action_id: "event", label: "Event (entry ID or slug)" },
+						{ type: "text_input", action_id: "heading", label: "Heading", initial_value: "Book tickets" },
+					],
+				},
+				{
 					type: "events-list",
 					label: "Events list",
 					icon: "code",

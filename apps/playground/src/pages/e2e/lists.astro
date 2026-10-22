@@ -1,0 +1,53 @@
+---
+// e2e-only page (T054): the event list and card in states the seeded site can't show on its own.
+//   ?view=live   the list from the real public/events route (`&plugin=` targets another core id)
+//   ?view=empty  the list with no events
+//   ?view=card   one card with fixed data, `&theme=light|dark` sets the --events-* variables
+import EventCard from "@semics-tech/emdash-events/astro/EventCard.astro";
+import EventList from "@semics-tech/emdash-events/astro/EventList.astro";
+
+export const prerender = false;
+
+const view = Astro.url.searchParams.get("view") ?? "live";
+const plugin = Astro.url.searchParams.get("plugin") ?? undefined;
+const theme = Astro.url.searchParams.get("theme") === "dark" ? "dark" : "light";
+const card = {
+	eventId: "e2e-card",
+	title: "London Community Meetup",
+	status: "on_sale" as const,
+	startsAt: "2030-03-14T18:30:00.000Z",
+	endsAt: "2030-03-14T21:00:00.000Z",
+	timezone: "Europe/London",
+	venue: "The Old Library, London",
+	currency: "GBP",
+	priceFromMinor: 1500,
+	available: 0,
+};
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Events list</title>
+		<style is:global>
+			body { margin: 0; padding: 1rem; font-family: system-ui, sans-serif; }
+			body[data-theme="dark"] {
+				background: #14161a;
+				--events-fg: #f1f1f1;
+				--events-muted: #c2c6cc;
+				--events-bg: #1e2127;
+				--events-border: #8a909a;
+				--events-accent: #8ab4f8;
+			}
+		</style>
+	</head>
+	<body data-theme={theme}>
+		<main>
+			{view === "card" && <EventCard event={card} />}
+			{view === "empty" && <EventList events={[]} />}
+			{view === "live" && <EventList pluginId={plugin} limit={10} />}
+		</main>
+	</body>
+</html>

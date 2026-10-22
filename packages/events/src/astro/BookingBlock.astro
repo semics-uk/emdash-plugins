@@ -1,0 +1,30 @@
+---
+// The `events-booking` Portable Text block (BUILD-PLAN 3.3): renders <BookingWidget> for the event
+// the editor picked. The block's `event` is the event entry's id or its slug; a slug is resolved to the
+// entry id. A block with no event renders nothing.
+import { getEmDashEntry } from "emdash";
+
+import BookingWidget from "./BookingWidget.astro";
+
+interface Props {
+	node?: { event?: string; heading?: string };
+	event?: string;
+	heading?: string;
+	locale?: string;
+}
+
+const props = Astro.props as Props;
+const ref = (props.node?.event ?? props.event ?? "").trim();
+const heading = props.node?.heading ?? props.heading;
+let eventId = ref;
+if (ref) {
+	try {
+		const { entry } = await getEmDashEntry("events", ref);
+		const id = (entry?.data as { id?: unknown } | undefined)?.id;
+		if (typeof id === "string" && id) eventId = id;
+	} catch {
+		// Not a slug of a known entry: treat the value as the entry id.
+	}
+}
+---
+{eventId && <BookingWidget event={eventId} heading={heading || undefined} locale={props.locale} />}
