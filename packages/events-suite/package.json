@@ -37,10 +37,10 @@
 		"emdash": ">=1.2.0 <2"
 	},
 	"devDependencies": {
-		"@vitest/coverage-v8": "4.1.11",
+		"@vitest/coverage-v8": "4.1.12",
 		"emdash": "1.2.0",
 		"typescript": "^5.9.0",
-		"vitest": "^4.1.0"
+		"vitest": "^4.1.12"
 	},
 	"repository": {
 		"type": "git",
