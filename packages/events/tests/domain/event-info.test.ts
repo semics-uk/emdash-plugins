@@ -33,7 +33,13 @@ describe("EV-FR-01 mapping settings", () => {
 			{ key: "fieldTimezone", value: "tz" },
 			{ key: "fieldVenue", value: "place" },
 		]);
-		expect(mapping).toEqual({ collection: "gigs", startsAt: "when", endsAt: "ends_at", timezone: "tz", venue: "place" });
+		expect(mapping).toEqual({
+			collection: "gigs",
+			startsAt: "when",
+			endsAt: "ends_at",
+			timezone: "tz",
+			venue: "place",
+		});
 	});
 });
 
@@ -61,7 +67,10 @@ describe("EV-FR-01 public info from an entry", () => {
 
 	it("turns a stored info into the emails' shape, with an occurrence's own start and the entry's duration", () => {
 		const doc = infoOfEntry(entry, mappingOf([])) as NonNullable<ReturnType<typeof infoOfEntry>>;
-		expect(eventInfoOf(doc)).toMatchObject({ startsAt: Date.parse(entry.starts_at), endsAt: Date.parse(entry.ends_at) });
+		expect(eventInfoOf(doc)).toMatchObject({
+			startsAt: Date.parse(entry.starts_at),
+			endsAt: Date.parse(entry.ends_at),
+		});
 		const occ = { startsAt: "2026-11-21T19:00:00Z", endsAt: null } as never;
 		expect(eventInfoOf(doc, occ)).toMatchObject({
 			startsAt: Date.parse("2026-11-21T19:00:00Z"),

@@ -195,11 +195,17 @@ async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<vo
 	const live = ids.map((id) => ({ id, booking: tick.bookings.get(id) })).filter((b) => b.booking);
 	const confirming = unique(
 		rows
-			.filter((r) => r.kind === "booking_confirmed" && tick.bookings.get(String(r.payload.bookingId))?.status === "confirmed")
+			.filter(
+				(r) => r.kind === "booking_confirmed" && tick.bookings.get(String(r.payload.bookingId))?.status === "confirmed",
+			)
 			.map((r) => String(r.payload.bookingId)),
 	);
 	const eventIds = unique(live.map((b) => (b.booking as BookingDoc).eventId));
-	const occurrenceIds = unique(live.flatMap((b) => ((b.booking as BookingDoc).occurrenceId ? [(b.booking as BookingDoc).occurrenceId as string] : [])));
+	const occurrenceIds = unique(
+		live.flatMap((b) =>
+			(b.booking as BookingDoc).occurrenceId ? [(b.booking as BookingDoc).occurrenceId as string] : [],
+		),
+	);
 	const [attendees, configs, occurrences] = await Promise.all([
 		confirming.length > 0
 			? d.storage.attendees.query({ where: { bookingId: { in: confirming } }, limit: ATTENDEE_PAGE })
@@ -238,7 +244,8 @@ async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): 
 	const booking = await loadBooking(d, tick, bookingId);
 	if (booking?.status !== "confirmed") return null;
 	const [attendees, event] = await Promise.all([
-		tick.attendees.get(bookingId) ?? d.storage.attendees.query({ where: { bookingId }, limit: ATTENDEE_PAGE }).then((r) => r.items),
+		tick.attendees.get(bookingId) ??
+			d.storage.attendees.query({ where: { bookingId }, limit: ATTENDEE_PAGE }).then((r) => r.items),
 		loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId),
 	]);
 	if (!event) throw new Error("event entry not found");

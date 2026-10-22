@@ -2,8 +2,8 @@ import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type ConfigIssue, catalogOf, type ExistingState, validateConfigInput } from "../domain/config";
-import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
 import { readEntryInfo } from "../domain/event-info";
+import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
@@ -230,10 +230,11 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 				routeCtx.input,
 				() => crypto.randomUUID(),
 				undefined,
-				() => readEntryInfo(
-					{ settings: ctx.settings, content: ctx.content ?? { get: async () => null } },
-					eventIdOf(routeCtx.input) ?? "",
-				),
+				() =>
+					readEntryInfo(
+						{ settings: ctx.settings, content: ctx.content ?? { get: async () => null } },
+						eventIdOf(routeCtx.input) ?? "",
+					),
 			)) as Handler,
 	},
 };

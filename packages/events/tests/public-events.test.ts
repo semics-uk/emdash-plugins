@@ -116,7 +116,16 @@ describe("EV-FR-03 public/events", () => {
 		const e = await entry("Private Check");
 		await save(e.id);
 		const json = JSON.stringify((await budget.invokeRoute("public/events", {})).value);
-		for (const secret of ["reserved", "sold", "catalog", "salesStart", "questions", "signature", "waitlist", "hidden"]) {
+		for (const secret of [
+			"reserved",
+			"sold",
+			"catalog",
+			"salesStart",
+			"questions",
+			"signature",
+			"waitlist",
+			"hidden",
+		]) {
 			expect(json).not.toContain(secret);
 		}
 	});
@@ -200,7 +209,9 @@ describe("EV-FR-03 public/event", () => {
 		const e = await entry("Draft Gig");
 		await save(e.id, "draft");
 		const answers = await Promise.all(
-			[e.id, "nope", "", undefined].map(async (eventId) => (await budget.invokeRoute("public/event", { eventId })).value),
+			[e.id, "nope", "", undefined].map(
+				async (eventId) => (await budget.invokeRoute("public/event", { eventId })).value,
+			),
 		);
 		for (const a of answers) expect(a).toMatchObject({ ok: false, error: { code: "NOT_FOUND" } });
 		expect(new Set(answers.map((a) => JSON.stringify(a))).size).toBe(1);
@@ -239,7 +250,14 @@ describe("EV-FR-08 the copy of the entry's public info", () => {
 		const r = await budget.invokeHook("content:afterSave", {
 			collection: "events",
 			isNew: false,
-			content: { id: e.id, title: "After", starts_at: "2099-12-24T10:00:00Z", ends_at: null, timezone: "UTC", venue: "Hall B" },
+			content: {
+				id: e.id,
+				title: "After",
+				starts_at: "2099-12-24T10:00:00Z",
+				ends_at: null,
+				timezone: "UTC",
+				venue: "Hall B",
+			},
 		});
 		expectWithinBudget(r, { calls: 3 });
 		expect((await config(e.id))?.info).toEqual({
@@ -250,7 +268,10 @@ describe("EV-FR-08 the copy of the entry's public info", () => {
 			venue: "Hall B",
 		});
 		// The copy is what the public routes serve.
-		const body = (await budget.invokeRoute("public/event", { eventId: e.id })).value as { title: string; timezone: string };
+		const body = (await budget.invokeRoute("public/event", { eventId: e.id })).value as {
+			title: string;
+			timezone: string;
+		};
 		expect([body.title, body.timezone]).toEqual(["After", "UTC"]);
 	});
 

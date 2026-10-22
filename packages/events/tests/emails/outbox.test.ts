@@ -132,7 +132,11 @@ describe("EV-FR-09 cancellation from the outbox", () => {
 /** A second booking of the same event (and a third), each with its own attendee and outbox row. */
 function addBooking(w: Awaited<ReturnType<typeof world>>, suffix: string) {
 	const id = `bk_${suffix.padEnd(32, "0")}`;
-	w.storage.bookings.set(id, { ...w.booking(), ref: `REF${suffix}`.padEnd(10, "A").slice(0, 10), email: `${suffix}@example.com` });
+	w.storage.bookings.set(id, {
+		...w.booking(),
+		ref: `REF${suffix}`.padEnd(10, "A").slice(0, 10),
+		email: `${suffix}@example.com`,
+	});
 	w.storage.attendees.set(`${id}-1`, {
 		bookingId: id,
 		eventId: "ev1",
@@ -142,7 +146,11 @@ function addBooking(w: Awaited<ReturnType<typeof world>>, suffix: string) {
 		code: `code-${suffix}_x-Y`,
 		status: "valid",
 	});
-	w.storage.outbox.set(`confirm-${id}`, { ...row(w, `confirm-${ID}`), to: `${suffix}@example.com`, payload: { bookingId: id } });
+	w.storage.outbox.set(`confirm-${id}`, {
+		...row(w, `confirm-${ID}`),
+		to: `${suffix}@example.com`,
+		payload: { bookingId: id },
+	});
 	return id;
 }
 

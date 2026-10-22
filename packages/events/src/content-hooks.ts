@@ -33,7 +33,4 @@ export async function refreshEventInfo(
 }
 
 export const contentAfterSave = async (event: ContentHookEvent, ctx: PluginContext): Promise<void> =>
-	refreshEventInfo(
-		{ settings: ctx.settings, storage: ctx.storage as unknown as InfoHookDeps["storage"] },
-		event,
-	);
+	refreshEventInfo({ settings: ctx.settings, storage: ctx.storage as unknown as InfoHookDeps["storage"] }, event);
