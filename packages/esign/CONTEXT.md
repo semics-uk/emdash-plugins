@@ -205,3 +205,9 @@ skips it (no snapshot). The sign page (`pdfDocumentView` in `lib/sign.ts`) shows
 to open or download it, never an embed (raw plugin responses carry `CSP: sandbox`, under which browser PDF viewers do not run in
 frames; the page CSP stays frame-free), and no signing form while there is no same-site link.
 E-sign Free backend after T094: 105.0 KiB of 112 (R47).
+
+MCP tools (T096, ES-FR-21, R55; wholly Pro, Free unchanged). Pro adds private routes `pro/mcp/templates|send|status|remind|void`
+declaring `permission: "plugins:manage"` (EmDash only registers a tool whose route names its permission) and five manifest tools
+over them; they wrap Free's `templates/list`, `envelopes/create` + `envelopes/send` (one signer, the send in the one-shot
+`mcp-send-<id>`), `envelopes/get` and `envelopes/void`. A Free route handler's input and output shape is therefore also the MCP
+tools' contract: change one only with the Pro wrappers in mind.
