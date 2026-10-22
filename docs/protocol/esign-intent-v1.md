@@ -112,8 +112,9 @@ Every payload starts with these fields:
 Grammars used below:
 
 - `id64` = `^[A-Za-z0-9_-]{1,64}$`
-- `ref` = `^[A-Za-z0-9._:-]{1,128}$`, opaque to e-sign. Events uses `<bookingRef>:<attendeeCode>` for
-  per-attendee waivers (`signature.mode = "each_attendee"`) and `<bookingRef>` for `mode = "buyer"`.
+- `ref` = `^[A-Za-z0-9._:-]{1,128}$`, opaque to e-sign. Events uses `<bookingRef>:<seat>` (the
+  attendee's seat number; never the check-in code, which is a credential) for per-attendee waivers
+  (`signature.mode = "each_attendee"`) and `<bookingRef>` for `mode = "buyer"`.
 - `hex256` = `^[0-9a-f]{64}$` (lowercase)
 - `name` = 1–200 code points, no C0 control characters or U+007F
 - `email` = 1–254 code points, exactly one `@`, a non-empty part on each side, and no code point
@@ -146,7 +147,7 @@ Issued by Events for one signature, redeemed by e-sign at `public/envelopes/from
 
 - `exp ≤ min(iat + 1800, booking.holdExpiresAt)`: the intent's lifetime is capped at 30 minutes and
   at the booking's remaining hold.
-- Waiver mode `each_attendee`: one intent per attendee, `ref = <bookingRef>:<attendeeCode>`. The buyer
+- Waiver mode `each_attendee`: one intent per attendee, `ref = <bookingRef>:<seat>`. The buyer
   signs inline for themselves (`as: "self"`) and for each attendee marked under 18
   (`as: "guardian"`, `participant` = the minor). Every other adult attendee gets `as: "self"`,
   `delivery: "email"`, with `signer` = that attendee. Events MUST NOT issue an intent in which one
@@ -297,8 +298,11 @@ it is returned unchanged and the intent's other fields are ignored. If the exist
 `declined`, `voided` or `expired`, a new envelope is created, so a signer can try again.
 
 Response `{ "ok": true, "envelopeId", "status", "signingToken"? }`. `signingToken` is present only
-for `delivery: "inline"` while the envelope awaits this signer; the caller renders the ceremony
-in-process with it (`<SigningCeremony token>`). For `delivery: "email"`, e-sign emails the signer.
+for `delivery: "inline"` while the envelope awaits this signer: for an existing envelope, the intent
+must name its signer (same `signer.email`, compared lowercased, the same `as` and, for a guardian,
+the same `participant.name`). Then the token is rotated, so an earlier one, including an emailed
+signing link, stops working; any other intent gets the envelope without a token. The caller renders
+the ceremony in-process with it (`<SigningCeremony token>`). For `delivery: "email"`, e-sign emails the signer.
 
 `status` is usually `"sent"`. For `delivery: "email"` it MAY be `"draft"`: e-sign has accepted the
 intent and the invitation is on its way (a retry after a terminal envelope is finished by a one-shot
@@ -399,8 +403,10 @@ avoid revealing which client ids exist, but MUST log the precise code.
 - Distinct prefixes prevent cross-type confusion; distinct per-client secrets prevent cross-client
   forgery; `(cid, ref)` idempotency plus single-use nonces prevent duplicate envelopes and intent
   replay.
-- The 30-minute intent cap and the hold cap keep a leaked intent's useful life short. The browser
-  never sees an intent: Events mints it and redeems it in-process.
+- The 30-minute intent cap and the hold cap keep a leaked intent's useful life short. Events mints
+  intents for the holder of the booking's access token (its public `checkout/continue` answer) and for
+  staff (the door-signing link); the suite redeems them in-process. An intent gives its holder nothing
+  beyond the signing it was minted for: e-sign hands a signing token only to the signer it names.
 - `docSha256`, `pdfSha256` and `finalHash` in the receipt bind the booking to the exact document and
   audit chain, so Events can show and later prove what was signed.
 - No PII beyond `signer`, `participant` and `prefill` is carried. Receipts carry no PII.

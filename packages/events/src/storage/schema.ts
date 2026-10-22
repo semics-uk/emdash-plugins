@@ -266,6 +266,11 @@ export interface AttendeeDoc {
 		/** When the envelope entered `status` (epoch seconds, from the receipt). */
 		at?: number;
 		signedBy?: "self" | "guardian" | "buyer";
+		/**
+		 * Set on a declined, voided or expired receipt when continue sends the seat a fresh intent
+		 * (T067): the booking page looks the seat up again. The next receipt is stored without it.
+		 */
+		reissued?: boolean;
 	};
 }
 

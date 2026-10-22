@@ -116,7 +116,10 @@ const cookieValue = (outcome: Extract<WaiverOutcome, { type: "redirect" }>, name
 	outcome.cookies.find((c) => c.name === name);
 
 /** The cookies a browser would send to `path` (RFC 6265 path-match), from the ones a response set. */
-function browserJar(set: ReadonlyArray<{ name: string; value: string; options: Record<string, unknown> }>, path: string) {
+function browserJar(
+	set: ReadonlyArray<{ name: string; value: string; options: Record<string, unknown> }>,
+	path: string,
+) {
 	const jar: Record<string, string> = {};
 	for (const c of set) {
 		const p = String(c.options.path ?? "/");

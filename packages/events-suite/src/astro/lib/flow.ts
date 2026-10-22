@@ -84,6 +84,26 @@ const ERROR_CODE = /^[A-Z_]{1,40}$/;
 /** The cookie holding the inline signing tokens still to sign for booking `ref`. */
 export const flowCookieName = (ref: string) => `semics_waiver_${ref}`;
 
+/**
+ * The booking's access token for "Try again" (T067). The booking cookie is scoped to `/booking`, so a
+ * browser never sends it to this page; this copy lives on this page's path only, as long as the flow.
+ */
+export const retryCookieName = (ref: string) => `semics_waiver_access_${ref}`;
+
+function retryCookie(url: URL, ref: string, accessToken: string | undefined): CookieOp {
+	return {
+		name: retryCookieName(ref),
+		value: accessToken ?? "",
+		options: {
+			path: WAIVER_PATH,
+			httpOnly: true,
+			sameSite: "strict",
+			secure: url.protocol === "https:",
+			maxAge: accessToken ? FLOW_COOKIE_SECONDS : 0,
+		},
+	};
+}
+
 function flowCookie(url: URL, ref: string, tokens: readonly string[]): CookieOp {
 	return {
 		name: flowCookieName(ref),
@@ -211,7 +231,7 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 		return refuse(waiverIssue ? waiverIssue.code : code, fieldsOf(issues, order));
 	}
 
-	return proceed(ctx, ids, ref, continued.data.next, cookies);
+	return proceed(ctx, ids, ref, continued.data.next, cookies, accessToken);
 }
 
 /** Follows continue's `next`: the provider, the booking page, or the signing step. */
@@ -221,14 +241,21 @@ async function proceed(
 	ref: string,
 	next: { type?: unknown; url?: unknown; intents?: unknown } | undefined,
 	cookies: CookieOp[],
+	accessToken: string,
 ): Promise<WaiverOutcome> {
 	if (next?.type === "pay" && typeof next.url === "string") return redirect(next.url, cookies);
 	if (next?.type !== "sign" || !Array.isArray(next.intents)) return redirect(bookingPage(ref), cookies);
 
 	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
 	const inline = await redeemIntents(call, ids, next.intents as Intent[]);
-	// E-sign refused an intent: the booking stays held, and the page offers a retry (below).
-	if (inline === null) return redirect(`${WAIVER_PATH}?ref=${ref}&error=SIGNING_UNAVAILABLE`, cookies);
+	// E-sign refused an intent: the booking stays held, and the page offers a retry (below), which
+	// needs the booking's access token on this page's path.
+	if (inline === null) {
+		return redirect(`${WAIVER_PATH}?ref=${ref}&error=SIGNING_UNAVAILABLE`, [
+			...cookies,
+			retryCookie(ctx.url, ref, accessToken),
+		]);
+	}
 	if (inline.length === 0) return redirect(bookingPage(ref), cookies);
 	return redirect(`${WAIVER_PATH}?ref=${ref}`, [...cookies, flowCookie(ctx.url, ref, inline.slice(0, MAX_INLINE))]);
 }
@@ -241,7 +268,7 @@ async function proceed(
 async function retry(ctx: WaiverRequestContext, ids: SuiteIds): Promise<WaiverOutcome> {
 	const ref = ctx.url.searchParams.get("ref") ?? "";
 	if (!BOOKING_REF.test(ref)) return redirect(BOOKING_PATH);
-	const accessToken = ctx.cookie(bookingCookieName(ref));
+	const accessToken = ctx.cookie(retryCookieName(ref)) || ctx.cookie(bookingCookieName(ref));
 	if (!accessToken) return redirect(bookingPage(ref));
 	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
 	const continued = await post<{ next?: { type?: unknown; url?: unknown; intents?: unknown } }>(
@@ -254,7 +281,7 @@ async function retry(ctx: WaiverRequestContext, ids: SuiteIds): Promise<WaiverOu
 		const code = ERROR_CODE.test(continued.error.code) ? continued.error.code : "INTERNAL";
 		return redirect(`${WAIVER_PATH}?ref=${ref}&error=${code}`);
 	}
-	return proceed(ctx, ids, ref, continued.data.next, []);
+	return proceed(ctx, ids, ref, continued.data.next, [], accessToken);
 }
 
 /** The receipt a finished ceremony hands back (the fragment of `ceremonyRedirect(view)`, §8.2). */

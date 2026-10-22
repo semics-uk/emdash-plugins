@@ -104,7 +104,13 @@ describe("storing a receipt (SX-FR-04, §8.4 idempotent and monotonic)", () => {
 		const declined = receipt({ status: "declined", pdfSha256: null, finalHash: null });
 		const marked = { ...stored(declined), reissued: true };
 		expect(mergeSignature(marked, declined)).toBeNull();
-		const next = receipt({ envelopeId: "env_2", status: "expired", pdfSha256: null, finalHash: null, at: declined.at + 60 });
+		const next = receipt({
+			envelopeId: "env_2",
+			status: "expired",
+			pdfSha256: null,
+			finalHash: null,
+			at: declined.at + 60,
+		});
 		expect(mergeSignature(marked, next)).toEqual(stored(next));
 	});
 

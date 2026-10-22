@@ -410,7 +410,11 @@ describe("checkout/continue signature step seam (EV-FR-12, R5; Pro fills it)", (
 		w.booking().waiver = WAIVER;
 		await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: withMinor });
 		const receipt = (status: string) => ({ envelopeId: "env_1", status, docSha256: "a".repeat(64), at: 7 });
-		const signed = { ...(w.storage.attendees.docs.get(`${ID}-1`) as Doc), status: "valid", signature: receipt("completed") };
+		const signed = {
+			...(w.storage.attendees.docs.get(`${ID}-1`) as Doc),
+			status: "valid",
+			signature: receipt("completed"),
+		};
 		const declined = { ...(w.storage.attendees.docs.get(`${ID}-2`) as Doc), signature: receipt("declined") };
 		w.storage.attendees.set(`${ID}-1`, signed);
 		w.storage.attendees.set(`${ID}-2`, declined);

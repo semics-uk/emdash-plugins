@@ -108,6 +108,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	const piiSalt = newPiiSalt(deps.random);
 	const draft = draftFromIntent(intent, template.value, { now, piiSalt });
 	if (!draft.ok) return badRequest(draft.error);
+	const asked = { delivery: draft.value.delivery, signer: draft.value.signer };
 	const token = generateToken(deps.random);
 	const tokenHash = await hashToken(token);
 	const build = async (attempt: number) => {
@@ -134,7 +135,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		if (current) {
 			// A draft here is an email intent whose finishing task may never have been scheduled.
 			if (current.data.status === "draft") await scheduleIntentFinish(ctx.cron, current.id, nowMs);
-			return reuse(signers, current.id, current.data, deps.random);
+			return reuse(signers, current.id, current.data, asked, deps.random);
 		}
 		// Every earlier envelope for the pair was declined, voided or expired: start the next one.
 		const next = Math.max(previous.items.length, 1) + 1;
@@ -143,7 +144,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 			const draftId = await envelopeIdForRef(intent.cid, intent.ref, next);
 			if (!(await envelopes.compareAndSet(draftId, null, draft.value)).applied) {
 				const winner = await envelopes.get(draftId);
-				return winner ? reuse(signers, draftId, winner, deps.random) : fail("INTERNAL");
+				return winner ? reuse(signers, draftId, winner, asked, deps.random) : fail("INTERNAL");
 			}
 			await scheduleIntentFinish(ctx.cron, draftId, nowMs);
 			return response(draftId, draft.value, undefined);
@@ -153,7 +154,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
 		if (!created.applied) {
 			const winner = await envelopes.get(attempt.id);
-			return winner ? reuse(signers, attempt.id, winner, deps.random) : fail("INTERNAL");
+			return winner ? reuse(signers, attempt.id, winner, asked, deps.random) : fail("INTERNAL");
 		}
 	}
 	const { id, sent } = attempt;
@@ -177,27 +178,57 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	return response(id, sent.value.envelope, stored);
 }
 
-function response(id: string, envelope: EnvelopeDoc, token: string | undefined) {
+function response(
+	id: string,
+	envelope: EnvelopeDoc,
+	token: string | undefined,
+	inline = envelope.delivery === "inline",
+) {
 	return {
 		ok: true,
 		envelopeId: id,
 		status: envelope.status,
-		...(token !== undefined && envelope.delivery === "inline" ? { signingToken: token } : {}),
+		...(token !== undefined && inline ? { signingToken: token } : {}),
 	};
 }
 
+/** The person an intent names, in the form envelopes store it (`draftFromIntent`). */
+type IntentSigner = EnvelopeDoc["signer"];
+
+/** True when `envelope` waits for exactly the signer the intent names, in the same capacity. */
+function awaitsSigner(envelope: EnvelopeDoc, signer: IntentSigner): boolean {
+	const stored = envelope.signer;
+	return (
+		stored.email === signer.email &&
+		stored.as === signer.as &&
+		(stored.participant?.name ?? null) === (signer.participant?.name ?? null)
+	);
+}
+
 /**
- * Idempotent return for an existing `(cid, ref)` envelope. Only the token hash is stored, so an
- * inline signer who has not signed yet gets a fresh token (the previous one stops working).
+ * Idempotent return for an existing `(cid, ref)` envelope. A signing token goes only to an inline
+ * intent while the envelope awaits the signer that intent names (§8.1, T067): same email and
+ * capacity (and, for a guardian, the same participant). That covers the buyer's retry and Events'
+ * door-signing link for an attendee whose emailed envelope is still open. Only the hash is stored, so
+ * the token is rotated and the previous one (for an email envelope, the emailed link) stops working.
+ * An intent naming anyone else gets the envelope's id and status but no token, so it can never take
+ * over another person's session.
  */
-async function reuse(signers: Collection<SignerDoc>, id: string, envelope: EnvelopeDoc, random?: RandomBytes) {
+async function reuse(
+	signers: Collection<SignerDoc>,
+	id: string,
+	envelope: EnvelopeDoc,
+	intent: { delivery: string; signer: IntentSigner },
+	random?: RandomBytes,
+) {
 	const signerId = envelope.signerIds[0];
 	const awaiting = envelope.status === "sent" || envelope.status === "in_progress";
-	if (envelope.delivery !== "inline" || !awaiting || signerId === undefined) return response(id, envelope, undefined);
+	const handOver = intent.delivery === "inline" && awaiting && awaitsSigner(envelope, intent.signer);
+	if (!handOver || signerId === undefined) return response(id, envelope, undefined);
 	const rotated = await withUniqueToken(generateToken(random), random, (tokenHash) =>
 		signers.updateIf(signerId, { where: { status: "pending" }, set: { tokenHash } }),
 	);
-	return response(id, envelope, rotated.value.applied ? rotated.token : undefined);
+	return response(id, envelope, rotated.value.applied ? rotated.token : undefined, true);
 }
 
 export const fromIntentHandler: RouteHandler = (routeCtx, ctx) => fromIntent(routeCtx.input, ctx);

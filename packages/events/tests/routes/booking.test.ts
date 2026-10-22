@@ -410,7 +410,13 @@ describe("public/booking waiver reconciliation data (SX-FR-05, T066)", () => {
 
 	it("T067 SX-FR-05 a seat with a terminal receipt recorded is not asked again until continue re-issues its intent", async () => {
 		const w = await waiting(["tt_a", "tt_b", "tt_c"]);
-		const sig = (status: string, extra = {}) => ({ envelopeId: "env", status, docSha256: "a".repeat(64), at: 5, ...extra });
+		const sig = (status: string, extra = {}) => ({
+			envelopeId: "env",
+			status,
+			docSha256: "a".repeat(64),
+			at: 5,
+			...extra,
+		});
 		(w.storage.attendees.docs.get(`${ID}-1`) as Doc).signature = sig("declined");
 		(w.storage.attendees.docs.get(`${ID}-2`) as Doc).signature = sig("expired", { reissued: true });
 		const { body } = await run(bookingStatus, w.deps(T0), w.input);

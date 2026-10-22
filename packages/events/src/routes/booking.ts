@@ -89,11 +89,18 @@ export interface RefundStep {
 /** Refs listed for reconciliation: a page load asks e-sign once per ref. */
 const MAX_WAITING_REFS = 10;
 
-/** The refs of a waiver booking that still lack a completed receipt (`<bookingRef>:<seat>`, or the booking's own). */
+/**
+ * The refs of a waiver booking that e-sign may have news of (`<bookingRef>:<seat>`, or the booking's
+ * own): seats with no receipt yet, and seats whose declined, voided or expired receipt is on record
+ * but which continue has since sent a fresh intent for (`reissued`). A seat whose terminal receipt is
+ * recorded and not followed by a new intent is not asked again (T067): e-sign would only answer
+ * with the same receipt.
+ */
 function waitingRefs(b: BookingDoc, items: Item[]): string[] {
-	const unsigned = items.filter(
-		(i) => (i.data as { signature?: { status?: string } }).signature?.status !== "completed",
-	);
+	const unsigned = items.filter((i) => {
+		const signature = (i.data as { signature?: { status?: string; reissued?: boolean } }).signature;
+		return !signature || (signature.status !== "completed" && signature.reissued === true);
+	});
 	if (unsigned.length === 0) return [];
 	if (b.waiver?.mode === "buyer") return [b.ref];
 	return unsigned.slice(0, MAX_WAITING_REFS).map((i) => `${b.ref}:${i.id.slice(i.id.lastIndexOf("-") + 1)}`);

@@ -222,6 +222,21 @@ async function keepSigned(storage: ContinueStorage, planned: Item[]): Promise<It
 }
 
 /**
+ * Seats whose declined, voided or expired receipt is on record get a fresh intent from the signing
+ * step: mark them `reissued`, so the booking page looks their new envelope up (T067). The next
+ * receipt for the seat is stored without the mark.
+ */
+function reissued(docs: Item[]): Item[] {
+	return docs.map((d) => {
+		const doc = d.data as AttendeeDoc;
+		const sig = doc.signature;
+		return sig && sig.status !== "completed" && !sig.reissued
+			? { id: d.id, data: { ...doc, signature: { ...sig, reissued: true } } }
+			: d;
+	});
+}
+
+/**
  * A retry of a booking awaiting signatures that names no attendees (T066: e-sign refused an intent
  * and the visitor tries again) keeps the stored ones: planning none would put every seat in the
  * buyer's name. Null when any seat is missing.
@@ -236,7 +251,7 @@ async function storedAttendees(storage: ContinueStorage, id: string, b: BookingD
 async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: Item[]): Promise<unknown> {
 	const { storage, now, cron } = c.deps;
 	const settings = await settingsOf(c.deps);
-	const docs = b.status === "awaiting_signature" ? await keepSigned(storage, planned) : planned;
+	const docs = b.status === "awaiting_signature" ? reissued(await keepSigned(storage, planned)) : planned;
 	const attendees = docs as Array<{ id: string; data: AttendeeDoc }>;
 	const prepared = await step.prepare({ bookingId: c.id, booking: b, attendees, settings });
 	if (!prepared.ok) {
