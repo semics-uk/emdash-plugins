@@ -47,7 +47,7 @@ pnpm --filter playground e2e
 
 ## Notes
 
-- **Decision (BUILD-PLAN R51, supersedes R25's pdf-lib allowance):** pdf-lib (~523 KB) cannot fit the Pro E-sign backend, so Pro
+- **Decision (BUILD-PLAN R53, supersedes R25's pdf-lib allowance):** pdf-lib (~523 KB) cannot fit the Pro E-sign backend, so Pro
   stamps with its own minimal reader and incremental-update writer (`src/pdf/read.ts`, `src/pdf/update.ts` in the Pro repo), in
   the sandbox. The signed PDF is the uploaded file, byte for byte, followed by one update (stamps on the original pages, then the
   certificate pages from Free's certificate with PDF wording). `docSha256` = SHA-256 of the upload; `pdfSha256` of the whole file
