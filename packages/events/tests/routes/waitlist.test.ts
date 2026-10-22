@@ -36,7 +36,10 @@ function world({
 		currency: "GBP",
 		waitlistEnabled,
 		catalog: {
-			ticketTypes: { tt1: { capacity: 2, priceMinor: 0, hidden: false }, tt_hidden: { capacity: 2, priceMinor: 0, hidden: true } },
+			ticketTypes: {
+				tt1: { capacity: 2, priceMinor: 0, hidden: false },
+				tt_hidden: { capacity: 2, priceMinor: 0, hidden: true },
+			},
 			occurrences: occurrence ? { oc1: { capacity: 2, startsAt: "2026-12-01T19:00:00.000Z", status: "open" } } : {},
 		},
 	});

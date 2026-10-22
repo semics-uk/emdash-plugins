@@ -21,6 +21,7 @@
 		"./astro": "./src/astro/index.js",
 		"./astro/checkout-endpoint": "./src/astro/checkout-endpoint.ts",
 		"./astro/promo-endpoint": "./src/astro/promo-endpoint.ts",
+		"./astro/waitlist-endpoint": "./src/astro/waitlist-endpoint.ts",
 		"./astro/lib/*": "./src/astro/lib/*.ts",
 		"./client/*": "./src/client/*.ts",
 		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro",

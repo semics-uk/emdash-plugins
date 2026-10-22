@@ -42,7 +42,8 @@ export const STORAGE_COLLECTIONS = {
 		indexes: ["bookingId", "eventId", "email", ["eventId", "checkedInAt"]],
 		uniqueIndexes: ["code"],
 	},
-	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt"], uniqueIndexes: [] },
+	// `email`: deletion on request finds a person's entries (T081, EV-FR-20).
+	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt", "email"], uniqueIndexes: [] },
 	promo_codes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
 	outbox: { indexes: [["status", "nextAttemptAt"], "to"], uniqueIndexes: [] },
 } as const satisfies Record<string, CollectionDef>;
@@ -218,6 +219,8 @@ export interface BookingDoc {
 	ipHash?: string | null;
 	/** When retention or an admin erased the booking's personal data (T087); counts and totals stay. */
 	erasedAt?: string;
+	/** The waitlist entry this booking was offered to (T081); its emailed code is a claim link. */
+	waitlistId?: string;
 	createdAt: string;
 }
 
@@ -276,13 +279,22 @@ export interface AttendeeDoc {
 
 export type WaitlistStatus = "waiting" | "offered" | "claimed" | "expired" | "cancelled";
 
+/**
+ * A place in an event's waitlist (T081). An offer is a held booking in the entry's name (`bookingId`)
+ * until `offerExpiresAt`; claiming it moves the entry to `claimed`, a lapsed one to `expired`.
+ */
 export interface WaitlistDoc {
 	eventId: string;
 	occurrenceId?: string;
+	/** The ticket type asked for; absent: the cheapest listed type with room. */
+	ticketTypeId?: string;
+	/** Lowercased. */
 	email: string;
+	name: string;
 	qty: number;
 	status: WaitlistStatus;
-	offerExpiresAt?: string;
+	offerExpiresAt?: string | null;
+	bookingId?: string | null;
 	createdAt: string;
 }
 

@@ -32,6 +32,8 @@ export interface PublicEvent {
 	waiver?: boolean;
 	/** True when the core takes promo codes (Events Pro, T078): the widget then shows a code field. */
 	promoCodes?: boolean;
+	/** True when a sold-out event takes a waitlist (T081): the widget then shows a "Join the waitlist" form. */
+	waitlist?: boolean;
 }
 
 /** What `POST public/booking` answers (T049), plus the optional fields later tasks add. */

@@ -54,67 +54,73 @@ const KEEP_PRIVATE =
 	"The booking link opens your booking once on the device you use it from, so keep this email private.";
 const NOT_YOU = "If you did not ask for this, contact the organiser and quote the reference.";
 
-const li = (items: readonly string[]) => items.map((i) => `<li>${escapeHtml(i)}</li>`).join("");
-const link = (href: string, label: string) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
+const link = ([label, href]: readonly [string, string]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
 
-function details(i: Pick<BookingEmailInput, "event" | "bookingRef">): string[] {
-	return [
+/**
+ * The text and HTML parts from the same pieces: greeting, an opening sentence (the event title in
+ * bold), the event details, a list, links, a closing line and the site name. Every value is escaped.
+ */
+function compose(
+	i: Pick<BookingEmailInput, "to" | "buyerName" | "bookingRef" | "event" | "siteName">,
+	subject: string,
+	[before, after]: readonly [string, string],
+	{
+		list = [],
+		links = [],
+		closing,
+	}: { list?: readonly string[]; links?: ReadonlyArray<readonly [string, string]>; closing: string },
+): OutboxMessage {
+	const title = i.event.title;
+	const lines = [
 		`When: ${formatWhen(i.event)}`,
 		...(i.event.venue ? [`Where: ${i.event.venue}`] : []),
 		`Reference: ${i.bookingRef}`,
 	];
+	const text = [`Hi ${i.buyerName},`, "", `${before}${title}${after}`, "", ...lines, ""];
+	const html = [
+		`<p>Hi ${escapeHtml(i.buyerName)},</p>`,
+		`<p>${escapeHtml(before)}<strong>${escapeHtml(title)}</strong>${escapeHtml(after)}</p>`,
+		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
+	];
+	if (list.length > 0) {
+		text.push("Tickets:", ...list.map((a) => `- ${a}`), "");
+		html.push(`<p>Tickets:</p><ul>${list.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>`);
+	}
+	if (links.length > 0) {
+		text.push(...links.map(([label, href]) => `${label}: ${href}`), "");
+		html.push(`<p>${links.map(link).join("<br>")}</p>`);
+	}
+	text.push(closing, i.siteName);
+	html.push(`<p>${closing}</p>`, `<p>${escapeHtml(i.siteName)}</p>`);
+	return { to: i.to, subject: `${subject}: ${title}`, text: text.join("\n"), html: html.join("\n") };
 }
 
 export function confirmationEmail(i: BookingEmailInput): OutboxMessage {
-	const ticketsUrl = `${i.bookingUrl}#tickets`;
-	const lines = details(i);
-	const text = [
-		`Hi ${i.buyerName},`,
-		"",
-		`Your booking for ${i.event.title} is confirmed.`,
-		"",
-		...lines,
-		"",
-		"Tickets:",
-		...i.attendees.map((a) => `- ${a}`),
-		"",
-		`View or cancel your booking: ${i.bookingUrl}`,
-		`Your tickets (check-in passes): ${ticketsUrl}`,
-		`Add to calendar: ${i.calendarUrl}`,
-		"",
-		KEEP_PRIVATE,
-		`${i.siteName}`,
-	].join("\n");
-	const html = [
-		`<p>Hi ${escapeHtml(i.buyerName)},</p>`,
-		`<p>Your booking for <strong>${escapeHtml(i.event.title)}</strong> is confirmed.</p>`,
-		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
-		`<p>Tickets:</p><ul>${li(i.attendees)}</ul>`,
-		`<p>${link(i.bookingUrl, "View or cancel your booking")}<br>${link(ticketsUrl, "Your tickets (check-in passes)")}<br>${link(i.calendarUrl, "Add to calendar")}</p>`,
-		`<p>${KEEP_PRIVATE}</p>`,
-		`<p>${escapeHtml(i.siteName)}</p>`,
-	].join("\n");
-	return { to: i.to, subject: `Your booking: ${i.event.title}`, text, html };
+	return compose(i, "Your booking", ["Your booking for ", " is confirmed."], {
+		list: i.attendees,
+		links: [
+			["View or cancel your booking", i.bookingUrl],
+			["Your tickets (check-in passes)", `${i.bookingUrl}#tickets`],
+			["Add to calendar", i.calendarUrl],
+		],
+		closing: KEEP_PRIVATE,
+	});
 }
 
 export function cancellationEmail(i: Omit<BookingEmailInput, "bookingUrl"> & { bookingUrl?: string }): OutboxMessage {
-	const lines = details(i);
-	const text = [
-		`Hi ${i.buyerName},`,
-		"",
-		`Your booking for ${i.event.title} has been cancelled.`,
-		"",
-		...lines,
-		"",
-		NOT_YOU,
-		`${i.siteName}`,
-	].join("\n");
-	const html = [
-		`<p>Hi ${escapeHtml(i.buyerName)},</p>`,
-		`<p>Your booking for <strong>${escapeHtml(i.event.title)}</strong> has been cancelled.</p>`,
-		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
-		`<p>${NOT_YOU}</p>`,
-		`<p>${escapeHtml(i.siteName)}</p>`,
-	].join("\n");
-	return { to: i.to, subject: `Booking cancelled: ${i.event.title}`, text, html };
+	return compose(i, "Booking cancelled", ["Your booking for ", " has been cancelled."], { closing: NOT_YOU });
+}
+
+/** A waitlist offer (T081): the claim link holds a one-time code, valid until `expiresAt` (ISO). */
+export function offerEmail(
+	i: Pick<BookingEmailInput, "to" | "buyerName" | "bookingRef" | "event" | "bookingUrl" | "siteName"> & {
+		seats: number;
+		expiresAt: string;
+	},
+): OutboxMessage {
+	const held = `${i.seats} ticket${i.seats === 1 ? " is" : "s are"} held for you until ${i.expiresAt.slice(0, 16).replace("T", " ")} UTC.`;
+	return compose(i, "Tickets available", ["A place has come up for ", `: ${held}`], {
+		links: [["Claim your tickets", i.bookingUrl]],
+		closing: KEEP_PRIVATE,
+	});
 }

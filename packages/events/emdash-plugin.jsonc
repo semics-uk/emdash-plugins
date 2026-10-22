@@ -44,7 +44,8 @@
 			"indexes": ["bookingId", "eventId", "email", ["eventId", "checkedInAt"]],
 			"uniqueIndexes": ["code"]
 		},
-		"waitlist": { "indexes": [["eventId", "status"], "offerExpiresAt"] },
+		// "email": deletion on request finds a person's waitlist entries (T081).
+		"waitlist": { "indexes": [["eventId", "status"], "offerExpiresAt", "email"] },
 		"promo_codes": { "indexes": ["eventId"], "uniqueIndexes": ["code"] },
 		"outbox": { "indexes": [["status", "nextAttemptAt"], "to"] }
 	},

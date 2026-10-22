@@ -40,7 +40,7 @@ import type { CronEvent, PluginContext } from "emdash/plugin";
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
-import { cancellationEmail, confirmationEmail } from "./confirmation";
+import { cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
 
 export const OUTBOX_TASK = "outbox-drain";
 /** Every minute; a tick with nothing due costs one storage call. */
@@ -301,11 +301,40 @@ async function renderCancellation(d: DrainDeps, tick: Tick, bookingId: string): 
 	});
 }
 
+/**
+ * A waitlist offer (T081): nothing once the offer is no longer held. The claim code is minted here like
+ * a confirmation's and lasts as long as the offer; the link says it is an offer (`offer=1`).
+ */
+async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
+	const booking = await loadBooking(d, tick, bookingId);
+	const until = booking?.holdExpiresAt;
+	if (booking?.status !== "held" || booking.releaseClaimedAt || !until) return null;
+	const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
+	if (!event) throw new Error("event entry not found");
+	const code = generateToken();
+	const minted = await d.storage.bookings.updateIf(bookingId, {
+		where: { status: "held", releaseClaimedAt: null, holdExpiresAt: until },
+		set: { redeemHash: await hashToken(code), redeemExpiresAt: until },
+	});
+	if (!minted.applied) return null;
+	return offerEmail({
+		to: booking.email,
+		buyerName: booking.buyer.name,
+		bookingRef: booking.ref,
+		event,
+		bookingUrl: `${d.origin}/booking?${new URLSearchParams({ ref: booking.ref, k: code, offer: "1" })}`,
+		seats: booking.lines.reduce((n, l) => n + l.qty, 0),
+		expiresAt: until,
+		siteName: d.siteName,
+	});
+}
+
 async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxMessage | null> {
 	const bookingId = doc.payload.bookingId;
 	if (typeof bookingId !== "string") throw new Error(`outbox row has no bookingId (kind ${doc.kind})`);
 	if (doc.kind === "booking_confirmed") return renderConfirmation(d, tick, bookingId);
 	if (doc.kind === "booking_cancelled") return renderCancellation(d, tick, bookingId);
+	if (doc.kind === "waitlist_offer") return renderOffer(d, tick, bookingId);
 	const custom = d.render?.[doc.kind];
 	if (custom) {
 		const booking = await loadBooking(d, tick, bookingId);

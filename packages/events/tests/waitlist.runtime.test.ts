@@ -86,8 +86,12 @@ describe("waitlist journey in the shipped core (EV-FR-16, EV-US-6, R22)", () => 
 		buyer = { bookingRef: String(held.bookingRef), accessToken: String(held.accessToken) };
 		expect(await call("public/checkout/continue", buyer)).toMatchObject({ ok: true, status: "confirmed" });
 
-		expect(await call("public/waitlist/join", { eventId })).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" } });
-		const join = (name: string, email: string) => call("public/waitlist/join", { eventId, name, email, qty: 1 }, meta(), 8);
+		expect(await call("public/waitlist/join", { eventId })).toMatchObject({
+			ok: false,
+			error: { code: "BAD_REQUEST" },
+		});
+		const join = (name: string, email: string) =>
+			call("public/waitlist/join", { eventId, name, email, qty: 1 }, meta(), 8);
 		expect(await join("Ann Early", "ann@example.com")).toEqual({ ok: true });
 		expect(await join("Bob Later", "bob@example.com")).toEqual({ ok: true });
 		expect((await entries()).map((e) => e.data.status)).toEqual(["waiting", "waiting"]);
@@ -112,9 +116,12 @@ describe("waitlist journey in the shipped core (EV-FR-16, EV-US-6, R22)", () => 
 	});
 
 	it("EV-FR-16 the offer is emailed with a one-time claim link; a wrong code and a reuse are NOT_FOUND", async () => {
-		// The first tick sends the cancellation and the offer (two per tick).
+		// Two messages a tick: the buyer's confirmation and cancellation go first.
 		await cron("outbox-drain");
-		const mail = (await runtime.inspect.email()).map((m) => JSON.stringify(m)).find((m) => m.includes("ann@example.com"));
+		await cron("outbox-drain");
+		const mail = (await runtime.inspect.email())
+			.map((m) => JSON.stringify(m))
+			.find((m) => m.includes("ann@example.com"));
 		expect(mail).toBeDefined();
 		const ref = /[?&]ref=([0-9A-Z]{10})/.exec(mail ?? "")?.[1] ?? "";
 		const code = /[?&]k=([A-Za-z0-9_-]{43})/.exec(mail ?? "")?.[1] ?? "";
@@ -140,7 +147,11 @@ describe("waitlist journey in the shipped core (EV-FR-16, EV-US-6, R22)", () => 
 		const ip = "198.51.100.77";
 		const codes: string[] = [];
 		for (let i = 0; i < 6; i++) {
-			const out = await call("public/waitlist/join", { eventId, name: "P", email: `p${i}@example.com`, qty: 1 }, meta(ip));
+			const out = await call(
+				"public/waitlist/join",
+				{ eventId, name: "P", email: `p${i}@example.com`, qty: 1 },
+				meta(ip),
+			);
 			codes.push(out.ok ? "ok" : String(out.error?.code));
 		}
 		expect(codes).toEqual(["ok", "ok", "ok", "ok", "ok", "RATE_LIMITED"]);

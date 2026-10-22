@@ -14,6 +14,9 @@ import { fail } from "./reply";
  *
  * A wrong code, an unknown ref, an expired or already used code, and a lost race all answer the same
  * `NOT_FOUND`, and an unknown ref still pays for a hash check. 2 bridge calls: query, `updateIf`.
+ *
+ * A waitlist offer (T081, `waitlistId` on a held booking) is redeemed the same way, guarded on the hold
+ * still running, and its entry becomes `claimed` (3 calls); `public/waitlist/claim` redeems only those.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 type Item = { id: string; data: unknown };
@@ -26,6 +29,9 @@ export interface RedeemDeps {
 				id: string,
 				args: { where: Record<string, unknown>; set?: Record<string, unknown> },
 			): Promise<{ applied: boolean }>;
+		};
+		waitlist?: {
+			updateIf(id: string, args: { where: Record<string, unknown>; set: Record<string, unknown> }): Promise<unknown>;
 		};
 	};
 	now: number;
@@ -46,7 +52,7 @@ function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[
 	return { bookingRef: parsed.value.bookingRef, code: parsed.value.accessToken };
 }
 
-export async function redeemBooking(deps: RedeemDeps, raw: unknown): Promise<unknown> {
+export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = false } = {}): Promise<unknown> {
 	const input = parse(raw);
 	if (Array.isArray(input)) return { ...fail("BAD_REQUEST"), issues: input };
 	const { bookingRef, code } = input as { bookingRef: string; code: string };
@@ -56,13 +62,19 @@ export async function redeemBooking(deps: RedeemDeps, raw: unknown): Promise<unk
 	const stored = booking?.redeemHash ?? undefined;
 	const matches = await verifyToken(code, stored ?? DECOY_HASH);
 	const live = Date.parse(booking?.redeemExpiresAt ?? "") > deps.now;
-	if (!found || !booking || !stored || !matches || !live) return fail("NOT_FOUND");
+	const offer = booking?.status === "held" ? booking.waitlistId : undefined;
+	if (!found || !booking || !stored || !matches || !live || (claim && !offer)) return fail("NOT_FOUND");
 	const accessToken = generateToken();
 	const swapped = await deps.storage.bookings.updateIf(found.id, {
-		where: { redeemHash: stored },
+		where: { redeemHash: stored, ...(offer ? { status: "held", releaseClaimedAt: null } : {}) },
 		set: { accessTokenHash: await hashToken(accessToken), redeemHash: null, redeemExpiresAt: null },
 	});
 	if (!swapped.applied) return fail("NOT_FOUND");
+	if (offer) {
+		await deps.storage.waitlist
+			?.updateIf(offer, { where: { status: "offered" }, set: { status: "claimed" } })
+			.catch(() => undefined);
+	}
 	return { ok: true, bookingRef: booking.ref, accessToken };
 }
 

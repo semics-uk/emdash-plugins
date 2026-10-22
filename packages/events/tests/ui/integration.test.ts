@@ -34,6 +34,7 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 			"/_events/checkout",
 			"/_events/promo",
 			"/_events/sign",
+			"/_events/waitlist",
 			"/booking",
 		]);
 		for (const r of routes) expect(r.prerender).toBe(false);
@@ -43,6 +44,13 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		const { routes } = await setup();
 		expect(routes.find((r) => r.pattern === "/_events/promo")?.entrypoint).toBe(
 			"@semics-tech/emdash-events/astro/promo-endpoint",
+		);
+	});
+
+	it("EV-FR-16 injects the waitlist endpoint from the package's own export (T081)", async () => {
+		const { routes } = await setup();
+		expect(routes.find((r) => r.pattern === "/_events/waitlist")?.entrypoint).toBe(
+			"@semics-tech/emdash-events/astro/waitlist-endpoint",
 		);
 	});
 

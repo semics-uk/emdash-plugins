@@ -162,6 +162,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		currency: config.currency,
 		...(info?.timezone ? { timezone: info.timezone } : {}),
 		...(config.signature?.required ? { waiver: true } : {}),
+		...(config.waitlistEnabled ? { waitlist: true } : {}),
 		ticketTypes,
 		...(occurrences ? { occurrences } : {}),
 		...(typeof siteKey === "string" && siteKey.trim() !== "" ? { turnstileSiteKey: siteKey.trim() } : {}),

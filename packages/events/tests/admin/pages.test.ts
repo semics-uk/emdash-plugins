@@ -508,7 +508,14 @@ describe("deletion on request (EV-FR-20, T087)", () => {
 	it("EV-FR-16 T081 deletion by email also removes that person's waitlist entries, within budget", async () => {
 		const w = world();
 		past(w.s);
-		const wl = (email: string) => ({ eventId: "ev1", email, name: "Ada", qty: 1, status: "waiting", createdAt: iso(NOW) });
+		const wl = (email: string) => ({
+			eventId: "ev1",
+			email,
+			name: "Ada",
+			qty: 1,
+			status: "waiting",
+			createdAt: iso(NOW),
+		});
 		w.s.waitlist.set("wl_ada", wl("ada@example.com"));
 		w.s.waitlist.set("wl_bob", wl("bob@example.com"));
 		const preview = await handleAdmin(w.deps, {

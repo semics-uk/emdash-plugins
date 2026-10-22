@@ -242,7 +242,7 @@ const retentionBlocks = (extra: Block[] = []): Block[] => [
 	...extra,
 	header("Delete personal data"),
 	context(
-		"Erases names, emails, answers and IP hashes of one booking (by reference) or of every booking of a buyer (by email), with their attendees. Seat counts and totals stay. Live bookings are never deleted. Older data is erased automatically after the retention period.",
+		"Erases names, emails, answers and IP hashes of one booking (by reference) or of every booking of a buyer (by email), with their attendees and waitlist entries. Seat counts and totals stay. Live bookings are never deleted. Older data is erased automatically after the retention period.",
 	),
 	form({
 		fields: [textInput("target", "Booking reference or buyer email")],
@@ -250,22 +250,32 @@ const retentionBlocks = (extra: Block[] = []): Block[] => [
 	}),
 ];
 
-const targetQuery = (deps: AdminDeps, target: string) =>
-	deps.storage.bookings.query({
-		where: target.includes("@") ? { email: target } : { ref: target.toUpperCase() },
-		limit: 10,
-	});
+/** The bookings and (by email) waitlist entries a deletion request names: two queries. */
+async function targetQuery(deps: AdminDeps, target: string) {
+	const email = target.includes("@") ? target.trim().toLowerCase() : "";
+	const none = { items: [] };
+	const [page, waitlist] = target
+		? await Promise.all([
+				deps.storage.bookings.query({ where: email ? { email } : { ref: target.toUpperCase() }, limit: 10 }),
+				email ? deps.storage.waitlist.query({ where: { email }, limit: 100 }) : none,
+			])
+		: [none, none];
+	return { page, waitlist: waitlist.items.map((i) => i.id) };
+}
+
+const entries = (n: number) => `${n} waitlist entr${n === 1 ? "y" : "ies"}`;
 
 async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminResponse> {
-	const page = target ? await targetQuery(deps, target) : { items: [] };
+	const { page, waitlist } = await targetQuery(deps, target);
 	const n = page.items.filter((i) => !(i.data as BookingDoc).erasedAt).length;
-	const banner: NoticeInput = n
-		? { severity: "warning", title: `${n} booking${n === 1 ? "" : "s"} found for ${target}` }
+	const found = [n && `${n} booking${n === 1 ? "" : "s"}`, waitlist.length && entries(waitlist.length)].filter(Boolean);
+	const banner: NoticeInput = found.length
+		? { severity: "warning", title: `${found.join(" and ")} found for ${target}` }
 		: { severity: "info", title: "No personal data to delete for that reference or email" };
 	return respond([
 		header("Bookings"),
 		...notices([banner]),
-		...(n
+		...(found.length
 			? [
 					actions([
 						button("retention.erase", "Delete personal data", {
@@ -287,10 +297,13 @@ async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminR
 }
 
 async function retentionErase(deps: AdminDeps, target: string): Promise<AdminResponse> {
-	const page = target ? await targetQuery(deps, target) : { items: [] };
-	const out = await eraseBookings(deps.storage, page.items, deps.now, { pages: 2 });
+	const { page, waitlist } = await targetQuery(deps, target);
+	// One attendee page less when entries go too, so the request stays within 10 calls.
+	const out = await eraseBookings(deps.storage, page.items, deps.now, { pages: waitlist.length ? 1 : 2 });
+	if (waitlist.length) await deps.storage.waitlist.deleteMany(waitlist);
+	const also = waitlist.length ? ` and ${entries(waitlist.length)}` : "";
 	const banners: NoticeInput[] = [
-		{ severity: "info", title: `Deleted personal data of ${out.erased} booking${out.erased === 1 ? "" : "s"}` },
+		{ severity: "info", title: `Deleted personal data of ${out.erased} booking${out.erased === 1 ? "" : "s"}${also}` },
 		out.kept > 0 && {
 			severity: "warning",
 			title: `${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,

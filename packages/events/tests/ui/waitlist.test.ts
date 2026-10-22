@@ -27,7 +27,11 @@ function host(answers: Record<string, unknown>) {
 
 function post(entries: Record<string, string>, headers: Record<string, string> = { "sec-fetch-site": "same-origin" }) {
 	const body = new URLSearchParams(entries);
-	return new Request(url, { method: "POST", body, headers: { "content-type": "application/x-www-form-urlencoded", ...headers } });
+	return new Request(url, {
+		method: "POST",
+		body,
+		headers: { "content-type": "application/x-www-form-urlencoded", ...headers },
+	});
 }
 
 const redirect = (location: string, status = 302) => new Response(null, { status, headers: { location } });

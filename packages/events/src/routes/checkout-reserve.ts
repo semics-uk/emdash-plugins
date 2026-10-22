@@ -1,4 +1,4 @@
-import { generateToken, hashIp, hashToken, ok, type TurnstileFetch, verifyTurnstile } from "@semics-tech/shared";
+import { generateToken, hashIp, hashToken, type TurnstileFetch } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
@@ -15,7 +15,7 @@ import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "
 import { type CounterCollection, reserve } from "../domain/inventory";
 import { iso } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
-import { badRequest, fail } from "./reply";
+import { badRequest, botCheck, fail, httpFetch } from "./reply";
 
 /**
  * `POST public/checkout/reserve` (EV-FR-05, R9): Turnstile + rate limit → validate → write the
@@ -71,7 +71,7 @@ export interface ReserveDeps {
 }
 
 /** The event's waiver, copied onto the booking (only when it is required and names a template). */
-function waiverOf(config: EventConfigDoc): Pick<BookingDoc, "waiver"> {
+export function waiverOf(config: EventConfigDoc): Pick<BookingDoc, "waiver"> {
 	const sig = config.signature;
 	return sig?.required && sig.templateId ? { waiver: { templateId: sig.templateId, mode: sig.mode } } : {};
 }
@@ -135,19 +135,12 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	const [entries, stored] = await Promise.all([deps.settings.list(), storage.event_configs.get(input.eventId)]);
 	const config = stored as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished) return fail("NOT_FOUND");
-	const settings = Object.fromEntries(entries.map((e) => [e.key, e.value]));
-	const secret = typeof settings.turnstileSecretKey === "string" ? settings.turnstileSecretKey : "";
+	const { settings, secret, human: check } = botCheck(entries, deps.fetch, input.turnstileToken, deps.ip);
 
 	const ipHash = await hashIp(deps.ip ?? "unknown", secret || deps.saltFallback);
 	const [recent, human] = await Promise.all([
 		storage.bookings.count({ ipHash, createdAt: { gte: rateWindowStart(now) } }),
-		secret
-			? verifyTurnstile(deps.fetch, {
-					secret,
-					token: input.turnstileToken ?? "",
-					...(deps.ip ? { remoteIp: deps.ip } : {}),
-				})
-			: Promise.resolve(ok(true as const)),
+		check,
 	]);
 	let calls = 2 + 1 + (secret && input.turnstileToken ? 1 : 0);
 	if (recent >= RESERVE_RATE_LIMIT.limit) return fail("RATE_LIMITED");
@@ -236,10 +229,7 @@ export const CHECKOUT_RESERVE_ROUTE: RouteDef = {
 			{
 				storage: ctx.storage as unknown as ReserveStorage,
 				settings: ctx.settings,
-				fetch: (url, init) => {
-					if (!ctx.http) throw new Error("network:request is not granted");
-					return ctx.http.fetch(url, init);
-				},
+				fetch: httpFetch(ctx),
 				...(ctx.cron ? { cron: ctx.cron } : {}),
 				ip: routeCtx.requestMeta?.ip ?? null,
 				now: Date.now(),

@@ -30,6 +30,21 @@ describe("T057 Origin checks on the no-JS forms", () => {
 		expect(read("../../package.json")).toContain('"./astro/promo-endpoint": "./src/astro/promo-endpoint.ts"');
 	});
 
+	it("EV-FR-16 POST /_events/waitlist goes through the checked handler, exported for the integration (T081)", () => {
+		expect(read("../../src/astro/waitlist-endpoint.ts")).toContain("handleWaitlistRequest(");
+		expect(read("../../src/astro/lib/waitlist.ts")).toContain("if (isCrossSiteRequest(request, url)) return");
+		expect(read("../../package.json")).toContain('"./astro/waitlist-endpoint": "./src/astro/waitlist-endpoint.ts"');
+		const widget = read("../../src/astro/BookingWidget.astro");
+		expect(widget).toContain("data?.waitlist === true");
+		expect(widget).toContain("action={WAITLIST_PATH}");
+	});
+
+	it("EV-FR-16 the booking page claims an offer only from its POST, never on GET (R34)", () => {
+		const page = read("../../src/astro/BookingPage.astro");
+		expect(page).toContain('form?.get("intent") === "claim"');
+		expect(page).toContain('value={offer ? "claim" : "redeem"}');
+	});
+
 	it("EV-FR-14 the widget offers the code field only when the core takes codes, in its own form (T078)", () => {
 		const widget = read("../../src/astro/BookingWidget.astro");
 		expect(widget).toContain("data?.promoCodes === true");

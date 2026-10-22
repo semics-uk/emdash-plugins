@@ -3,13 +3,15 @@
  *
  * The recurring `retention` task runs a paged job, resuming from a cursor kept in KV, each tick at
  * most 8 bridge calls; while a pass has more to do it queues a one-shot `retention-more` for the next
- * minute's tick (like the T045 drift repair). A pass has up to three phases:
+ * minute's tick (like the T045 drift repair). A pass has up to four phases:
  *
  * 1. `ips`: clears `ipHash` from bookings once the reserve rate window has passed (an hour; without a
  *    Turnstile secret the hash is salted with the public plugin id, so it is reversible, T057 F6).
  * 2. `bookings` (at most once a day): erases the personal data of bookings whose event ended more than
  *    `retentionDays` ago, with their attendees. Counters, totals, lines and status survive.
  * 3. `outbox`: deletes sent or failed outbox rows older than the period (they hold the recipient).
+ * 4. `waitlist`: deletes waitlist entries (a name and an email) that joined longer ago than the period,
+ *    oldest first (the storage's default order, so no index is needed; T081).
  *
  * `eraseBookings` is the one routine behind both the job and the admin's on-request deletion. A
  * booking that is still live (held, awaiting or confirmed, for an event that has not happened) is
@@ -17,7 +19,7 @@
  */
 import { EXPIRABLE_STATUSES } from "../domain/holds";
 import { iso } from "../domain/time";
-import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
+import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
 
 export const RETENTION_TASK = "retention";
 export const RETENTION_MORE_TASK = "retention-more";
@@ -53,6 +55,7 @@ export interface RetentionStorage {
 	event_configs: { getMany(ids: string[]): Promise<Map<string, unknown>> };
 	attendees: { query: Query; putMany: Put };
 	outbox: { query: Query; deleteMany(ids: string[]): Promise<unknown> };
+	waitlist: { query: Query; deleteMany(ids: string[]): Promise<unknown> };
 }
 
 export interface RetentionKv {
@@ -180,7 +183,7 @@ export async function eraseBookings(
 
 /** What the job keeps between ticks. */
 export interface RetentionState {
-	phase?: "ips" | "bookings" | "outbox";
+	phase?: "ips" | "bookings" | "outbox" | "waitlist";
 	days?: number;
 	/** The page cursor of the phase in progress, and the attendee cursor of the current page. */
 	cursor?: string;
@@ -264,7 +267,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 				s.phase = "outbox";
 			}
 		}
-	} else {
+	} else if (phase === "outbox") {
 		const page = await storage.outbox.query({
 			where: { status: { in: ["sent", "failed"] }, nextAttemptAt: { lt: iso(cutoff) } },
 			limit: OUTBOX_PAGE,
@@ -274,7 +277,16 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 			await storage.outbox.deleteMany(page.items.map((i) => i.id));
 			calls++;
 		}
-		if (!page.hasMore) idle = true;
+		if (!page.hasMore) s.phase = "waitlist";
+	} else {
+		const page = await storage.waitlist.query({ limit: OUTBOX_PAGE });
+		calls++;
+		const old = page.items.filter((i) => (i.data as WaitlistDoc).createdAt < iso(cutoff)).map((i) => i.id);
+		if (old.length > 0) {
+			await storage.waitlist.deleteMany(old);
+			calls++;
+		}
+		if (old.length < page.items.length || !page.hasMore) idle = true;
 	}
 
 	if (idle) delete s.phase;

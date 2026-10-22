@@ -17,9 +17,11 @@ import { callPublicRoute } from "./lib/call";
 import {
 	bookingCookieName,
 	bookingCookieOptions,
+	claimOfferLink,
 	crossSiteResponse,
 	isCrossSiteRequest,
 	LINK_INVALID,
+	OFFER_INVALID,
 	redeemBookingLink,
 	resumePayment,
 } from "./lib/checkout-form";
@@ -41,6 +43,7 @@ const MESSAGES: Record<string, string> = {
 	CANCEL_NOT_ALLOWED: "This booking can no longer be cancelled online.",
 	BAD_REQUEST: "Please choose at least one ticket and fill in your name and email.",
 	[LINK_INVALID]: "This booking link has expired or was already used. Open your booking on the device you booked with.",
+	[OFFER_INVALID]: "This offer has ended or was already claimed. If you claimed it, your booking confirmation is on its way by email.",
 };
 const WAIVER_MESSAGES: Record<string, string> = {
 	signed: "Thank you: your waiver is signed.",
@@ -72,6 +75,13 @@ if (form?.get("intent") === "redeem") {
 	if (result.cookie) Astro.cookies.set(result.cookie.name, result.cookie.value, bookingCookieOptions(url));
 	return Astro.redirect(result.location, 303);
 }
+if (form?.get("intent") === "claim") {
+	// A waitlist offer (T081): claimed only from this POST, like the booking link above.
+	const k = form.get("k");
+	const result = await claimOfferLink(ctx, { ref: rawRef, code: typeof k === "string" ? k : "" }, { pluginId });
+	if (result.cookie) Astro.cookies.set(result.cookie.name, result.cookie.value, bookingCookieOptions(url));
+	return Astro.redirect(result.location, 303);
+}
 if (form?.get("intent") === "resume") {
 	// "Pay now": the token is the cookie's, never a field; nothing Stripe appends to the URL is read.
 	const token = ref ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
@@ -80,6 +90,7 @@ if (form?.get("intent") === "resume") {
 }
 // An emailed link: show the button and touch nothing else (GET must not redeem).
 const opening = Boolean(ref && code);
+const offer = url.searchParams.get("offer") === "1";
 const token = ref && !opening ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
 
 let cancelled = false;
@@ -147,10 +158,14 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 			{
 				opening ? (
 					<form method="post" action={`/booking?ref=${ref}`} class="semics-events semics-booking-open" data-testid="booking-open">
-						<input type="hidden" name="intent" value="redeem" />
+						<input type="hidden" name="intent" value={offer ? "claim" : "redeem"} />
 						<input type="hidden" name="k" value={code} />
-						<p>Open your booking on this device. The link works once; after that this browser remembers it.</p>
-						<button type="submit">Open my booking</button>
+						{offer ? (
+							<p>Tickets from the waitlist are held for you. Claim them on this device; the link works once.</p>
+						) : (
+							<p>Open your booking on this device. The link works once; after that this browser remembers it.</p>
+						)}
+						<button type="submit">{offer ? "Claim my tickets" : "Open my booking"}</button>
 					</form>
 				) : booking ? (
 					<>

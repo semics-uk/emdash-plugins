@@ -8,6 +8,7 @@ import { pluginId } from "virtual:semics-events/config";
 import { callPublicRoute } from "./lib/call";
 import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
 import { PROMO_PATH, type PromoView, promoCookieName, promoView } from "./lib/promo";
+import { readWaitlistState, WAITLIST_MESSAGES, WAITLIST_PATH } from "./lib/waitlist";
 import {
 	anchorId,
 	ERROR_MESSAGES,
@@ -71,6 +72,14 @@ const ticketTypes = [
 	...(takesCodes ? (promo?.hiddenTypes ?? []) : []).filter((t) => !listed.has(t.id)),
 ] as PublicEvent["ticketTypes"];
 const onSale = data?.status === "on_sale" && ticketTypes.length > 0;
+// The waitlist (T081): offered when the core takes one and the tickets, or some dates, are sold out.
+const fullDates = occurrences.filter((o) => o.available === 0);
+const waitlist =
+	onSale &&
+	data?.waitlist === true &&
+	(ticketTypes.every((t) => t.available === 0) || fullDates.length > 0);
+const waitlistDates = ticketTypes.every((t) => t.available === 0) ? occurrences : fullDates;
+const waitlistOutcome = readWaitlistState(Astro.url, eventId);
 const bad = (field: WidgetField) => state.fields.includes(field);
 const errId = (field: WidgetField) => `${id}-${field}-error`;
 const invalid = (field: WidgetField) => (bad(field) ? "true" : undefined);
@@ -257,6 +266,50 @@ const when = (iso: string) => {
 
 				<button type="submit" disabled={siteKey ? true : undefined}>Book</button>
 			</form>
+			{waitlist && (
+				<form method="post" action={WAITLIST_PATH} class="semics-waitlist" data-testid="waitlist-form" aria-labelledby={`${id}-wl-title`}>
+					<h3 id={`${id}-wl-title`}>Join the waitlist</h3>
+					<p>If tickets come free, we email the first in line and hold the tickets for them for 24 hours.</p>
+					{waitlistOutcome && (
+						<p role={waitlistOutcome === "joined" ? "status" : "alert"} data-testid="waitlist-outcome" data-code={waitlistOutcome}>
+							{WAITLIST_MESSAGES[waitlistOutcome]}
+						</p>
+					)}
+					<input type="hidden" name="eventId" value={eventId} />
+					<input type="hidden" name="returnTo" value={returnTo} />
+					{waitlistDates.length > 0 && (
+						<div class="semics-field">
+							<label for={`${id}-wl-date`}>Date</label>
+							<select id={`${id}-wl-date`} name="occurrenceId" required>
+								{waitlistDates.map((o) => <option value={o.id}>{when(o.startsAt)}</option>)}
+							</select>
+						</div>
+					)}
+					{ticketTypes.length > 1 && (
+						<div class="semics-field">
+							<label for={`${id}-wl-type`}>Ticket</label>
+							<select id={`${id}-wl-type`} name="ticketTypeId">
+								<option value="">Any ticket</option>
+								{ticketTypes.map((t) => <option value={t.id}>{t.name}</option>)}
+							</select>
+						</div>
+					)}
+					<div class="semics-field">
+						<label for={`${id}-wl-qty`}>Tickets</label>
+						<input id={`${id}-wl-qty`} name="qty" type="number" inputmode="numeric" min="1" max="10" value="1" required />
+					</div>
+					<div class="semics-field">
+						<label for={`${id}-wl-name`}>Your name</label>
+						<input id={`${id}-wl-name`} name="name" type="text" autocomplete="name" required maxlength="200" />
+					</div>
+					<div class="semics-field">
+						<label for={`${id}-wl-email`}>Email</label>
+						<input id={`${id}-wl-email`} name="email" type="email" autocomplete="email" required maxlength="254" />
+					</div>
+					{siteKey && <div class="cf-turnstile" data-sitekey={siteKey}></div>}
+					<button type="submit" class="semics-secondary">Join the waitlist</button>
+				</form>
+			)}
 			</>
 		)
 	}
@@ -298,6 +351,15 @@ const when = (iso: string) => {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
 		gap: 0.75rem;
+	}
+	.semics-booking-widget .semics-waitlist {
+		margin-block-start: 1.25rem;
+		padding-block-start: 1rem;
+		border-block-start: 1px solid var(--_border);
+	}
+	.semics-waitlist h3,
+	.semics-waitlist p {
+		margin: 0;
 	}
 	.semics-tickets {
 		margin: 0;

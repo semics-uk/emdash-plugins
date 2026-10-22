@@ -100,6 +100,34 @@ export async function redeemBookingLink(
 	};
 }
 
+/** What the booking page shows for a waitlist offer link that lapsed, was used, or is not an offer. */
+export const OFFER_INVALID = "OFFER_INVALID";
+
+/**
+ * The emailed waitlist offer (`/booking?ref=&k=<one-time code>&offer=1`, T081): like the booking link,
+ * only ever from the page's POST ("Claim my tickets"). Claims it through `public/waitlist/claim`, keeps
+ * the fresh token in the cookie and continues the booking as "Pay now" does: a free booking is
+ * confirmed, a paid one goes to the payment page.
+ */
+export async function claimOfferLink(
+	ctx: PublicRouteContext,
+	link: { ref: string; code: string },
+	options: Pick<CheckoutFormOptions, "pluginId">,
+): Promise<CheckoutRedirect> {
+	const ref = REF_PATTERN.test(link.ref) ? link.ref : "";
+	if (!ref || !link.code) return fail(OFFER_INVALID, ref);
+	const claimed = await callPublicRoute<{ accessToken: string }>(ctx, {
+		method: "POST",
+		path: "public/waitlist/claim",
+		pluginId: options.pluginId,
+		body: { bookingRef: ref, code: link.code },
+	});
+	if (!claimed.ok || !claimed.data.accessToken) return fail(OFFER_INVALID, ref);
+	const token = claimed.data.accessToken;
+	const next = await resumePayment(ctx, { ref, token }, options);
+	return { ...next, cookie: { name: bookingCookieName(ref), value: token } };
+}
+
 function text(form: FormData, key: string): string {
 	const value = form.get(key);
 	return typeof value === "string" ? value.trim() : "";

@@ -7,6 +7,7 @@ import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
 import { bookingIcsHandler, eventIcsHandler } from "./ics";
 import { EVENT_ROUTE, EVENTS_LIST_ROUTE } from "./public-events";
 import { BOOKING_REDEEM_ROUTE } from "./redeem";
+import { WAITLIST_ROUTES } from "./waitlist";
 
 /**
  * Every public route of BUILD-PLAN 3.1. Routes are declared in code (the manifest schema has no
@@ -51,8 +52,7 @@ export const PUBLIC_ROUTES: Record<string, RouteDef> = {
 		cacheControl: "public, max-age=300",
 		handler: eventIcsHandler,
 	},
-	"public/waitlist/join": route({ methods: ["POST"] }),
-	"public/waitlist/claim": route({ methods: ["POST"] }),
+	...WAITLIST_ROUTES,
 	"webhooks/stripe": {
 		methods: ["POST"],
 		public: true,

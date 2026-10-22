@@ -35,7 +35,8 @@ export interface EventsAstroIntegration {
 
 /**
  * Astro integration: injects `POST /_events/checkout` (the no-JS checkout), `POST /_events/promo`
- * (the widget's promo code button; Events Pro codes), the `/booking` page
+ * (the widget's promo code button; Events Pro codes), `POST /_events/waitlist` (the widget's
+ * "Join the waitlist" form, T081), the `/booking` page
  * (also the waiver return page) and `/_events/sign` (door signing, EV-FR-12), all with
  * `Referrer-Policy: no-referrer`. Add it to `integrations` beside `emdash()`.
  */
@@ -60,6 +61,11 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 				injectRoute({
 					pattern: "/_events/promo",
 					entrypoint: "@semics-tech/emdash-events/astro/promo-endpoint",
+					prerender: false,
+				});
+				injectRoute({
+					pattern: "/_events/waitlist",
+					entrypoint: "@semics-tech/emdash-events/astro/waitlist-endpoint",
 					prerender: false,
 				});
 				injectRoute({

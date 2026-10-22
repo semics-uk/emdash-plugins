@@ -218,6 +218,29 @@ export interface BookingAccessInput {
 
 export const parseBookingAccessInput = parser(strict<BookingAccessInput>({ bookingRef, accessToken }));
 
+/** The `public/waitlist/join` body (T081): the email is trimmed and lowercased, at most 10 seats. */
+export interface JoinInput {
+	eventId: string;
+	occurrenceId?: string | undefined;
+	ticketTypeId?: string | undefined;
+	name: string;
+	email: string;
+	qty: number;
+	turnstileToken?: string | undefined;
+}
+
+export const parseJoinInput = parser(
+	strict<JoinInput>({
+		eventId: docId,
+		occurrenceId: optional(docId),
+		ticketTypeId: optional(docId),
+		name: personName,
+		email,
+		qty: int(1, 10),
+		turnstileToken: optional(text({ max: 2048 })),
+	}),
+);
+
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const REF_LENGTH = 10;
 

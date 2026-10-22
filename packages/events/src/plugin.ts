@@ -3,6 +3,7 @@ import type { SandboxedPlugin } from "emdash/plugin";
 
 import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
 import { runCron, SWEEP_SCHEDULE, SWEEP_TASK } from "./cron/sweep";
+import { runWaitlistJob, WAITLIST_SCHEDULE, WAITLIST_TASK } from "./cron/waitlist";
 import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
 import {
 	contentAfterDelete,
@@ -30,6 +31,7 @@ const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: SWEEP_TASK, schedule: SWEEP_SCHEDULE },
 	{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE },
 	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
+	{ name: WAITLIST_TASK, schedule: WAITLIST_SCHEDULE },
 ];
 
 /**
@@ -51,6 +53,7 @@ const plugin: SandboxedPlugin = {
 		cron: async (event, ctx) => {
 			if (await runEnsureSchedulesJob(event, ctx, RECURRING_TASKS, Date.now())) return;
 			if (await runRetentionJob(event, ctx)) return;
+			if (await runWaitlistJob(event, ctx)) return;
 			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
 		},
 	},

@@ -51,7 +51,14 @@ function event(s: ReturnType<typeof makeStore>, o: WorldOptions = {}) {
 	});
 	s.ticket_types.set(tt, { eventId, name: "Entry", capacity: typeCapacity, reserved, sold: reserved, priceMinor: 0 });
 	if (occurrence) {
-		s.occurrences.set(`${eventId}_oc`, { eventId, capacity, reserved, sold: reserved, startsAt: at(240), status: "open" });
+		s.occurrences.set(`${eventId}_oc`, {
+			eventId,
+			capacity,
+			reserved,
+			sold: reserved,
+			startsAt: at(240),
+			status: "open",
+		});
 	}
 	return { tt, oc: occurrence ? `${eventId}_oc` : undefined };
 }
@@ -160,10 +167,11 @@ describe("waitlist offers (EV-FR-16, EV-US-6)", () => {
 		await expireBookings(s as unknown as HoldStorage, planned, later);
 		expect(s.event_configs.docs.get("ev1")?.reserved).toBe(1);
 
-		for (let i = 0; i < 3; i++) await tick(s, later + i * 60_000);
+		// Lapsed offers are marked every five minutes, on a tick that makes no offer.
+		for (let i = 0; i < 6; i++) await tick(s, later + i * 60_000);
 		expect(s.waitlist.docs.get("wl_a")?.status).toBe("expired");
 		expect(s.waitlist.docs.get("wl_b")?.status).toBe("offered");
-		const b = s.bookings.docs.get(s.waitlist.docs.get("wl_b")?.bookingId) as Doc;
+		const b = s.bookings.docs.get(String(s.waitlist.docs.get("wl_b")?.bookingId)) as Doc;
 		expect(b).toMatchObject({ status: "held", email: "wl_b@example.com" });
 		expect(s.event_configs.docs.get("ev1")?.reserved).toBe(2);
 	});
@@ -266,7 +274,7 @@ describe("waitlist offers (EV-FR-16, EV-US-6)", () => {
 		expect([...s.bookings.docs.values()].filter((b) => b.eventId === "ev3")).toEqual([]);
 	});
 
-	it("R22 a tick for an event without dates is at most 8 calls; an idle site costs one call", async () => {
+	it("R22 a tick for an event without dates is at most 8 calls; an idle minute costs one call", async () => {
 		const s = makeStore();
 		event(s, { capacity: 10, reserved: 10, typeCapacity: 4 });
 		entry(s, "wl_a", { qty: 2 });
@@ -279,7 +287,7 @@ describe("waitlist offers (EV-FR-16, EV-US-6)", () => {
 
 		const idle = makeStore();
 		meter.calls = 0;
-		await tick(idle);
+		await tick(idle, T0 + 60_000);
 		expect(meter.calls).toBe(1);
 	});
 
@@ -288,7 +296,8 @@ describe("waitlist offers (EV-FR-16, EV-US-6)", () => {
 		event(s, { eventId: "ev1" });
 		event(s, { eventId: "ev2" });
 		event(s, { eventId: "ev3" });
-		const patch = (id: string, p: Doc) => s.event_configs.docs.set(id, { ...(s.event_configs.docs.get(id) as Doc), ...p });
+		const patch = (id: string, p: Doc) =>
+			s.event_configs.docs.set(id, { ...(s.event_configs.docs.get(id) as Doc), ...p });
 		patch("ev1", { waitlistEnabled: false });
 		patch("ev2", { status: "paused" });
 		patch("ev3", { unpublished: true });
