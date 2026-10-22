@@ -1,5 +1,5 @@
 import { toRouteError } from "@semics-tech/shared";
-import type { SandboxedPlugin } from "emdash/plugin";
+import { pluginResponse, type RouteHandler, type SandboxedPlugin } from "emdash/plugin";
 
 import { BOOKING_CANCEL_ROUTE, BOOKING_ROUTE } from "./booking";
 import { CHECKOUT_CONTINUE_ROUTE } from "./checkout-continue";
@@ -22,6 +22,19 @@ function route(def: Omit<RouteDef, "handler" | "public">): RouteDef {
 	return { ...def, public: true, handler: notImplemented };
 }
 
+/**
+ * Free takes no payments, but a site switched back from Pro may still get Stripe deliveries for
+ * sessions Pro opened. A 2xx would tell Stripe they were handled and it would never send them again,
+ * so a payment made meanwhile would be lost; 503 makes Stripe keep retrying (for up to three days),
+ * and Pro settles it (confirm, re-reserve or refund, R2) once it is back (T078). Nothing is read.
+ */
+const stripeNotHandled: RouteHandler = async () =>
+	pluginResponse({
+		status: 503,
+		headers: { "content-type": "application/json; charset=utf-8", "retry-after": "3600" },
+		body: { kind: "text", value: '{"error":"WEBHOOK_NOT_HANDLED"}' },
+	});
+
 export const PUBLIC_ROUTES: Record<string, RouteDef> = {
 	"public/events": EVENTS_LIST_ROUTE,
 	"public/event": EVENT_ROUTE,
@@ -40,9 +53,12 @@ export const PUBLIC_ROUTES: Record<string, RouteDef> = {
 	},
 	"public/waitlist/join": route({ methods: ["POST"] }),
 	"public/waitlist/claim": route({ methods: ["POST"] }),
-	"webhooks/stripe": route({
+	"webhooks/stripe": {
 		methods: ["POST"],
+		public: true,
+		response: "raw",
 		request: { body: "text", headers: ["stripe-signature"] },
-	}),
+		handler: stripeNotHandled,
+	},
 	"signatures/receipt": route({ methods: ["POST"] }),
 };
