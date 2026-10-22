@@ -1434,7 +1434,7 @@
 			"phase": 3,
 			"package": "suite",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1453,7 +1453,7 @@
 				"T096",
 				"T097"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T070": {
 			"file": "T070-licence-verification-and-pro-gating.md",
@@ -2376,7 +2376,6 @@
 			"T106"
 		],
 		"ready": [
-			"T067",
 			"T076",
 			"T077",
 			"T080",
@@ -2388,6 +2387,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T067",
 			"T074"
 		],
 		"review": [],

@@ -4,7 +4,7 @@ title: "Phase 3 gate: integration security and E2E"
 phase: 3
 package: suite
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T066]
