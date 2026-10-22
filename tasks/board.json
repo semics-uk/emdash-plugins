@@ -2215,7 +2215,7 @@
 			"phase": 1,
 			"package": "shared",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2227,7 +2227,7 @@
 				"R32"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -2286,8 +2286,7 @@
 		],
 		"in-progress": [
 			"T028",
-			"T046",
-			"T113"
+			"T046"
 		],
 		"review": [],
 		"done": [
@@ -2334,7 +2333,8 @@
 			"T055",
 			"T070",
 			"T110",
-			"T112"
+			"T112",
+			"T113"
 		],
 		"blocked": []
 	},
