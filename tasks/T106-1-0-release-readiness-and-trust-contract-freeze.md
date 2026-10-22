@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Licence Worker support tooling (T072): issue the key for a `needs_sites` sale and change a licence's hostnames without hand-editing D1; an alert for webhook events stuck in `processing`; a decision on checking `semreg_` registry tokens (proxy vs manual npm access)
 - [ ] Decide on the admin "Waitlist" page from BUILD-PLAN (not built in T081): build it or drop it from the 1.0 scope and the docs
 - [ ] Decide whether custom attendee answers (R52) should show on the booking page and in emails, and whether waitlist-offer bookings need them; record as a §12 row (follow-up from T080)
+- [ ] Decide and record (§12) the uploaded-PDF follow-ups from T094: a several-signer PDF send route, offering PDF templates to integrations, self-serve and bulk send, and deleting unreferenced pdf_files chunks
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
