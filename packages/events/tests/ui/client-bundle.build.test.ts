@@ -17,8 +17,8 @@ function files(dir: string, ext: string): string[] {
 	});
 }
 
-describe("events UI client budget and escaping (EU-NFR-01, T055 escaping)", () => {
-	it("EU-NFR-01 the booking client script is self-contained and at most 15 KB gzipped", () => {
+describe("events UI client budget and escaping (EU-NFR-02, T055 escaping)", () => {
+	it("EU-NFR-02 the booking client script is self-contained and at most 15 KB gzipped", () => {
 		const source = readFileSync(CLIENT, "utf8");
 		// No imports: what the transpiled file weighs is what the browser downloads.
 		expect(source).not.toMatch(/^\s*import\s/m);

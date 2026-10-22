@@ -146,7 +146,7 @@ test("EU-FR-07 EU-FR-08 the pass shows the attendee code as text and the calenda
 	await context.close();
 });
 
-test("EU-NFR-02 axe finds no serious violations in the widget, status page and pass", async ({ page }) => {
+test("EU-NFR-01 axe finds no serious violations in the widget, status page and pass", async ({ page }) => {
 	await page.goto(EVENT);
 	expect(await seriousViolations(page)).toEqual([]);
 	// The Turnstile widget itself is Cloudflare's; keep the run offline.

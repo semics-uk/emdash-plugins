@@ -104,7 +104,7 @@ async function run(fn: typeof bookingStatus, deps: BookingDeps, input: unknown) 
 }
 
 describe("public/booking (EV-US-4)", () => {
-	it("EV-US-4 a wrong token answers exactly like an unknown ref, with the same bridge calls", async () => {
+	it("EV-US-4 EV-NFR-06 a wrong token answers exactly like an unknown ref, with the same bridge calls", async () => {
 		const w = await world();
 		const wrong = await run(bookingStatus, w.deps(T0), { bookingRef: REF, accessToken: generateToken() });
 		const unknown = await run(bookingStatus, w.deps(T0), { bookingRef: "ZZZZZZZZZZ", accessToken: w.token });

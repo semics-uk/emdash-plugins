@@ -134,7 +134,7 @@ describe("EV-FR-03 public/events", () => {
 });
 
 describe("EV-FR-03 public/event", () => {
-	it("EV-FR-03 answers in the PublicEvent shape: visible ticket types with seats left", async () => {
+	it("EV-FR-03 EV-NFR-06 answers in the PublicEvent shape: visible ticket types with seats left", async () => {
 		const budget = await setup();
 		const e = await entry("Winter Concert");
 		await save(e.id);
