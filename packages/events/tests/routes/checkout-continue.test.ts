@@ -242,6 +242,27 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 		expect(calls).toBe(5);
 	});
 
+	it("EV-FR-12 a paid waiver booking awaiting payment keeps its signed attendees (+1 call)", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], status: "awaiting_payment" });
+		w.booking().waiver = { templateId: "tpl_waiver", mode: "each_attendee" };
+		const signed = (seat: number, name: string) => ({
+			bookingId: ID,
+			ticketTypeId: seat === 1 ? "tt_a" : "tt_b",
+			name,
+			status: "valid",
+			code: `code-${seat}`,
+			signature: { envelopeId: `env_${seat}`, status: "completed", docSha256: "a".repeat(64) },
+		});
+		w.storage.attendees.set(`${ID}-1`, signed(1, "Ada Lovelace"));
+		w.storage.attendees.set(`${ID}-2`, signed(2, "Charles Babbage"));
+		const before = structuredClone([...w.storage.attendees.docs.entries()]);
+		// Continue again without attendees: the signed seats must not become the buyer's name.
+		const { body, calls } = await run(w.deps(T0 + MIN, { payment: payment([]) }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
+		expect(calls).toBe(6);
+	});
+
 	it("EV-FR-05 extends the hold, moves to awaiting_payment, writes pending attendees and re-arms hold-<ref>", async () => {
 		const w = await world({ priceMinor: 1500 });
 		const seen: string[] = [];
