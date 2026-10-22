@@ -86,12 +86,19 @@ function dependencyChanges(published, changedFiles, base) {
 		.map(({ dir }) => dir);
 }
 
-function readChangesets() {
-	const dir = join(repoRoot, ".changeset");
-	if (!existsSync(dir)) return [];
-	return readdirSync(dir)
-		.filter((file) => file.endsWith(".md") && file.toLowerCase() !== "readme.md")
-		.map((file) => ({ file, packages: parseChangesetPackages(readFileSync(join(dir, file), "utf8")) }));
+/** `.changeset/*.md`, plus `.changeset/pre/*.md`, where Changesets keeps the consumed ones in pre mode (T106). */
+export function readChangesets(root = repoRoot) {
+	const read = (sub) => {
+		const dir = join(root, ".changeset", sub);
+		if (!existsSync(dir)) return [];
+		return readdirSync(dir)
+			.filter((file) => file.endsWith(".md") && file.toLowerCase() !== "readme.md")
+			.map((file) => ({
+				file: sub ? `${sub}/${file}` : file,
+				packages: parseChangesetPackages(readFileSync(join(dir, file), "utf8")),
+			}));
+	};
+	return [...read(""), ...read("pre")];
 }
 
 export function run(argv) {
