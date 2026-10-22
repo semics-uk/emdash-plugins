@@ -19,7 +19,7 @@ export function applyBookingFixtures(root) {
 	try {
 		for (const [slug, event] of Object.entries(fixture)) {
 			const entry = db
-				.prepare("SELECT id, title, starts_at, ends_at, timezone, venue FROM ec_events WHERE slug = ?")
+				.prepare("SELECT id, slug, title, starts_at, ends_at, timezone, venue FROM ec_events WHERE slug = ?")
 				.get(slug);
 			if (!entry) throw new Error(`[e2e] fixture event ${slug} is not in the seed`);
 			const catalog = { ticketTypes: {}, occurrences: {} };
@@ -70,6 +70,7 @@ export function applyBookingFixtures(root) {
 					endsAt: entry.ends_at ? new Date(entry.ends_at).toISOString() : null,
 					timezone: entry.timezone ?? null,
 					venue: entry.venue ?? null,
+					slug: entry.slug,
 				},
 			};
 			put.run(PLUGIN_ID, "event_configs", entry.id, JSON.stringify(config), crypto.randomUUID(), now, now);

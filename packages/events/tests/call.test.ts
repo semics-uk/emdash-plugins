@@ -157,4 +157,29 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 		}
 		expect(handler).not.toHaveBeenCalled();
 	});
+
+	it("EV-FR-05 forwards the visitor's client-IP headers, so the core's per-IP limit sees the visitor (T056)", async () => {
+		const handler = vi.fn<Handler>(async () => ({ success: true, data: {} }));
+		const incoming = new Request("https://site.example/_events/checkout", {
+			method: "POST",
+			headers: {
+				"x-forwarded-for": "203.0.113.7",
+				"cf-connecting-ip": "203.0.113.7",
+				"x-real-ip": "203.0.113.7",
+				cookie: "semics_booking_ABCDEFGHJK=secret",
+				authorization: "Bearer nope",
+			},
+		});
+		await callPublicRoute(
+			{ locals: localsWith(handler), url, request: incoming },
+			{ method: "POST", path: "public/checkout/reserve", body: {} },
+		);
+		const request = firstCall(handler.mock.calls)[3];
+		expect(request.headers.get("x-forwarded-for")).toBe("203.0.113.7");
+		expect(request.headers.get("cf-connecting-ip")).toBe("203.0.113.7");
+		expect(request.headers.get("x-real-ip")).toBe("203.0.113.7");
+		// Never credentials: the core gets the visitor's address, not their session.
+		expect(request.headers.get("cookie")).toBeNull();
+		expect(request.headers.get("authorization")).toBeNull();
+	});
 });

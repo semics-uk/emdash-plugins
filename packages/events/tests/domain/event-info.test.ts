@@ -81,6 +81,28 @@ describe("EV-FR-01 public info from an entry", () => {
 	});
 });
 
+describe("EV-FR-03 the entry's slug on the info (T056)", () => {
+	it("EV-FR-03 keeps the slug of a flat hook record", () => {
+		expect(infoOfEntry({ ...entry, slug: "winter-concert" }, mappingOf([]))?.slug).toBe("winter-concert");
+	});
+
+	it("EV-FR-03 reads a content item (fields under data, slug beside them), the shape EmDash passes to hooks", () => {
+		const item = { id: "ev1", slug: "winter-concert", status: "published", data: entry };
+		expect(infoOfEntry(item, mappingOf([]))).toEqual({
+			title: "Winter Concert",
+			startsAt: "2026-11-14T19:00:00.000Z",
+			endsAt: "2026-11-14T21:00:00.000Z",
+			timezone: "Europe/London",
+			venue: "Town Hall",
+			slug: "winter-concert",
+		});
+	});
+
+	it("EV-FR-03 leaves the slug out when the entry has none", () => {
+		expect(infoOfEntry(entry, mappingOf([]))).not.toHaveProperty("slug");
+	});
+});
+
 describe("EV-FR-08 loading the info", () => {
 	const deps = (config: unknown, calls: string[]) => ({
 		settings: {

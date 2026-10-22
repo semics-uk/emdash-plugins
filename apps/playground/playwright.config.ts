@@ -18,7 +18,8 @@ export default defineConfig({
 	webServer: {
 		command: "node ./e2e/harness/serve.mjs",
 		url: `${baseURL}/`,
-		env: { PORT: String(PORT), HOST: "127.0.0.1" },
+		// Trust X-Forwarded-For so specs can give each visitor its own IP (the per-IP checkout limit, T056).
+		env: { PORT: String(PORT), HOST: "127.0.0.1", EMDASH_TRUSTED_PROXY_HEADERS: "x-forwarded-for" },
 		reuseExistingServer: false,
 		gracefulShutdown: { signal: "SIGTERM", timeout: 5000 },
 		timeout: 120_000,

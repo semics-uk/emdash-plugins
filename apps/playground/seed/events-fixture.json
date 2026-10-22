@@ -11,7 +11,8 @@
 		"currency": "USD",
 		"capacity": 40,
 		"ticketTypes": {
-			"tt_nyc_seat": { "name": "Workshop seat", "priceMinor": 2500, "capacity": 40, "maxPerOrder": 4 }
+			"tt_nyc_seat": { "name": "Workshop seat", "priceMinor": 2500, "capacity": 40, "maxPerOrder": 4 },
+			"tt_nyc_standby": { "name": "Standby (free)", "priceMinor": 0, "capacity": 10, "maxPerOrder": 2 }
 		}
 	},
 	"sydney-conference": {

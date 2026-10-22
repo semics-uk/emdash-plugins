@@ -9,6 +9,7 @@ import { eventsUi } from "@semics-tech/emdash-events/ui";
 import semicsEsign from "@semics-tech/emdash-esign";
 import { esignIntegration } from "@semics-tech/emdash-esign/integration";
 import { esignUi } from "@semics-tech/emdash-esign/ui";
+import { mailCapture } from "./src/e2e/mail-capture.mjs";
 
 export default defineConfig({
 	output: "server",
@@ -31,7 +32,8 @@ export default defineConfig({
 			}),
 			sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
 			sandboxed: [semicsEvents, semicsEsign],
-			plugins: [eventsUi(), esignUi()],
+			// mailCapture: the e2e email provider (T056); production builds have no dev console provider.
+			plugins: [eventsUi(), esignUi(), mailCapture()],
 		}),
 	],
 	devToolbar: { enabled: false },

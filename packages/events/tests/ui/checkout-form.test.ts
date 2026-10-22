@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { handleCheckoutForm } from "../../src/astro/lib/checkout-form";
+import { handleCheckoutForm, redeemBookingLink } from "../../src/astro/lib/checkout-form";
 
 const TOKEN = "T".repeat(43);
 const KEY = "k".repeat(40);
@@ -205,5 +205,52 @@ describe("handleCheckoutForm (EU-FR-05, EU-FR-06)", () => {
 			expect(keyOf(first)).toBe(KEY);
 			expect(keyOf(second)).toBe(KEY);
 		});
+	});
+});
+
+describe("redeemBookingLink: the emailed ?k= link (EV-US-3, EV-FR-08, R34, T056)", () => {
+	const CODE = "c".repeat(43);
+	const redeemed = { success: true, data: { ok: true, bookingRef: "ABCDEFGHJK", accessToken: TOKEN } };
+
+	it("EV-FR-08 posts the ref and code to public/booking/redeem and sets the cookie, redirecting without k", async () => {
+		const h = host(redeemed, redeemed);
+		const out = await redeemBookingLink({ locals: h.locals, url }, { ref: "ABCDEFGHJK", code: CODE }, {});
+		expect(out).toEqual({
+			location: "/booking?ref=ABCDEFGHJK",
+			cookie: { name: "semics_booking_ABCDEFGHJK", value: TOKEN },
+		});
+		expect(h.seen).toEqual([
+			{
+				url: "https://site.example/_emdash/api/plugins/semics-events/public/booking/redeem",
+				method: "POST",
+				body: { bookingRef: "ABCDEFGHJK", code: CODE },
+			},
+		]);
+		expect(out.location).not.toContain(CODE);
+		expect(h.seen[0]?.url).not.toContain(CODE);
+	});
+
+	it("EV-FR-08 a used, expired or wrong code lands on the booking page with LINK_INVALID and no cookie", async () => {
+		const refused = { success: true, data: { ok: false, error: { code: "NOT_FOUND", message: "no" } } };
+		const h = host(refused, refused);
+		const out = await redeemBookingLink({ locals: h.locals, url }, { ref: "ABCDEFGHJK", code: CODE }, {});
+		expect(out).toEqual({ location: "/booking?ref=ABCDEFGHJK&error=LINK_INVALID" });
+	});
+
+	it("EV-FR-08 refuses a malformed ref or an empty code without calling the core", async () => {
+		const h = host(redeemed, redeemed);
+		expect(await redeemBookingLink({ locals: h.locals, url }, { ref: "nope", code: CODE }, {})).toEqual({
+			location: "/booking?error=LINK_INVALID",
+		});
+		expect(await redeemBookingLink({ locals: h.locals, url }, { ref: "ABCDEFGHJK", code: "" }, {})).toEqual({
+			location: "/booking?ref=ABCDEFGHJK&error=LINK_INVALID",
+		});
+		expect(h.seen).toEqual([]);
+	});
+
+	it("uses the configured plugin id for registry installs", async () => {
+		const h = host(redeemed, redeemed);
+		await redeemBookingLink({ locals: h.locals, url }, { ref: "ABCDEFGHJK", code: CODE }, { pluginId: "r_abc" });
+		expect(h.seen[0]?.url).toContain("/plugins/r_abc/public/booking/redeem");
 	});
 });

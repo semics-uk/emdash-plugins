@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cardView, listView, type PublicEventSummary } from "../../src/astro/lib/list";
+import { cardView, eventHref, listView, type PublicEventSummary } from "../../src/astro/lib/list";
 
 const base: PublicEventSummary = {
 	eventId: "e1",
@@ -53,5 +53,11 @@ describe("event list view (EU-FR-03, EU-US-4)", () => {
 		expect(listView(events, { limit: 2, locale: "en-GB" }).map((c) => c.eventId)).toEqual(["e1", "e2"]);
 		expect(listView(events, { limit: 0, locale: "en-GB" })).toEqual([]);
 		expect(listView([], { limit: 3, locale: "en-GB" })).toEqual([]);
+	});
+
+	it("EU-FR-03 links a card to its event page by the entry's slug by default (T056)", () => {
+		expect(eventHref({ ...base, slug: "london-meetup" })).toBe("/events/london-meetup");
+		expect(eventHref({ ...base, slug: "a b/c" })).toBe("/events/a%20b%2Fc");
+		expect(eventHref(base)).toBeUndefined();
 	});
 });

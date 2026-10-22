@@ -99,6 +99,7 @@ describe("EV-FR-03 public/events", () => {
 			currency: "GBP",
 			priceFromMinor: 500,
 			available: 50,
+			slug: "sooner-gig",
 		});
 	});
 
@@ -240,6 +241,7 @@ describe("EV-FR-08 the copy of the entry's public info", () => {
 			endsAt: "2099-11-14T21:00:00.000Z",
 			timezone: "Europe/London",
 			venue: "Town Hall",
+			slug: "mapped",
 		});
 	});
 
@@ -273,6 +275,32 @@ describe("EV-FR-08 the copy of the entry's public info", () => {
 			timezone: string;
 		};
 		expect([body.title, body.timezone]).toEqual(["After", "UTC"]);
+	});
+
+	it("EV-FR-03 content:afterSave reads a content item as EmDash passes it, slug included (T056)", async () => {
+		const budget = await setup();
+		const e = await entry("Before");
+		await save(e.id);
+		await budget.invokeHook("content:afterSave", {
+			collection: "events",
+			isNew: false,
+			content: {
+				id: e.id,
+				slug: "renamed-gig",
+				status: "published",
+				data: { title: "Renamed", starts_at: "2099-12-24T10:00:00Z", timezone: "UTC", venue: "Hall C" },
+			},
+		});
+		expect((await config(e.id))?.info).toEqual({
+			title: "Renamed",
+			startsAt: "2099-12-24T10:00:00.000Z",
+			endsAt: null,
+			timezone: "UTC",
+			venue: "Hall C",
+			slug: "renamed-gig",
+		});
+		const list = (await budget.invokeRoute("public/events", {})).value as { events: Array<{ slug?: string }> };
+		expect(list.events.map((x) => x.slug)).toEqual(["renamed-gig"]);
 	});
 
 	it("content:afterSave ignores other collections, entries without a config and entries without a start", async () => {
