@@ -3,13 +3,12 @@ import react from "@astrojs/react";
 import { defineConfig } from "astro/config";
 import emdash, { local } from "emdash/astro";
 import { sqlite } from "emdash/db";
-import semicsEvents from "@semics-tech/emdash-events";
-import { eventsIntegration } from "@semics-tech/emdash-events/integration";
-import { eventsUi } from "@semics-tech/emdash-events/ui";
-import semicsEsign from "@semics-tech/emdash-esign";
-import { esignIntegration } from "@semics-tech/emdash-esign/integration";
-import { esignUi } from "@semics-tech/emdash-esign/ui";
+import { eventsSuite } from "@semics-tech/emdash-events-suite";
 import { mailCapture } from "./src/e2e/mail-capture.mjs";
+
+// Both products linked by the suite (T065): the Free cores, both UI kits, the pages of each product and
+// the suite's waiver page, every part told the plugin id of each core.
+const suite = eventsSuite();
 
 export default defineConfig({
 	output: "server",
@@ -22,8 +21,7 @@ export default defineConfig({
 	},
 	integrations: [
 		react(),
-		eventsIntegration(),
-		esignIntegration(),
+		...suite.integrations,
 		emdash({
 			database: sqlite({ url: "file:./data.db" }),
 			storage: local({
@@ -31,9 +29,9 @@ export default defineConfig({
 				baseUrl: "/_emdash/api/media/file",
 			}),
 			sandboxRunner: "@emdash-cms/sandbox-workerd/sandbox",
-			sandboxed: [semicsEvents, semicsEsign],
+			sandboxed: suite.sandboxed,
 			// mailCapture: the e2e email provider (T056); production builds have no dev console provider.
-			plugins: [eventsUi(), esignUi(), mailCapture()],
+			plugins: [...suite.plugins, mailCapture()],
 		}),
 	],
 	devToolbar: { enabled: false },

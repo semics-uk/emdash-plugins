@@ -1,0 +1,63 @@
+---
+// Injected at `/_events/waiver` by the suite (SX-FR-02, SX-FR-03): the booking post of
+// <BookingWithWaiver> and the inline waiver ceremony, one signer after another, on one page.
+// Signing tokens live only in an HttpOnly cookie scoped to this path and in POST bodies to E-sign;
+// receipts are forwarded to Events in-process. The page renders E-sign's <SigningCeremony> and
+// nothing else inline, so it sends E-sign's `ceremonyCsp()` (hashes of the ceremony's own script,
+// pad and stylesheet), `Referrer-Policy: no-referrer` and `no-store`.
+import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
+import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
+import { ceremonyCsp } from "@semics-tech/emdash-esign/astro/lib/csp";
+import { crossSiteResponse } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+
+import { handleWaiverRequest } from "./lib/flow";
+import { WAIVER_MESSAGES, WAIVER_PATH } from "./lib/form";
+
+export const prerender = false;
+
+const outcome = await handleWaiverRequest(
+	{ locals: Astro.locals, url: Astro.url, request: Astro.request, cookie: (name) => Astro.cookies.get(name)?.value },
+	{ eventsPluginId, esignPluginId },
+);
+if (outcome.type === "forbidden") return crossSiteResponse();
+const cookies = outcome.type === "redirect" || outcome.type === "render" ? outcome.cookies : [];
+for (const cookie of cookies) Astro.cookies.set(cookie.name, cookie.value, cookie.options);
+if (outcome.type === "redirect") return Astro.redirect(outcome.location, 303);
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
+
+const render = outcome.type === "render" ? outcome : undefined;
+const ref = outcome.type === "render" || outcome.type === "error" ? (outcome.ref ?? "") : "";
+const error = outcome.type === "error" ? (WAIVER_MESSAGES[outcome.code] ?? WAIVER_MESSAGES.INTERNAL) : "";
+const signer = render?.view.kind === "ready" ? render.view.session.signer : undefined;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Sign the waiver</title>
+	</head>
+	<body>
+		<main class="semics-esign semics-sign" data-testid="waiver-page" data-step={render ? "sign" : "error"}>
+			<h1>Sign the waiver</h1>
+			{error && <p role="alert" data-testid="waiver-error">{error}</p>}
+			{render && (
+				<>
+					{signer?.participant && <p data-testid="waiver-for">Signing as guardian for <strong>{signer.participant}</strong>.</p>}
+					{render.remaining > 0 && (
+						<p data-testid="waiver-remaining">
+							{render.remaining === 1 ? "One more waiver follows this one." : `${render.remaining} more waivers follow this one.`}
+						</p>
+					)}
+					<SigningCeremony view={render.view} action={`${WAIVER_PATH}?ref=${ref}`} token={render.token} pluginId={esignPluginId} />
+				</>
+			)}
+			{ref && <p><a href={`/booking?ref=${ref}`}>Back to your booking</a></p>}
+		</main>
+	</body>
+</html>

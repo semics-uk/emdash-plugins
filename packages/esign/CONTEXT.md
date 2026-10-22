@@ -98,6 +98,9 @@ event, audit seq starts at 0) and `envelopes/void`. `send` is 9 calls, so the ad
 confirmation instead of re-reading. The sandbox cannot read the env: the encryption banner shows after a failed
 secret save or when a stored secret is unreadable.
 
+`src/astro/lib/*.ts` is exported as `./astro/lib/*` (T065): the suite embeds the ceremony on its own page with
+`handleSign`, `ceremonyRedirect` and `ceremonyCsp` from there. Treat their signatures as public API.
+
 UI (T029-T030): `/sign/[token]` = `SignPage.astro` → `handleSign` (`src/astro/lib/sign.ts`) → `<SigningCeremony>`.
 The snapshot is rendered only via `lib/markdown.ts` (allowlisted tree, `{text}` output, http(s)/mailto links; 100%
 branches). The page's CSP is `ceremonyCsp()`: only the inlined `src/client/ceremony.js` (plain JS, `?raw`) and

@@ -1,7 +1,9 @@
 # Playground context
 
-Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner, loading the events core sandboxed and the events
-UI natively (`astro.config.mjs`). Used for end-to-end tests only.
+Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wired by the suite (T065):
+`eventsSuite()` gives the Free events and e-sign cores (sandboxed), both UI kits and all integrations
+(events, e-sign and the suite's `/_events/waiver`). Never Pro code. Used for end-to-end tests only.
+`e2e/harness/build.mjs` builds events, e-sign and the suite before the site.
 
 - `corepack pnpm@10.23.0 --filter playground e2e`: builds the events package and the site, deletes
   `data.db*` and `uploads/`, seeds with `emdash seed` (`seed/seed.json`), serves on port 4401, runs
@@ -37,6 +39,10 @@ UI natively (`astro.config.mjs`). Used for end-to-end tests only.
   the fragment only; then lookup and catalogue. `serve.mjs` gives the server a fixed test `EMDASH_ENCRYPTION_KEY` (unless
   one is set) so secret settings can be saved, and `EMDASH_SITE_URL=http://127.0.0.1:<port>`: e-sign queues no email
   with a relative link (T117).
+- `e2e/t065-booking-with-waiver.spec.ts` (T065): `/e2e/waiver?slug=` renders the suite's `<BookingWithWaiver>`; a Free
+  booking through it (no JS, an under-18 attendee), the C0 refusal, and `/_events/waiver` with an intent minted like Events
+  Pro (flow cookie `semics_waiver_<ref>` set by the test): ceremony under `ceremonyCsp()`, receipt forwarded in-process
+  (Free's `signatures/receipt` is a stub, so the notice is `waiver=failed`).
 - `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
   `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate

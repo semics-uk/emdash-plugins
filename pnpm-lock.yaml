@@ -35,6 +35,9 @@ importers:
       '@semics-tech/emdash-events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@semics-tech/emdash-events-suite':
+        specifier: workspace:*
+        version: link:../../packages/events-suite
       astro:
         specifier: ^7.3.2
         version: 7.3.8(@types/node@26.6.5)(esbuild@0.28.2)(yaml@2.9.1)

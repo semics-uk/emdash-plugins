@@ -118,6 +118,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   once when `pdfSha256` was null); `/_events/sign` (`DoorSignPage.astro`) redeems the intent with e-sign
   `public/envelopes/from-intent` and redirects to `/sign/<token>`.
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.
+- `src/astro/lib/*.ts` is exported as `./astro/lib/*` (T065): the suite composes `callPublicRoute`, the checkout
+  cookie helpers and `forwardReceipt` from there. Treat their signatures as public API.
 - UI (T055): `<BookingWidget event>` posts a plain form to `/_events/checkout` (`returnTo`,
   `idempotencyKey`, `qty:<ticketTypeId>`); refusals before a booking exists go back to the widget as
   `?booking_error=&booking_fields=&booking_event=` (no typed values in URLs). `src/client/booking.ts`

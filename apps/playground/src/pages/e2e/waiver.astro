@@ -1,0 +1,19 @@
+---
+// e2e page (T065): the suite's <BookingWithWaiver> for one seeded event, `?slug=london-meetup`.
+import { getEmDashEntry } from "emdash";
+import BookingWithWaiver from "@semics-tech/emdash-events-suite/astro/BookingWithWaiver.astro";
+import Base from "../../layouts/Base.astro";
+
+export const prerender = false;
+
+const slug = Astro.url.searchParams.get("slug") ?? "";
+const { entry } = slug ? await getEmDashEntry("events", slug) : { entry: null };
+if (!entry) return new Response(null, { status: 404 });
+// biome-ignore lint/suspicious/noExplicitAny: the events collection is not in the generated types
+const data = entry.data as Record<string, any>;
+---
+
+<Base title={`Book ${data.title}`} description="Book with a waiver">
+	<h1>{data.title}</h1>
+	<BookingWithWaiver event={data.id} />
+</Base>

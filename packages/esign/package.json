@@ -19,6 +19,7 @@
 			"types": "./dist/ts/integration/index.d.ts"
 		},
 		"./astro": "./src/astro/index.js",
+		"./astro/lib/*": "./src/astro/lib/*.ts",
 		"./astro/SignPage.astro": "./src/astro/SignPage.astro",
 		"./astro/SigningCeremony.astro": "./src/astro/SigningCeremony.astro",
 		"./astro/SignedCopyPage.astro": "./src/astro/SignedCopyPage.astro",
