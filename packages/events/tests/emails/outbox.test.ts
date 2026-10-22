@@ -196,6 +196,22 @@ describe("R22 outbox drain budget", () => {
 		expect(meter.calls).toBe(9);
 	});
 
+	it("T051 with no copy of the entry on the config only one message is sent per tick: worst case 10 calls", async () => {
+		for (const occurrence of [false, true]) {
+			const w = await world({ denormalised: false, occurrence });
+			const b = addBooking(w, "b");
+			if (occurrence) w.storage.bookings.set(b, { ...(w.storage.bookings.docs.get(b) as Doc), occurrenceId: "oc1" });
+			meter.calls = 0;
+			const result = await drainEventsOutbox(w.deps());
+			expect(result).toMatchObject({ sent: 1, remainingHint: true });
+			expect(meter.calls).toBeLessThanOrEqual(10);
+			// The row left behind is still pending and goes out on the next tick.
+			meter.calls = 0;
+			expect((await drainEventsOutbox(w.deps())).sent).toBe(1);
+			expect(meter.calls).toBeLessThanOrEqual(10);
+		}
+	});
+
 	it("R22 a third queued message waits for the next tick", async () => {
 		const w = await world();
 		addBooking(w, "b");
