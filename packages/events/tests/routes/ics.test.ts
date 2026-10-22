@@ -177,6 +177,33 @@ describe("EV-FR-08 public/event/ics", () => {
 	});
 });
 
+describe("T057 public/event/ics answers only for a public event (EV-FR-03)", () => {
+	it("EV-FR-03 a draft, unpublished, orphaned or unconfigured event has no public calendar file", async () => {
+		const states: Array<Record<string, unknown> | null> = [
+			{ status: "draft" },
+			{ unpublished: true },
+			{ orphaned: true },
+			null,
+		];
+		for (const state of states) {
+			const w = await world();
+			const config = w.storage.event_configs.docs.get("ev1") as Doc;
+			if (state) w.storage.event_configs.set("ev1", { ...config, ...state });
+			else w.storage.event_configs.docs.delete("ev1");
+			const raw = await eventIcs(icsDeps(w), new URLSearchParams({ eventId: "ev1" }));
+			expect(raw.status, JSON.stringify(state)).toBe(404);
+			expect(raw.body).not.toContain("Winter Concert");
+		}
+	});
+
+	it("EV-FR-03 a published config without its copy of the entry still falls back to the entry", async () => {
+		const w = await world({ denormalised: false });
+		const raw = await eventIcs(icsDeps(w), new URLSearchParams({ eventId: "ev1" }));
+		expect(raw.status).toBe(200);
+		expect(raw.body).toContain("Winter Concert");
+	});
+});
+
 describe("EV-FR-08 public/booking/redeem exchanges the emailed one-time code for an access token", () => {
 	async function emailed(w: W) {
 		const { drainEventsOutbox } = await import("../../src/emails/outbox");

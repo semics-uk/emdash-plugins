@@ -245,4 +245,17 @@ describe("public/booking/cancel (EV-US-4)", () => {
 		expect(body).toMatchObject({ ok: true, status: "cancelled" });
 		expect(w.booking().status).toBe("cancelled");
 	});
+
+	it("EV-NFR-03 a stale claim on a confirmed booking (a cancel that died) is not released twice", async () => {
+		const w = await world();
+		// The dead cancel claimed the booking and may already have released its seats.
+		w.booking().releaseClaimedAt = at(-1);
+		const { body } = await run(cancelBooking, w.deps(T0), w.input);
+		expect(body).toMatchObject({ ok: true, status: "cancelled" });
+		expect(w.booking().status).toBe("cancelled");
+		// Releasing again could under-count (oversell); drift repair settles the counters instead.
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 1, sold: 1 });
+		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ reserved: 1, sold: 1 });
+		expect(w.counter("occurrences", "oc1")).toMatchObject({ reserved: 1, sold: 1 });
+	});
 });

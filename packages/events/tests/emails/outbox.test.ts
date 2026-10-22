@@ -1,7 +1,7 @@
 import { hashToken } from "@semics-tech/shared";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { drainEventsOutbox, OUTBOX_PER_TICK } from "../../src/emails/outbox";
+import { drainEventsOutbox, OUTBOX_PER_TICK, runOutboxJob } from "../../src/emails/outbox";
 import { meter } from "../domain/fake-storage";
 import { type Doc, ID, NOW, REF, world } from "./world";
 
@@ -227,5 +227,55 @@ describe("R22 outbox drain budget", () => {
 		meter.calls = 0;
 		await drainEventsOutbox(w.deps());
 		expect(meter.calls).toBe(1);
+	});
+});
+
+describe("T057 the give-up log never takes a drain tick past 10 bridge calls (R22: log calls count)", () => {
+	/** A cron `ctx` over the fake world whose transport is down; the log is a bridge call too. */
+	function failingCtx(w: Awaited<ReturnType<typeof world>>, logged: string[]) {
+		return {
+			storage: w.storage,
+			settings: w.settings,
+			content: w.content,
+			email: {
+				send: async () => {
+					meter.calls++;
+					throw new Error("transport down");
+				},
+			},
+			site: { url: "https://site.test", name: "Town Hall" },
+			plugin: { id: "r_abc" },
+			log: {
+				error: (message: string) => {
+					meter.calls++;
+					logged.push(message);
+				},
+			},
+		} as never;
+	}
+	const lastTry = (w: Awaited<ReturnType<typeof world>>, id: string) =>
+		w.storage.outbox.set(id, { ...row(w, id), attempts: 4 });
+
+	it("R22 a full tick (two confirmations with occurrences) that gives up stays within 10 calls", async () => {
+		const w = await world({ occurrence: true });
+		const b = addBooking(w, "b");
+		w.storage.bookings.set(b, { ...(w.storage.bookings.docs.get(b) as Doc), occurrenceId: "oc1" });
+		lastTry(w, `confirm-${ID}`);
+		lastTry(w, `confirm-${b}`);
+		const logged: string[] = [];
+		meter.calls = 0;
+		await runOutboxJob({ name: "outbox-drain" } as never, failingCtx(w, logged), NOW);
+		expect(meter.calls).toBeLessThanOrEqual(10);
+		expect(row(w, `confirm-${ID}`)).toMatchObject({ status: "failed" });
+	});
+
+	it("R22 a tick with room still logs the give-up", async () => {
+		const w = await world();
+		lastTry(w, `confirm-${ID}`);
+		const logged: string[] = [];
+		meter.calls = 0;
+		await runOutboxJob({ name: "outbox-drain" } as never, failingCtx(w, logged), NOW);
+		expect(logged).toEqual(["emails given up after repeated failures"]);
+		expect(meter.calls).toBeLessThanOrEqual(10);
 	});
 });

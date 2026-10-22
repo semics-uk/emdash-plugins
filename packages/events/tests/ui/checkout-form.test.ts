@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { handleCheckoutForm, redeemBookingLink } from "../../src/astro/lib/checkout-form";
+import {
+	handleCheckoutForm,
+	handleCheckoutRequest,
+	isCrossSiteRequest,
+	redeemBookingLink,
+} from "../../src/astro/lib/checkout-form";
 
 const TOKEN = "T".repeat(43);
 const KEY = "k".repeat(40);
@@ -252,5 +257,79 @@ describe("redeemBookingLink: the emailed ?k= link (EV-US-3, EV-FR-08, R34, T056)
 		const h = host(redeemed, redeemed);
 		await redeemBookingLink({ locals: h.locals, url }, { ref: "ABCDEFGHJK", code: CODE }, { pluginId: "r_abc" });
 		expect(h.seen[0]?.url).toContain("/plugins/r_abc/public/booking/redeem");
+	});
+});
+
+describe("T057 cross-site form posts are refused (CSRF), whatever the site's checkOrigin says", () => {
+	const site = new URL("https://site.example/_events/checkout");
+	const post = (headers: Record<string, string>) =>
+		new Request(site, { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", ...headers } });
+
+	it("T057 refuses another site's Origin or a cross-site / same-site Sec-Fetch-Site", () => {
+		expect(isCrossSiteRequest(post({ origin: "https://evil.example" }), site)).toBe(true);
+		expect(isCrossSiteRequest(post({ origin: "null" }), site)).toBe(true);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "cross-site" }), site)).toBe(true);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-site", origin: "https://a.site.example" }), site)).toBe(
+			true,
+		);
+	});
+
+	it("T057 accepts the site's own forms and non-browser clients", () => {
+		expect(isCrossSiteRequest(post({ origin: "https://site.example" }), site)).toBe(false);
+		expect(isCrossSiteRequest(post({ "sec-fetch-site": "same-origin", origin: "https://site.example" }), site)).toBe(
+			false,
+		);
+		expect(isCrossSiteRequest(post({}), site)).toBe(false);
+		expect(isCrossSiteRequest(new Request(site, { headers: { origin: "https://evil.example" } }), site)).toBe(false);
+	});
+
+	it("T057 POST /_events/checkout answers 403 to a cross-site post and calls no route", async () => {
+		const h = host({ success: true, data: { ok: true, bookingRef: "ABCDEFGHJK", accessToken: TOKEN } }, {});
+		const body = new URLSearchParams({ ...goodForm, idempotencyKey: KEY });
+		const request = new Request(site, {
+			method: "POST",
+			headers: { "content-type": "application/x-www-form-urlencoded", "sec-fetch-site": "cross-site" },
+			body,
+		});
+		const cookies: string[] = [];
+		const response = await handleCheckoutRequest(
+			{
+				request,
+				url: site,
+				locals: h.locals,
+				redirect: (location: string, status?: number) => new Response(null, { status, headers: { location } }),
+				cookies: { set: (name: string) => cookies.push(name) },
+			},
+			{},
+		);
+		expect(response.status).toBe(403);
+		expect(h.seen).toEqual([]);
+		expect(cookies).toEqual([]);
+	});
+
+	it("T057 the same-origin post still books and redirects", async () => {
+		const h = host(
+			{ success: true, data: { ok: true, bookingRef: "ABCDEFGHJK", accessToken: TOKEN } },
+			{ success: true, data: { ok: true, next: { type: "done" } } },
+		);
+		const request = new Request(site, {
+			method: "POST",
+			headers: { "content-type": "application/x-www-form-urlencoded", origin: "https://site.example" },
+			body: new URLSearchParams({ ...goodForm, idempotencyKey: KEY }),
+		});
+		const cookies: string[] = [];
+		const response = await handleCheckoutRequest(
+			{
+				request,
+				url: site,
+				locals: h.locals,
+				redirect: (location: string, status?: number) => new Response(null, { status, headers: { location } }),
+				cookies: { set: (name: string) => cookies.push(name) },
+			},
+			{},
+		);
+		expect(response.status).toBe(303);
+		expect(response.headers.get("location")).toBe("/booking?ref=ABCDEFGHJK");
+		expect(cookies).toEqual(["semics_booking_ABCDEFGHJK"]);
 	});
 });
