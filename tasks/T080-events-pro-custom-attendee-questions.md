@@ -4,7 +4,7 @@ title: "Events Pro: custom attendee questions"
 phase: 5
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: M
 depends_on: [T057, T071]
