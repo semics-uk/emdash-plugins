@@ -298,7 +298,8 @@ describe("ES-FR-10 completion email", () => {
 			download: { url: expect.stringContaining("public/download?") },
 		});
 		// Only the copy token's hash is stored, beside the signing token's.
-		const signer = (await host().inspect.storage.list<{ tokenHash: string; copyTokenHash?: string }>("signers"))[0]?.data;
+		const signer = (await host().inspect.storage.list<{ tokenHash: string; copyTokenHash?: string }>("signers"))[0]
+			?.data;
 		expect(signer?.tokenHash).toBe(await hashToken(token));
 		expect(signer?.copyTokenHash).toBe(await hashToken(fresh));
 		// Re-running the job once the email is queued mints no second copy token.
@@ -328,7 +329,13 @@ describe("ES-FR-10 completion email", () => {
 		const submit = await call(
 			budget,
 			"public/submit",
-			{ token: copy, consent: true, intent: true, docSha256: "x", signature: { kind: "typed", typedName: "Ada Lovelace" } },
+			{
+				token: copy,
+				consent: true,
+				intent: true,
+				docSha256: "x",
+				signature: { kind: "typed", typedName: "Ada Lovelace" },
+			},
 			ONE_MORE,
 		);
 		expect(submit).toMatchObject({ ok: false });
