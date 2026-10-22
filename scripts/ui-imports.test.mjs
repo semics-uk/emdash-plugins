@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 // The native UI halves ship as source or tsc output, not through the sandbox bundler, so they cannot
 // import the private, source-only @semics-tech/shared: a published install would fail to resolve it.
 const repoRoot = resolve(fileURLToPath(new URL(".", import.meta.url)), "..");
-const UI_DIRS = ["src/astro", "src/client", "src/ui", "src/integration"];
+const UI_DIRS = ["src/astro", "src/client", "src/i18n", "src/ui", "src/integration"];
 
 function files(dir) {
 	let out = [];

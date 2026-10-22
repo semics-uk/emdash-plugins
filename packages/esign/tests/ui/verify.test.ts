@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { VERIFY_CSS, VERIFY_SCRIPT } from "../../src/astro/lib/assets";
 import { cspSource, verifyCsp } from "../../src/astro/lib/csp";
 import { enhanceVerify, sha256Hex } from "../../src/client/verify.js";
+import { clientMessages } from "../../src/i18n/index";
 
 const root = resolve(import.meta.dirname, "../..");
 const ABC = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad";
@@ -20,7 +21,8 @@ function dom() {
 	const form = { requestSubmit: vi.fn() };
 	const file = {
 		hidden: true,
-		dataset: { target: "sha", status: "sha-status" },
+		// The page renders the script's messages in its language (T102); the script has none of its own.
+		dataset: { target: "sha", status: "sha-status", messages: JSON.stringify(clientMessages("en", "verify.")) },
 		files: [] as unknown[],
 		closest: (sel: string) => (sel === "form" ? form : null),
 		addEventListener: (type: string, fn: Listener) => listeners.set(type, fn),

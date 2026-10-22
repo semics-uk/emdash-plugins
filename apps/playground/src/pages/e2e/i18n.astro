@@ -1,0 +1,124 @@
+---
+// e2e-only page (T102, EU-NFR-04, SU-NFR-06): the Events (?kit=events) or E-sign (?kit=esign) UI components
+// with fixed data in one language (?lang=en|ar). The page itself is right to left for Arabic, as a site
+// would be; each component also sets its own `lang` and `dir` from its `locale`.
+import AddToCalendar from "@semics-tech/emdash-events/astro/AddToCalendar.astro";
+import BookingStatus from "@semics-tech/emdash-events/astro/BookingStatus.astro";
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
+import EventList from "@semics-tech/emdash-events/astro/EventList.astro";
+import { paymentView } from "@semics-tech/emdash-events/astro/lib/payment";
+import PaymentReturn from "@semics-tech/emdash-events/astro/PaymentReturn.astro";
+import TicketPass from "@semics-tech/emdash-events/astro/TicketPass.astro";
+import SelfServeBlock from "@semics-tech/emdash-esign/astro/SelfServeBlock.astro";
+import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
+import VerifyDocument from "@semics-tech/emdash-esign/astro/VerifyDocument.astro";
+
+export const prerender = false;
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const params = Astro.url.searchParams;
+const lang = params.get("lang") === "ar" ? "ar" : "en";
+const locale = lang === "ar" ? "ar" : "en-GB";
+const dir = lang === "ar" ? "rtl" : "ltr";
+const kit = params.get("kit") === "esign" ? "esign" : "events";
+
+const events = [
+	{
+		eventId: "e2e-i18n-1",
+		title: "London Community Meetup",
+		status: "on_sale" as const,
+		startsAt: "2030-03-14T18:30:00.000Z",
+		timezone: "Europe/London",
+		venue: "The Old Library",
+		currency: "GBP",
+		priceFromMinor: 1500,
+		available: 12,
+		slug: "london-meetup",
+	},
+	{
+		eventId: "e2e-i18n-2",
+		title: "Sydney Conference",
+		status: "on_sale" as const,
+		startsAt: "2030-11-05T22:00:00.000Z",
+		timezone: "Australia/Sydney",
+		venue: null,
+		currency: "AUD",
+		priceFromMinor: 0,
+		available: 0,
+	},
+];
+const data = {
+	eventId: "e2e-i18n",
+	status: "on_sale" as const,
+	currency: "GBP",
+	timezone: "Europe/London",
+	ticketTypes: [
+		{ id: "tt_i18n_standard", name: "Standard", priceMinor: 1500, available: 10, maxPerOrder: 4 },
+		{ id: "tt_i18n_gone", name: "Early bird", priceMinor: 1000, available: 0 },
+	],
+	occurrences: [
+		{ id: "occ_1", startsAt: "2030-03-14T18:30:00.000Z" },
+		{ id: "occ_2", startsAt: "2030-03-15T18:30:00.000Z", available: 0 },
+	],
+	waitlist: true,
+	questions: [
+		{ id: "diet", label: "Dietary needs", type: "select" as const, required: false, options: ["None", "Vegan"] },
+		{ id: "photos", label: "Photos are fine", type: "checkbox" as const, required: true },
+	],
+};
+const booking = {
+	bookingRef: "ABCDEFGHJK",
+	status: "awaiting_payment",
+	lines: [{ ticketTypeId: "tt_i18n_standard", qty: 2 }],
+	totals: { totalMinor: 3000, currency: "GBP" },
+	holdExpiresAt: "2030-03-14T17:00:00.000Z",
+	attendees: [],
+	canCancel: true,
+	cancelBy: "2030-03-13T18:30:00.000Z",
+};
+const payment = paymentView(booking, locale);
+const exp = Math.floor(Date.now() / 1000) + 600;
+const signedQuery = new URLSearchParams({ ref: "ABCDEFGHJK", exp: String(exp), sig: "e2e-signature" }).toString();
+
+const session = {
+	ok: true as const,
+	state: "ready" as const,
+	envelope: { id: "env_i18n", title: "Mutual NDA", status: "in_progress", docSha256: "0".repeat(64), expiresAt: null },
+	signer: { name: "Ada Lovelace", as: "Recipient" },
+	snapshot: "# Mutual NDA\n\nKeep the other party's information confidential.\n\n> Nothing here transfers ownership.",
+	consent: { version: "1", wording: "I agree to use electronic records and an electronic signature." },
+	fields: [{ key: "company", label: "Company", required: true }],
+};
+---
+<!doctype html>
+<html lang={lang} dir={dir}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>T102 {kit} {lang}</title>
+	</head>
+	<body>
+		<main>
+			<h1>T102 {kit} {lang}</h1>
+			{
+				kit === "events" ? (
+					<>
+						<EventList events={events} locale={locale} />
+						<BookingWidget event="e2e-i18n" data={data} locale={locale} />
+						<BookingStatus booking={booking} cancelAction="/e2e/i18n" ticketNames={{ tt_i18n_standard: "Standard" }} locale={locale} />
+						{payment && <PaymentReturn view={payment} bookingRef="ABCDEFGHJK" action="/e2e/i18n" locale={locale} />}
+						<TicketPass name="Grace Hopper" code="K7Q2-M9XD" ticket="Standard" event="London Community Meetup" status="pending" locale={locale} />
+						<AddToCalendar signedQuery={signedQuery} locale={locale} />
+					</>
+				) : (
+					<>
+						<SigningCeremony view={{ kind: "ready", session }} action="/e2e/i18n" token={"T".repeat(43)} locale={locale} />
+						<VerifyDocument view={{ kind: "form" }} action="/e2e/i18n" locale={locale} />
+						<SelfServeBlock template="tpl_i18n" locale={locale} />
+					</>
+				)
+			}
+		</main>
+	</body>
+</html>

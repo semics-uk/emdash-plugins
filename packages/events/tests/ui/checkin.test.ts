@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { checkInView, codeFromScan, safeSignLink } from "../../src/client/checkin";
+import { clientMessages } from "../../src/i18n/index";
 
 const ORIGIN = "https://hall.example";
+// The page renders the screen's messages into the form (`data-messages`); the script has none of its own (T102).
+const EN = clientMessages("en", "checkin.");
 const AT = "2099-12-01T09:00:00.000Z";
 
 describe("mobile check-in screen (EV-FR-11, EV-FR-12, T082)", () => {
 	it("EV-FR-11 a successful check-in is a green banner with the attendee's name", () => {
-		expect(checkInView(200, { ok: true, checkedIn: true, name: "Ada", checkedInAt: AT }, ORIGIN)).toMatchObject({
+		expect(checkInView(200, { ok: true, checkedIn: true, name: "Ada", checkedInAt: AT }, ORIGIN, EN)).toMatchObject({
 			tone: "ok",
 			title: "Checked in: Ada",
 		});
@@ -17,6 +20,7 @@ describe("mobile check-in screen (EV-FR-11, EV-FR-12, T082)", () => {
 			200,
 			{ ok: true, checkedIn: false, reason: "ALREADY_CHECKED_IN", name: "Ada", checkedInAt: AT },
 			ORIGIN,
+			EN,
 		);
 		expect(view.tone).toBe("warn");
 		expect(view.title).toBe("Already checked in");
@@ -28,6 +32,7 @@ describe("mobile check-in screen (EV-FR-11, EV-FR-12, T082)", () => {
 			200,
 			{ ok: true, checkedIn: false, reason: "BOOKING_NOT_CONFIRMED", name: "Ada", bookingStatus: "cancelled" },
 			ORIGIN,
+			EN,
 		);
 		expect(view).toMatchObject({ tone: "error", title: "Cannot check in" });
 		expect(view.message).toContain("cancelled");
@@ -40,6 +45,7 @@ describe("mobile check-in screen (EV-FR-11, EV-FR-12, T082)", () => {
 			200,
 			{ ok: true, checkedIn: false, reason: "WAIVER_PENDING", name: "Charles", signLink },
 			ORIGIN,
+			EN,
 		);
 		expect(view).toMatchObject({ tone: "error", title: "Waiver not signed", signLink });
 		expect(view.message).toContain("Charles");
@@ -60,12 +66,16 @@ describe("mobile check-in screen (EV-FR-11, EV-FR-12, T082)", () => {
 	});
 
 	it("EV-FR-11 says what to do when the route is missing (Free), signed out, or unlicensed", () => {
-		expect(checkInView(404, { error: { code: "NOT_FOUND" } }, ORIGIN).message).toContain("Events Pro");
-		expect(checkInView(401, null, ORIGIN).message).toContain("Sign in");
-		expect(checkInView(403, null, ORIGIN).message).toContain("Sign in");
-		expect(checkInView(200, { ok: false, error: { code: "LICENCE_INVALID" } }, ORIGIN).message).toContain("licence");
-		expect(checkInView(200, { ok: true, checkedIn: false, reason: "NOT_FOUND" }, ORIGIN).title).toBe("Code not found");
-		expect(checkInView(500, "oops", ORIGIN).tone).toBe("error");
+		expect(checkInView(404, { error: { code: "NOT_FOUND" } }, ORIGIN, EN).message).toContain("Events Pro");
+		expect(checkInView(401, null, ORIGIN, EN).message).toContain("Sign in");
+		expect(checkInView(403, null, ORIGIN, EN).message).toContain("Sign in");
+		expect(checkInView(200, { ok: false, error: { code: "LICENCE_INVALID" } }, ORIGIN, EN).message).toContain(
+			"licence",
+		);
+		expect(checkInView(200, { ok: true, checkedIn: false, reason: "NOT_FOUND" }, ORIGIN, EN).title).toBe(
+			"Code not found",
+		);
+		expect(checkInView(500, "oops", ORIGIN, EN).tone).toBe("error");
 	});
 
 	it("EV-FR-11 a scanned or typed code is trimmed and capped", () => {
