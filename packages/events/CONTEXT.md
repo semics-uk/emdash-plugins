@@ -103,9 +103,9 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
 - Cron scheduling (T116, R37): EmDash 1.2 never runs `plugin:activate` for a core in `sandboxed: [...]`, so
   `public/events`, `public/event` and admin `page_load`s are wrapped in `withScheduleCheck` (shared
-  `schedules.ts`): 1 KV read of `cron:scheduled:v8` (v8 since T120: Pro `stripe-reconcile`); when missing, +1 to queue the one-shot `ensure-schedules`,
-  whose tick schedules `sweep-holds` + `outbox-drain` and sets the flag. Never add it to checkout or admin
-  actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
+  `schedules.ts`): 1 KV read of `cron:scheduled:v9` (v9 since T081: `waitlist`); when missing, +1 to queue the one-shot `ensure-schedules`,
+  whose tick schedules every recurring task (Free: 4, plus Pro's 4 in the Pro build: 9 calls with the flag) and sets the flag. Never add
+  it to checkout or admin actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
   Reserve copies a required waiver (`signature.required` + `templateId`) onto the booking as `waiver`;
@@ -161,6 +161,18 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   answers (`/_events/checkout`, the booking page's cancel/redeem) refuses cross-site posts first with
   `isCrossSiteRequest` (403): EmDash sets Astro's `checkOrigin: false`, so nothing else does (T057).
 - Log calls are bridge calls: a path already at 10 must not log (the outbox meters its tick, T057).
+- Waitlist (T081, EV-FR-16): `public/waitlist/join` (Turnstile, shared KV `rateLimit` 5 per 10 min per IP, one live entry per
+  email, event and date; answers `{ ok: true }` either way; 7 calls) writes `waiting` entries. The recurring `waitlist` task
+  (`src/cron/waitlist.ts`, every minute; pure rules in `src/domain/waitlist.ts`) queries the on-sale configs (exact event
+  counter), then the waiting entries of events with room, and offers the earliest that fits: entry `waiting` -> `offered`
+  (guarded), a `held` booking in the waitlister's name (`waitlistId`, hold = 24 h, ceiling +60 min), the checkout
+  `reserve` guards (a lost race puts the entry back), outbox `offer-<bookingId>` (kind `waitlist_offer`). A type's or
+  date's counter is read only when the config cannot vouch for its room. <= 8 calls (9-10 with dates). Unclaimed offers
+  are ordinary holds: the sweeper releases them and the next tick offers the next entry; every 5th minute lapsed entries
+  become `expired`. The email's link is `/booking?ref=&k=<code>&offer=1`; the page's "Claim my tickets" POST calls
+  `public/waitlist/claim` (= redeem for a held offer; entry -> `claimed`) then continues the booking (`claimOfferLink`).
+  The widget's join form posts to the injected `/_events/waitlist` (Origin check). Retention deletes entries older than
+  the period; the admin deletion by email deletes a person's entries (`email` index).
 - Payment return (T077, EU-FR-09): Pro's Stripe step sets success and cancel URL to the same `/booking?ref=`, with no `session_id`, so
   the page never reads any query parameter for state. `src/astro/lib/payment.ts` (`paymentView`, `isPayUrl`) maps the core's status
   to a `<PaymentReturn>` section (`pending` = `awaiting_payment`: held, webhook maybe late; `confirmed`, `expired`, `cancelled`,
@@ -191,7 +203,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   falling back to `info.title` then the id.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
-- Bundle size (R42, T118): `dist/plugin.mjs` must stay ≤ 104 KiB (`tests/bundle-size.build.test.ts`; the
+- Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 112 KiB (111.6 after T081) (`tests/bundle-size.build.test.ts`; the
   registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,
