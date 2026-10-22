@@ -7,7 +7,7 @@ edition: pro
 status: backlog
 model: opus-5.5
 size: M
-depends_on: [T071, T048]
+depends_on: [T071, T048, T118]
 spec: [EV-FR-13, R1]
 ---
 

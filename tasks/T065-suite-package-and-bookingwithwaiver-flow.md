@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] No business logic in the suite
 - [ ] `eventsSuite()` passes each core's plugin ID to both UI entries and the pairing glue; no hard-coded slugs (S7, T005)
+- [ ] The suite's `from-intent` caller treats an email intent's `draft` answer like `sent` (T062/T063); the booking widget gets an "under 18" control per attendee for waiver events; attendee names are checked for C0 control characters before intents are issued (e-sign refuses them)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

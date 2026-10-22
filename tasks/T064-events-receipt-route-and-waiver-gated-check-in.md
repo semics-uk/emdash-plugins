@@ -7,7 +7,7 @@ edition: pro
 status: backlog
 model: opus-5.5
 size: M
-depends_on: [T063, T071]
+depends_on: [T063, T071, T118]
 spec: [EV-FR-12, SX-FR-04]
 ---
 
@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Within budget
 - [ ] Check-in refuses attendees whose booking is not `confirmed` (T049 does not mark attendee docs on cancel)
 - [ ] On the Events return page, read `#receipt=` from `location.hash`, clear it with `history.replaceState`, POST it to `signatures/receipt`; call `public/receipts/lookup` later for `pdfSha256` (null in the redirect receipt); an Events page embedding `<SigningCeremony>` redirects to `ceremonyRedirect(view)` after a sign/decline post (T062)
+- [ ] When receipts arrive, move the booking out of `awaiting_signature` (continue re-issues fresh intents while it waits, T063)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
