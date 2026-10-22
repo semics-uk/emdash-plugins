@@ -4,8 +4,9 @@
  * and loads nothing else. They are the package's own constants, never data.
  */
 import CEREMONY_SCRIPT from "../../client/ceremony.js?raw";
+import PAD_SCRIPT from "../../client/pad.js?raw";
 
-export { CEREMONY_SCRIPT };
+export { CEREMONY_SCRIPT, PAD_SCRIPT };
 
 export const CEREMONY_CSS = `.semics-ceremony {
 	--_fg: var(--esign-fg, #1a1a1a);
@@ -81,4 +82,20 @@ export const CEREMONY_CSS = `.semics-ceremony {
 	outline-offset: 2px;
 }
 .semics-ceremony .semics-decline { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--_border); }
+.semics-ceremony .semics-pad { margin: 0 0 1rem; }
+.semics-ceremony .semics-pad-canvas {
+	display: block;
+	width: 100%;
+	max-width: 36rem;
+	aspect-ratio: 3 / 1;
+	color: var(--_fg);
+	background: var(--_bg);
+	border: 1px solid var(--_border);
+	border-radius: var(--_radius);
+	touch-action: none;
+	cursor: crosshair;
+	user-select: none;
+}
+.semics-ceremony .semics-pad-bar { display: flex; gap: 0.5rem; margin: 0.5rem 0; }
+.semics-ceremony .semics-pad-bar button { background: var(--_bg); color: var(--_accent); }
 `;

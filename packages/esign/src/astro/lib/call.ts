@@ -12,7 +12,7 @@ export interface PublicRouteCall {
 	method?: PublicRouteMethod;
 	/** JSON body for POST; query parameters for GET. */
 	body?: unknown;
-	/** Defaults to the E-sign core. */
+	/** Defaults to the context's plugin id, then the E-sign core. */
 	pluginId?: string;
 }
 
@@ -20,6 +20,8 @@ export interface PublicRouteCall {
 export interface PublicRouteContext {
 	locals: PublicPluginRuntimeLocals | null | undefined;
 	url: URL;
+	/** The core's plugin id when it is not the default slug (the integration's `pluginId`). */
+	pluginId?: string;
 	/** Injected for tests. Defaults to the global `fetch`. */
 	fetch?: typeof fetch;
 }
@@ -59,7 +61,7 @@ export async function callPublicRoute<T = unknown>(
 ): Promise<PublicRouteResult<T>> {
 	const method = call.method ?? "GET";
 	const path = call.path.replace(/^\/+/, "");
-	const pluginId = call.pluginId ?? ESIGN_PLUGIN_ID;
+	const pluginId = call.pluginId ?? ctx.pluginId ?? ESIGN_PLUGIN_ID;
 	const handler = getPublicPluginApiRouteHandler(ctx.locals);
 	const via = handler ? "in-process" : "fetch";
 

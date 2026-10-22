@@ -1,6 +1,6 @@
 ---
 // <SigningCeremony> (SU-FR-03..08, SU-NFR-01..03): the document, the signer's fields, the typed
-// signature (and a slot for the signature pad, T031), the consent and intent boxes, decline, and
+// signature (and the optional drawn signature pad, T031), the consent and intent boxes, decline, and
 // the completion screen. Give it the view from `handleSign` (lib/sign.ts).
 //
 // Works without JavaScript: both forms post to `action`. The inlined client script (allowed by
@@ -9,7 +9,7 @@
 //
 // The snapshot is rendered only through the parsed tree (lib/markdown.ts) and `{…}` text, never
 // as HTML. Its exact hashed text is offered verbatim beside its SHA-256.
-import { CEREMONY_CSS, CEREMONY_SCRIPT } from "./lib/assets";
+import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT } from "./lib/assets";
 import { ESIGN_PLUGIN_ID } from "./lib/call";
 import { parseSnapshot } from "./lib/markdown";
 import { fieldName, type SignView, sessionFields } from "./lib/sign";
@@ -155,3 +155,4 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 </div>
 <style is:inline set:html={CEREMONY_CSS}></style>
 <script is:inline type="module" set:html={CEREMONY_SCRIPT}></script>
+<script is:inline type="module" set:html={PAD_SCRIPT}></script>
