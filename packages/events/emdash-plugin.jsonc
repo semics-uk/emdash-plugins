@@ -21,6 +21,7 @@
 		"security": { "file": "listing/security.md" }
 	},
 	"release": {
+		"requires": { "env:emdash": ">=1.2.0 <2" },
 		"artifacts": {
 			"icon": { "file": "listing/icon.png" },
 			"banner": { "file": "listing/banner.png" },

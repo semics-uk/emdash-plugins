@@ -1,0 +1,24 @@
+{
+	"version": "1.0.0",
+	"note": "The 1.0 trust contract of the Free core (T106, BUILD-PLAN §9, R64). Adding a capability, allowed host, public route, MCP tool or hook is a major version that operators consent to again: change this file only with a major changeset. tests/trust-contract.test.ts compares it with the built plugin.",
+	"contract": {
+		"slug": "semics-esign",
+		"capabilities": ["email:send", "media:bytes:read", "media:read", "network:request"],
+		"allowedHosts": ["challenges.cloudflare.com"],
+		"publicRoutes": {
+			"public/decline": ["POST"],
+			"public/download": ["GET"],
+			"public/envelopes/from-intent": ["POST"],
+			"public/otp/send": ["POST"],
+			"public/otp/verify": ["POST"],
+			"public/receipts/lookup": ["POST"],
+			"public/self-serve/start": ["POST"],
+			"public/session": ["POST"],
+			"public/submit": ["POST"],
+			"public/templates/catalog": ["POST"],
+			"public/verify": ["POST"]
+		},
+		"mcpTools": [],
+		"hooks": ["cron", "plugin:activate"]
+	}
+}
