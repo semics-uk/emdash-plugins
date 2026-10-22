@@ -4,7 +4,7 @@ title: "Bundle size headroom for Pro builds"
 phase: 4
 package: repo
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T063]
