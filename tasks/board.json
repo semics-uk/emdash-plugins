@@ -805,7 +805,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "review",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -817,9 +817,10 @@
 			],
 			"unblocks": [
 				"T060",
-				"T071"
+				"T071",
+				"T117"
 			],
-			"column": "in-progress"
+			"column": "review"
 		},
 		"T040": {
 			"file": "T040-events-manifest-storage-and-settings-schema.md",
@@ -2270,6 +2271,28 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T117": {
+			"file": "T117-e-sign-hardening-from-the-phase-1-review.md",
+			"id": "T117",
+			"title": "E-sign: hardening from the Phase 1 review",
+			"phase": 6,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T034"
+			],
+			"spec": [
+				"ES-FR-04",
+				"ES-FR-05",
+				"ES-NFR-02",
+				"R29"
+			],
+			"unblocks": [],
+			"column": "backlog"
 		}
 	},
 	"columns": {
@@ -2302,7 +2325,8 @@
 			"T103",
 			"T104",
 			"T105",
-			"T106"
+			"T106",
+			"T117"
 		],
 		"ready": [
 			"T063",
@@ -2318,10 +2342,11 @@
 			"T111"
 		],
 		"in-progress": [
-			"T034",
 			"T043"
 		],
-		"review": [],
+		"review": [
+			"T034"
+		],
 		"done": [
 			"T000",
 			"T001",
