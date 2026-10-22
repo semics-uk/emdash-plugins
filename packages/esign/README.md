@@ -2,6 +2,26 @@
 
 A sandboxed plugin for [EmDash CMS](https://emdashcms.com).
 
+## Retention (operators)
+
+Settings: **Keep personal data (months)**, default 12, and **Keep signed records (years)**, default 7. Both count from when an
+envelope closed (completed, declined, voided or expired; a draft from its last edit). A daily job then:
+
+- after the personal-data period, deletes the signer's name, email, IP address, browser, typed name and drawn strokes, the
+  values they entered, any decline reason and their links, the envelope's prefilled values and return URL, and the audit
+  trail's raw personal values together with the salt that could prove them. Drafts are deleted. The audit trail itself
+  still verifies.
+- keeps the **signed record** (the signed PDF, the frozen document and the audit trail) until the signed-records period
+  ends. The signed PDF and document still show what was signed: the document may contain the signer's name or email
+  (`{{signer.name}}`, `{{signer.email}}`) and the certificate prints the signer's name and IP address. `/verify` keeps
+  matching the PDF during this period.
+- after the signed-records period, deletes the PDF, document, audit trail and signer record; `/verify` no longer
+  recognises the PDF.
+
+Envelopes still out for signature are never purged; void one to let it age out. To delete one person's data on request,
+use **Delete personal data** on the Envelopes page (signer email or envelope id). It removes the personal data straight away
+but keeps the signed record for its own period.
+
 ## Develop
 
 ```sh

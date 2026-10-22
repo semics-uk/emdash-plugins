@@ -140,3 +140,15 @@ racing event keeps that place (7 calls). `intent-finish` derives the invitation 
 imported by the core: pure, no imports). Without `ctx.site.url`, `queueInvitation`/`queueCompletion` queue nothing and
 return null; send answers `invitation: "SITE_URL_MISSING"`, resend refuses, and the admin shows `SITE_URL_WARNING`. The
 audit timeline's page action is `audit.page:<id>`.
+
+Retention (T097, R45): `src/cron/retention.ts`. Daily `retention` (`23 3 * * *`, in `RECURRING_TASKS`; shared flag now v5)
+plus one-shot `retention-more`; state in KV `cron:retention`. A pass computes the cutoffs from `settings.list("retention")`,
+then runs phases `personal` (personal-data period), `records` (signed-records period) and `outbox` (sent/failed rows older than
+the personal period). Envelopes are paged 10 at a time by `createdAt` (no `orderBy`, so the storage cursor survives deletes),
+with a per-phase floor (`pf`/`rf`: the oldest envelope a pass had to leave) so a pass never rescans done envelopes; each page
+takes two ticks (audit events first, then signers + envelopes), every tick ≤ 8 calls. Purged envelopes carry
+`personalPurgedAt` (no `piiSalt`); tombstones carry `recordsPurgedAt` (`pdfSha256: null`, so `/verify` is `matched: false`,
+`public/download` is `ENVELOPE_NOT_FOUND`, the PDF job skips purged envelopes). Admin: "Delete personal data" form on
+`/envelopes` (`retention.preview` 2 calls, `retention.erase` 8) via `findForErasure` + `eraseOnRequest`.
+`toIso(ms?)` (shared `time.ts`) is the one ISO-time helper; use it instead of `new Date(x).toISOString()` (bundle, R42).
+E-sign Free backend after T097: 103.7 KiB of 104.
