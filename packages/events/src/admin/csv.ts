@@ -2,10 +2,11 @@
  * CSV for the attendee export (EV-FR-11). Pure.
  *
  * Cells are quoted when they hold a comma, quote or line break (quotes doubled). A text cell that
- * starts with `=`, `+`, `-`, `@`, tab or carriage return would run as a formula in a spreadsheet,
- * so it gets a leading apostrophe. Numbers are written as they are: a real `-5` is not a formula.
+ * starts with `=`, `+`, `-`, `@`, tab or carriage return (or the full-width `＝＋－＠` some spreadsheet
+ * locales convert, T100) would run as a formula, so it gets a leading apostrophe. Numbers are written
+ * as they are: a real `-5` is not a formula.
  */
-const FORMULA_START = /^[=+\-@\t\r]/;
+const FORMULA_START = /^[=+\-@\t\r＝＋－＠]/;
 const NEEDS_QUOTES = /[",\r\n]/;
 
 export function csvCell(value: unknown): string {

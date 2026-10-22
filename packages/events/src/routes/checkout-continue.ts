@@ -332,9 +332,9 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	const { items } = await deps.storage.bookings.query({ where: { ref: input.bookingRef }, limit: 1 });
 	const found = items[0];
 	const booking = found?.data as BookingDoc | undefined;
-	if (!found || !booking || !(await verifyToken(input.accessToken, booking.accessTokenHash))) {
-		return fail("NOT_FOUND");
-	}
+	// An unknown ref pays for a check like a wrong token (T100).
+	const valid = await verifyToken(input.accessToken, booking?.accessTokenHash);
+	if (!found || !booking || !valid) return fail("NOT_FOUND");
 	const c: Checkout = { deps, id: found.id, attendees: input.attendees, reads: 0 };
 
 	switch (checkoutState(booking, deps.now)) {

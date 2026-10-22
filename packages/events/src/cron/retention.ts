@@ -3,7 +3,8 @@
  *
  * The recurring `retention` task runs a paged job, resuming from a cursor kept in KV, each tick at
  * most 8 bridge calls; while a pass has more to do it queues a one-shot `retention-more` for the next
- * minute's tick (like the T045 drift repair). A pass has up to four phases:
+ * minute's tick (like the T045 drift repair). A pass starts by deleting ended rate-limit counters (the
+ * waitlist's `rl:` keys hold hashed IPs and KV has no TTL, T100), then has up to four phases:
  *
  * 1. `ips`: clears `ipHash` from bookings once the reserve rate window has passed (an hour; without a
  *    Turnstile secret the hash is salted with the public plugin id, so it is reversible, T057 F6).
@@ -17,6 +18,7 @@
  * booking that is still live (held, awaiting or confirmed, for an event that has not happened) is
  * never erased. The clock is passed in.
  */
+import { sweepRateLimits } from "@semics-tech/shared";
 import { EXPIRABLE_STATUSES } from "../domain/holds";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
@@ -62,6 +64,8 @@ export interface RetentionStorage {
 export interface RetentionKv {
 	getVersioned<T>(key: string): Promise<{ value: T; revision: string } | null>;
 	compareAndSet(key: string, expectedRevision: string | null, value: unknown): Promise<{ applied: boolean }>;
+	list(prefix: string): Promise<Array<{ key: string; value: unknown }>>;
+	delete(key: string): Promise<unknown>;
 }
 
 export interface RetentionDeps {
@@ -218,10 +222,14 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 	const cutoff = now - (s.days ?? 365) * DAY;
 
 	if (!phase) {
-		const entries = await settings.list();
-		calls++;
-		s.days = retentionDays(settingsObject(entries));
-		s.phase = "ips";
+		// Up to 3 ended counters a tick; the pass waits here until none is left.
+		const swept = await sweepRateLimits(kv, now, 3);
+		calls += swept.calls;
+		if (!swept.more) {
+			s.days = retentionDays(settingsObject(await settings.list()));
+			calls++;
+			s.phase = "ips";
+		}
 	} else if (phase === "ips") {
 		const page = await storage.bookings.query({
 			where: { createdAt: { gte: s.ipFrom ?? "0", lt: iso(now - IP_WINDOW) } },

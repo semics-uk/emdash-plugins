@@ -15,7 +15,7 @@ import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "
 import { type CounterCollection, reserve } from "../domain/inventory";
 import { iso } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
-import { badRequest, botCheck, fail, httpFetch } from "./reply";
+import { badRequest, botCheck, fail, httpFetch, type PublicSettings } from "./reply";
 
 /**
  * `POST public/checkout/reserve` (EV-FR-05, R9): Turnstile + rate limit → validate → write the
@@ -26,8 +26,9 @@ import { badRequest, botCheck, fail, httpFetch } from "./reply";
  * 1. `settings.list` ∥ `event_configs.get` (2). The config carries the ticket type and occurrence
  *    catalog, so no other reads.
  * 2. rate-limit `bookings.count` of this IP's recent bookings ∥ Turnstile `siteverify` (2; 1 when
- *    no Turnstile secret is configured). The bookings themselves are the rate-limit counter, so
- *    the limit costs one call; an IP is stored only as a salted hash.
+ *    no Turnstile secret is configured, 2 again on the site's first booking, which stores the IP
+ *    salt, T100). The bookings themselves are the rate-limit counter, so the limit costs one call;
+ *    an IP is stored only as a salted hash.
  * 3. `bookings.compareAndSet(id, null, draft)` (1): create-only, so the idempotency key's booking
  *    id makes a resubmit find the first booking instead of reserving twice.
  * 4. `reserve`: one guarded write per step (ticket types, occurrence, event), at most what is left
@@ -60,14 +61,12 @@ export interface ReserveStorage {
 
 export interface ReserveDeps {
 	storage: ReserveStorage;
-	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
+	settings: PublicSettings;
 	fetch: TurnstileFetch;
 	cron?: SweepCron;
 	/** Client IP from the host's request metadata (null when unknown). */
 	ip: string | null;
 	now: number;
-	/** Salt for the IP hash when no Turnstile secret is set (the plugin id). */
-	saltFallback: string;
 }
 
 /** The event's waiver, copied onto the booking (only when it is required and names a template). */
@@ -135,14 +134,15 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	const [entries, stored] = await Promise.all([deps.settings.list(), storage.event_configs.get(input.eventId)]);
 	const config = stored as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished) return fail("NOT_FOUND");
-	const { settings, secret, human: check } = botCheck(entries, deps.fetch, input.turnstileToken, deps.ip);
+	const bot = botCheck(entries, deps.settings, deps.fetch, input.turnstileToken, deps.ip);
+	const settings = bot.settings;
 
-	const ipHash = await hashIp(deps.ip ?? "unknown", secret || deps.saltFallback);
+	const ipHash = await hashIp(deps.ip ?? "unknown", bot.salt);
 	const [recent, human] = await Promise.all([
 		storage.bookings.count({ ipHash, createdAt: { gte: rateWindowStart(now) } }),
-		check,
+		bot.human,
 	]);
-	let calls = 2 + 1 + (secret && input.turnstileToken ? 1 : 0);
+	let calls = 2 + 1 + bot.calls;
 	if (recent >= RESERVE_RATE_LIMIT.limit) return fail("RATE_LIMITED");
 
 	const { id, ref } = await bookingKeys(input.idempotencyKey);
@@ -233,7 +233,6 @@ export const CHECKOUT_RESERVE_ROUTE: RouteDef = {
 				...(ctx.cron ? { cron: ctx.cron } : {}),
 				ip: routeCtx.requestMeta?.ip ?? null,
 				now: Date.now(),
-				saltFallback: ctx.plugin.id,
 			},
 			routeCtx.input,
 		)) as Handler,

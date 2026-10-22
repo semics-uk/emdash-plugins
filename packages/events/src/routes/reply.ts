@@ -1,5 +1,12 @@
 /** Reply helpers the public routes share (one copy in the bundle, R42). */
-import { type ErrorCode, ok, type TurnstileFetch, toRouteError, verifyTurnstile } from "@semics-tech/shared";
+import {
+	type ErrorCode,
+	generateToken,
+	ok,
+	type TurnstileFetch,
+	toRouteError,
+	verifyTurnstile,
+} from "@semics-tech/shared";
 import type { PluginContext } from "emdash/plugin";
 
 import type { InputIssue } from "../domain/checkout";
@@ -19,21 +26,33 @@ export const httpFetch =
 		return ctx.http.fetch(url, init);
 	};
 
+/** Settings a public write reads and may write (the IP salt). */
+export interface PublicSettings {
+	list(): Promise<Array<{ key: string; value: unknown }>>;
+	set(key: string, value: unknown): Promise<unknown>;
+}
+
 /**
  * A public write's settings as an object and the bot check they imply (checkout reserve, waitlist
  * join): none without a Turnstile secret (the admin page warns), else `siteverify` with the visitor's
- * token and IP, already started. The secret also salts the IP hash (the plugin id without one).
+ * token and IP, already started. The secret also salts the IP hash; without one the salt is the site's
+ * random `ipSalt` setting (undeclared, so never shown), which the first such write stores in the
+ * Turnstile call's place (T100, T057 F6: the public plugin id made the hash reversible). `calls` is
+ * what `human` costs: 1 at most.
  */
 export function botCheck(
 	entries: Array<{ key: string; value: unknown }>,
+	store: PublicSettings,
 	fetch: TurnstileFetch,
 	token: string | undefined,
 	ip: string | null,
 ) {
 	const settings = settingsObject(entries);
 	const secret = typeof settings.turnstileSecretKey === "string" ? settings.turnstileSecretKey : "";
+	const stored = typeof settings.ipSalt === "string" ? settings.ipSalt : "";
+	const salt = secret || stored || generateToken();
 	const human = secret
 		? verifyTurnstile(fetch, { secret, token: token ?? "", ...(ip ? { remoteIp: ip } : {}) })
-		: Promise.resolve(ok(true as const));
-	return { settings, secret, human };
+		: (salt === stored ? Promise.resolve() : store.set("ipSalt", salt)).then(() => ok(true as const));
+	return { settings, salt, human, calls: +(secret ? !!token : salt !== stored) };
 }

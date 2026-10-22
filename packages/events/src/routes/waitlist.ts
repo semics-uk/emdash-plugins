@@ -4,7 +4,7 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { parseJoinInput, planCheckout } from "../domain/checkout";
 import type { EventConfigDoc, WaitlistDoc } from "../storage/schema";
 import { type RedeemDeps, redeemBooking } from "./redeem";
-import { badRequest, botCheck, fail, httpFetch } from "./reply";
+import { badRequest, botCheck, fail, httpFetch, type PublicSettings } from "./reply";
 
 /**
  * `POST public/waitlist/join` and `POST public/waitlist/claim` (EV-FR-16, EV-US-6, T081).
@@ -33,13 +33,11 @@ export interface JoinDeps {
 			put(id: string, data: WaitlistDoc): Promise<unknown>;
 		};
 	};
-	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
+	settings: PublicSettings;
 	kv: RateLimitStore;
 	fetch: TurnstileFetch;
 	ip: string | null;
 	now: number;
-	/** Salt for the IP hash when no Turnstile secret is set (the plugin id). */
-	saltFallback: string;
 	newId?: () => string;
 }
 
@@ -65,9 +63,9 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 		return badRequest([{ path: reason.includes("OCCURRENCE") ? "occurrenceId" : "ticketTypeId", code: reason }]);
 	}
 
-	const { secret, human: check } = botCheck(entries, d.fetch, input.turnstileToken, d.ip);
+	const { salt, human: check } = botCheck(entries, d.settings, d.fetch, input.turnstileToken, d.ip);
 	const [limited, human] = await Promise.all([
-		rateLimit(d.kv, d.ip ?? "unknown", d.now, { ...JOIN_LIMIT, salt: secret || d.saltFallback }),
+		rateLimit(d.kv, d.ip ?? "unknown", d.now, { ...JOIN_LIMIT, salt }),
 		check,
 	]);
 	if (!limited.ok) return fail("RATE_LIMITED");
@@ -111,7 +109,6 @@ export const WAITLIST_ROUTES: Record<string, RouteDef> = {
 					fetch: httpFetch(ctx),
 					ip: routeCtx.requestMeta?.ip ?? null,
 					now: Date.now(),
-					saltFallback: ctx.plugin.id,
 				},
 				routeCtx.input,
 			)) as Handler as never,

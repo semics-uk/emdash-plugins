@@ -53,7 +53,7 @@ function world({
 		settings: {
 			list: async () => {
 				meter.calls++;
-				return settings;
+				return [...settings, ...[...saved].map(([key, value]) => ({ key, value }))];
 			},
 			set: async (key: string, value: unknown) => {
 				meter.calls++;
