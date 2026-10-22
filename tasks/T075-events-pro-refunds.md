@@ -4,7 +4,7 @@ title: "Events Pro: refunds"
 phase: 4
 package: events
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T074, T071]
