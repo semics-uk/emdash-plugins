@@ -1,0 +1,36 @@
+---
+// e2e-only page (T080): the booking widget as an Events Pro site shows it for an event with custom
+// attendee questions. The playground runs the Free cores (R40), so `public/event` never lists
+// questions; this page passes the event as Pro answers it (one question of each type).
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
+
+export const prerender = false;
+
+const data = {
+	eventId: "e2e-questions",
+	status: "on_sale" as const,
+	currency: "GBP",
+	ticketTypes: [{ id: "tt_e2e_general", name: "General", priceMinor: 0, available: 10, maxPerOrder: 4 }],
+	timezone: "Europe/London",
+	questions: [
+		{ id: "qdiet", label: "Dietary needs", type: "text" as const, required: false },
+		{ id: "qsize", label: "T-shirt size", type: "select" as const, required: true, options: ["S", "M", "L"] },
+		{ id: "qterms", label: "I accept the code of conduct", type: "checkbox" as const, required: true },
+	],
+};
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Attendee questions</title>
+	</head>
+	<body>
+		<main>
+			<h1>Attendee questions</h1>
+			<BookingWidget event="e2e-questions" data={data} />
+		</main>
+	</body>
+</html>
