@@ -167,3 +167,31 @@ describe("widget error round trip (SX-FR-02)", () => {
 		expect(readWaiverState(url, "ev_1")).toEqual({ code: "INTERNAL", fields: ["name"] });
 	});
 });
+
+describe("readWaiverForm without attendee rows (T066, SX-FR-02)", () => {
+	const PLAIN = { ...BASE, plain: "1", ticketTypeId: "tt_adult", qty: "2" };
+
+	it("SX-FR-02 a plain order is one ticket type and a quantity, with no attendees", () => {
+		expect(readWaiverForm(form(PLAIN))).toEqual({
+			ok: true,
+			order: {
+				eventId: "ev_1",
+				buyer: { name: "Ada Lovelace", email: "ada@example.com" },
+				idempotencyKey: BASE.idempotencyKey,
+				lines: [{ ticketTypeId: "tt_adult", qty: 2 }],
+				attendees: [],
+				rows: [],
+			},
+		});
+	});
+
+	it("SX-FR-02 a missing ticket or a quantity outside 1 to the seat limit is refused, naming the tickets field", () => {
+		for (const over of [{ ticketTypeId: "" }, { qty: "0" }, { qty: String(MAX_SEATS + 1) }, { qty: "x" }]) {
+			expect(readWaiverForm(form({ ...PLAIN, ...over })), JSON.stringify(over)).toEqual({
+				ok: false,
+				code: "BAD_REQUEST",
+				fields: ["tickets"],
+			});
+		}
+	});
+});

@@ -28,6 +28,8 @@ export interface PublicEvent {
 	occurrences?: Array<{ id: string; startsAt: string; endsAt?: string | null; available?: number | null }>;
 	/** Public Turnstile site key, when the site owner configured one. */
 	turnstileSiteKey?: string;
+	/** True when the event requires a signed waiver (T066): the booking form then asks for attendees. */
+	waiver?: boolean;
 }
 
 /** What `POST public/booking` answers (T049), plus the optional fields later tasks add. */
@@ -43,6 +45,11 @@ export interface BookingView {
 	cancelBy?: string;
 	/** A short-lived signed query for `public/booking/ics`, issued by the core (T050). */
 	calendar?: { query?: string };
+	/**
+	 * While a waiver booking waits for signatures (T066): the refs still unsigned, and with Pro a signed
+	 * receipt-lookup request for each, which the suite's reconciliation sends to e-sign.
+	 */
+	waiver?: { refs: string[]; lookups?: Record<string, string> };
 }
 
 export type WidgetField = "occurrence" | "tickets" | "name" | "email";

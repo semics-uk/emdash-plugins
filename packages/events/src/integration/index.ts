@@ -12,6 +12,11 @@ export interface EventsIntegrationOptions {
 	 * (`/_events/sign`); without it the door signing page says signing is not set up.
 	 */
 	esignPluginId?: string;
+	/**
+	 * A module that exports `reconcileBooking(ctx, { booking, pluginId, esignPluginId })`, run by the booking page
+	 * for a booking waiting for signatures (the suite passes its own, T066). Without it nothing is reconciled.
+	 */
+	reconcile?: string;
 }
 
 const VIRTUAL = "virtual:semics-events/config";
@@ -38,6 +43,9 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 	const config = [
 		`export const pluginId = ${JSON.stringify(pluginId)};`,
 		`export const esignPluginId = ${JSON.stringify(options.esignPluginId ?? null)};`,
+		options.reconcile
+			? `export { reconcileBooking as reconcile } from ${JSON.stringify(options.reconcile)};`
+			: "export const reconcile = null;",
 	].join("\n");
 	return {
 		name: "semics-events",

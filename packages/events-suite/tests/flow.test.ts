@@ -419,3 +419,76 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 		});
 	});
 });
+
+describe("retry after e-sign refuses an intent (T066, SX-FR-03)", () => {
+	const BOOKING_COOKIE = { [`semics_booking_${REF}`]: ACCESS };
+	const retry = () => post(`${WAIVER_PATH}?ref=${REF}`, { intent: "retry" });
+
+	it("SX-FR-03 a retry continues the held booking again without re-sending attendees, then redeems the intents", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/continue`]: signNext,
+			[`${ESIGN} public/envelopes/from-intent`]: fromIntent(),
+		});
+		const outcome = expectRedirect(await run(h, retry(), BOOKING_COOKIE));
+		// No `attendees`: Events keeps the stored ones and Pro skips seats already signed.
+		expect(h.calls[0]).toEqual({
+			id: EVENTS,
+			path: "public/checkout/continue",
+			body: { bookingRef: REF, accessToken: ACCESS },
+		});
+		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}`);
+		expect(cookieValue(outcome, flowCookieName(REF))?.value).toBe(`${SIGNING(1)}.${SIGNING(2)}`);
+	});
+
+	it("SX-FR-03 e-sign refusing again offers the retry again; a lapsed hold says so; no booking cookie goes to the booking", async () => {
+		const again = host({
+			[`${EVENTS} public/checkout/continue`]: signNext,
+			[`${ESIGN} public/envelopes/from-intent`]: () => refused("TEMPLATE_NOT_FOUND"),
+		});
+		expect(expectRedirect(await run(again, retry(), BOOKING_COOKIE)).location).toBe(
+			`${WAIVER_PATH}?ref=${REF}&error=SIGNING_UNAVAILABLE`,
+		);
+		const lapsed = host({ [`${EVENTS} public/checkout/continue`]: () => refused("HOLD_EXPIRED") });
+		expect(expectRedirect(await run(lapsed, retry(), BOOKING_COOKIE)).location).toBe(
+			`${WAIVER_PATH}?ref=${REF}&error=HOLD_EXPIRED`,
+		);
+		const none = host({});
+		expect(expectRedirect(await run(none, retry())).location).toBe(`/booking?ref=${REF}`);
+		expect(none.calls).toEqual([]);
+	});
+
+	it("SX-FR-03 a retry for a malformed ref, or from another site, does nothing", async () => {
+		const h = host({});
+		const bad = post(`${WAIVER_PATH}?ref=nope`, { intent: "retry" });
+		expect(expectRedirect(await run(h, bad, BOOKING_COOKIE)).location).toBe("/booking");
+		const cross = post(`${WAIVER_PATH}?ref=${REF}`, { intent: "retry" }, { "sec-fetch-site": "cross-site" });
+		expect(await run(h, cross, BOOKING_COOKIE)).toEqual({ type: "forbidden" });
+		expect(h.calls).toEqual([]);
+	});
+});
+
+describe("an event without a required waiver (T066, SX-FR-02)", () => {
+	const PLAIN = {
+		intent: "book",
+		plain: "1",
+		eventId: "ev_1",
+		returnTo: "/events/climb",
+		idempotencyKey: "k".repeat(43),
+		name: "Ada Lovelace",
+		email: "ada@example.com",
+		ticketTypeId: "tt_adult",
+		qty: "3",
+	};
+
+	it("SX-FR-02 books the tickets with no attendee rows, so Events plans the seats itself", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/checkout/continue`]: () =>
+				ok({ bookingRef: REF, status: "confirmed", next: { type: "done", bookingRef: REF } }),
+		});
+		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, PLAIN)));
+		expect(outcome.location).toBe(`/booking?ref=${REF}`);
+		expect(h.calls[0]?.body).toMatchObject({ lines: [{ ticketTypeId: "tt_adult", qty: 3 }] });
+		expect(h.calls[1]?.body).toEqual({ bookingRef: REF, accessToken: ACCESS });
+	});
+});

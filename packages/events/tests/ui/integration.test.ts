@@ -14,7 +14,7 @@ interface VitePlugin {
 	load(id: string): string | undefined;
 }
 
-async function setup(options?: { pluginId?: string; esignPluginId?: string }) {
+async function setup(options?: { pluginId?: string; esignPluginId?: string; reconcile?: string }) {
 	const routes: Injected[] = [];
 	let plugins: VitePlugin[] = [];
 	const hook = eventsIntegration(options).hooks["astro:config:setup"];
@@ -52,5 +52,17 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		};
 		expect(await read()).toContain("export const esignPluginId = null;");
 		expect(await read({ esignPluginId: "r_esign" })).toContain('export const esignPluginId = "r_esign";');
+	});
+
+	it("SX-FR-05 takes the suite's reconciliation module for the booking page (null without it)", async () => {
+		const read = async (opts?: { reconcile?: string }) => {
+			const { plugins } = await setup(opts);
+			const plugin = plugins.find((p) => p.name === "semics-events-config");
+			return plugin?.load(plugin.resolveId("virtual:semics-events/config") ?? "");
+		};
+		expect(await read()).toContain("export const reconcile = null;");
+		expect(await read({ reconcile: "@semics-tech/emdash-events-suite/astro/lib/reconcile" })).toContain(
+			'export { reconcileBooking as reconcile } from "@semics-tech/emdash-events-suite/astro/lib/reconcile";',
+		);
 	});
 });

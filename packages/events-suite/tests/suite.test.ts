@@ -118,6 +118,18 @@ describe("eventsSuite() (SX-FR-01)", () => {
 		);
 	});
 
+	it("SX-FR-05 the booking page reconciles through the suite's module; SX-FR-07 the catalogue page is injected", () => {
+		const suite = eventsSuite();
+		const { routes } = wiring(suite);
+		expect(routes.find((r) => r.pattern === "/_events/templates")?.entrypoint).toBe(
+			"@semics-tech/emdash-events-suite/astro/TemplatesPage.astro",
+		);
+		const source = setUp(suite.integrations[0] as never).modules["virtual:semics-events/config"];
+		expect(source).toContain(
+			'export { reconcileBooking as reconcile } from "@semics-tech/emdash-events-suite/astro/lib/reconcile";',
+		);
+	});
+
 	it("SX-FR-02 suiteIntegration() alone needs both ids", () => {
 		const { modules } = setUp(suiteIntegration({ eventsPluginId: "r_a", esignPluginId: "r_b" }));
 		expect(exportsOf(modules["virtual:semics-events-suite/config"])).toEqual({

@@ -8,7 +8,7 @@
 // `src/client/receipt.ts` clears the fragment and posts the receipt here, which forwards it to the
 // core's `signatures/receipt` (no access token needed: the receipt is HMAC-signed) and redirects to
 // `?ref=&waiver=<outcome>`.
-import { esignPluginId, pluginId } from "virtual:semics-events/config";
+import { esignPluginId, pluginId, reconcile } from "virtual:semics-events/config";
 
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
@@ -98,6 +98,20 @@ if (ref && token) {
 	});
 	if (result.ok) booking = result.data;
 	else missing = true;
+	// A booking waiting for signatures is reconciled with e-sign (the suite supplies `reconcile`): a signer who
+	// closed the tab or signed by email has a receipt this page forwards, then it shows the booking afresh.
+	if (booking?.waiver?.lookups && reconcile && esignPluginId) {
+		const done = await reconcile(ctx, { booking, pluginId, esignPluginId });
+		if (done.forwarded > 0) {
+			const fresh = await callPublicRoute<BookingView>(ctx, {
+				method: "POST",
+				path: "public/booking",
+				pluginId,
+				body: { bookingRef: ref, accessToken: token },
+			});
+			if (fresh.ok) booking = fresh.data;
+		}
+	}
 } else if (ref && !opening) {
 	missing = true;
 }
