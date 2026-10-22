@@ -34,6 +34,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Accessible
+- [ ] After the last receipt, a paid waiver booking sits at `awaiting_payment` with no pay link (T065): add an Events seam to fetch the payment step without re-sending attendees (keep stored attendees, like `keepSigned`) and wire `/_events/waiver` to it
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] If e-sign refuses an intent mid-flow, offer a retry instead of leaving the booking held (T065); `public/event` says whether a waiver is required so `<BookingWithWaiver>` shows attendee rows only when needed
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
