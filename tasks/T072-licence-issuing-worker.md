@@ -4,7 +4,7 @@ title: "Licence issuing Worker"
 phase: 4
 package: licence-worker
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T070]
