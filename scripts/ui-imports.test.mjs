@@ -25,11 +25,18 @@ function files(dir) {
 	return out;
 }
 
-for (const pkg of ["events", "esign"]) {
+// The suite (T065) is native code only, so all of its `src` counts.
+const PACKAGES = [
+	["events", UI_DIRS],
+	["esign", UI_DIRS],
+	["events-suite", ["src"]],
+];
+
+for (const [pkg, dirs] of PACKAGES) {
 	test(`${pkg} UI code never imports @semics-tech/shared`, () => {
-		const offenders = UI_DIRS.flatMap((dir) => files(join(repoRoot, "packages", pkg, dir))).filter((path) =>
-			/["']@semics-tech\/shared(\/[^"']*)?["']/.test(readFileSync(path, "utf8")),
-		);
+		const scanned = dirs.flatMap((dir) => files(join(repoRoot, "packages", pkg, dir)));
+		assert.ok(scanned.length > 0, `no UI sources found in packages/${pkg}`);
+		const offenders = scanned.filter((path) => /["']@semics-tech\/shared(\/[^"']*)?["']/.test(readFileSync(path, "utf8")));
 		assert.deepEqual(
 			offenders.map((path) => relative(repoRoot, path)),
 			[],

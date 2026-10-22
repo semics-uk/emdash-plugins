@@ -1,0 +1,48 @@
+{
+	"name": "@semics-tech/emdash-events-suite",
+	"version": "0.1.0",
+	"private": true,
+	"type": "module",
+	"description": "Links semics Events and E-sign on one EmDash site: one config call and a booking flow with inline waiver signing",
+	"license": "MIT",
+	"main": "dist/ts/index.js",
+	"exports": {
+		".": {
+			"import": "./dist/ts/index.js",
+			"types": "./dist/ts/index.d.ts"
+		},
+		"./astro": "./src/astro/index.js",
+		"./astro/BookingWithWaiver.astro": "./src/astro/BookingWithWaiver.astro",
+		"./astro/WaiverPage.astro": "./src/astro/WaiverPage.astro"
+	},
+	"files": [
+		"dist",
+		"src/astro"
+	],
+	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage --reporter=dot",
+		"test:verify": "vitest run --reporter=dot ${CI:+--coverage}",
+		"verify": "pnpm run typecheck && pnpm run test:verify && pnpm run build"
+	},
+	"dependencies": {
+		"@semics-tech/emdash-esign": "workspace:*",
+		"@semics-tech/emdash-events": "workspace:*"
+	},
+	"peerDependencies": {
+		"emdash": ">=1.2.0 <2"
+	},
+	"devDependencies": {
+		"@vitest/coverage-v8": "4.1.11",
+		"emdash": "1.2.0",
+		"typescript": "^5.9.0",
+		"vitest": "^4.1.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/semics-uk/emdash-plugins",
+		"directory": "packages/events-suite"
+	}
+}
