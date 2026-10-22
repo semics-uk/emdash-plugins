@@ -1988,7 +1988,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1999,7 +1999,7 @@
 				"ES-FR-21"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "done"
 		},
 		"T097": {
 			"file": "T097-e-sign-retention-job.md",
@@ -2409,7 +2409,6 @@
 		"ready": [
 			"T083",
 			"T086",
-			"T096",
 			"T100",
 			"T101",
 			"T102",
@@ -2501,6 +2500,7 @@
 			"T093",
 			"T094",
 			"T095",
+			"T096",
 			"T097",
 			"T104",
 			"T105",
