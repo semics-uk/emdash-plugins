@@ -42,6 +42,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Confirm or revisit "no per-IP limit on wrong tokens and codes" for booking, cancel, redeem and continue, and the idempotency-key resubmit that re-issues a token (T057 review F11, F16)
 - [ ] Outbox `lastError` cannot keep a booking link or token from provider error text (scrub or keep only a code) (T057 review F12)
 - [ ] CSV formula defence also covers full-width `＝ ＋ － ＠` (T057 review F13)
+- [ ] Confirm the T117 exception: the E-sign core imports the pure, import-free `src/astro/lib/markdown.ts` for the signed PDF; it must stay dependency-free (add a test that it imports nothing)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
