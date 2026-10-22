@@ -13,7 +13,7 @@
  * `validateCheckoutFields` (`src/astro/lib/widget.ts`); a test keeps them identical.
  */
 
-export type BookingField = "occurrence" | "promo" | "tickets" | "name" | "email";
+export type BookingField = "occurrence" | "promo" | "tickets" | "name" | "email" | `q:${string}`;
 
 export interface BookingValues {
 	name: string;
@@ -25,6 +25,26 @@ export interface BookingValues {
 
 // `promo` is only ever set by the server (a refused code); listing it clears that error on a resubmit.
 const FIELDS: readonly BookingField[] = ["occurrence", "promo", "tickets", "name", "email"];
+
+/** A custom question's control (Events Pro, T080): its field and whether it has an answer. */
+export interface QuestionState {
+	field: BookingField;
+	required: boolean;
+	filled: boolean;
+}
+
+/** The required questions without an answer, in form order. Pro's reserve checks them again. */
+export function missingAnswers(questions: readonly QuestionState[]): BookingField[] {
+	return questions.filter((q) => q.required && !q.filled).map((q) => q.field);
+}
+
+function questionStates(form: HTMLFormElement): QuestionState[] {
+	return Array.from(form.querySelectorAll<HTMLInputElement | HTMLSelectElement>("[data-question]"), (el) => ({
+		field: (el.dataset.field ?? "") as BookingField,
+		required: el.required,
+		filled: el instanceof HTMLInputElement && el.type === "checkbox" ? el.checked : el.value.trim() !== "",
+	}));
+}
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** 32 random bytes as 43 unpadded base64url characters. */
@@ -72,7 +92,7 @@ function fieldValue(form: HTMLFormElement, name: string): string {
 }
 
 function showErrors(form: HTMLFormElement, bad: readonly BookingField[]): void {
-	for (const field of FIELDS) {
+	for (const field of [...FIELDS, ...questionStates(form).map((q) => q.field)]) {
 		const control = form.querySelector<HTMLElement>(`[data-field="${field}"]`);
 		const message = form.querySelector<HTMLElement>(`[data-error-for="${field}"]`);
 		if (!control || !message) continue;
@@ -126,13 +146,16 @@ export function enhance(form: HTMLFormElement): void {
 			event.preventDefault();
 			return;
 		}
-		const bad = validateBooking({
-			name: fieldValue(form, "name"),
-			email: fieldValue(form, "email"),
-			lines: qtyInputs.filter((i) => qtyOf(i) > 0).length,
-			needsOccurrence: fieldValue(form, "needsOccurrence") === "1",
-			occurrenceId: fieldValue(form, "occurrenceId"),
-		});
+		const bad = [
+			...validateBooking({
+				name: fieldValue(form, "name"),
+				email: fieldValue(form, "email"),
+				lines: qtyInputs.filter((i) => qtyOf(i) > 0).length,
+				needsOccurrence: fieldValue(form, "needsOccurrence") === "1",
+				occurrenceId: fieldValue(form, "occurrenceId"),
+			}),
+			...missingAnswers(questionStates(form)),
+		];
 		const needsCheck = form.dataset.turnstile === "on" && fieldValue(form, "cf-turnstile-response") === "";
 		if (bad.length > 0 || needsCheck) {
 			event.preventDefault();

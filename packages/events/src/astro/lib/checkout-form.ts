@@ -1,5 +1,6 @@
 import { callPublicRoute, type PublicRouteContext } from "./call";
 import { isPayUrl } from "./payment";
+import { answersFromForm } from "./questions";
 import {
 	fieldsFromIssues,
 	newIdempotencyKey,
@@ -179,6 +180,8 @@ export async function handleCheckoutForm(
 	const turnstileToken = text(form, "cf-turnstile-response");
 	// Only a typed code is sent: Free's reserve refuses unknown keys, and only Pro offers the field.
 	const promoCode = text(form, "promoCode");
+	// Likewise answers: only a widget that showed questions (Pro's `public/event` lists them) sends any.
+	const answers = answersFromForm(form);
 	const reserved = await callPublicRoute<{ bookingRef: string; accessToken?: string }>(ctx, {
 		method: "POST",
 		path: "public/checkout/reserve",
@@ -191,6 +194,7 @@ export async function handleCheckoutForm(
 			idempotencyKey: text(form, "idempotencyKey") || (options.newKey ?? newIdempotencyKey)(),
 			...(turnstileToken ? { turnstileToken } : {}),
 			...(promoCode ? { promoCode } : {}),
+			...(answers ? { answers } : {}),
 		},
 	});
 	if (!reserved.ok) {

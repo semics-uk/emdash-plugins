@@ -34,6 +34,18 @@ export interface PublicEvent {
 	promoCodes?: boolean;
 	/** True when a sold-out event takes a waitlist (T081): the widget then shows a "Join the waitlist" form. */
 	waitlist?: boolean;
+	/** Custom attendee questions (Events Pro, T080): the buyer answers them once per booking. */
+	questions?: PublicQuestion[];
+}
+
+/** One custom question as `public/event` lists it (EV-FR-15). */
+export interface PublicQuestion {
+	id: string;
+	label: string;
+	type: "text" | "select" | "checkbox";
+	required: boolean;
+	/** The choices of a `select` question. */
+	options?: string[];
 }
 
 /** What `POST public/booking` answers (T049), plus the optional fields later tasks add. */
@@ -56,17 +68,22 @@ export interface BookingView {
 	waiver?: { refs: string[]; lookups?: Record<string, string> };
 }
 
-export type WidgetField = "occurrence" | "promo" | "tickets" | "name" | "email";
+/** A custom question's field is `q:<question id>` (T080). */
+export type QuestionField = `q:${string}`;
+export type WidgetField = "occurrence" | "promo" | "tickets" | "name" | "email" | QuestionField;
+
+/** Question ids safe in HTML ids, field names and the widget's error URL. */
+export const QUESTION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** In form order: the first one is where focus goes. */
-export const WIDGET_FIELDS: readonly WidgetField[] = ["occurrence", "promo", "tickets", "name", "email"];
+export const WIDGET_FIELDS = ["occurrence", "promo", "tickets", "name", "email"] as const;
 
 export const WIDGET_PARAMS = { error: "booking_error", fields: "booking_fields", event: "booking_event" } as const;
 
 /** The key reserve accepts (`src/domain/checkout.ts`). */
 export const IDEMPOTENCY_KEY_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
 
-export const FIELD_MESSAGES: Record<WidgetField, string> = {
+export const FIELD_MESSAGES: Record<(typeof WIDGET_FIELDS)[number], string> = {
 	occurrence: "Choose a date.",
 	promo: "Check the code, or leave it empty.",
 	tickets: "Choose at least one ticket.",
@@ -147,7 +164,8 @@ export function readWidgetState(url: URL, eventId: string): { code?: string; fie
 	if (!raw || url.searchParams.get(WIDGET_PARAMS.event) !== eventId) return { fields: [] };
 	const code = Object.hasOwn(ERROR_MESSAGES, raw) ? raw : "INTERNAL";
 	const asked = new Set((url.searchParams.get(WIDGET_PARAMS.fields) ?? "").split(","));
-	return { code, fields: WIDGET_FIELDS.filter((f) => asked.has(f)) };
+	const questions = [...asked].filter((f): f is QuestionField => f.startsWith("q:") && QUESTION_ID.test(f.slice(2)));
+	return { code, fields: [...WIDGET_FIELDS.filter((f) => asked.has(f)), ...questions] };
 }
 
 export interface CheckoutFieldValues {
@@ -186,7 +204,9 @@ export function fieldsFromIssues(issues: ReadonlyArray<{ path?: unknown; code?: 
 	for (const issue of issues ?? []) {
 		const path = typeof issue.path === "string" ? issue.path : "";
 		const hit = ISSUE_FIELDS.find(([pattern]) => pattern.test(path));
+		const question = /^answers\.([^.]+)/.exec(path)?.[1];
 		if (hit) found.add(hit[1]);
+		else if (question && QUESTION_ID.test(question)) found.add(`q:${question}`);
 	}
 	return [...found];
 }

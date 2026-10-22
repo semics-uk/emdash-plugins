@@ -197,6 +197,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   the code). The widget re-checks the cookie's code on render (`promoView`), lists an unlock code's hidden types and puts
   the applied code in a hidden `promoCode` field of the order; `handleCheckoutForm` sends `promoCode` only when present
   (Free's reserve refuses unknown keys).
+- Custom attendee questions (T080, EV-FR-15, R52; Pro's): `config.questions[]` and `booking.answers` are Free schema
+  fields the Free backend never reads. `<BookingWidget>` renders an "About you" fieldset only when `public/event` lists
+  `questions` (Pro adds them): `src/astro/lib/questions.ts` (`questionControls`: label `for` each control, `required`,
+  "(optional)" hint, `aria-describedby` error; fields `q:<id>`, controls named `answer:<id>`, a checkbox posts `yes`)
+  plus a hidden `questions` marker, so `handleCheckoutForm` sends `answers` only then. Pro's reserve refuses with
+  `answers.<id>` issues (`fieldsFromIssues` -> `q:<id>`; `readWidgetState` keeps `q:` fields with safe ids);
+  `src/client/booking.ts` flags unanswered required ones first (`missingAnswers`). Pro also adds the panel's question
+  form and answer columns in `attendees/export`.
 - UI (T054): `<EventList>` (also the `events-list` block) calls `public/events` through `callPublicRoute` with the
   integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,
   `error` (`data-state`). Time and price formatting is the pure `src/astro/lib/list.ts` (`cardView`,

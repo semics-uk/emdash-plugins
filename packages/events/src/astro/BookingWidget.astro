@@ -8,6 +8,7 @@ import { pluginId } from "virtual:semics-events/config";
 import { callPublicRoute } from "./lib/call";
 import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
 import { PROMO_PATH, type PromoView, promoCookieName, promoView } from "./lib/promo";
+import { QUESTIONS_MARKER, questionControls } from "./lib/questions";
 import { readWaitlistState, WAITLIST_MESSAGES, WAITLIST_PATH } from "./lib/waitlist";
 import {
 	anchorId,
@@ -80,6 +81,8 @@ const waitlist =
 	(ticketTypes.every((t) => t.available === 0) || fullDates.length > 0);
 const waitlistDates = ticketTypes.every((t) => t.available === 0) ? occurrences : fullDates;
 const waitlistOutcome = readWaitlistState(Astro.url, eventId);
+// Custom attendee questions are Events Pro's (T080): `public/event` lists them only on a Pro core.
+const questions = questionControls(data?.questions, id, state.fields);
 const bad = (field: WidgetField) => state.fields.includes(field);
 const errId = (field: WidgetField) => `${id}-${field}-error`;
 const invalid = (field: WidgetField) => (bad(field) ? "true" : undefined);
@@ -247,6 +250,71 @@ const when = (iso: string) => {
 					</p>
 				</div>
 
+				{questions.length > 0 && (
+					<fieldset class="semics-questions" data-testid="booking-questions">
+						<legend>About you</legend>
+						<input type="hidden" name={QUESTIONS_MARKER} value="1" />
+						{questions.map((q) => (
+							<div class={q.kind === "checkbox" ? "semics-field semics-check" : "semics-field"}>
+								{q.kind === "checkbox" ? (
+									<>
+										<input
+											id={q.id}
+											type="checkbox"
+											name={q.name}
+											value="yes"
+											required={q.required}
+											data-question
+											data-field={q.field}
+											aria-invalid={q.invalid ? "true" : undefined}
+											aria-describedby={q.errorId}
+										/>
+										<label for={q.id}>
+											{q.label}
+											{q.hint && <span class="semics-hint"> {q.hint}</span>}
+										</label>
+									</>
+								) : (
+									<>
+										<label for={q.id}>
+											{q.label}
+											{q.hint && <span class="semics-hint"> {q.hint}</span>}
+										</label>
+										{q.kind === "select" ? (
+											<select
+												id={q.id}
+												name={q.name}
+												required={q.required}
+												data-question
+												data-field={q.field}
+												aria-invalid={q.invalid ? "true" : undefined}
+												aria-describedby={q.errorId}
+											>
+												{(q.options ?? []).map((o) => <option value={o.value}>{o.label}</option>)}
+											</select>
+										) : (
+											<input
+												id={q.id}
+												type="text"
+												name={q.name}
+												maxlength={String(q.maxLength)}
+												required={q.required}
+												data-question
+												data-field={q.field}
+												aria-invalid={q.invalid ? "true" : undefined}
+												aria-describedby={q.errorId}
+											/>
+										)}
+									</>
+								)}
+								<p class="semics-field-error" id={q.errorId} data-error-for={q.field} data-message={q.message}>
+									{q.invalid ? q.message : ""}
+								</p>
+							</div>
+						))}
+					</fieldset>
+				)}
+
 				<p class="semics-total" data-total data-testid="booking-total" hidden aria-live="polite">
 					Total <strong data-total-value></strong>
 				</p>
@@ -367,6 +435,31 @@ const when = (iso: string) => {
 		border: 1px solid var(--_border);
 		border-radius: var(--_radius);
 		min-inline-size: 0;
+	}
+	.semics-questions {
+		display: grid;
+		gap: 0.75rem;
+		margin: 0;
+		padding: 0.5rem 0.75rem 0.75rem;
+		border: 1px solid var(--_border);
+		border-radius: var(--_radius);
+		min-inline-size: 0;
+	}
+	.semics-check {
+		grid-template-columns: auto minmax(0, 1fr);
+		align-items: center;
+		column-gap: 0.5rem;
+	}
+	.semics-check .semics-field-error {
+		grid-column: 1 / -1;
+	}
+	.semics-booking-widget .semics-check input {
+		min-block-size: 1.25rem;
+		inline-size: 1.25rem;
+		margin: 0;
+	}
+	.semics-hint {
+		color: var(--_muted);
 	}
 	.semics-ticket {
 		display: flex;

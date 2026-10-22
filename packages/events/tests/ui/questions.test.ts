@@ -102,12 +102,12 @@ describe("EU-FR-10 the widget renders each question type accessibly", () => {
 });
 
 describe("EV-FR-15 answers travel with the order", () => {
-	it("EV-FR-15 collects answer fields (a ticked box is yes) only when the widget showed questions", () => {
+	it("EV-FR-15 collects answer fields (a ticked box posts yes) only when the widget showed questions", () => {
 		const shown = form({
 			[QUESTIONS_MARKER]: "1",
 			[`${ANSWER_PREFIX}qdiet`]: "  vegan ",
 			[`${ANSWER_PREFIX}qsize`]: "M",
-			[`${ANSWER_PREFIX}qterms`]: "on",
+			[`${ANSWER_PREFIX}qterms`]: "yes",
 		});
 		expect(answersFromForm(shown)).toEqual({ qdiet: "vegan", qsize: "M", qterms: "yes" });
 		expect(answersFromForm(form({ [QUESTIONS_MARKER]: "1" }))).toEqual({});
