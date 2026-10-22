@@ -39,6 +39,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Nonces expire via sweep
 - [ ] T022 already verifies intents in `public/envelopes/from-intent`; add the 102-vector route tests, the nonce sweep (`nonces/<cid>.<nonce>`, ISO `expiresAt`) and the "available to integrations" template flag (any active template is accepted today)
+- [ ] E-sign e2e harness reads signing links from `/e2e/mail` (T056 mail capture) instead of clear-text outbox rows, which the now-scheduled drain (T116) can scrub first
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
