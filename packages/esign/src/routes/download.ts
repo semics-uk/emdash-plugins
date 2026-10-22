@@ -13,7 +13,15 @@
  *
  * Bridge calls: link key (1), envelope (1), chunks (1) = 3; pending: key, envelope, schedule = 3.
  */
-import { type ErrorCode, LINK_SECRET_BYTES, sha256Hex, signLink, toRouteError, verifyLink } from "@semics-tech/shared";
+import {
+	type ErrorCode,
+	LINK_SECRET_BYTES,
+	sha256Hex,
+	signLink,
+	toHex,
+	toRouteError,
+	verifyLink,
+} from "@semics-tech/shared";
 import { type PluginContext, pluginResponse, type RouteHandler } from "emdash/plugin";
 import { schedulePdfJob } from "../cron/pdf";
 import { joinPdf } from "../domain/pdf";
@@ -30,7 +38,6 @@ interface LinkKv {
 }
 
 const KEY_HEX = new RegExp(`^[0-9a-f]{${LINK_SECRET_BYTES * 2}}$`);
-const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
 /** The stored key (hex), or null when absent or malformed. */
 function decodeKey(value: unknown): Uint8Array | null {

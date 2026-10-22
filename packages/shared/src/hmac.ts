@@ -8,6 +8,7 @@
  * Web Crypto only; time and storage are injected. Nothing here logs, and no error carries token or
  * secret material.
  */
+import { encodeBase64Url, hmacSha256Key } from "./bytes";
 import { err, ok, type Result } from "./result";
 import { constantTimeEqual } from "./tokens";
 
@@ -117,11 +118,7 @@ const B64URL = /^[A-Za-z0-9_-]*$/;
 const utf8 = new TextEncoder();
 
 /** RFC 4648 §5 base64url without padding. */
-export function encodeBase64Url(bytes: Uint8Array): string {
-	let binary = "";
-	for (const byte of bytes) binary += String.fromCharCode(byte);
-	return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+export { encodeBase64Url };
 
 /**
  * Strict canonical base64url decoding: only the URL-safe alphabet, no padding, no length ≡ 1 mod 4,
@@ -138,7 +135,7 @@ export function decodeBase64Url(text: string): Uint8Array | undefined {
 
 async function hmacKey(secret: Uint8Array): Promise<CryptoKey> {
 	if (secret.length !== ESIGN_SECRET_BYTES) throw new Error(`Client secret must be ${ESIGN_SECRET_BYTES} bytes.`);
-	return crypto.subtle.importKey("raw", new Uint8Array(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+	return hmacSha256Key(secret);
 }
 
 async function signature(secret: Uint8Array, prefix: string, payloadB64: string): Promise<string> {

@@ -11,17 +11,13 @@
  */
 import { err, ok, type Result, sha256Hex } from "@semics-tech/shared";
 import type { AuditInput } from "./audit";
-import type { StoredSignature } from "./envelopes";
+import { cleanFields, cleanName, isObject, type StoredSignature } from "./envelopes";
 
 export const MAX_STROKES_JSON_BYTES = 32 * 1024;
 export const MAX_STROKES = 64;
 export const MAX_REASON_CODE_POINTS = 500;
-const NAME_MAX = 200;
-const MAX_FIELDS = 32;
-const MAX_FIELD_VALUE_CODE_POINTS = 500;
 const SHA256_HEX = /^[0-9a-f]{64}$/;
-const FIELD_KEY = /^[A-Za-z0-9_]{1,64}$/;
-// biome-ignore lint/suspicious/noControlCharactersInRegex: names must not carry control characters.
+// biome-ignore lint/suspicious/noControlCharactersInRegex: reasons must not carry control characters.
 const CONTROL = /[\u0000-\u001F\u007F]/;
 
 export const DEFAULT_CONSENT_VERSION = "1";
@@ -53,8 +49,6 @@ export interface SubmitFields {
 	fieldValues: Record<string, string>;
 }
 
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-
 /** A pad point as `public/submit` takes it: two finite numbers in the unit box (the pad normalises to 0-1). */
 const isPoint = (p: unknown): boolean =>
 	Array.isArray(p) && p.length === 2 && p.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 1);
@@ -67,29 +61,10 @@ function cleanStrokes(v: unknown): Result<number[][][], SubmitIssue> {
 	return valid ? ok(v as number[][][]) : bad("INVALID_SIGNATURE");
 }
 
-function cleanTypedName(v: unknown): string | null {
-	const name = typeof v === "string" ? v.trim() : "";
-	return name.length > 0 && name.length <= NAME_MAX && !CONTROL.test(name) ? name : null;
-}
-
-function cleanFieldValues(v: unknown): Record<string, string> | null {
-	if (v === undefined) return {};
-	if (!isObject(v)) return null;
-	const entries = Object.entries(v);
-	if (entries.length > MAX_FIELDS) return null;
-	const out: Record<string, string> = {};
-	for (const [key, value] of entries) {
-		if (!FIELD_KEY.test(key) || typeof value !== "string") return null;
-		if ([...value].length > MAX_FIELD_VALUE_CODE_POINTS) return null;
-		out[key] = value;
-	}
-	return out;
-}
-
 function parseSignature(v: unknown): Result<SubmitFields["signature"], SubmitIssue> {
 	const bad = err({ path: "signature", code: "INVALID_SIGNATURE" } as SubmitIssue);
 	if (!isObject(v) || (v.kind !== "typed" && v.kind !== "drawn")) return bad;
-	const typedName = v.typedName === undefined ? undefined : cleanTypedName(v.typedName);
+	const typedName = v.typedName === undefined ? undefined : cleanName(v.typedName);
 	if (typedName === null) return bad;
 	if (v.kind === "typed") return typedName === undefined ? bad : ok({ kind: "typed", typedName });
 	const strokes = cleanStrokes(v.strokes);
@@ -110,7 +85,7 @@ export function parseSubmit(input: unknown): Result<SubmitFields, SubmitIssue[]>
 	if (consentSha256 === null) issues.push({ path: "consentSha256", code: "INVALID_CONSENT_HASH" });
 	const signature = parseSignature(input.signature);
 	if (!signature.ok) issues.push(signature.error);
-	const fieldValues = cleanFieldValues(input.fieldValues);
+	const fieldValues = cleanFields(input.fieldValues);
 	if (fieldValues === null) issues.push({ path: "fieldValues", code: "INVALID_FIELDS" });
 	if (issues.length > 0 || docSha256 === null || consentSha256 === null || !signature.ok || fieldValues === null) {
 		return err(issues);

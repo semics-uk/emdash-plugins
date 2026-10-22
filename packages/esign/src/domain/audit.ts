@@ -25,7 +25,7 @@
  * Truncating the tail, or rewriting the whole chain, is only caught against a head recorded
  * elsewhere (the envelope's `finalHash`, the certificate), so pass `head` whenever one exists.
  */
-import { err, ok, type RandomBytes, type Result, sha256Hex } from "@semics-tech/shared";
+import { err, ok, type RandomBytes, type Result, sha256Hex, toHex, webCryptoRandom } from "@semics-tech/shared";
 
 export const AUDIT_GENESIS = "0".repeat(64);
 export const AUDIT_VERSION = 1;
@@ -86,11 +86,9 @@ export interface AuditChainError {
 
 export const PII_SALT_BYTES = 32;
 
-const webCryptoRandom: RandomBytes = (length) => crypto.getRandomValues(new Uint8Array(length));
-
 /** A fresh per-envelope `piiSalt`: 32 random bytes as lowercase hex. */
 export function newPiiSalt(random: RandomBytes = webCryptoRandom): string {
-	return Array.from(random(PII_SALT_BYTES), (b) => b.toString(16).padStart(2, "0")).join("");
+	return toHex(random(PII_SALT_BYTES));
 }
 
 /** The salted commitment of one personal value: `SHA256(piiSalt ‖ value)`. */

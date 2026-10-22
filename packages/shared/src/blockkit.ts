@@ -148,6 +148,11 @@ export function stats(items: StatItem[], opts: { blockId?: string } = {}): Stats
 	return clean({ type: "stats", items, block_id: opts.blockId });
 }
 
+/** A table column; `format` is left out when not given. */
+export function column(key: string, label: string, format?: TableColumn["format"]): TableColumn {
+	return format === undefined ? { key, label } : { key, label, format };
+}
+
 export function table(opts: {
 	columns: TableColumn[];
 	rows: Array<Record<string, unknown>>;

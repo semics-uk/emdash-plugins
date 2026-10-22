@@ -5,6 +5,7 @@ import {
 	generateClientId,
 	MASTER_KEY_MIN_BYTES,
 	type RandomBytes,
+	webCryptoRandom,
 } from "@semics-tech/shared";
 
 import { masterKeyBytes } from "./master-key";
@@ -46,10 +47,9 @@ export interface ClientStore {
 export const MAX_CLIENTS = 100;
 const MAX_ALLOWLIST_ENTRIES = 10;
 const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]"]);
-const webRandom: RandomBytes = (n) => crypto.getRandomValues(new Uint8Array(n));
 
 /** A fresh master key: 32 random bytes, base64url (43 characters, which `masterKeyBytes` accepts). */
-export function generateMasterKey(random: RandomBytes = webRandom): string {
+export function generateMasterKey(random: RandomBytes = webCryptoRandom): string {
 	return encodeBase64Url(random(MASTER_KEY_MIN_BYTES));
 }
 

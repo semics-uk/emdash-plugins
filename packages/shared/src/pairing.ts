@@ -8,9 +8,10 @@
  *
  * The pairing string is a secret: never log it. Parsers do not trim; settings UIs trim before saving.
  */
+
+import { hmacSha256Key, type RandomBytes, webCryptoRandom } from "./bytes";
 import { CLIENT_ID_PATTERN, decodeBase64Url, ESIGN_SECRET_BYTES, encodeBase64Url } from "./hmac";
 import { err, ok, type Result } from "./result";
-import type { RandomBytes } from "./tokens";
 
 /** Length of a client secret in bytes. */
 export const CLIENT_SECRET_BYTES = ESIGN_SECRET_BYTES;
@@ -23,7 +24,6 @@ const PAIRING = /^esign1\.([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9_-]{43})$/;
 const BASE32 = "abcdefghijklmnopqrstuvwxyz234567";
 const CLIENT_ID_RANDOM_CHARS = 16;
 const utf8 = new TextEncoder();
-const webCryptoRandom: RandomBytes = (length) => crypto.getRandomValues(new Uint8Array(length));
 
 export interface Pairing {
 	readonly clientId: string;
@@ -55,13 +55,7 @@ export async function deriveClientSecret(masterKey: Uint8Array, clientId: string
 	if (masterKey.length < MASTER_KEY_MIN_BYTES)
 		throw new Error(`Master key must be at least ${MASTER_KEY_MIN_BYTES} bytes.`);
 	assertClientId(clientId);
-	const key = await crypto.subtle.importKey(
-		"raw",
-		new Uint8Array(masterKey),
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["sign"],
-	);
+	const key = await hmacSha256Key(masterKey);
 	return new Uint8Array(await crypto.subtle.sign("HMAC", key, utf8.encode(CLIENT_SECRET_DERIVATION_PREFIX + clientId)));
 }
 

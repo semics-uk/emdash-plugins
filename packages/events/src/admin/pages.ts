@@ -2,6 +2,7 @@ import {
 	actions,
 	type Block,
 	button,
+	column,
 	context,
 	fieldsBlock,
 	form,
@@ -33,7 +34,7 @@ import {
 	type TicketTypeDoc,
 } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { col, EVENT_STATUS_OPTIONS, optionsOf, respond, str } from "./ui";
+import { EVENT_STATUS_OPTIONS, optionsOf, respond, str } from "./ui";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -201,13 +202,13 @@ async function bookingsPage(
 		}),
 		table({
 			columns: [
-				col("ref", "Reference", "code"),
-				col("buyer", "Buyer"),
-				col("email", "Email"),
-				col("status", "Status", "badge"),
-				col("total", "Total"),
-				col("event", "Event", "code"),
-				col("created", "Booked", "relative_time"),
+				column("ref", "Reference", "code"),
+				column("buyer", "Buyer"),
+				column("email", "Email"),
+				column("status", "Status", "badge"),
+				column("total", "Total"),
+				column("event", "Event", "code"),
+				column("created", "Booked", "relative_time"),
 			],
 			rows: bookingRows(page.items),
 			pageActionId: `bookings.page:${status}`,
@@ -248,12 +249,12 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 		...(lead ? [context(lead)] : []),
 		table({
 			columns: [
-				col("title", "Event"),
-				col("event", "ID", "code"),
-				col("status", "Status", "badge"),
-				col("sold", "Sold", "number"),
-				col("capacity", "Capacity", "number"),
-				col("open", "", "element"),
+				column("title", "Event"),
+				column("event", "ID", "code"),
+				column("status", "Status", "badge"),
+				column("sold", "Sold", "number"),
+				column("capacity", "Capacity", "number"),
+				column("open", "", "element"),
 			],
 			rows: page.items.map(({ id, data }) => {
 				const c = data as EventConfigDoc;
@@ -356,12 +357,12 @@ async function attendeesPage(
 		]),
 		table({
 			columns: [
-				col("name", "Name"),
-				col("email", "Email"),
-				col("code", "Code", "code"),
-				col("booking", "Booking", "badge"),
-				col("checkedIn", "Checked in", "text"),
-				col("action", "", "element"),
+				column("name", "Name"),
+				column("email", "Email"),
+				column("code", "Code", "code"),
+				column("booking", "Booking", "badge"),
+				column("checkedIn", "Checked in", "text"),
+				column("action", "", "element"),
 			],
 			rows,
 			pageActionId: `attendees.page:${eventId}`,

@@ -3,6 +3,7 @@
  * Storage is injected (KV-shaped). Cost: 2 calls when allowed (get + set), 1 when rejected.
  * Not atomic: concurrent requests can slightly exceed the limit, which is acceptable for abuse control.
  */
+import { toHex } from "./bytes";
 import { err, ok, type Result } from "./result";
 
 export interface RateLimitStore {
@@ -22,7 +23,7 @@ export interface RateLimitOptions {
 /** First 128 bits of SHA-256(salt + ":" + ip), hex. */
 export async function hashIp(ip: string, salt: string): Promise<string> {
 	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`${salt}:${ip}`));
-	return Array.from(new Uint8Array(digest).slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");
+	return toHex(new Uint8Array(digest).slice(0, 16));
 }
 
 export async function rateLimit(

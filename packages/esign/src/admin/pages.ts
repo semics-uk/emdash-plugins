@@ -4,6 +4,7 @@ import {
 	type Block,
 	button,
 	code,
+	column,
 	context,
 	fieldsBlock,
 	form,
@@ -65,7 +66,7 @@ export interface AdminResponse {
 	blocks: Block[];
 }
 
-const respond = (blocks: Block[]): AdminResponse => ({ blocks });
+export const respond = (blocks: Block[]): AdminResponse => ({ blocks });
 const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const run = (deps: AdminDeps, route: unknown, input: unknown): Promise<Reply> =>
 	((route as { handler: unknown }).handler as RouteFn)({ input, user: deps.user ?? null }, deps.ctx);
@@ -186,11 +187,11 @@ async function envelopesPage(
 		context("Newest first, 100 a page. Create an envelope from a template on the Templates page."),
 		table({
 			columns: [
-				{ key: "title", label: "Title" },
-				{ key: "signer", label: "Signer" },
-				{ key: "status", label: "Status", format: "badge" },
-				{ key: "created", label: "Created", format: "relative_time" },
-				{ key: "open", label: "", format: "element" },
+				column("title", "Title"),
+				column("signer", "Signer"),
+				column("status", "Status", "badge"),
+				column("created", "Created", "relative_time"),
+				column("open", "", "element"),
 			],
 			rows,
 			// The filter rides on the action id, the next page's cursor on the value (T034).
@@ -326,10 +327,10 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 		header("Audit timeline"),
 		table({
 			columns: [
-				{ key: "seq", label: "#", format: "number" },
-				{ key: "event", label: "Event" },
-				{ key: "at", label: "When", format: "text" },
-				{ key: "actor", label: "By" },
+				column("seq", "#", "number"),
+				column("event", "Event"),
+				column("at", "When", "text"),
+				column("actor", "By"),
 			],
 			rows: events.items.map(({ data }: { data: AuditEventDoc }) => ({
 				seq: data.seq,
@@ -525,13 +526,13 @@ async function templatesPage(deps: AdminDeps, extra: Block[] = []): Promise<Admi
 		...extra,
 		table({
 			columns: [
-				{ key: "name", label: "Name" },
-				{ key: "version", label: "Version", format: "number" },
-				{ key: "fields", label: "Fields" },
-				{ key: "integrations", label: "Integrations" },
-				{ key: "updated", label: "Updated", format: "relative_time" },
-				{ key: "edit", label: "", format: "element" },
-				{ key: "use", label: "", format: "element" },
+				column("name", "Name"),
+				column("version", "Version", "number"),
+				column("fields", "Fields"),
+				column("integrations", "Integrations"),
+				column("updated", "Updated", "relative_time"),
+				column("edit", "", "element"),
+				column("use", "", "element"),
 			],
 			rows,
 			pageActionId: "templates.page",

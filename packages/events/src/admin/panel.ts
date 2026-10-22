@@ -1,6 +1,7 @@
 import {
 	type Block,
 	banner,
+	column,
 	context,
 	type FormField,
 	form,
@@ -26,7 +27,7 @@ import { readEntryInfo } from "../domain/event-info";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { col, EVENT_STATUS_OPTIONS, OCCURRENCE_STATUS_OPTIONS, respond, str } from "./ui";
+import { EVENT_STATUS_OPTIONS, OCCURRENCE_STATUS_OPTIONS, respond, str } from "./ui";
 
 /**
  * The "Tickets & booking" panel on a saved event entry (EV-US-1, T043), built only with the shared
@@ -193,11 +194,11 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 		out.push(
 			table({
 				columns: [
-					col("name", "Ticket type"),
-					col("price", "Price"),
-					col("sold", "Sold", "number"),
-					col("held", "Held", "number"),
-					col("capacity", "Capacity", "number"),
+					column("name", "Ticket type"),
+					column("price", "Price"),
+					column("sold", "Sold", "number"),
+					column("held", "Held", "number"),
+					column("capacity", "Capacity", "number"),
 				],
 				rows: tickets.map(({ data: t }) => ({
 					name: t.name,
@@ -214,11 +215,11 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 		out.push(
 			table({
 				columns: [
-					col("starts", `Date (${zone})`),
-					col("status", "Status", "badge"),
-					col("sold", "Sold", "number"),
-					col("held", "Held", "number"),
-					col("capacity", "Capacity", "number"),
+					column("starts", `Date (${zone})`),
+					column("status", "Status", "badge"),
+					column("sold", "Sold", "number"),
+					column("held", "Held", "number"),
+					column("capacity", "Capacity", "number"),
 				],
 				rows: dates.map(({ data: o }) => ({
 					starts: localText(o.startsAt, zone),

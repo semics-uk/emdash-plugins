@@ -172,11 +172,13 @@ const DAY_MS = 86_400_000;
 
 export const signerDocId = (envelopeId: string, order: number): string => `${envelopeId}:s${order}`;
 
-const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+export const isObject = (v: unknown): v is Record<string, unknown> =>
+	typeof v === "object" && v !== null && !Array.isArray(v);
 
 const isId = (v: unknown): v is string => typeof v === "string" && v.length > 0 && v.length <= 200 && !v.includes(":");
 
-function cleanName(v: unknown): string | null {
+/** A trimmed name or title of 1 to 200 characters with no control characters. */
+export function cleanName(v: unknown): string | null {
 	const name = typeof v === "string" ? v.trim() : "";
 	return name.length > 0 && name.length <= NAME_MAX && !CONTROL.test(name) ? name : null;
 }
@@ -186,7 +188,8 @@ function cleanEmail(v: unknown): string | null {
 	return email.length <= EMAIL_MAX && EMAIL.test(email) ? email : null;
 }
 
-function cleanFields(v: unknown): Record<string, string> | null {
+/** Field values: at most 32 `[A-Za-z0-9_]` keys, each a string of at most 500 code points. */
+export function cleanFields(v: unknown): Record<string, string> | null {
 	if (v === undefined) return {};
 	if (!isObject(v)) return null;
 	const entries = Object.entries(v);

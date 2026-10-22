@@ -12,6 +12,9 @@ runtime dependency would ship an unresolvable import.
   size budget, T118); runtime code must never import it.
 - `"sideEffects": false`: a module's top level must not do anything a core relies on, so the bundler can
   drop modules a core does not use (Events carries no PDF font tables).
+- `bytes.ts` (T118): `encodeBase64Url`, `toHex`, `webCryptoRandom`, `hmacSha256Key`, the one copy the
+  token, HMAC and pairing modules and the cores use; `blockkit.ts` has `column(key, label, format?)`.
+  Reuse these instead of a local copy (bundle budget R42).
 
 Modules so far: `result.ts` (Result, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts` (T018),
 `tokens.ts` (T011: opaque tokens, `constantTimeEqual`, `signLink`/`verifyLink`), `hmac.ts` + `pairing.ts`

@@ -10,6 +10,7 @@ export function sharedVersion(): string {
 }
 
 export * from "./blockkit";
+export { hmacSha256Key, toHex, webCryptoRandom } from "./bytes";
 export * from "./gate";
 export * from "./hmac";
 export * from "./ics";

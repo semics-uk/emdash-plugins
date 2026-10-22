@@ -9,6 +9,7 @@
  *
  * Web Crypto only. Nothing here logs, and no error message includes token or secret material.
  */
+import { encodeBase64Url, hmacSha256Key, type RandomBytes, toHex, webCryptoRandom } from "./bytes";
 import { err, ok, type Result } from "./result";
 
 /** Entropy of an opaque token: 256 bits. */
@@ -22,35 +23,25 @@ export const MAX_LINK_TTL_MS = 60 * 60 * 1000;
 /** Shortest lifetime a signed link may have (expiry has whole-second resolution). */
 export const MIN_LINK_TTL_MS = 1000;
 
-/** Returns `length` cryptographically random bytes. Injected in tests. */
-export type RandomBytes = (length: number) => Uint8Array;
+export type { RandomBytes } from "./bytes";
 
-const webCryptoRandom: RandomBytes = (length) => crypto.getRandomValues(new Uint8Array(length));
 const utf8 = new TextEncoder();
 /** Domain separation for link signatures, distinct from every `esign-*` protocol prefix. */
 const LINK_PREFIX = "semics-link/1";
 const RESERVED = new Set(["exp", "sig"]);
 const EXP_PATTERN = /^\d{1,15}$/;
 
-function base64url(bytes: Uint8Array): string {
-	let binary = "";
-	for (const byte of bytes) binary += String.fromCharCode(byte);
-	return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
 /** A new 256-bit opaque token, URL-safe and unpadded (43 characters). */
 export function generateToken(random: RandomBytes = webCryptoRandom): string {
 	const bytes = random(TOKEN_BYTES);
 	if (bytes.length !== TOKEN_BYTES) throw new Error(`Random source must return ${TOKEN_BYTES} bytes.`);
-	return base64url(bytes);
+	return encodeBase64Url(bytes);
 }
 
 /** Lowercase hex SHA-256 of the token's UTF-8 bytes. Stable across runtimes. */
 export async function hashToken(token: string): Promise<string> {
 	const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", utf8.encode(token)));
-	let hex = "";
-	for (const byte of digest) hex += byte.toString(16).padStart(2, "0");
-	return hex;
+	return toHex(digest);
 }
 
 /**
@@ -98,7 +89,7 @@ export type LinkError = "TOKEN_INVALID" | "TOKEN_EXPIRED";
 
 async function linkKey(secret: Uint8Array): Promise<CryptoKey> {
 	if (secret.length < LINK_SECRET_BYTES) throw new Error(`Link secret must be at least ${LINK_SECRET_BYTES} bytes.`);
-	return crypto.subtle.importKey("raw", new Uint8Array(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+	return hmacSha256Key(secret);
 }
 
 /** Every component is percent-encoded, so no name or value can shift a `=`, `&` or newline boundary. */
@@ -108,7 +99,7 @@ function canonical(purpose: string, exp: string, params: ReadonlyArray<readonly 
 }
 
 async function mac(key: CryptoKey, message: string): Promise<string> {
-	return base64url(new Uint8Array(await crypto.subtle.sign("HMAC", key, utf8.encode(message))));
+	return encodeBase64Url(new Uint8Array(await crypto.subtle.sign("HMAC", key, utf8.encode(message))));
 }
 
 /** Query parameters for a short-lived signed link: the given `params` plus `exp` (epoch s) and `sig`. */

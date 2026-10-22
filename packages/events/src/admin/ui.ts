@@ -1,5 +1,5 @@
 /** Small helpers the admin pages and the editor panel share (one copy in the bundle, R42). */
-import type { Block, TableColumn } from "@semics-tech/shared";
+import type { Block } from "@semics-tech/shared";
 
 import { EVENT_STATUSES, OCCURRENCE_STATUSES } from "../domain/config";
 
@@ -14,7 +14,3 @@ export const optionsOf = (values: readonly string[]) =>
 
 export const EVENT_STATUS_OPTIONS = optionsOf(EVENT_STATUSES);
 export const OCCURRENCE_STATUS_OPTIONS = optionsOf(OCCURRENCE_STATUSES);
-
-/** A table column; `format` is left out when not given. */
-export const col = (key: string, label: string, format?: TableColumn["format"]): TableColumn =>
-	format === undefined ? { key, label } : { key, label, format };

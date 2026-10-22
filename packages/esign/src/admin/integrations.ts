@@ -3,6 +3,7 @@ import {
 	type Block,
 	button,
 	code,
+	column,
 	context,
 	form,
 	header,
@@ -24,7 +25,7 @@ import {
 import { encryptionKeyStatus, isEncryptionKeyMissingError } from "../domain/encryption-key";
 import { masterKeyBytes } from "../domain/master-key";
 import { stores } from "../routes/envelopes";
-import type { AdminDeps, AdminResponse } from "./pages";
+import { type AdminDeps, type AdminResponse, respond } from "./pages";
 
 /**
  * Integrations page (T060, ES-FR-12): create an integration client, list, revoke. Block Kit only.
@@ -35,7 +36,6 @@ import type { AdminDeps, AdminResponse } from "./pages";
  * clients), create 3 (settings, put, clients), revoke 3, generate-key 3. The actions run through
  * EmDash's own admin API, which is the CSRF-protected path (no public route is involved).
  */
-const respond = (blocks: Block[]): AdminResponse => ({ blocks });
 const error = (title: string, message?: string): NoticeInput => ({
 	severity: "error",
 	title,
@@ -73,11 +73,11 @@ function view(key: unknown, clients: ClientDoc[], extra: Block[] = []): AdminRes
 		header("Clients"),
 		table({
 			columns: [
-				{ key: "name", label: "Name" },
-				{ key: "clientId", label: "Client id" },
-				{ key: "created", label: "Created", format: "relative_time" },
-				{ key: "status", label: "Status", format: "badge" },
-				{ key: "revoke", label: "", format: "element" },
+				column("name", "Name"),
+				column("clientId", "Client id"),
+				column("created", "Created", "relative_time"),
+				column("status", "Status", "badge"),
+				column("revoke", "", "element"),
 			],
 			rows: clients.map((c) => ({
 				name: c.name,

@@ -10,6 +10,7 @@
  *   5. remove all trailing newlines and append exactly one
  * Leading whitespace and blank lines inside the text are significant and kept.
  */
+import { toHex } from "./bytes";
 
 export type TemplateValue = string | number;
 
@@ -66,5 +67,5 @@ export function canonicalSnapshot(text: string): string {
 export async function sha256Hex(input: string | Uint8Array): Promise<string> {
 	const bytes = typeof input === "string" ? new TextEncoder().encode(input) : new Uint8Array(input);
 	const digest = await crypto.subtle.digest("SHA-256", bytes);
-	return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+	return toHex(digest);
 }

@@ -21,7 +21,7 @@
  * derived from what storage holds; only an email-delivery intent's first token is made this way, and a
  * resend or the completion email still use random tokens.
  */
-import { encodeBase64Url, hashToken } from "@semics-tech/shared";
+import { encodeBase64Url, hashToken, hmacSha256Key } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import { initialAuditEvents } from "../domain/audit";
 import { createdAuditEvent, pickTemplateVersion, sendEnvelope, sentAuditEvent } from "../domain/envelopes";
@@ -50,13 +50,7 @@ export type IntentFinishResult = "sent" | "skipped";
 
 /** The invitation token for `envelopeId`, the same in every run (see above). */
 export async function intentInviteToken(masterKey: Uint8Array, envelopeId: string): Promise<string> {
-	const key = await crypto.subtle.importKey(
-		"raw",
-		new Uint8Array(masterKey),
-		{ name: "HMAC", hash: "SHA-256" },
-		false,
-		["sign"],
-	);
+	const key = await hmacSha256Key(masterKey);
 	const mac = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`esign-invite/1.${envelopeId}`));
 	return encodeBase64Url(new Uint8Array(mac));
 }
