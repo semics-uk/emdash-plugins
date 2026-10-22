@@ -212,6 +212,16 @@ complete with signatures missing. [C34]
   change envelopes already sent. A site without a valid Pro licence sends new envelopes without a code. If the site goes
   back to Free, an envelope that needs a code cannot be signed until Pro is back (Free refuses it rather than skip the
   check). The code is emailed straight from the signing request, not through the outbox, and nothing logs it. [C20][C35]
+- **Pro edition: public self-serve forms (T093).** A site owner can offer a template on a page (the `esign-request` block). The
+  visitor types their own name, email address and any fields the template asks for and passes a Turnstile check. The
+  signing link is emailed to the address typed and is never shown on screen or returned by any route, so the visitor
+  can sign only if they can open that inbox; typing someone else's address gets them nothing. The signer's identity is
+  therefore exactly as in the Free email-link model above (control of the inbox that received the link), and the same
+  email one-time code applies as for any contract template (on by default). The name is whatever the visitor typed.
+  Protections against misuse are Turnstile, a hidden honeypot field, a limit per visitor address, a daily cap per
+  template and a cross-site check on the form post. A third party can still cause one signing-link email to a person
+  who did not ask for it (up to the template's daily cap per day); the email says who sent it and nothing is signed
+  unless the recipient acts. [C4][C20]
 - **Guardian and buyer capacities** are labels chosen by the sender. The product does not check that a person is a
   parent or guardian, or is who the sender says. [C21]
 - There is no signer authentication beyond this, no ID document check, and no check against sanctions or age.

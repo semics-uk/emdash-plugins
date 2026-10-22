@@ -186,3 +186,12 @@ an envelope as `envelopes/send` freezes it, from the settings that route already
 shows "Email me a code" and a code box instead of the signing form while `session.otp === "required"` (intents `otp-send` and
 `otp-verify`; the code only in the POST body); UI messages for `OTP_*` codes live in `MESSAGES`. Shared adds `OTP_REQUIRED`; Pro's
 other codes (`OTP_INVALID`, `OTP_EXPIRED`, `OTP_LOCKED`, `OTP_WAIT`, `OTP_SEND_FAILED`, `OTP_NOT_REQUIRED`) are built by Pro.
+
+Self-serve block (T093, ES-FR-18, SU-FR-12, R50; the route is Pro, the block is MIT source and ships in Free). The `esign-request` Portable
+Text block (`src/astro/SelfServeBlock.astro`, `lib/self-serve.ts`; descriptor field `template` = template id) calls
+`public/self-serve/start` with `describe: true`; Free's route is the NOT_FOUND stub, so on Free (or a template that is not
+offered, or no Turnstile keys) the block renders `esign-request-unavailable` and no form. Ready, it renders a no-JS form
+(name, email, the template's `field:<key>` inputs, a hidden `website` honeypot, a Turnstile widget when a site key is set)
+posting to the injected `POST /_esign/start` (`self-serve-endpoint.ts`: `isCrossSiteRequest` first, then the route, then a 303
+back to the page with `esign_start=sent|<CODE>&esign_t=<templateId>`; values are never put in the redirect). The block never
+imports `@semics-tech/shared` (R35). The start answers `check_email` only: the signing link is emailed, never shown (R50).
