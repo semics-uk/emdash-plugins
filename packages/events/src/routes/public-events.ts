@@ -86,7 +86,7 @@ export async function listEvents(deps: PublicEventsDeps): Promise<unknown> {
 	});
 	const events = items.flatMap(({ id, data }) => {
 		const c = data as EventConfigDoc;
-		const when = c.orphaned ? null : nextStart(c, deps.now);
+		const when = c.orphaned || c.unpublished ? null : nextStart(c, deps.now);
 		if (!c.info || !when) return [];
 		const prices = Object.values(c.catalog?.ticketTypes ?? {})
 			.filter((t) => !t.hidden)
@@ -114,7 +114,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	if (typeof eventId !== "string" || !EVENT_ID_PATTERN.test(eventId)) return notFound();
 	const { storage } = deps;
 	const config = (await storage.event_configs.get(eventId)) as EventConfigDoc | null;
-	if (!config || config.orphaned || config.status === "draft") return notFound();
+	if (!config || config.orphaned || config.unpublished || config.status === "draft") return notFound();
 
 	const recurring = Object.keys(config.catalog?.occurrences ?? {}).length > 0;
 	const [types, dates, settings] = await Promise.all([

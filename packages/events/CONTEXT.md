@@ -68,14 +68,19 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `NOT_FOUND`; answers carry `available` only (min of type, date, event seats left), never counters,
   capacities, hidden types or booking data. Title/times/zone/venue are read once through the mapping
   settings (`mappingOf`, `infoOfEntry` in `src/domain/event-info.ts`) and copied onto the event config
-  as `info` by `content:afterSave` (`src/content-hooks.ts`) and by `config/save` when it creates a config
+  as `info` by `content:afterSave` (`src/hooks/content.ts`) and by `config/save` when it creates a config
   (nothing else); every reader (listing, emails, ICS) takes `info` from the config and falls back to the entry
   only when it is missing. `info` is managed like `catalog`: admin edits never diff or send it.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.
 - Deleting an event with bookings: `content:beforeDelete` returns exactly `false` (needs
-  `content:read`); `afterDelete` marks the config orphaned as the backstop.
+  `content:read`); `afterDelete` marks the config orphaned as the backstop. `afterUnpublish` sets
+  `unpublished` on the config (checkout and the public routes treat it like `orphaned`; `afterPublish`
+  clears it and refreshes `info`). Hooks live in `src/hooks/content.ts`, each = settings read + one call.
+- JSON-LD (`src/hooks/metadata.ts`, `page:metadata`): schema.org `Event` with offset dates and one
+  `Offer` per visible type (3 calls); no counters, `<` is replaced in strings.
+- Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.

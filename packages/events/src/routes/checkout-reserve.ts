@@ -140,7 +140,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 
 	const [entries, stored] = await Promise.all([deps.settings.list(), storage.event_configs.get(input.eventId)]);
 	const config = stored as EventConfigDoc | null;
-	if (!config || config.orphaned) return fail("NOT_FOUND");
+	if (!config || config.orphaned || config.unpublished) return fail("NOT_FOUND");
 	const settings = Object.fromEntries(entries.map((e) => [e.key, e.value]));
 	const secret = typeof settings.turnstileSecretKey === "string" ? settings.turnstileSecretKey : "";
 

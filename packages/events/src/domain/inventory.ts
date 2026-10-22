@@ -69,7 +69,7 @@ export interface InventoryStorage extends CounterStorage {
  * Fields an admin edit never diffs: the counters (only this module writes them), `orphaned` (the
  * delete hooks) and the config's derived `catalog` (written separately by `config/save`).
  */
-const MANAGED_FIELDS = new Set(["reserved", "sold", "orphaned", "catalog", "info"]);
+const MANAGED_FIELDS = new Set(["reserved", "sold", "orphaned", "unpublished", "catalog", "info"]);
 
 /** Designs target ≤ 8 bridge calls per invocation (R22). */
 export const DEFAULT_MAX_CALLS = 8;

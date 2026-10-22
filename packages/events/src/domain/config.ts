@@ -169,6 +169,7 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 	if (salesEnd !== undefined) config.salesEnd = salesEnd;
 	if (typeof base.recurrence === "string" && base.recurrence !== "") config.recurrence = base.recurrence;
 	if (stored?.orphaned !== undefined) config.orphaned = stored.orphaned;
+	if (stored?.unpublished !== undefined) config.unpublished = stored.unpublished;
 	return config;
 }
 

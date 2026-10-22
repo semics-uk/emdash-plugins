@@ -1,8 +1,15 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
-import { contentAfterSave } from "./content-hooks";
 import { runCron, scheduleSweeper } from "./cron/sweep";
 import { runOutboxJob, scheduleOutbox } from "./emails/outbox";
+import {
+	contentAfterDelete,
+	contentAfterPublish,
+	contentAfterSave,
+	contentAfterUnpublish,
+	contentBeforeDelete,
+} from "./hooks/content";
+import { pageMetadata } from "./hooks/metadata";
 import { ADMIN_ROUTES } from "./routes/admin";
 import { ATTENDEE_ROUTES } from "./routes/attendees";
 import { CONFIG_ROUTES } from "./routes/config";
@@ -20,6 +27,11 @@ const plugin: SandboxedPlugin = {
 			await scheduleOutbox(ctx);
 		},
 		"content:afterSave": contentAfterSave,
+		"content:afterPublish": contentAfterPublish,
+		"content:afterUnpublish": contentAfterUnpublish,
+		"content:beforeDelete": contentBeforeDelete,
+		"content:afterDelete": contentAfterDelete,
+		"page:metadata": pageMetadata,
 		cron: async (event, ctx) => {
 			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
 		},

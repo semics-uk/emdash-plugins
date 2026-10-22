@@ -1,6 +1,6 @@
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 // page:metadata (schema.org Event JSON-LD) and the content hooks that keep the event config in
 // step with its entry: unpublish pauses sales and hides the event, delete with bookings is vetoed
@@ -181,20 +181,22 @@ describe("EV-FR-10 content hooks", () => {
 			((await budget.invokeRoute("public/events", {})).value as { events: unknown[] }).events.length;
 		expect(await listed()).toBe(1);
 
+		// The host runs the after-publish hooks in the background: wait for the config to change.
 		await host().actions.content.unpublish("events", e.id);
-		expect((await config(e.id))?.unpublished).toBe(true);
+		await vi.waitFor(async () => expect((await config(e.id))?.unpublished).toBe(true));
 		expect(await listed()).toBe(0);
 		expect((await budget.invokeRoute("public/event", { eventId: e.id })).value).toMatchObject({ ok: false });
 		const reserve = await budget.invokeRoute("public/checkout/reserve", {
 			eventId: e.id,
-			idempotencyKey: "k".repeat(24),
+			idempotencyKey: `test-key-0001-${"x".repeat(24)}`,
 			buyer: { name: "Ada", email: "ada@example.com" },
-			lines: [],
+			lines: [{ ticketTypeId: "tt", qty: 1 }],
+			turnstileToken: "t",
 		});
 		expect(JSON.stringify(reserve.value)).toContain("NOT_FOUND");
 
 		await host().actions.content.publish("events", e.id);
-		expect((await config(e.id))?.unpublished).toBeFalsy();
+		await vi.waitFor(async () => expect((await config(e.id))?.unpublished).toBe(false));
 		expect(await listed()).toBe(1);
 	});
 

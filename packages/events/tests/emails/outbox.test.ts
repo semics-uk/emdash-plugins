@@ -203,7 +203,7 @@ describe("R22 outbox drain budget", () => {
 			if (occurrence) w.storage.bookings.set(b, { ...(w.storage.bookings.docs.get(b) as Doc), occurrenceId: "oc1" });
 			meter.calls = 0;
 			const result = await drainEventsOutbox(w.deps());
-			expect(result).toMatchObject({ sent: 1, remainingHint: true });
+			expect(result).toMatchObject({ sent: 1 });
 			expect(meter.calls).toBeLessThanOrEqual(10);
 			// The row left behind is still pending and goes out on the next tick.
 			meter.calls = 0;

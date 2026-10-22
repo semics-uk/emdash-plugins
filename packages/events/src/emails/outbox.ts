@@ -21,8 +21,9 @@
  * for each, then `outbox.putMany`. The event's title, times, zone and venue come from the copy on
  * its config (T046), so no settings or content reads. Two confirmations are 9 calls, 10 with
  * occurrences; two cancellations 6 or 7; one message 7 or 8; an empty tick 1. A config that has no
- * copy yet adds a settings and an entry read, once per such event; the content hook and
- * `config/save` fill it in, so that is only the first tick after an upgrade.
+ * copy yet adds a settings and an entry read per message, so such a batch is cut to one message
+ * (worst case 10 calls, T051); the content hook and `config/save` fill it in, so that is only the
+ * first ticks after an upgrade.
  */
 import {
 	type DrainResult,
@@ -37,7 +38,7 @@ import {
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
 import { type EventInfoDeps, loadEventInfo } from "../domain/event-info";
-import type { AttendeeDoc, BookingDoc, OutboxDoc } from "../storage/schema";
+import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { cancellationEmail, confirmationEmail } from "./confirmation";
 
 export const OUTBOX_TASK = "outbox-drain";
@@ -96,7 +97,7 @@ function adapt(
 	collection: OutboxCollection,
 	stubs: WeakMap<OutboxMessage, Row>,
 	/** Told every batch of rows this tick is about to send. */
-	onRows: (rows: OutboxDoc[]) => Promise<void>,
+	onRows: (rows: OutboxDoc[]) => Promise<number>,
 ): OutboxStorage {
 	const rows = new Map<string, OutboxDoc>();
 	return {
@@ -135,9 +136,9 @@ function adapt(
 				orderBy: { nextAttemptAt: "asc" },
 				limit,
 			});
-			await onRows(items.map((i) => i.data as OutboxDoc));
+			const keep = await onRows(items.map((i) => i.data as OutboxDoc));
 			return {
-				items: items.map(({ id, data }): { id: string; data: OutboxRecord } => {
+				items: items.slice(0, keep).map(({ id, data }): { id: string; data: OutboxRecord } => {
 					const doc = data as OutboxDoc;
 					rows.set(id, doc);
 					const message: OutboxMessage = { to: doc.to, subject: "", text: "" };
@@ -187,9 +188,9 @@ const ATTENDEE_PAGE = 100;
  * event's public info on its config, N messages cost 4 + 2N calls (query, these three or four reads,
  * a guarded write and a send each, the final save). A failed prefetch only means per-message reads.
  */
-async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<void> {
+async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<number> {
 	const ids = unique(rows.map((r) => r.payload.bookingId).filter((id): id is string => typeof id === "string"));
-	if (ids.length === 0) return;
+	if (ids.length === 0) return rows.length;
 	const found = await d.storage.bookings.getMany(ids);
 	for (const id of ids) tick.bookings.set(id, (found.get(id) as BookingDoc | undefined) ?? null);
 	const live = ids.map((id) => ({ id, booking: tick.bookings.get(id) })).filter((b) => b.booking);
@@ -219,6 +220,10 @@ async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<vo
 	}
 	for (const id of eventIds) tick.configs.set(id, configs?.get(id) ?? null);
 	for (const id of occurrenceIds) tick.occurrences.set(id, occurrences?.get(id) ?? null);
+	// A config without `info` costs a settings and an entry read per message; one such message
+	// fits the budget (10 calls with occurrences), two do not, so the rest of the batch waits.
+	const bare = eventIds.some((id) => !(tick.configs.get(id) as EventConfigDoc | null)?.info);
+	return bare ? 1 : rows.length;
 }
 
 async function loadBooking(d: DrainDeps, tick: Tick, bookingId: string): Promise<BookingDoc | null> {
@@ -301,7 +306,7 @@ export async function drainEventsOutbox(d: DrainDeps): Promise<DrainResult> {
 	const tick = newTick();
 	const send = d.email;
 	return drainOutbox({
-		storage: adapt(d.outbox, stubs, (rows) => prefetch(d, tick, rows).catch(() => undefined)),
+		storage: adapt(d.outbox, stubs, (rows) => prefetch(d, tick, rows).catch(() => rows.length)),
 		email: send && {
 			send: async (stub) => {
 				const row = stubs.get(stub);

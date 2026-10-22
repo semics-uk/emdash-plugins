@@ -88,6 +88,8 @@ export interface EventConfigDoc {
 	recurrence?: string | null;
 	/** Set when the entry was permanently deleted while it still had bookings. */
 	orphaned?: boolean;
+	/** Set while the entry is unpublished: sales stop and the event leaves the public routes (T051). */
+	unpublished?: boolean;
 	/** Derived from the event's ticket types and occurrences by `config/save` (see `EventCatalog`). */
 	catalog?: EventCatalog | null;
 	/** The event's public info, copied from its content entry (see `src/domain/event-info.ts`). */
