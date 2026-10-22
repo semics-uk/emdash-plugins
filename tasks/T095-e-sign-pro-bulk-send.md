@@ -37,6 +37,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Progress shown in admin
 - [ ] From T090: the admin `/envelopes` page can send to several signers (parallel/sequential) via `pro/envelopes/send`; per-signer resend; template placeholders for every signer (not only `{{signer.*}}` for signer 1)
+- [ ] Pro admin page to mark templates self-serve and set the daily cap (T093 exposes only the private `pro/templates/self-serve` route)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
