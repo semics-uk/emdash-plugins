@@ -82,6 +82,7 @@ export interface RefundStep {
 	run(
 		b: BookingDoc,
 		settings: Record<string, unknown>,
+		id: string,
 	): Promise<{ ok: true; mail?: { kind: string; payload?: Record<string, unknown> } } | { ok: false }>;
 }
 
@@ -223,7 +224,7 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 	let mail: { kind: string; payload?: Record<string, unknown> } | undefined;
 	const step = paid ? deps.refund : undefined;
 	if (step) {
-		const refunded = await step.run(b, decision.settings);
+		const refunded = await step.run(b, decision.settings, id);
 		if (!refunded.ok) {
 			await storage.bookings.updateIf(id, {
 				where: { status: b.status, releaseClaimedAt: claim },
