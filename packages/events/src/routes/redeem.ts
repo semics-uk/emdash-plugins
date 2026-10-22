@@ -1,8 +1,9 @@
-import { type ErrorCode, generateToken, hashToken, toRouteError, verifyToken } from "@semics-tech/shared";
+import { generateToken, hashToken, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type InputIssue, parseBookingAccessInput } from "../domain/checkout";
 import type { BookingDoc } from "../storage/schema";
+import { fail } from "./reply";
 
 /**
  * `POST public/booking/redeem` (EV-US-3, EV-FR-08): exchanges the one-time code from the emailed
@@ -30,7 +31,6 @@ export interface RedeemDeps {
 	now: number;
 }
 
-const fail = (code: ErrorCode) => toRouteError(code).body;
 const DECOY_HASH = "0".repeat(64);
 
 function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[] {

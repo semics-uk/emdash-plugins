@@ -22,6 +22,7 @@ import {
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, validateMapping } from "../domain/mapping";
+import { iso } from "../domain/time";
 import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "../routes/attendees";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import {
@@ -31,7 +32,8 @@ import {
 	SECRET_SETTING_KEYS,
 	type TicketTypeDoc,
 } from "../storage/schema";
-import { issueMessage } from "./messages";
+import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
+import { col, EVENT_STATUS_OPTIONS, optionsOf, respond, str } from "./ui";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -100,10 +102,6 @@ const BOOKING_STATUSES = [
 	"refunded",
 	"refunded_unavailable",
 ];
-
-const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
-const isoOf = (ms: number) => new Date(ms).toISOString();
-const respond = (blocks: Block[]): AdminResponse => ({ blocks });
 
 // --- setup ------------------------------------------------------------------------------------
 
@@ -195,27 +193,21 @@ async function bookingsPage(
 		form({
 			fields: [
 				textInput("q", "Booking reference or buyer email", { initialValue: q }),
-				select(
-					"status",
-					"Status",
-					[
-						{ label: "Any status", value: "" },
-						...BOOKING_STATUSES.map((s) => ({ label: s.replaceAll("_", " "), value: s })),
-					],
-					{ initialValue: status },
-				),
+				select("status", "Status", [{ label: "Any status", value: "" }, ...optionsOf(BOOKING_STATUSES)], {
+					initialValue: status,
+				}),
 			],
 			submit: { label: "Search", actionId: "bookings.search" },
 		}),
 		table({
 			columns: [
-				{ key: "ref", label: "Reference", format: "code" },
-				{ key: "buyer", label: "Buyer" },
-				{ key: "email", label: "Email" },
-				{ key: "status", label: "Status", format: "badge" },
-				{ key: "total", label: "Total" },
-				{ key: "event", label: "Event", format: "code" },
-				{ key: "created", label: "Booked", format: "relative_time" },
+				col("ref", "Reference", "code"),
+				col("buyer", "Buyer"),
+				col("email", "Email"),
+				col("status", "Status", "badge"),
+				col("total", "Total"),
+				col("event", "Event", "code"),
+				col("created", "Booked", "relative_time"),
 			],
 			rows: bookingRows(page.items),
 			pageActionId: `bookings.page:${status}`,
@@ -256,12 +248,12 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 		...(lead ? [context(lead)] : []),
 		table({
 			columns: [
-				{ key: "title", label: "Event" },
-				{ key: "event", label: "ID", format: "code" },
-				{ key: "status", label: "Status", format: "badge" },
-				{ key: "sold", label: "Sold", format: "number" },
-				{ key: "capacity", label: "Capacity", format: "number" },
-				{ key: "open", label: "", format: "element" },
+				col("title", "Event"),
+				col("event", "ID", "code"),
+				col("status", "Status", "badge"),
+				col("sold", "Sold", "number"),
+				col("capacity", "Capacity", "number"),
+				col("open", "", "element"),
 			],
 			rows: page.items.map(({ id, data }) => {
 				const c = data as EventConfigDoc;
@@ -364,12 +356,12 @@ async function attendeesPage(
 		]),
 		table({
 			columns: [
-				{ key: "name", label: "Name" },
-				{ key: "email", label: "Email" },
-				{ key: "code", label: "Code", format: "code" },
-				{ key: "booking", label: "Booking", format: "badge" },
-				{ key: "checkedIn", label: "Checked in", format: "text" },
-				{ key: "action", label: "", format: "element" },
+				col("name", "Name"),
+				col("email", "Email"),
+				col("code", "Code", "code"),
+				col("booking", "Booking", "badge"),
+				col("checkedIn", "Checked in", "text"),
+				col("action", "", "element"),
 			],
 			rows,
 			pageActionId: `attendees.page:${eventId}`,
@@ -391,7 +383,7 @@ async function doCheckIn(
 	target: { id: string } | { code: string },
 	eventId: string,
 ): Promise<AdminResponse> {
-	const result = await checkIn(deps.storage, target, isoOf(deps.now), eventId);
+	const result = await checkIn(deps.storage, target, iso(deps.now), eventId);
 	let banner: NoticeInput;
 	if (result.ok) {
 		banner = { severity: "info", title: `Checked in: ${result.name}`, message: `At ${result.checkedInAt}.` };
@@ -412,11 +404,6 @@ async function doCheckIn(
 }
 
 // --- event editor -----------------------------------------------------------------------------
-
-const EVENT_STATUS_OPTIONS = ["draft", "on_sale", "paused", "closed", "cancelled"].map((s) => ({
-	label: s.replaceAll("_", " "),
-	value: s,
-}));
 
 function editorForm(eventId: string, state: EventState, extra: Block[] = []): AdminResponse {
 	const config = state.config as EventConfigDoc;
@@ -501,11 +488,7 @@ async function saveEditor(
 		return item;
 	});
 	if (changed === 0) {
-		return editorForm(
-			id,
-			state,
-			notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]),
-		);
+		return editorForm(id, state, NOTHING_TO_SAVE());
 	}
 
 	const out = (await saveConfig(
@@ -527,21 +510,9 @@ async function saveEditor(
 			config: { ...stored, status: status as EventConfigDoc["status"] },
 			ticketTypes: applied,
 		};
-		return editorForm(id, fresh, notices([{ severity: "info", title: "Saved", message: "The event was updated." }]));
+		return editorForm(id, fresh, SAVED());
 	}
-	const issues = out.issues ?? [];
-	const message = issues.map((i) => issueMessage(i.code, i.path)).join(" ") || "The change was refused.";
-	return editorForm(
-		id,
-		state,
-		notices([
-			{
-				severity: "error",
-				title: issues.some((i) => i.code === "TOO_MANY_CHANGES") ? "Too many changes at once" : "Not saved",
-				message,
-			},
-		]),
-	);
+	return editorForm(id, state, saveRefused(out.issues ?? []));
 }
 
 // --- dashboard widget -------------------------------------------------------------------------

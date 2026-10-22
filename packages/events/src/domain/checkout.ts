@@ -8,8 +8,6 @@
  * `SOLD_OUT` before a write; the reservation guards (which pin the planned capacity) decide the rest.
  */
 import { err, ok, type Result } from "@semics-tech/shared";
-// zod/mini: the same validators with a tree-shakable API, about a fifth of zod's bundle size.
-import { z } from "zod/mini";
 
 import type { BookingDoc, BookingLine, EventConfigDoc } from "../storage/schema";
 import { type Counter, planReservation, type ReserveStep } from "./inventory";
@@ -21,94 +19,204 @@ export const MAX_QTY_PER_LINE = 50;
 /** Bookings one client IP may create per sliding window (EV-FR-05: spam bookings, inventory abuse). */
 export const RESERVE_RATE_LIMIT = { limit: 10, windowMs: 10 * 60_000 } as const;
 
-const docId = z.string().check(z.minLength(1), z.maxLength(200));
+export interface InputIssue {
+	path: string;
+	code: string;
+}
+
+// The body validators. These replaced zod/mini schemas (T047, T048) to keep the sandbox bundle small
+// (R42, T118): same rules, same issue paths and codes in the same order, and the same normalised
+// value. `tests/domain/checkout-input.test.ts` checks them against the original schemas.
+type Path = ReadonlyArray<string | number>;
+type Validator<T> = (value: unknown, path: Path, issues: InputIssue[]) => T;
+
+function report(issues: InputIssue[], path: Path, code: string): void {
+	issues.push({ path: path.length > 0 ? path.join(".") : "input", code });
+}
+
+// zod 4's email pattern (`z.email()`), verbatim.
+const EMAIL = /^(?:[A-Za-z0-9_'+-]+\.)*[A-Za-z0-9_'+-]*[A-Za-z0-9_+-]@(?:[A-Za-z0-9][A-Za-z0-9-]*\.)+[A-Za-z]{2,}$/;
+
+interface TextRule {
+	min?: number;
+	max?: number;
+	pattern?: RegExp;
+	trim?: boolean;
+	lower?: boolean;
+	/** Also an email address, checked only when every other check passed. */
+	email?: boolean;
+}
+
+/**
+ * Length bounds. Like zod's, they also run after a type error, on any value with a `length` (so
+ * `""` given for a list is both `invalid_type` and `too_small`).
+ */
+function checkLength(
+	value: unknown,
+	min: number | undefined,
+	max: number | undefined,
+	path: Path,
+	issues: InputIssue[],
+) {
+	const length = (value as { length?: number } | null | undefined)?.length;
+	if (length === undefined) return;
+	if (min !== undefined && !(length >= min)) report(issues, path, "too_small");
+	if (max !== undefined && !(length <= max)) report(issues, path, "too_big");
+}
+
+/** A string: trimmed and lowercased first when asked, then checked for length and pattern. */
+function text(rule: TextRule): Validator<string> {
+	return (value, path, issues) => {
+		if (typeof value !== "string") {
+			report(issues, path, "invalid_type");
+			checkLength(value, rule.min, rule.max, path, issues);
+			return value as string;
+		}
+		const before = issues.length;
+		let s = rule.trim ? value.trim() : value;
+		if (rule.lower) s = s.toLowerCase();
+		checkLength(s, rule.min, rule.max, path, issues);
+		if (rule.pattern && !rule.pattern.test(s)) report(issues, path, "invalid_format");
+		if (rule.email && issues.length === before && !EMAIL.test(s)) report(issues, path, "invalid_format");
+		return s;
+	};
+}
+
+/** A safe integer from `min` to `max`. */
+function int(min: number, max: number): Validator<number> {
+	return (value, path, issues) => {
+		if (typeof value !== "number" || !Number.isInteger(value)) {
+			report(issues, path, "invalid_type");
+		} else {
+			if (value > Number.MAX_SAFE_INTEGER) report(issues, path, "too_big");
+			if (value < Number.MIN_SAFE_INTEGER) report(issues, path, "too_small");
+			if (value < min) report(issues, path, "too_small");
+			if (value > max) report(issues, path, "too_big");
+		}
+		return value as number;
+	};
+}
+
+const bool: Validator<boolean> = (value, path, issues) => {
+	if (typeof value !== "boolean") report(issues, path, "invalid_type");
+	return value as boolean;
+};
+
+function optional<T>(inner: Validator<T>): Validator<T | undefined> {
+	return (value, path, issues) => (value === undefined ? undefined : inner(value, path, issues));
+}
+
+/** An array of `min` to `max` items, each checked by `item`. */
+function list<T>(item: Validator<T>, min: number, max: number): Validator<T[]> {
+	return (value, path, issues) => {
+		if (!Array.isArray(value)) {
+			report(issues, path, "invalid_type");
+			checkLength(value, min, max, path, issues);
+			return value as T[];
+		}
+		const out = Array.from(value, (entry, i) => item(entry, [...path, i], issues));
+		checkLength(out, min, max, path, issues);
+		return out;
+	};
+}
+
+/** An object with exactly the keys of `shape` (unknown keys are refused). */
+function strict<T>(shape: { [K in keyof T]-?: Validator<T[K]> }): Validator<T> {
+	return (value, path, issues) => {
+		if (typeof value !== "object" || value === null || Array.isArray(value)) {
+			report(issues, path, "invalid_type");
+			return value as T;
+		}
+		const input = value as Record<string, unknown>;
+		const out: Record<string, unknown> = {};
+		for (const key in shape) {
+			const checked = (shape[key] as Validator<unknown>)(input[key], [...path, key], issues);
+			if (checked !== undefined || key in input) out[key] = checked;
+		}
+		if (Object.keys(input).some((key) => !Object.hasOwn(shape, key))) report(issues, path, "unrecognized_keys");
+		return out as T;
+	};
+}
+
+function parser<T>(validator: Validator<T>): (raw: unknown) => Result<T, InputIssue[]> {
+	return (raw) => {
+		const issues: InputIssue[] = [];
+		const value = validator(raw, [], issues);
+		return issues.length > 0 ? err(issues) : ok(value);
+	};
+}
+
+const docId = text({ min: 1, max: 200 });
+const personName = text({ trim: true, min: 1, max: 200 });
+const email = text({ trim: true, lower: true, max: 254, email: true });
+const bookingRef = text({ pattern: /^[0-9A-HJKMNP-TV-Z]{10}$/ });
+const accessToken = text({ pattern: /^[A-Za-z0-9_-]{43}$/ });
 
 /**
  * The request body. `idempotencyKey` is a client-generated secret (at least 32 URL-safe characters,
  * new for each checkout attempt): it names the booking, so a resubmit finds it again. Unknown keys
- * are refused.
+ * are refused. The buyer's name is trimmed, the email trimmed and lowercased.
  */
-export const reserveInputSchema = z.strictObject({
-	eventId: docId,
-	occurrenceId: z.optional(docId),
-	lines: z
-		.array(
-			z.strictObject({
-				ticketTypeId: docId,
-				qty: z.int().check(z.minimum(1), z.maximum(MAX_QTY_PER_LINE)),
-			}),
-		)
-		.check(z.minLength(1), z.maxLength(MAX_LINES)),
-	buyer: z.strictObject({
-		name: z.string().check(z.trim(), z.minLength(1), z.maxLength(200)),
-		email: z.pipe(z.string().check(z.trim(), z.toLowerCase(), z.maxLength(254)), z.email()),
-	}),
-	idempotencyKey: z.string().check(z.regex(/^[A-Za-z0-9_-]{32,128}$/)),
-	turnstileToken: z.optional(z.string().check(z.maxLength(2048))),
-});
+export interface ReserveInput {
+	eventId: string;
+	occurrenceId?: string | undefined;
+	lines: Array<{ ticketTypeId: string; qty: number }>;
+	buyer: { name: string; email: string };
+	idempotencyKey: string;
+	turnstileToken?: string | undefined;
+}
 
-export type ReserveInput = z.output<typeof reserveInputSchema>;
+export const parseReserveInput = parser(
+	strict<ReserveInput>({
+		eventId: docId,
+		occurrenceId: optional(docId),
+		lines: list(strict({ ticketTypeId: docId, qty: int(1, MAX_QTY_PER_LINE) }), 1, MAX_LINES),
+		buyer: strict({ name: personName, email }),
+		idempotencyKey: text({ pattern: /^[A-Za-z0-9_-]{32,128}$/ }),
+		turnstileToken: optional(text({ max: 2048 })),
+	}),
+);
 
 /**
  * The `public/checkout/continue` body: the booking's public ref and the access token reserve
  * returned (in the body, never the URL), plus the attendee details. Without `attendees` every seat
  * is in the buyer's name.
  */
-export const continueInputSchema = z.strictObject({
-	bookingRef: z.string().check(z.regex(/^[0-9A-HJKMNP-TV-Z]{10}$/)),
-	accessToken: z.string().check(z.regex(/^[A-Za-z0-9_-]{43}$/)),
-	attendees: z.optional(
-		z
-			.array(
-				z.strictObject({
-					ticketTypeId: docId,
-					name: z.string().check(z.trim(), z.minLength(1), z.maxLength(200)),
-					email: z.optional(z.pipe(z.string().check(z.trim(), z.toLowerCase(), z.maxLength(254)), z.email())),
-					/** Under 18: the buyer signs any waiver for them as guardian (R5). */
-					minor: z.optional(z.boolean()),
-				}),
-			)
-			.check(z.minLength(1), z.maxLength(MAX_LINES * MAX_QTY_PER_LINE)),
-	),
-});
+export interface ContinueInput {
+	bookingRef: string;
+	accessToken: string;
+	attendees?:
+		| Array<{
+				ticketTypeId: string;
+				name: string;
+				email?: string | undefined;
+				/** Under 18: the buyer signs any waiver for them as guardian (R5). */
+				minor?: boolean | undefined;
+		  }>
+		| undefined;
+}
+
+export const parseContinueInput = parser(
+	strict<ContinueInput>({
+		bookingRef,
+		accessToken,
+		attendees: optional(
+			list(
+				strict({ ticketTypeId: docId, name: personName, email: optional(email), minor: optional(bool) }),
+				1,
+				MAX_LINES * MAX_QTY_PER_LINE,
+			),
+		),
+	}),
+);
 
 /** The `public/booking` and `public/booking/cancel` body: the booking ref and access token only. */
-export const bookingAccessSchema = z.strictObject({
-	bookingRef: continueInputSchema.shape.bookingRef,
-	accessToken: continueInputSchema.shape.accessToken,
-});
-
-export type BookingAccessInput = z.output<typeof bookingAccessSchema>;
-
-export type ContinueInput = z.output<typeof continueInputSchema>;
-
-export interface InputIssue {
-	path: string;
-	code: string;
+export interface BookingAccessInput {
+	bookingRef: string;
+	accessToken: string;
 }
 
-export function parseReserveInput(raw: unknown): Result<ReserveInput, InputIssue[]> {
-	return parseWith(reserveInputSchema, raw);
-}
-
-export function parseBookingAccessInput(raw: unknown): Result<BookingAccessInput, InputIssue[]> {
-	return parseWith(bookingAccessSchema, raw);
-}
-
-export function parseContinueInput(raw: unknown): Result<ContinueInput, InputIssue[]> {
-	return parseWith(continueInputSchema, raw);
-}
-
-function parseWith<S extends z.ZodMiniType>(schema: S, raw: unknown): Result<z.output<S>, InputIssue[]> {
-	const parsed = schema.safeParse(raw);
-	if (parsed.success) return ok(parsed.data);
-	return err(
-		parsed.error.issues.map((issue) => ({
-			path: issue.path.length > 0 ? issue.path.join(".") : "input",
-			code: issue.code,
-		})),
-	);
-}
+export const parseBookingAccessInput = parser(strict<BookingAccessInput>({ bookingRef, accessToken }));
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const REF_LENGTH = 10;

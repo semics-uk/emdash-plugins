@@ -1,19 +1,9 @@
-import {
-	type ErrorCode,
-	generateToken,
-	hashIp,
-	hashToken,
-	ok,
-	type TurnstileFetch,
-	toRouteError,
-	verifyTurnstile,
-} from "@semics-tech/shared";
+import { generateToken, hashIp, hashToken, ok, type TurnstileFetch, verifyTurnstile } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
 import {
 	bookingKeys,
-	type InputIssue,
 	parseReserveInput,
 	planCheckout,
 	RESERVE_RATE_LIMIT,
@@ -23,7 +13,9 @@ import {
 } from "../domain/checkout";
 import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "../domain/holds";
 import { type CounterCollection, reserve } from "../domain/inventory";
+import { iso } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
+import { badRequest, fail } from "./reply";
 
 /**
  * `POST public/checkout/reserve` (EV-FR-05, R9): Turnstile + rate limit → validate → write the
@@ -78,15 +70,11 @@ export interface ReserveDeps {
 	saltFallback: string;
 }
 
-const fail = (code: ErrorCode) => toRouteError(code).body;
-
 /** The event's waiver, copied onto the booking (only when it is required and names a template). */
 function waiverOf(config: EventConfigDoc): Pick<BookingDoc, "waiver"> {
 	const sig = config.signature;
 	return sig?.required && sig.templateId ? { waiver: { templateId: sig.templateId, mode: sig.mode } } : {};
 }
-const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });
-const iso = (ms: number) => new Date(ms).toISOString();
 
 interface Attempt {
 	deps: ReserveDeps;

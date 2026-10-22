@@ -1,14 +1,16 @@
-import { type ErrorCode, toRouteError, verifyToken } from "@semics-tech/shared";
+import { verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { canTransition } from "../domain/booking-state";
 import { type CancelDecision, cancelCutoffHours, cancelDecision } from "../domain/cancel-policy";
-import { type InputIssue, parseBookingAccessInput } from "../domain/checkout";
+import { parseBookingAccessInput } from "../domain/checkout";
 import { CLAIM_STALE_MS, HOLD_STATUSES } from "../domain/holds";
 import { type CounterStorage, countersForBooking, release } from "../domain/inventory";
 import type { LinkKv } from "../domain/link-secret";
+import { iso } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
+import { badRequest, fail } from "./reply";
 
 /**
  * `POST public/booking` (status) and `POST public/booking/cancel` (EV-US-4, EV-FR-09). Both are
@@ -61,10 +63,6 @@ export interface BookingDeps {
 	kv?: LinkKv;
 	now: number;
 }
-
-const fail = (code: ErrorCode) => toRouteError(code).body;
-const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });
-const iso = (ms: number) => new Date(ms).toISOString();
 
 /** A token hash no real token matches, so an unknown ref pays for a check like a wrong token. */
 const DECOY_HASH = "0".repeat(64);

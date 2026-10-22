@@ -38,6 +38,7 @@ import {
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
 import { type EventInfoDeps, loadEventInfo } from "../domain/event-info";
+import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { cancellationEmail, confirmationEmail } from "./confirmation";
 
@@ -84,8 +85,6 @@ export interface DrainDeps {
 	siteName: string;
 	now: number;
 }
-
-const iso = (ms: number) => new Date(ms).toISOString();
 
 interface Row {
 	id: string;

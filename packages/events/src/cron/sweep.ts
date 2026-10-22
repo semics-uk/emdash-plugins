@@ -27,6 +27,7 @@ import {
 	planExpiries,
 } from "../domain/holds";
 import { type InventoryStorage, type RepairJob, repairStep } from "../domain/inventory";
+import { iso } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 
 export const SWEEP_TASK = "sweep-holds";
@@ -90,8 +91,6 @@ export interface SweepReport {
 	repaired: number;
 	conflicted: number;
 }
-
-const iso = (ms: number) => new Date(ms).toISOString();
 
 const addDirty = (dirty: string[], ids: Iterable<string>) => {
 	const next = [...dirty];

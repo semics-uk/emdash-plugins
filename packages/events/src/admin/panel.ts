@@ -21,11 +21,12 @@ import {
 	zonedToUtc,
 } from "@semics-tech/shared";
 
-import { MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
+import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
-import { issueMessage } from "./messages";
+import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
+import { col, EVENT_STATUS_OPTIONS, OCCURRENCE_STATUS_OPTIONS, respond, str } from "./ui";
 
 /**
  * The "Tickets & booking" panel on a saved event entry (EV-US-1, T043), built only with the shared
@@ -121,16 +122,6 @@ export interface PanelResponse {
 type Obj = Record<string, unknown>;
 type Item<T> = { id: string; data: T };
 
-const STATUS_OPTIONS = ["draft", "on_sale", "paused", "closed", "cancelled"].map((s) => ({
-	label: s.replaceAll("_", " "),
-	value: s,
-}));
-const OCCURRENCE_STATUS_OPTIONS = ["open", "closed", "cancelled"].map((s) => ({ label: s, value: s }));
-
-const respond = (blocks: Block[]): PanelResponse => ({ blocks });
-const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
-const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
-
 /** A whole number from a number or a numeric string; NaN otherwise (the validator then refuses it). */
 const num = (v: unknown): number =>
 	typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : Number.NaN;
@@ -202,11 +193,11 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 		out.push(
 			table({
 				columns: [
-					{ key: "name", label: "Ticket type" },
-					{ key: "price", label: "Price" },
-					{ key: "sold", label: "Sold", format: "number" },
-					{ key: "held", label: "Held", format: "number" },
-					{ key: "capacity", label: "Capacity", format: "number" },
+					col("name", "Ticket type"),
+					col("price", "Price"),
+					col("sold", "Sold", "number"),
+					col("held", "Held", "number"),
+					col("capacity", "Capacity", "number"),
 				],
 				rows: tickets.map(({ data: t }) => ({
 					name: t.name,
@@ -223,11 +214,11 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 		out.push(
 			table({
 				columns: [
-					{ key: "starts", label: `Date (${zone})` },
-					{ key: "status", label: "Status", format: "badge" },
-					{ key: "sold", label: "Sold", format: "number" },
-					{ key: "held", label: "Held", format: "number" },
-					{ key: "capacity", label: "Capacity", format: "number" },
+					col("starts", `Date (${zone})`),
+					col("status", "Status", "badge"),
+					col("sold", "Sold", "number"),
+					col("held", "Held", "number"),
+					col("capacity", "Capacity", "number"),
 				],
 				rows: dates.map(({ data: o }) => ({
 					starts: localText(o.startsAt, zone),
@@ -250,7 +241,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 	const dates = state.occurrences as Item<OccurrenceDoc>[];
 
 	const fields = [
-		select("status", "Sales status", STATUS_OPTIONS, { initialValue: config.status }),
+		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
 		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
 		...waiverFields(config, waivers),
@@ -360,14 +351,6 @@ async function runSave(
 	return { ok: false, issues: out.issues ?? [] };
 }
 
-function failure(issues: Array<{ path: string; code: string }>): Block[] {
-	const tooMany = issues.some((i) => i.code === "TOO_MANY_CHANGES");
-	const message =
-		issues.map((i) => issueMessage(i.code, i.code === "TOO_MANY_CHANGES" ? "" : i.path)).join(" ") ||
-		"The change was refused.";
-	return notices([{ severity: "error", title: tooMany ? "Too many changes at once" : "Not saved", message }]);
-}
-
 async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
 	const state = await loadEventState(eventId, deps.storage);
 	const stored = state.config;
@@ -394,7 +377,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 				? values.waiver_mode
 				: storedSignature.mode;
 		if (required && !/^[A-Za-z0-9_-]{1,64}$/.test(templateId)) {
-			return panelForm(state, failure([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers);
+			return panelForm(state, saveRefused([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers);
 		}
 		signature = { required, mode, ...(templateId ? { templateId } : {}) };
 		if (JSON.stringify(signature) !== JSON.stringify(storedSignature)) changed++;
@@ -484,11 +467,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	}
 
 	if (changed === 0) {
-		return panelForm(
-			state,
-			notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]),
-			waivers,
-		);
+		return panelForm(state, NOTHING_TO_SAVE(), waivers);
 	}
 	const result = await runSave(
 		deps,
@@ -497,13 +476,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		state,
 		waiverCalls(deps),
 	);
-	return result.ok
-		? panelForm(
-				result.state,
-				notices([{ severity: "info", title: "Saved", message: "The event was updated." }]),
-				waivers,
-			)
-		: panelForm(state, failure(result.issues), waivers);
+	return result.ok ? panelForm(result.state, SAVED(), waivers) : panelForm(state, saveRefused(result.issues), waivers);
 }
 
 async function enablePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
@@ -518,12 +491,8 @@ async function enablePanel(deps: PanelDeps, eventId: string, values: Obj): Promi
 		waiverCalls(deps),
 	);
 	return result.ok
-		? panelForm(
-				result.state,
-				notices([{ severity: "info", title: "Saved", message: "Booking is enabled for this event." }]),
-				await waiverAvailability(deps),
-			)
-		: enableForm(deps, failure(result.issues));
+		? panelForm(result.state, SAVED("Booking is enabled for this event."), await waiverAvailability(deps))
+		: enableForm(deps, saveRefused(result.issues));
 }
 
 // --- dispatch ---------------------------------------------------------------------------------

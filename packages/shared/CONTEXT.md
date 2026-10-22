@@ -8,7 +8,10 @@ runtime dependency would ship an unresolvable import.
 - Coverage: 90% lines on all of `src/` (`coverageConfig({ allSource: true })`); 100% branches for
   security modules (tokens, HMAC, licence, audit helpers).
 - Never imports a core or UI.
-- `testing/` holds test-only helpers (budget harness, T007); runtime code must never import it.
+- `testing/` holds test-only helpers (budget harness, T007; `testing/bundle-size.ts`, the R42 backend
+  size budget, T118); runtime code must never import it.
+- `"sideEffects": false`: a module's top level must not do anything a core relies on, so the bundler can
+  drop modules a core does not use (Events carries no PDF font tables).
 
 Modules so far: `result.ts` (Result, `ERROR_CODES`, `toRouteError`), `money.ts`, `time.ts`, `ics.ts` (T018),
 `tokens.ts` (T011: opaque tokens, `constantTimeEqual`, `signLink`/`verifyLink`), `hmac.ts` + `pairing.ts`

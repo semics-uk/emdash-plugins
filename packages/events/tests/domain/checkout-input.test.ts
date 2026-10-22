@@ -126,6 +126,9 @@ const scalars: unknown[] = [
 	[],
 	{},
 	[1],
+	{ length: 0 },
+	{ length: "500" },
+	{ toString: 1, constructor: 2 },
 ];
 
 function* reserveCases(): Generator<unknown> {

@@ -49,6 +49,11 @@ export function formatWhen(event: Pick<EventInfo, "startsAt" | "timeZone">): str
 	return `${weekday} ${t.day} ${MONTHS[t.month - 1]} ${t.year}, ${pad(t.hour)}:${pad(t.minute)} ${utc} (${zone})`;
 }
 
+// Plain sentences (nothing to escape), in both the text and the HTML part.
+const KEEP_PRIVATE =
+	"The booking link opens your booking once on the device you use it from, so keep this email private.";
+const NOT_YOU = "If you did not ask for this, contact the organiser and quote the reference.";
+
 const li = (items: readonly string[]) => items.map((i) => `<li>${escapeHtml(i)}</li>`).join("");
 const link = (href: string, label: string) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
 
@@ -77,7 +82,7 @@ export function confirmationEmail(i: BookingEmailInput): OutboxMessage {
 		`Your tickets (check-in passes): ${ticketsUrl}`,
 		`Add to calendar: ${i.calendarUrl}`,
 		"",
-		"The booking link opens your booking once on the device you use it from, so keep this email private.",
+		KEEP_PRIVATE,
 		`${i.siteName}`,
 	].join("\n");
 	const html = [
@@ -86,7 +91,7 @@ export function confirmationEmail(i: BookingEmailInput): OutboxMessage {
 		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
 		`<p>Tickets:</p><ul>${li(i.attendees)}</ul>`,
 		`<p>${link(i.bookingUrl, "View or cancel your booking")}<br>${link(ticketsUrl, "Your tickets (check-in passes)")}<br>${link(i.calendarUrl, "Add to calendar")}</p>`,
-		"<p>The booking link opens your booking once on the device you use it from, so keep this email private.</p>",
+		`<p>${KEEP_PRIVATE}</p>`,
 		`<p>${escapeHtml(i.siteName)}</p>`,
 	].join("\n");
 	return { to: i.to, subject: `Your booking: ${i.event.title}`, text, html };
@@ -101,14 +106,14 @@ export function cancellationEmail(i: Omit<BookingEmailInput, "bookingUrl"> & { b
 		"",
 		...lines,
 		"",
-		"If you did not ask for this, contact the organiser and quote the reference.",
+		NOT_YOU,
 		`${i.siteName}`,
 	].join("\n");
 	const html = [
 		`<p>Hi ${escapeHtml(i.buyerName)},</p>`,
 		`<p>Your booking for <strong>${escapeHtml(i.event.title)}</strong> has been cancelled.</p>`,
 		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
-		"<p>If you did not ask for this, contact the organiser and quote the reference.</p>",
+		`<p>${NOT_YOU}</p>`,
 		`<p>${escapeHtml(i.siteName)}</p>`,
 	].join("\n");
 	return { to: i.to, subject: `Booking cancelled: ${i.event.title}`, text, html };

@@ -1,4 +1,4 @@
-import { type ErrorCode, generateToken, type Result, toRouteError, verifyToken } from "@semics-tech/shared";
+import { type ErrorCode, generateToken, type Result, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
@@ -11,9 +11,11 @@ import {
 	planAttendees,
 } from "../domain/booking-state";
 import { type InputIssue, parseContinueInput } from "../domain/checkout";
-import { extendHold, holdSettings, stepTarget } from "../domain/holds";
+import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
+import { iso } from "../domain/time";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
+import { badRequest, fail } from "./reply";
 
 /**
  * `POST public/checkout/continue` (EV-FR-05, EV-FR-07, R9): the step after `checkout/reserve`.
@@ -112,10 +114,6 @@ export interface ContinueDeps {
 	newCode?: () => string;
 }
 
-const fail = (code: ErrorCode) => toRouteError(code).body;
-const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });
-const iso = (ms: number) => new Date(ms).toISOString();
-
 /** Calls `confirm` keeps for the attendee and outbox writes after counting the sale. */
 const AFTER_SOLD_CALLS = 2;
 
@@ -158,7 +156,7 @@ async function finishConfirmed(c: Checkout, b: BookingDoc): Promise<unknown> {
 async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknown> {
 	const { storage, now } = c.deps;
 	const { applied } = await storage.bookings.updateIf(c.id, {
-		where: { status: b.status, holdExpiresAt: b.holdExpiresAt, releaseClaimedAt: null },
+		where: heldGuard(b),
 		set: { status: "confirmed", confirmedAt: iso(now) },
 	});
 	if (!applied) {

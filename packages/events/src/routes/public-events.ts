@@ -1,6 +1,6 @@
 import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
-
+import { iso } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
@@ -54,7 +54,6 @@ export interface PublicEventsDeps {
 
 const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
 const notFound = () => toRouteError("NOT_FOUND").body;
-const iso = (ms: number) => new Date(ms).toISOString();
 
 /** `closed` once the sales end has passed, else the stored status. */
 const statusOf = (c: EventConfigDoc, now: number): EventConfigDoc["status"] => {

@@ -644,6 +644,27 @@ bridge binding per request (`ctx.exports.ProbeBridge({ props })`, same SQL as `P
   (the `payments` collection is keyed by id).
 - Stripe Checkout `expires_at` must be 30 min–24 h after creation.
 
+**Resolved from the EmDash sources (2026-10-22, T118): the 128 KiB bundle limit.**
+- **Source.** It is the registry bundle format's per-file cap (RFC 0001: at most 128 KiB per file,
+  256 KiB in total, 20 files). Two copies enforce it:
+  - `@emdash-cms/plugin-cli@0.13.3`, `dist/index.mjs:869` (`src/bundle/utils.ts`):
+    `MAX_FILE_SIZE = 128 * 1024`, checked by `validateBundleSize` (`:1070`), which `bundlePlugin`
+    runs (`:3248`) for both `emdash-plugin bundle` and `emdash-plugin validate`. The same cap guards
+    release files (`MAX_RELEASE_FILE_BYTES`, `:8247`).
+  - `@emdash-cms/registry-verification@0.3.4`, `dist/bundle.js:11` and `:145`
+    (`MAX_BUNDLE_FILE_BYTES`, error `BUNDLE_FILE_SIZE_EXCEEDED`), called by `emdash@1.2.0`
+    `src/registry/artifact-verification.ts:42` when a site installs or updates a plugin from the
+    registry (`src/api/handlers/registry.ts:874`, `:1545`).
+- **Scope.** Registry bundles only. A config-declared install (`sandboxed: [...]`, from npm or a
+  path) is read by `generateSandboxedPluginsModule` (`emdash` `src/astro/integration/virtual-modules.ts:660`,
+  `readFileSync` and embed, no size check), and neither sandbox runner (`@emdash-cms/cloudflare`
+  Worker Loader, `@emdash-cms/sandbox-workerd`) checks code size. The loader takes one module per
+  plugin, so splitting the backend into several files is not an option.
+- **Applies to Pro anyway.** Pro builds run `emdash-plugin validate` and should stay publishable to
+  the registry when it takes paid plugins, so every build keeps the cap. Budget (R42): each
+  `backend.js` at most 104 KiB (24 KiB under the cap), asserted by `tests/bundle-size.build.test.ts`
+  in both cores (`@semics-tech/shared/testing/bundle-size`) and by the Pro build suite.
+
 ## 8. Testing strategy
 
 - **Unit** (`shared`): HMAC test vectors, rrule expansion, ICS output, money rounding,
@@ -764,7 +785,7 @@ https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
 | D7 | Storage collection names (T020) | Keys must match `^[a-z][a-z0-9_]*$`, so E-sign's audit collection is `audit_events` (was `auditEvents`). Any future multi-word collection uses snake_case. The sandbox test host does not enforce unique indexes; tests assert the declaration instead. |
 | R28 | Audit personal data after retention (T023) | The retention purge clears `personal` and **deletes `piiSalt`**, so low-variety values (IPs, emails) can't be guessed from their commitments; the chain and hashes still verify. A value disclosed later can no longer be proven against its commitment, an accepted trade-off for data minimisation. `from-intent` runs at 9 bridge calls (hard limit 10, target 8) |
 | R29 | No Turnstile on the signing ceremony (T024) | The 256-bit signing token is the credential. Wrong tokens on session, submit and decline count against one per-IP counter (20 per 10 minutes); `public/session`, which every ceremony opens with, reads it before the lookup and refuses an IP over the limit (1 call; session first view 7 → 8). Submit (9 calls) and decline only count, so guessing through them is not slowed, which 256-bit tokens make moot (T117). Turnstile would add a settings read and a fetch to routes already at 7–8 bridge calls. Revisit only if abuse appears |
-| R30 | Checkout reserve fits 10 calls (T047) | `config/save` writes a counter-free `catalog` on the event config so checkout reads one document (stale capacity can't oversell: guards pin the planned capacity); the per-IP limit counts recent bookings by salted `ipHash` (new bookings index `[ipHash, createdAt]`, 10 per 10 min) instead of a KV counter; compensation is bounded by the budget and the sweeper finishes it. Bodies are validated with `zod/mini` (bundle 23 → 56 KB). No Turnstile secret configured means no bot check (the admin page warns) |
+| R30 | Checkout reserve fits 10 calls (T047) | `config/save` writes a counter-free `catalog` on the event config so checkout reads one document (stale capacity can't oversell: guards pin the planned capacity); the per-IP limit counts recent bookings by salted `ipHash` (new bookings index `[ipHash, createdAt]`, 10 per 10 min) instead of a KV counter; compensation is bounded by the budget and the sweeper finishes it. Bodies are validated with `zod/mini` (bundle 23 → 56 KB; replaced by a built-in validator with the same issues in T118, R42). No Turnstile secret configured means no bot check (the admin page warns) |
 | R31 | Signing submit only from `in_progress` (T025 review) | The view transition (`sent → in_progress`, writes `signer.viewed`) happens in `public/session`, only when called with `open: true`: the sign page sends it with its first POST (sign or decline), never on a GET, which a mail scanner may have made (T117); `submit` refuses a `sent` envelope with `SESSION_REQUIRED`. This removes the audit-head race whose rebuild path reached 13 bridge calls (hard limit 10). Fixed in T112 |
 | R32 | Clear-text signing tokens in the outbox (T027) | Unavoidable at queue time (only hashes are stored elsewhere); the drain scrubs body and payload in the same write that marks a row sent or failed (T113), and retention purges old rows. Email bodies use a plain `fill`, not `renderTemplate`, whose Markdown escaping corrupts base64url tokens and hyphenated names |
 | R33 | Attendee check-in codes go to the booking's token holder (T055 review) | The buyer owns the tickets and needs passes on the booking page; `public/booking` returns codes only after `verifyToken` and never in the outbox or URLs. Sandboxed refusals are `{ ok: false }` inside `{ success: true }`: `callPublicRoute` treats them as errors (T055 fix) |
@@ -776,7 +797,7 @@ https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
 | R39 | UI calls carry the visitor's request metadata (T034 review) | `callPublicRoute` builds a new `Request` for the in-process handler, which had no user agent, client-IP header or `cf` object, so every ceremony audit event lost IP and user agent and every per-IP limit (`public/verify`; the Events checkout, fixed in T056) became one site-wide `unknown` bucket. Pages pass `Astro.request`; the helper copies its headers except cookies, credentials, the Referer and body framing, and its `cf`. The host still applies its own trust rules (`cf-connecting-ip` only with `cf`, otherwise the configured trusted proxy headers), exactly as for a direct call |
 | R40 | Pro code never enters the public repo (T063 pre-check) | The public repo is wholly MIT and its history will be published, so Pro packages live from day one in a separate local git repo `../emdash-plugins-pro` that links the public workspace packages; T071 creates it, and every Pro task depends on T071. The private GitHub repo is created when the owner sets up GitHub |
 | R41 | How a Pro build is made (T071) | Each Pro package's `src/plugin.ts` imports the linked Free core's default export and composes it with `extendCore`: Free routes and hooks are kept as they are, Pro routes are added, a Free route is replaced only through an explicit override, Pro cron jobs run before Free's. The Pro manifest is generated from Free's plus additions (identity can't change, nothing Free declares can be replaced or removed). The licence public key, product and build date are generated constants (key from the environment or a committed public key file; development builds use a throwaway key that a release refuses); no private key exists in either repo. Gating new work costs one bridge call (`settings.get`); in-flight work never checks. The public cores needed no extension point for this; a Pro feature that needs a Free seam adds the smallest MIT one here first |
-| R42 | Bundle headroom before more Pro features (T063 finding) | The Pro Events backend is at 127.0 KiB of a 128 KiB per-file limit; T118 finds the limit's source and creates ≥ 24 KiB headroom (prefer shrinking the Free core) before T064/T073 add code. Pro signs intents with the protocol HMAC directly (shared `ESIGN_PREFIXES` + `encodeBase64Url`), verified against `verifyIntentToken` in tests |
+| R42 | Bundle headroom before more Pro features (T063 finding) | The Pro Events backend is at 127.0 KiB of a 128 KiB per-file limit; T118 finds the limit's source and creates ≥ 24 KiB headroom (prefer shrinking the Free core) before T064/T073 add code. **Done (T118):** the cap is the registry bundle format's (`plugin-cli` `validate`/`bundle` and the runtime's registry install check; `sandboxed: [...]` installs are not checked, §7), kept for every build; Free Events dropped `zod/mini` for a built-in validator and the cores share small helpers, `@semics-tech/shared` is `sideEffects: false`; Events 119.8 → 95.1 KiB, Pro Events 127.0 → 102.9 KiB; every `backend.js` must stay ≤ 104 KiB (build tests in both repos). Pro signs intents with the protocol HMAC directly (shared `ESIGN_PREFIXES` + `encodeBase64Url`), verified against `verifyIntentToken` in tests |
 
 ## 13. Editions and licensing
 

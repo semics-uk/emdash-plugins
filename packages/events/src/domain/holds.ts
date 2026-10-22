@@ -34,6 +34,17 @@ import {
 	release,
 	restore,
 } from "./inventory";
+import { iso } from "./time";
+
+/**
+ * The `where` of a write to a held booking: it still has the status and hold it was read with, and
+ * no expirer has claimed it (`releaseClaimedAt: null`).
+ */
+export const heldGuard = (b: Pick<BookingDoc, "status" | "holdExpiresAt">) => ({
+	status: b.status,
+	holdExpiresAt: b.holdExpiresAt,
+	releaseClaimedAt: null,
+});
 
 const MINUTE = 60_000;
 
@@ -79,8 +90,6 @@ export const EXPIRABLE_STATUSES: readonly BookingStatus[] = ["draft", ...HOLD_ST
 
 /** A claim older than this belongs to an invocation that died (the host stops one after 30 s). */
 export const CLAIM_STALE_MS = 2 * MINUTE;
-
-const iso = (ms: number) => new Date(ms).toISOString();
 
 /** The hold a new booking starts with. */
 export function startHold(
@@ -152,7 +161,7 @@ export async function extendHold(
 	const { holdExpiresAt, changed, atCeiling } = plan.value;
 	if (!changed && Object.keys(set).length === 0) return ok({ holdExpiresAt, atCeiling });
 	const { applied } = await bookings.updateIf(id, {
-		where: { status: booking.status, holdExpiresAt: booking.holdExpiresAt, releaseClaimedAt: null },
+		where: heldGuard(booking),
 		set: { ...set, holdExpiresAt },
 	});
 	return applied ? ok({ holdExpiresAt, atCeiling }) : err({ code: "CONFLICT" });
@@ -247,7 +256,7 @@ export async function expireBookings(
 			if (p.action === "close") return true;
 			const { applied } = await storage.bookings
 				.updateIf(p.id, {
-					where: { status: p.booking.status, holdExpiresAt: p.booking.holdExpiresAt, releaseClaimedAt: null },
+					where: heldGuard(p.booking),
 					set: { releaseClaimedAt: at },
 				})
 				.catch(() => ({ applied: false }));
@@ -267,7 +276,7 @@ export async function expireBookings(
 					? { status: p.booking.status, releaseClaimedAt: at }
 					: p.booking.releaseClaimedAt
 						? { status: p.booking.status, releaseClaimedAt: p.booking.releaseClaimedAt }
-						: { status: p.booking.status, holdExpiresAt: p.booking.holdExpiresAt, releaseClaimedAt: null };
+						: heldGuard(p.booking);
 			const { applied } = await storage.bookings
 				.updateIf(p.id, { where: guard, set: { status: "expired", expiredAt: at } })
 				.catch(() => ({ applied: false }));

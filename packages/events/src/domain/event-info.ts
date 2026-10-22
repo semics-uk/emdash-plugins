@@ -1,4 +1,6 @@
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc } from "../storage/schema";
+import { isObj } from "./config";
+import { iso } from "./time";
 
 /**
  * What emails, calendar files and the public event routes need to know about an event: its title,
@@ -51,7 +53,6 @@ const instant = (v: unknown): number | undefined => {
 	const ms = typeof v === "string" ? Date.parse(v) : Number.NaN;
 	return Number.isFinite(ms) ? ms : undefined;
 };
-const iso = (ms: number) => new Date(ms).toISOString();
 
 /** The mapping from a settings listing; an unset (or blank) setting means its default. */
 export function mappingOf(entries: ReadonlyArray<{ key: string; value: unknown }>): EventMapping {
@@ -65,8 +66,6 @@ export function mappingOf(entries: ReadonlyArray<{ key: string; value: unknown }
 	};
 }
 
-const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
-
 /**
  * The public info of an entry, read through the mapping; `null` without a usable start. Takes a
  * content item (`{ id, slug, data: { ...fields } }`, what `ctx.content.get` returns and what EmDash
@@ -74,7 +73,7 @@ const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "obj
  * listing can link to the event's page (T056).
  */
 export function infoOfEntry(entry: Record<string, unknown>, mapping: EventMapping): EventInfoDoc | null {
-	const data = isRecord(entry.data) ? entry.data : entry;
+	const data = isObj(entry.data) ? entry.data : entry;
 	const startsAt = instant(data[mapping.startsAt]);
 	if (startsAt === undefined) return null;
 	const endsAt = instant(data[mapping.endsAt]);

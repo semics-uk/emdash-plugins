@@ -64,13 +64,13 @@ export const MAX_TICKET_TYPES = 25;
 export const MAX_OCCURRENCES = 100;
 const MAX_NAME_LENGTH = 100;
 
-const EVENT_STATUSES: readonly EventStatus[] = ["draft", "on_sale", "paused", "closed", "cancelled"];
-const OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = ["open", "closed", "cancelled"];
+export const EVENT_STATUSES: readonly EventStatus[] = ["draft", "on_sale", "paused", "closed", "cancelled"];
+export const OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = ["open", "closed", "cancelled"];
 const SIGNATURE_MODES: readonly SignatureMode[] = ["each_attendee", "buyer"];
 
 type Obj = Record<string, unknown>;
 
-const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
+export const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
 const isPositiveInt = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 1;
 
 const ISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;

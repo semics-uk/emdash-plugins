@@ -126,6 +126,11 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   falling back to `info.title` then the id.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
+- Bundle size (R42, T118): `dist/plugin.mjs` must stay ≤ 104 KiB (`tests/bundle-size.build.test.ts`; the
+  registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
+  checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
+  `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,
+  `src/routes/reply.ts`, `src/domain/time.ts`) rather than a copy per file.
 
 ## Where things live
 
