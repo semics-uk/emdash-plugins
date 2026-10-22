@@ -4,7 +4,7 @@ title: "Outbox scrubs sent mail; from-intent headroom"
 phase: 1
 package: shared
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T027]
