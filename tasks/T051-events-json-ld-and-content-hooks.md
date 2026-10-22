@@ -4,7 +4,7 @@ title: "Events: JSON-LD and content hooks"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T042, T005]
