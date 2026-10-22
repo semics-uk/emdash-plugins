@@ -129,7 +129,10 @@ export async function handlePromoRequest(
 	if (isCrossSiteRequest(request, url)) return crossSiteResponse();
 	const form = await request.formData().catch(() => new FormData());
 	const eventId = text(form, "eventId");
-	const returnTo = safeReturnTo(text(form, "returnTo"), url.origin) ?? "/";
+	// Parsed once more and rebuilt from its path: `safeReturnTo` lets `/.//host` through as `//host`
+	// (phase 3 review F11), which as a Location would leave the site.
+	const parsed = new URL(safeReturnTo(text(form, "returnTo"), url.origin) ?? "/", "http://x");
+	const returnTo = `${parsed.pathname}${parsed.search}`;
 	const back = `${returnTo}#${anchorId(eventId)}`;
 	if (!eventId || eventId.length > 200) return redirect(returnTo, 303);
 	const cookie = promoCookieName(eventId);

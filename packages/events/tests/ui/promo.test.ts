@@ -177,6 +177,15 @@ describe("applying a code (EV-FR-14, T078)", () => {
 
 		const off = await handlePromoRequest(endpoint(h, { ...apply, returnTo: "//evil.example/x" }).ctx, {});
 		expect(off.headers.get("location")).toBe(`/#${anchorId("ev1")}`);
+		// Paths that normalise to `//host` (phase 3 review F11) never become a protocol-relative redirect.
+		for (const returnTo of ["/.//evil.example/x", "/%2e//evil.example"]) {
+			for (const entries of [apply, { ...apply, promoCode: "" }, { ...apply, eventId: "" }]) {
+				const res = await handlePromoRequest(endpoint(h, { ...entries, returnTo }).ctx, {});
+				const location = res.headers.get("location") ?? "";
+				expect(location.startsWith("//"), location).toBe(false);
+				expect(new URL(location, url).origin).toBe(url.origin);
+			}
+		}
 	});
 
 	it("is served at /_events/promo", () => {
