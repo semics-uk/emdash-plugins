@@ -103,9 +103,9 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
 - Cron scheduling (T116, R37): EmDash 1.2 never runs `plugin:activate` for a core in `sandboxed: [...]`, so
   `public/events`, `public/event` and admin `page_load`s are wrapped in `withScheduleCheck` (shared
-  `schedules.ts`): 1 KV read of `cron:scheduled:v10` (v10 since T084: `occurrences`); when missing, +1 to queue the one-shot `ensure-schedules`,
+  `schedules.ts`): 1 KV read of `cron:scheduled:v11` (v10 since T084: `occurrences`; v11: Events Pro `reminders`, T083); when missing, +1 to queue the one-shot `ensure-schedules`,
   whose tick schedules every Free recurring task (5, 6 calls with the flag) and sets the flag; the Pro build only queues its own
-  one-shot `ensure-schedules-pro` there (+1), whose tick schedules Pro's 4. Never add
+  one-shot `ensure-schedules-pro` there (+1), whose tick schedules Pro's 5. Never add
   it to checkout or admin actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self
   and minors; other adults sign by email; check-in refuses attendees with a pending waiver.
@@ -227,6 +227,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   private `checkin/code` route with the admin session (`X-EmDash-Request: 1`) and shows the answer (`checkInView`); a pending
   waiver's `signLink` is shown only when it is this site's `/_events/sign` (`safeSignLink`). Free has no such route (404: "needs
   Events Pro"); the Block Kit Attendees page stays the check-in on every edition. The Free backend gained nothing.
+- Reminders and broadcasts (T083, EV-FR-08, R57; Pro's): the Pro `reminders` task and the `/broadcasts` page queue
+  `event_reminder` / `event_broadcast` outbox rows that the Free drain renders through `DrainDeps.render`; the Free
+  backend gained nothing. Reminders and update emails link to `/_events/opt-out?ref=&w=&s=` (`OptOutPage.astro`,
+  `src/astro/lib/opt-out.ts`): opening it changes nothing, its same-site POST calls Pro's `public/mail/opt-out`
+  (Free: NOT_FOUND, shown as an invalid link). Opted-out recipients are `mailOptOut` on the booking (`buyer` or an
+  attendee id), a field the Free backend never reads.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 116 KiB (R51; 115.9 after T084's recurring events, 110.9 before them) (`tests/bundle-size.build.test.ts`; the

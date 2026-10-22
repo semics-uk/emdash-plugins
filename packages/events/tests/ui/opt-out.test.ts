@@ -3,10 +3,8 @@
  * `/_events/opt-out?ref=&w=&s=` (booking ref, recipient, signature). Opening the link changes
  * nothing, so a mail scanner that prefetches it cannot unsubscribe anyone: the page shows a button,
  * and only its same-site POST asks the core's `public/mail/opt-out` (a Pro route; Free answers
- * NOT_FOUND, which reads as an invalid link).
+ * NOT_FOUND, which reads as an invalid link). The page's own checks are in `csrf.build.test.ts`.
  */
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { OPT_OUT_MESSAGES, OPT_OUT_PATH, optOut, readOptOutLink } from "../../src/astro/lib/opt-out";
@@ -14,7 +12,6 @@ import { OPT_OUT_MESSAGES, OPT_OUT_PATH, optOut, readOptOutLink } from "../../sr
 const url = new URL(`https://site.example${OPT_OUT_PATH}`);
 const REF = "ABCDEFGHJK";
 const SIG = "0123456789abcdef0123456789abcdef";
-const read = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8");
 
 function host(answers: Record<string, unknown>) {
 	const seen: Array<{ path: string; body: unknown }> = [];
@@ -61,16 +58,5 @@ describe("/_events/opt-out (EV-FR-08)", () => {
 		const free = host({});
 		expect(await optOut(free.ctx, { bookingRef: REF, who: "buyer", sig: SIG }, {})).toBe("invalid");
 		expect(OPT_OUT_MESSAGES.invalid).toMatch(/not valid/i);
-	});
-
-	it("EV-FR-08 the page checks the origin before it reads the form, and opening it calls nothing", () => {
-		const page = read("../../src/astro/OptOutPage.astro");
-		const guard = page.indexOf("isCrossSiteRequest(Astro.request");
-		expect(guard).toBeGreaterThan(-1);
-		expect(guard).toBeLessThan(page.indexOf("Astro.request.formData()"));
-		expect(page.indexOf("optOut(")).toBeGreaterThan(page.indexOf('Astro.request.method === "POST"'));
-		expect(page).toContain('name="robots" content="noindex"');
-		expect(page).not.toContain("set:html");
-		expect(read("../../package.json")).toContain('"./astro/OptOutPage.astro": "./src/astro/OptOutPage.astro"');
 	});
 });

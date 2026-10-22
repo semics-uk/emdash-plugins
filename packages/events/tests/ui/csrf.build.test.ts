@@ -21,6 +21,17 @@ describe("T057 Origin checks on the no-JS forms", () => {
 		expect(guard).toBeLessThan(page.indexOf("Astro.request.formData()"));
 	});
 
+	it("EV-FR-08 the page checks the origin before it reads the form, and opening it calls nothing", () => {
+		const page = read("../../src/astro/OptOutPage.astro");
+		const guard = page.indexOf("isCrossSiteRequest(Astro.request");
+		expect(guard).toBeGreaterThan(-1);
+		expect(guard).toBeLessThan(page.indexOf("Astro.request.formData()"));
+		expect(page.indexOf("optOut(")).toBeGreaterThan(page.indexOf('Astro.request.method === "POST"'));
+		expect(page).toContain('name="robots" content="noindex"');
+		expect(page).not.toContain("set:html");
+		expect(read("../../package.json")).toContain('"./astro/OptOutPage.astro": "./src/astro/OptOutPage.astro"');
+	});
+
 	it("T057 POST /_events/checkout goes through the checked handler", () => {
 		expect(read("../../src/astro/checkout-endpoint.ts")).toContain("handleCheckoutRequest(");
 	});

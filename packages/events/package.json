@@ -27,6 +27,7 @@
 		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro",
 		"./astro/DoorSignPage.astro": "./src/astro/DoorSignPage.astro",
 		"./astro/CheckIn.astro": "./src/astro/CheckIn.astro",
+		"./astro/OptOutPage.astro": "./src/astro/OptOutPage.astro",
 		"./astro/BookingWidget.astro": "./src/astro/BookingWidget.astro",
 		"./astro/BookingBlock.astro": "./src/astro/BookingBlock.astro",
 		"./astro/EventList.astro": "./src/astro/EventList.astro",
