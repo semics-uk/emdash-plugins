@@ -42,7 +42,9 @@ export async function rateLimit(
 	const parsed = Number.parseInt((await store.get(key)) ?? "0", 10);
 	const count = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
 	if (count >= options.limit) return err("RATE_LIMITED");
-	await store.set(key, `${count + 1}:${(window + 1) * options.windowSeconds}`, { ttlSeconds: options.windowSeconds * 2 });
+	await store.set(key, `${count + 1}:${(window + 1) * options.windowSeconds}`, {
+		ttlSeconds: options.windowSeconds * 2,
+	});
 	return ok({ remaining: options.limit - count - 1 });
 }
 
