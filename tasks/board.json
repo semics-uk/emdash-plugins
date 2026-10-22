@@ -1337,7 +1337,7 @@
 			"phase": 3,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1351,7 +1351,7 @@
 			"unblocks": [
 				"T064"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T064": {
 			"file": "T064-events-receipt-route-and-waiver-gated-check-in.md",
@@ -2326,7 +2326,6 @@
 			"T106"
 		],
 		"ready": [
-			"T063",
 			"T071",
 			"T072",
 			"T080",
@@ -2341,7 +2340,8 @@
 			"T117"
 		],
 		"in-progress": [
-			"T060"
+			"T060",
+			"T063"
 		],
 		"review": [],
 		"done": [
