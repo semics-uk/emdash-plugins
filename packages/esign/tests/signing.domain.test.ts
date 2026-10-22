@@ -21,7 +21,14 @@ import {
 
 const SHA = "a".repeat(64);
 const OPTS = { fieldValues: {}, salt: "ab".repeat(32) };
-const base = { consent: true, intent: true, docSha256: SHA, signature: { kind: "typed", typedName: "Ada" } };
+const CONSENT_SHA = "c".repeat(64);
+const base = {
+	consent: true,
+	intent: true,
+	docSha256: SHA,
+	consentSha256: CONSENT_SHA,
+	signature: { kind: "typed", typedName: "Ada" },
+};
 const codes = (input: unknown) => {
 	const r = parseSubmit(input);
 	return r.ok ? [] : r.error.map((i) => i.code);
@@ -45,9 +52,39 @@ describe("ES-FR-04 parseSubmit", () => {
 
 	it("reports every problem", () => {
 		expect(codes(null)).toEqual(["INVALID_INPUT"]);
-		expect(codes({})).toEqual(["CONSENT_REQUIRED", "INTENT_REQUIRED", "INVALID_DOC_HASH", "INVALID_SIGNATURE"]);
+		expect(codes({})).toEqual([
+			"CONSENT_REQUIRED",
+			"INTENT_REQUIRED",
+			"INVALID_DOC_HASH",
+			"INVALID_CONSENT_HASH",
+			"INVALID_SIGNATURE",
+		]);
 		expect(codes({ ...base, consent: "true" })).toEqual(["CONSENT_REQUIRED"]);
 		expect(codes({ ...base, docSha256: "ABC" })).toEqual(["INVALID_DOC_HASH"]);
+		expect(codes({ ...base, consentSha256: undefined })).toEqual(["INVALID_CONSENT_HASH"]);
+		expect(codes({ ...base, consentSha256: "C".repeat(64) })).toEqual(["INVALID_CONSENT_HASH"]);
+		expect(parseSubmit(base)).toMatchObject({ ok: true, value: { consentSha256: CONSENT_SHA } });
+	});
+
+	it("T117 ES-FR-04 rejects stroke points outside 0-1 (the pad normalises to 0-1)", () => {
+		const sig = (strokes: unknown) => codes({ ...base, signature: { kind: "drawn", strokes } });
+		expect(
+			sig([
+				[
+					[0, 0],
+					[1, 1],
+					[0.5, 0.25],
+				],
+			]),
+		).toEqual([]);
+		for (const point of [
+			[-0.01, 0.5],
+			[0.5, 1.01],
+			[2, 2],
+			[0, -1],
+		]) {
+			expect(sig([[[0.1, 0.1], point]]), JSON.stringify(point)).toEqual(["INVALID_SIGNATURE"]);
+		}
 	});
 
 	it("validates signatures and fields", () => {
@@ -109,10 +146,12 @@ describe("ES-FR-04 signature binding and audit inputs", () => {
 	it("builds the view, signed and declined events with request data only as personal fields", async () => {
 		const who = { ip: "203.0.113.9", ua: "UA" };
 		const signature = await bindSignature(SHA, { kind: "drawn", strokes: [dot] }, OPTS);
-		const args = { at: "t", docSha256: SHA, consentVersion: "1", signerName: "Ada" };
+		const args = { at: "t", docSha256: SHA, consentVersion: "1", consentSha256: CONSENT_SHA, signerName: "Ada" };
 		const signed = signedAuditEvents({ ...args, signature, who });
 		expect(signed.map((e) => e.type)).toEqual(["signer.consented", "signer.signed", "envelope.completed"]);
 		expect(signed[1]?.personal).toEqual({ name: "Ada", ...who });
+		// T117: the consent event records the hash of the wording that was shown, not only its version.
+		expect(signed[0]?.data).toEqual({ docSha256: SHA, consentVersion: "1", consentSha256: CONSENT_SHA, intent: true });
 		expect(signed[2]?.personal).toBeUndefined();
 		const typed = await bindSignature(SHA, { kind: "typed", typedName: "A. Lovelace" }, OPTS);
 		expect(signedAuditEvents({ ...args, signature: typed, who: {} })[1]?.personal).toEqual({ name: "A. Lovelace" });

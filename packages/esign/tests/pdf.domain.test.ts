@@ -184,4 +184,48 @@ describe("ES-FR-08 chunked storage of the signed PDF", () => {
 		expect(joinPdf([chunks[0] as ArtifactChunkDoc, { ...(chunks[1] as ArtifactChunkDoc), sha256: "x" }])).toBeNull();
 		expect(joinPdf([chunks[0] as ArtifactChunkDoc, { ...(chunks[1] as ArtifactChunkDoc), data: "%%%" }])).toBeNull();
 	});
+
+	it("T117 ES-FR-07 the document is rendered from the parsed Markdown tree, as the ceremony shows it", async () => {
+		const snapshot = [
+			"# Terms",
+			"",
+			"I, **Ada Lovelace**, accept the *gig* terms and `rule 7`.",
+			"",
+			"- Arrive by 7pm",
+			"- Bring \\*ID\\*",
+			"",
+			"3. Third",
+			"4. Fourth",
+			"",
+			"> Quoted _note_",
+			"",
+			"See [the venue page](https://venue.example/info) or [bad](javascript:alert(1)).",
+			"",
+			"---",
+			"",
+			"```",
+			"**not bold**",
+			"```",
+			"",
+		].join("\n");
+		const doc = signedPdfDocument({ ...(await fixture()), snapshot });
+		const texts = doc.blocks.flatMap((b) => (b.type === "paragraph" || b.type === "heading" ? [b.text] : []));
+		expect(texts).toContain("Terms");
+		expect(texts).toContain("I, Ada Lovelace, accept the gig terms and rule 7.");
+		expect(texts).toContain("\u2022 Arrive by 7pm");
+		expect(texts).toContain("\u2022 Bring *ID*");
+		expect(texts).toContain("3. Third");
+		expect(texts).toContain("4. Fourth");
+		expect(texts).toContain("Quoted note");
+		expect(texts).toContain("See the venue page (https://venue.example/info) or [bad](javascript:alert(1)).");
+		// Code is shown verbatim, as in the ceremony.
+		expect(texts).toContain("**not bold**");
+		expect(doc.blocks).toContainEqual({ type: "rule" });
+		const prose = texts.filter((t) => t !== "**not bold**").join("\n");
+		expect(prose).not.toMatch(/\*\*|^#|^- /m);
+		// Still deterministic.
+		const a = await renderSignedPdf({ ...(await fixture()), snapshot });
+		const b = await renderSignedPdf({ ...(await fixture()), snapshot });
+		expect(a.sha256).toBe(b.sha256);
+	});
 });

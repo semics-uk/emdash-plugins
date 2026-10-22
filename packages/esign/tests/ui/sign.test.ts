@@ -35,7 +35,7 @@ const ready = {
 	envelope: { id: "e1", title: "NDA", status: "in_progress", docSha256: DOC, expiresAt: null },
 	signer: { name: "Ada", as: "Client" },
 	snapshot: "Hello\n\nSign here",
-	consent: { version: "1", wording: "I agree to sign electronically." },
+	consent: { version: "1", wording: "I agree to sign electronically.", sha256: "c".repeat(64) },
 };
 
 function form(entries: Record<string, string>) {
@@ -169,6 +169,28 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 		expect(ids).toEqual([ESIGN_PLUGIN_ID]);
 	});
 
+	it("T117 a GET (a mail scanner's prefetch) never opens the envelope; a sign or decline post opens it first", async () => {
+		const h = host({
+			"public/session": ready,
+			"public/submit": { ok: true, status: "completed" },
+			"public/decline": { ok: true, status: "declined" },
+		});
+		await handleSign(h.ctx, TOKEN, null);
+		expect(h.seen.map((s) => s.body)).toEqual([{ token: TOKEN }]);
+		h.seen.length = 0;
+		await handleSign(h.ctx, TOKEN, form(signForm));
+		expect(h.seen[0]).toMatchObject({ path: "public/session", body: { token: TOKEN, open: true } });
+		expect(h.seen[1]?.path).toBe("public/submit");
+		// The re-read after signing only looks.
+		expect(h.seen[2]).toMatchObject({ path: "public/session", body: { token: TOKEN } });
+		h.seen.length = 0;
+		await handleSign(h.ctx, TOKEN, form({ intent: "decline" }));
+		expect(h.seen.map((s) => [s.path, s.body])).toEqual([
+			["public/session", { token: TOKEN, open: true }],
+			["public/decline", { token: TOKEN }],
+		]);
+	});
+
 	it("a bad token is a defined error view, not a throw", async () => {
 		const h = host({ "public/session": { ok: false, error: { code: "SIGNING_TOKEN_INVALID", message: "x" } } });
 		const view = await handleSign(h.ctx, TOKEN, null);
@@ -186,6 +208,7 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 		expect(h.seen[1]?.body).toEqual({
 			token: TOKEN,
 			docSha256: DOC,
+			consentSha256: "c".repeat(64),
 			consent: true,
 			intent: true,
 			signature: { kind: "typed", typedName: "Ada Lovelace" },
