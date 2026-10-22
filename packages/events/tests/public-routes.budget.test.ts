@@ -151,9 +151,19 @@ describe("T057 every public route stays within 10 bridge calls (EV-NFR-01, R22)"
 	});
 
 	it("EV-NFR-01 the routes declared for later phases answer NOT_FOUND within budget", async () => {
-		for (const route of ["public/waitlist/join", "public/waitlist/claim", "webhooks/stripe", "signatures/receipt"]) {
+		for (const route of ["public/waitlist/join", "public/waitlist/claim", "signatures/receipt"]) {
 			expect(body(await call(route, {})), route).toMatchObject({ ok: false });
 		}
+	});
+
+	it("EV-FR-13 R2 T078 webhooks/stripe answers 503 in Free, so Stripe keeps redelivering a payment until Pro is back", async () => {
+		const result = await call("webhooks/stripe", '{"id":"evt_1","type":"checkout.session.completed"}', {
+			...meta,
+			headers: { "stripe-signature": "t=1,v1=00" },
+		});
+		expect(rawStatus(result)).toBe(503);
+		expect(rawText(result)).toContain("WEBHOOK_NOT_HANDLED");
+		expect(result.calls).toEqual([]);
 	});
 
 	it("T057 every declared public route was exercised above", () => {

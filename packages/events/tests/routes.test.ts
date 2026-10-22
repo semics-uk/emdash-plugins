@@ -48,6 +48,8 @@ describe("public routes (route list matches BUILD-PLAN 3.1)", () => {
 		"public/event/ics",
 		"public/events",
 		"public/event",
+		// Free answers 503 (T078: see public-routes.budget.test.ts).
+		"webhooks/stripe",
 	]);
 	for (const name of EXPECTED.filter((n) => !IMPLEMENTED.has(n))) {
 		it(`${name} is a stub that answers through the shared error registry`, async () => {
