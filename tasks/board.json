@@ -1239,7 +1239,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1261,7 +1261,7 @@
 				"T086",
 				"T087"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T060": {
 			"file": "T060-e-sign-integration-clients-and-pairing-strings.md",
@@ -2315,12 +2315,12 @@
 		],
 		"ready": [
 			"T043",
-			"T057",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T034"
+			"T034",
+			"T057"
 		],
 		"review": [],
 		"done": [
