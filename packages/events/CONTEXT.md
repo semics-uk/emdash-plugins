@@ -97,7 +97,26 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `awaiting_signature` and returns `next: { type: "sign", intents }`. Attendee input takes `minor: true`.
   The editor panel shows the waiver toggle only when the Pro `waivers` check says it is available, else a
   banner (Free: always). Pro composes these through `src/seams.ts` (`checkoutContinueRoute`,
-  `editorTicketsRoute`), the only extension points; keep them MIT and behaviour-free (T063).
+  `editorTicketsRoute`, `signaturesReceiptRoute`, `adminRoute`), the only extension points; keep them
+  MIT and behaviour-free (T063, T064).
+- Receipts (T064, `src/routes/receipt.ts`, pure rules in `src/domain/receipts.ts`): the Free core owns the
+  bookkeeping, the Pro `ReceiptStep` verifies the token (shared verifier, pairing secret) and names the
+  attendees a booking waits for (the inline signers: buyer's seat and minors; mode `buyer`: every seat).
+  `ref` = `<bookingRef>` or `<bookingRef>:<seat>` (attendee `<bookingId>-<seat>`); unknown = `REF_UNKNOWN`.
+  The receipt is stored on the attendee (`signature`: envelopeId, status, hashes, `at`), idempotent and
+  monotonic (`mergeSignature`); completed makes a pending attendee `valid`. When every awaited attendee
+  is in, a free booking confirms (`confirmSold`, outbox `confirm-<id>`), a paid one goes to
+  `awaiting_payment`; else a new receipt extends the hold. Declined/voided/expired are recorded and the
+  booking waits (continue re-issues intents; Pro skips signed seats, and continue keeps stored attendees
+  that have a signature, +1 call). Guards: status + `releaseClaimedAt: null`. 8 calls to confirm a
+  one-type booking (9 with an occurrence). The Free route stays the NOT_FOUND stub (bundle).
+- Check-in refuses `WAIVER_PENDING` (pending attendee on a waiver booking) after the booking check; the
+  admin page shows a link from the Pro `signingLink` seam: `/_events/sign#intent=<token>` (one inline
+  intent, 15 min). UI: `/booking` is the return page (`src/client/receipt.ts` moves `#receipt=` into a
+  hidden form POST, clearing the hash; `forwardReceipt` in `src/astro/lib/receipt.ts` posts it to
+  `signatures/receipt` and, with the integration's `esignPluginId`, asks e-sign's `public/receipts/lookup`
+  once when `pdfSha256` was null); `/_events/sign` (`DoorSignPage.astro`) redeems the intent with e-sign
+  `public/envelopes/from-intent` and redirects to `/sign/<token>`.
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.
 - UI (T055): `<BookingWidget event>` posts a plain form to `/_events/checkout` (`returnTo`,
   `idempotencyKey`, `qty:<ticketTypeId>`); refusals before a booking exists go back to the widget as
