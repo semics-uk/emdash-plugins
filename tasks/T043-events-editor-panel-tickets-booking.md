@@ -4,7 +4,7 @@ title: "Events: editor panel "Tickets & booking""
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T042, T014]
