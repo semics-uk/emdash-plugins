@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Counters precomputed, not scanned
 - [ ] Full attendee export that walks the 100-row CSV parts (T052 offers one part per page)
+- [ ] Reports do not treat the `sold` counter as exact: drift repair can over-count it briefly between continue's confirm and `confirmSold` (T057 review F15); revenue and sold figures come from confirmed bookings or are labelled approximate
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

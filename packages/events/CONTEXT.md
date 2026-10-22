@@ -55,7 +55,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   releases seats, then moves to `cancelled`, then queues `cancel-<bookingId>`. Held bookings may always
   be abandoned; confirmed ones until `cancelCutoffHours` (setting, default 24) before the occurrence
   start (`src/domain/cancel-policy.ts`), else `CANCEL_NOT_ALLOWED`. Counters over the budget are left
-  to drift repair.
+  to drift repair. A cancel that takes over a stale claim (an earlier cancel died) releases nothing:
+  drift repair settles the counters, so seats are never released twice (T057).
 - Emails and calendar (`src/emails`, `src/routes/ics.ts`, `redeem.ts`, T050): outbox rows hold ids only;
   `outbox-drain` (every minute) runs the shared `drainOutbox` over an adapter (`OutboxDoc` ISO strings
   <-> `OutboxRecord` numbers) whose `email.send` renders at send time from fresh reads, two messages
@@ -66,7 +67,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   valid attendees' `code` (R33). Event fields for emails/ICS come from `src/domain/event-info.ts` (see Public event routes).
 - Public event routes (`src/routes/public-events.ts`, T046): `public/events` (cached 60 s, one query) and
   `public/event` (`GET { eventId }`, the `PublicEvent` shape, 4 calls). A draft or orphaned event is
-  `NOT_FOUND`; answers carry `available` only (min of type, date, event seats left), never counters,
+  `NOT_FOUND` (so is `public/event/ics`: `loadEventInfo(…, { publicOnly: true })`); answers carry `available` only (min of type, date, event seats left), never counters,
   capacities, hidden types or booking data. Title/times/zone/venue are read once through the mapping
   settings (`mappingOf`, `infoOfEntry` in `src/domain/event-info.ts`) and copied onto the event config
   as `info` by `content:afterSave` (`src/hooks/content.ts`) and by `config/save` when it creates a config
@@ -99,7 +100,10 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   Sandboxed routes answer refusals as `{ ok: false }` inside a success envelope; `callPublicRoute`
   turns that into an error. The widget expects `public/event` in the `PublicEvent` shape (T046), the
   booking page shows passes for attendees with a `code` and a calendar link from `calendar.query`
-  (signed by the core, T050). Never use `set:html` or HTML sinks (a test checks).
+  (signed by the core, T050). Never use `set:html` or HTML sinks (a test checks). Every POST the UI
+  answers (`/_events/checkout`, the booking page's cancel/redeem) refuses cross-site posts first with
+  `isCrossSiteRequest` (403), independent of Astro's `checkOrigin` (T057).
+- Log calls are bridge calls: a path already at 10 must not log (the outbox meters its tick, T057).
 - UI (T054): `<EventList>` (also the `events-list` block) calls `public/events` through `callPublicRoute` with the
   integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,
   `error` (`data-state`). Time and price formatting is the pure `src/astro/lib/list.ts` (`cardView`,

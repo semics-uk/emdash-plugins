@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Release candidates built
+- [ ] The scaffold `hello` route is removed from the Events core before the route list freezes (T057 review F14)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

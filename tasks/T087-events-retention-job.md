@@ -35,6 +35,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Within budget
+- [ ] Bookings' `ipHash` is cleared once the reserve rate window has passed: without a Turnstile secret it is salted with the public plugin id and reversible over IPv4 (T057 review F6)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

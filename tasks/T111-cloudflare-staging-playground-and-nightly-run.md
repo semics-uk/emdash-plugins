@@ -44,6 +44,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Lighthouse accessibility ≥ 95 on the booking widget and booking page (moved from T055: not installable offline locally)
 - [ ] Linux CI regenerates the T054 card visual baselines once (macOS Chrome baselines, 3% tolerance)
 - [ ] Confirm the visitor IP reaches the core on Cloudflare (T056: `callPublicRoute` forwards IP headers and the `cf` object; per-IP limits depend on it)
+- [ ] Phase 2 exit on staging: `node apps/playground/load/checkout.mjs <staging URL>` (100 concurrent checkouts for the last 5 seats) gives 5 booked / 95 `SOLD_OUT` on D1 (T057 review F7; proven locally by T056)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

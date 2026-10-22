@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] Admin page
+- [ ] Codes are normalised (trimmed, one case) before they are stored and looked up: the D1 unique index on `promo_codes.code` is case-sensitive (R26; T057 review F8)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

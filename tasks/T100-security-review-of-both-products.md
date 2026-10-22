@@ -35,6 +35,11 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [ ] No open Severity 1 or 2
+- [ ] Events reserve salts `ipHash` with a secret even when no Turnstile secret is set (today the plugin id), without taking reserve past 10 bridge calls (T057 review F6)
+- [ ] `checkout/continue` verifies an unknown ref against a decoy hash like `public/booking` and `/redeem` (T057 review F10)
+- [ ] Confirm or revisit "no per-IP limit on wrong tokens and codes" for booking, cancel, redeem and continue, and the idempotency-key resubmit that re-issues a token (T057 review F11, F16)
+- [ ] Outbox `lastError` cannot keep a booking link or token from provider error text (scrub or keep only a code) (T057 review F12)
+- [ ] CSV formula defence also covers full-width `＝ ＋ － ＠` (T057 review F13)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
