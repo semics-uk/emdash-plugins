@@ -4,7 +4,7 @@ title: "Events Pro: sales reports"
 phase: 5
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T057, T071]

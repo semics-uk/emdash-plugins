@@ -1797,7 +1797,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1808,7 +1808,7 @@
 				"EV-FR-19"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T086": {
 			"file": "T086-events-pro-mcp-tools.md",
@@ -2388,12 +2388,12 @@
 			"T082",
 			"T083",
 			"T084",
-			"T085",
 			"T086",
 			"T111"
 		],
 		"in-progress": [
-			"T064"
+			"T064",
+			"T085"
 		],
 		"review": [],
 		"done": [
