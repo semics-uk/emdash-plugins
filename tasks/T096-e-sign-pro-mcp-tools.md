@@ -4,7 +4,7 @@ title: "E-sign Pro: MCP tools"
 phase: 6
 package: esign
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T067, T071]
