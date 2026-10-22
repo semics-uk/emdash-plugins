@@ -119,11 +119,15 @@ describe("T060 Integrations page", () => {
 		const { r, budget } = await setup(false);
 		const res = await budget.invokeRoute("admin", { type: "block_action", action_id: "integrations.generate-key" });
 		expectWithinBudget(res, TARGET);
-		const key = (await r.inspect.setting("integrationMasterKey")) as string;
-		expect(masterKeyBytes(key)).not.toBeNull();
-		expect(JSON.stringify(res.value)).not.toContain(key);
-		await r.admin.act("/integrations", "integrations.generate-key");
-		expect(await r.inspect.setting("integrationMasterKey")).toBe(key);
+		// Stored encrypted (the host keeps only ciphertext); the response never carries a key.
+		const stored = JSON.stringify(await r.inspect.setting("integrationMasterKey"));
+		expect(stored).toContain("ciphertext");
+		expect(JSON.stringify(res.value)).not.toMatch(/[A-Za-z0-9_-]{43}/);
+		const again = await r.admin.act("/integrations", "integrations.generate-key");
+		expect(text(again)).toContain("Key already set");
+		expect(JSON.stringify(await r.inspect.setting("integrationMasterKey"))).toBe(stored);
+		// The generated key works: a client can be paired with it.
+		expect((await create(r)).pairing).toMatch(PAIRING);
 	});
 
 	it("shows the pairing string once; the secret is derived and stored nowhere", async () => {
@@ -220,6 +224,12 @@ describe("T060 Integrations page", () => {
 		expect(text(short)).toContain("at least 32");
 		expect(await r.inspect.setting("integrationMasterKey")).toBeFalsy();
 		await r.admin.submit("/settings", "settings.save", { integrationMasterKey: `  ${MASTER}  ` });
-		expect(await r.inspect.setting("integrationMasterKey")).toBe(MASTER);
+		expect(JSON.stringify(await r.inspect.setting("integrationMasterKey"))).toContain("ciphertext");
+		// Trimmed on save: the pairing secret derives from the bare key.
+		const parsed = parsePairing((await create(r)).pairing as string);
+		if (!parsed.ok) throw new Error("pairing malformed");
+		expect(parsed.value.secret).toEqual(
+			await deriveClientSecret(new TextEncoder().encode(MASTER), parsed.value.clientId),
+		);
 	});
 });

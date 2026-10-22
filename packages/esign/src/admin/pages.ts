@@ -25,10 +25,12 @@ import type { AuditEventDoc } from "../domain/audit";
 import { encryptionKeyStatus, isEncryptionKeyMissingError } from "../domain/encryption-key";
 import type { EnvelopeDoc, SignerDoc } from "../domain/envelopes";
 import { ENVELOPE_STATUSES, isEnvelopeStatus } from "../domain/state";
+import { masterKeyTooShort } from "../domain/clients";
 import { outboxReport } from "../emails/outbox";
 import { downloadLink } from "../routes/download";
 import { ENVELOPE_ROUTES, stores } from "../routes/envelopes";
 import { TEMPLATE_ROUTES } from "../routes/templates";
+import { createClientAction, generateKey, integrationsPage, revokeClientAction } from "./integrations";
 
 /**
  * Block Kit admin pages (ES-FR-11, ES-US-4), built only with the shared builders.
@@ -724,6 +726,10 @@ async function saveSettings(deps: AdminDeps, input: Record<string, unknown>): Pr
 		if (next !== values[s.key]) changes.push([s.key, next]);
 	}
 	const secretChanges = SECRET_SETTINGS.filter((s) => str(input[s.key], 500) !== "");
+	// T060: a typed master key must be at least 32 bytes (a generated one always is).
+	if (secretChanges.some((s) => s.key === "integrationMasterKey" && masterKeyTooShort(str(input[s.key], 500)))) {
+		problems.push("The integration master key must be at least 32 characters, or use Generate on the Integrations page.");
+	}
 	if (problems.length > 0) return settingsView(values, secrets, notices([error("Not saved", problems.join(" "))]));
 	if (changes.length + secretChanges.length > MAX_SETTING_WRITES) {
 		return settingsView(
@@ -773,6 +779,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return templatesPage(deps);
 			case "/settings":
 				return settingsPage(deps);
+			case "/integrations":
+				return integrationsPage(deps);
 			default:
 				return respond(notices([error("Page not found")]));
 		}
@@ -791,6 +799,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return saveTemplate(deps, interaction.block_id, v);
 			case "settings.save":
 				return saveSettings(deps, v);
+			case "client.create":
+				return createClientAction(deps, v);
 		}
 	} else {
 		const id = idOf(interaction.value);
@@ -811,6 +821,12 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return resendInvitation(deps, id);
 			case "envelope.new":
 				return newEnvelopeForm(deps, id);
+			case "integrations.generate-key":
+				return generateKey(deps);
+			case "client.revoke":
+				return revokeClientAction(deps, id);
+			case "clients.page":
+				return integrationsPage(deps);
 			case "templates.back":
 			case "templates.page":
 				return templatesPage(deps);

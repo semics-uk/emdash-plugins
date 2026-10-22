@@ -35,6 +35,7 @@
 		"pages": [
 			{ "path": "/envelopes", "label": "Envelopes", "icon": "file" },
 			{ "path": "/templates", "label": "Templates", "icon": "file-text" },
+			{ "path": "/integrations", "label": "Integrations", "icon": "link" },
 			{ "path": "/settings", "label": "Settings", "icon": "gear" }
 		],
 		"settingsSchema": {
