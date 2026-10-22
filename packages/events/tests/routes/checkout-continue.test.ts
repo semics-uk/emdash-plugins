@@ -260,8 +260,7 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 		const { body, calls } = await run(w.deps(T0 + MIN, { payment: payment([]) }), w.input);
 		expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
 		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
-		// The stored seats are read once and not written back (T078).
-		expect(calls).toBe(5);
+		expect(calls).toBe(6);
 	});
 
 	it("EV-FR-12 T078 'Pay now' on a paid waiver booking keeps an unsigned emailed adult as stored, never the buyer's name", async () => {

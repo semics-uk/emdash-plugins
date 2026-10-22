@@ -51,9 +51,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `awaiting_payment` through a `PaymentStep` seam that Free leaves empty (`PAYMENT_FAILED`): `prepare` sees the
   booking as read (`held` = new, `awaiting_payment` = in-flight) and the settings, may refuse before any write; then
   `start(holdExpiresAt)` (Pro Stripe, T073: 5 Free calls + fetch + payment record = 7). A waiver booking already
-  `awaiting_payment` continued without attendee details keeps its stored seats, unsigned ones too, and writes none back
-  (T078: an emailed adult keeps their own name; 7 with the provider); given new details it keeps the signed seats
-  (`keepSigned`, +1 = 8). The
+  `awaiting_payment` writes back its stored seats, unsigned ones too (T119; T078 proves an emailed adult keeps their
+  own name through "Pay now"), +1 = 8. The
   status graph and next-step rule live in `src/domain/booking-state.ts`.
 - Free's `webhooks/stripe` is a raw route answering 503 `WEBHOOK_NOT_HANDLED` (T078), never a 200 refusal: a site
   switched back from Pro must make Stripe keep (and redeliver) payments for Pro's sessions. Pro's confirm leaves a
