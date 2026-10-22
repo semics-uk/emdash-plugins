@@ -39,6 +39,6 @@ describe("T057 Origin checks on the no-JS forms", () => {
 		expect(widget).toContain("form={promoForm}");
 		expect(widget).toContain('type="hidden" name="promoCode"');
 		// The script's submit button is the order's, never Apply.
-		expect(read("../../src/client/booking.ts")).toContain(':not([data-promo-apply])');
+		expect(read("../../src/client/booking.ts")).toContain(":not([data-promo-apply])");
 	});
 });

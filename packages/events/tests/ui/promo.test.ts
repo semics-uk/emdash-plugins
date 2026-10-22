@@ -7,13 +7,7 @@
 import { describe, expect, it } from "vitest";
 
 import { handleCheckoutForm } from "../../src/astro/lib/checkout-form";
-import {
-	handlePromoRequest,
-	PROMO_PATH,
-	promoCookieName,
-	promoNote,
-	promoView,
-} from "../../src/astro/lib/promo";
+import { handlePromoRequest, PROMO_PATH, promoCookieName, promoNote, promoView } from "../../src/astro/lib/promo";
 import { anchorId, readWidgetState } from "../../src/astro/lib/widget";
 
 const url = new URL("https://site.example/_events/promo");
