@@ -4,7 +4,7 @@ title: "E-sign: receipts, receipt lookup and template catalogue"
 phase: 3
 package: esign
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T061]
