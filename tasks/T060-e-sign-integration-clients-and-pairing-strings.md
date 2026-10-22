@@ -4,7 +4,7 @@ title: "E-sign: integration clients and pairing strings"
 phase: 3
 package: esign
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T034, T012]
