@@ -4,7 +4,7 @@ title: "Phase 2 gate: review and budgets"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T056]
