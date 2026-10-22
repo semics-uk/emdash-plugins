@@ -17,7 +17,7 @@ export interface SessionData {
 	signer?: { name: string; as?: string; participant?: string };
 	snapshot?: string;
 	consent?: { version: string; wording: string };
-	/** Values the signer fills in (`fieldValues` on submit). The core sends none yet. */
+	/** Values the signer fills in (`fieldValues` on submit). */
 	fields?: SessionField[];
 }
 

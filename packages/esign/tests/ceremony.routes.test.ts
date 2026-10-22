@@ -339,6 +339,9 @@ describe("T033 signer-fillable fields", () => {
 	it("public/session lists the fields the sender asked the signer to fill, and none otherwise", async () => {
 		const s = await sent({ signerFields });
 		expect(await view(s)).toMatchObject({ ok: true, state: "ready", fields: signerFields });
+	});
+
+	it("public/session lists no fields when the sender asked for none", async () => {
 		const plain = await sent();
 		expect((await view(plain)).fields).toBeUndefined();
 	});

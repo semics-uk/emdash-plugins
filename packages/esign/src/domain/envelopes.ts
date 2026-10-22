@@ -44,6 +44,16 @@ export interface SignerInput {
 	participant?: { name: string };
 }
 
+/** A value the signer fills in at the ceremony (`public/session` lists them; `public/submit` stores them). */
+export interface SignerFieldSpec {
+	key: string;
+	label: string;
+	required?: boolean;
+}
+
+export const MAX_SIGNER_FIELDS = 16;
+const MAX_LABEL_CODE_POINTS = 100;
+
 export interface EnvelopeDoc {
 	title: string;
 	templateId: string;
@@ -56,6 +66,8 @@ export interface EnvelopeDoc {
 	returnUrl?: string;
 	signer: SignerInput;
 	fieldValues: Record<string, string>;
+	/** Fields the signer fills in at signing; absent when the sender asked for none. */
+	signerFields?: SignerFieldSpec[];
 	signerIds: string[];
 	docSha256: string | null;
 	snapshot: { ids: string[]; length: number } | null;
@@ -134,6 +146,7 @@ export interface DraftFields {
 	title?: string;
 	signer: SignerInput;
 	fieldValues: Record<string, string>;
+	signerFields?: SignerFieldSpec[];
 }
 
 /** UTF-16 units per snapshot chunk: worst case 64Ki × 6 bytes of JSON escapes = 384 KiB. */
@@ -181,6 +194,22 @@ function cleanFields(v: unknown): Record<string, string> | null {
 	return out;
 }
 
+function cleanSignerFields(v: unknown): SignerFieldSpec[] | null {
+	if (v === undefined) return [];
+	if (!Array.isArray(v) || v.length > MAX_SIGNER_FIELDS) return null;
+	const out: SignerFieldSpec[] = [];
+	for (const f of v) {
+		if (!isObject(f) || typeof f.key !== "string" || !FIELD_KEY.test(f.key) || out.some((o) => o.key === f.key)) {
+			return null;
+		}
+		const label = typeof f.label === "string" ? f.label.trim() : "";
+		if (label === "" || [...label].length > MAX_LABEL_CODE_POINTS || CONTROL.test(label)) return null;
+		if (f.required !== undefined && typeof f.required !== "boolean") return null;
+		out.push({ key: f.key, label, ...(f.required ? { required: true } : {}) });
+	}
+	return out;
+}
+
 /** Validates the private `envelopes/create` input. */
 export function parseDraftInput(input: unknown): Result<DraftFields, EnvelopeIssue[]> {
 	if (!isObject(input)) return err([{ path: "", code: "INVALID_INPUT" }]);
@@ -201,6 +230,8 @@ export function parseDraftInput(input: unknown): Result<DraftFields, EnvelopeIss
 	if (email === null) issues.push({ path: "signer.email", code: "INVALID_SIGNER_EMAIL" });
 	const fieldValues = cleanFields(fields);
 	if (fieldValues === null) issues.push({ path: "fields", code: "INVALID_FIELDS" });
+	const signerFields = cleanSignerFields(input.signerFields);
+	if (signerFields === null) issues.push({ path: "signerFields", code: "INVALID_FIELDS" });
 	if (issues.length > 0) return err(issues);
 	return ok({
 		templateId: templateId as string,
@@ -208,6 +239,7 @@ export function parseDraftInput(input: unknown): Result<DraftFields, EnvelopeIss
 		...(cleanTitle === undefined ? {} : { title: cleanTitle }),
 		signer: { name: name as string, email: email as string, as: "self" },
 		fieldValues: fieldValues as Record<string, string>,
+		...(signerFields && signerFields.length > 0 ? { signerFields } : {}),
 	});
 }
 
@@ -246,7 +278,7 @@ function missingFields(envelope: EnvelopeDoc, body: string): EnvelopeIssue[] {
 
 function draftDoc(
 	base: Pick<EnvelopeDoc, "templateId" | "signer" | "fieldValues" | "delivery"> &
-		Partial<Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title">>,
+		Partial<Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title" | "signerFields">>,
 	template: TemplateDoc,
 	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
@@ -285,6 +317,7 @@ export function buildDraft(
 			fieldValues: fields.fieldValues,
 			delivery: "email",
 			...(fields.title === undefined ? {} : { title: fields.title }),
+			...(fields.signerFields ? { signerFields: fields.signerFields } : {}),
 		},
 		template,
 		ctx,

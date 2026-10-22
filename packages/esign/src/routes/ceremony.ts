@@ -182,6 +182,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		},
 		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant } : {}) },
 		snapshot: text,
+		...(envelope.signerFields?.length ? { fields: envelope.signerFields } : {}),
 		consent: {
 			version: setting("consentVersion", DEFAULT_CONSENT_VERSION),
 			wording: setting("consentWording", DEFAULT_CONSENT_WORDING),
@@ -214,6 +215,19 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 	if (envelope.docSha256 === null || fields.value.docSha256 !== envelope.docSha256) {
 		return badRequest([{ path: "docSha256", code: "DOC_CHANGED" }]);
 	}
+
+	// The signer fills in exactly the fields the sender declared; required ones must have a value.
+	const declared = envelope.signerFields ?? [];
+	const given = fields.value.fieldValues;
+	const fieldIssues = [
+		...Object.keys(given)
+			.filter((k) => !declared.some((f) => f.key === k))
+			.map((k) => ({ path: `fieldValues.${k}`, code: "INVALID_FIELDS" })),
+		...declared
+			.filter((f) => f.required && (given[f.key] ?? "").trim() === "")
+			.map((f) => ({ path: `fieldValues.${f.key}`, code: "INVALID_FIELDS" })),
+	];
+	if (fieldIssues.length > 0) return badRequest(fieldIssues);
 
 	const version =
 		typeof consentVersion === "string" && consentVersion.length > 0 ? consentVersion : DEFAULT_CONSENT_VERSION;
