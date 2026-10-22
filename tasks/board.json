@@ -1759,7 +1759,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1770,7 +1770,7 @@
 				"EV-FR-08"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T084": {
 			"file": "T084-events-recurring-events.md",
@@ -2056,7 +2056,7 @@
 			"phase": 7,
 			"package": "repo",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2070,7 +2070,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T102": {
 			"file": "T102-translations-and-right-to-left-layouts.md",
@@ -2407,7 +2407,6 @@
 			"T106"
 		],
 		"ready": [
-			"T083",
 			"T086",
 			"T100",
 			"T102",
@@ -2415,7 +2414,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T101"
+			"T083"
 		],
 		"review": [],
 		"done": [
@@ -2502,6 +2501,7 @@
 			"T095",
 			"T096",
 			"T097",
+			"T101",
 			"T104",
 			"T105",
 			"T110",
