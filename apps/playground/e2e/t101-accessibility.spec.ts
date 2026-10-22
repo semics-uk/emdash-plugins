@@ -80,6 +80,7 @@ const PAGES = [
 	"/sign/" + "x".repeat(43),
 	"/_events/sign",
 	"/_events/templates",
+	"/_events/check-in",
 	"/e2e/widgets",
 	"/e2e/lists?view=live",
 	"/e2e/lists?view=empty",
