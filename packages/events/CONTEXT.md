@@ -120,6 +120,16 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `signatures/receipt` and, with the integration's `esignPluginId`, asks e-sign's `public/receipts/lookup`
   once when `pdfSha256` was null); `/_events/sign` (`DoorSignPage.astro`) redeems the intent with e-sign
   `public/envelopes/from-intent` and redirects to `/sign/<token>`.
+- Reconciliation and catalogue (T066): `public/booking` of a waiver booking `awaiting_signature` adds
+  `waiver: { refs, lookups? }` (refs without a completed receipt, max 10; Pro's `bookingStatusRoute(lookups)`
+  step signs an `esign-lookup/1` request per ref, +1 call for the settings). `public/event` adds `waiver: true`
+  only when `signature.required`. A `public/checkout/continue` retry without `attendees` on an
+  `awaiting_signature` booking keeps the stored attendees (never replans them in the buyer's name). The
+  `BookingPage` runs the integration's `reconcile` module (the suite's) when the answer has `waiver.lookups`,
+  then re-reads the booking. Editor panel (Pro): the `waivers` check may return `templates` (cached in KV
+  `esign:catalog` by the Pro route `esign/catalog`) and `refresh()` (the link to the suite's
+  `/_events/templates#catalog=<request>`), shown as a select and a Refresh templates button
+  (`panel.templates.refresh`); `waiverCalls` is 2 for Pro (settings + catalogue read). Free bundle: 102.7 KiB of 104.
 - Registry installs give the core an `r_…` plugin ID, not the slug: the UI takes the ID as an option.
 - `src/astro/lib/*.ts` is exported as `./astro/lib/*` (T065): the suite composes `callPublicRoute`, the checkout
   cookie helpers and `forwardReceipt` from there. Treat their signatures as public API.

@@ -76,8 +76,8 @@ export type WaiverCheck = (settings: Record<string, unknown>) => Promise<WaiverA
 
 const FREE_EDITION: WaiverAvailability = { available: false, reason: "edition" };
 
-/** Bridge calls `waiverAvailability` makes. */
-const waiverCalls = (deps: PanelDeps) => (deps.waivers ? 1 : 0);
+/** Bridge calls `waiverAvailability` makes: the settings read, and Pro's read of the cached catalogue (T066). */
+const waiverCalls = (deps: PanelDeps) => (deps.waivers ? 2 : 0);
 
 async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> {
 	if (!deps.waivers) return FREE_EDITION;

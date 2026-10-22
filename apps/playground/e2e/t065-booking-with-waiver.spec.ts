@@ -137,3 +137,50 @@ test("SX-FR-03 the waiver page embeds the ceremony under its CSP and forwards th
 	});
 	expect(lookup.state).toBe("terminal");
 });
+
+test("SX-FR-07 the catalogue page asks e-sign for the templates; Free Events has nowhere to cache them", async ({
+	page,
+	request,
+	baseURL,
+}) => {
+	const created = await route(
+		request,
+		"admin",
+		{ type: "form_submit", action_id: "client.create", values: { name: "Catalogue", returnUrlAllowlist: `${baseURL}/booking` } },
+		true,
+	);
+	const pairing = /esign1\.([A-Za-z0-9_-]{4,64})\.([A-Za-z0-9_-]{43})/.exec(JSON.stringify(created));
+	expect(pairing).not.toBeNull();
+	const secret = Buffer.from(pairing?.[2] as string, "base64url");
+	const { template } = await route<{ template: { id: string } }>(
+		request,
+		"templates/create",
+		{ name: "Catalogue waiver", body: "# Waiver\n\nI accept.\n", integrations: true },
+		true,
+	);
+	// The request Events Pro's Refresh templates mints (esign-catalog/1, §5.4).
+	const body = Buffer.from(
+		JSON.stringify({ v: 1, typ: "catalog", cid: pairing?.[1], ts: Math.floor(Date.now() / 1000) }),
+	).toString("base64url");
+	const catalog = `${body}.${createHmac("sha256", secret).update(`esign-catalog/1.${body}`).digest("base64url")}`;
+	const direct = await route<{ templates: Array<{ id: string }> }>(request, "public/templates/catalog", { request: catalog });
+	expect(direct.templates.map((t) => t.id)).toContain(template.id);
+
+	// No JavaScript needed to see the page; the request itself arrives from the fragment through the client script.
+	await page.goto("/_events/templates");
+	await expect(page.getByTestId("templates-page")).toBeVisible();
+	const posted = await request.post("/_events/templates", {
+		form: { catalog },
+		headers: { "sec-fetch-site": "same-origin" },
+	});
+	expect(posted.headers()["referrer-policy"]).toBe("no-referrer");
+	expect(await posted.text()).toContain("needs Events Pro");
+
+	const refused = await request.post("/_events/templates", {
+		form: { catalog: "nope" },
+		headers: { "sec-fetch-site": "same-origin" },
+	});
+	expect(await refused.text()).toContain("not valid");
+	const cross = await request.post("/_events/templates", { form: { catalog }, headers: { "sec-fetch-site": "cross-site" } });
+	expect(cross.status()).toBe(403);
+});

@@ -35,6 +35,27 @@ bundles nothing new into the cores; it calls them through their public routes in
    Events' `forwardReceipt` in-process (no JS needed), then the next token, or after the last / a decline
    `/booking?ref=&waiver=…`. The page sends `ceremonyCsp()` and renders nothing else inline (no own styles).
 
+3. Retry (T066, `intent=retry`): E-sign refusing an intent leaves the booking held and sends the browser to
+   `/_events/waiver?ref=&error=SIGNING_UNAVAILABLE`, which shows a "Try again" form. It continues the booking
+   again with the `semics_booking_<ref>` cookie and no `attendees` (Events keeps the stored ones; Pro skips
+   signed seats) and redeems the intents again; a lapsed hold comes back as `error=HOLD_EXPIRED`.
+4. Plain events: `public/event` says `waiver: true` only when a waiver is required. `<BookingWithWaiver>` shows
+   attendee rows then; otherwise a ticket select and quantity (`plain=1`, `readWaiverForm` → `attendees: []`,
+   continue is sent without `attendees`).
+
+## Reconciliation and catalogue (T066)
+
+- `lib/reconcile.ts` `reconcileBooking`: run by Events' `/booking` page (through the virtual module's `reconcile`,
+  set by `eventsIntegration({ reconcile })`) when `public/booking` carries `waiver.lookups`: asks E-sign
+  `public/receipts/lookup` per lookup request (max 10, in parallel) and forwards each terminal receipt with
+  `forwardReceipt`; the page then re-reads the booking. Events stores a receipt once and never replaces a
+  completed one, so a second visit changes nothing. Free lists no requests: no calls. Errors are swallowed.
+- `lib/templates.ts` `refreshCatalogue` and `TemplatesPage.astro` (`/_events/templates`): the panel's Refresh
+  templates (Pro) links to `/_events/templates#catalog=<request>`; Events' `receipt.ts` client script posts it
+  from the fragment; the page asks E-sign `public/templates/catalog`, then Events (Pro) `esign/catalog`, which
+  re-verifies the request (minted by this site, <= 5 minutes) and caches the well-formed templates for the
+  panel's select. Both lookup and catalogue tokens are minted by the Events Pro core, never here.
+
 ## Tests
 
 `tests/*.test.ts`, plain Node vitest: the flow runs the real UI helpers of both products against a fake
