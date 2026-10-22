@@ -25,6 +25,8 @@
 		"./astro/SignedCopyPage.astro": "./src/astro/SignedCopyPage.astro",
 		"./astro/VerifyDocument.astro": "./src/astro/VerifyDocument.astro",
 		"./astro/VerifyPage.astro": "./src/astro/VerifyPage.astro",
+		"./astro/SelfServeBlock.astro": "./src/astro/SelfServeBlock.astro",
+		"./astro/self-serve-endpoint": "./src/astro/self-serve-endpoint.ts",
 		"./client": "./src/client/index.ts"
 	},
 	"files": [

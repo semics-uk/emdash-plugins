@@ -43,6 +43,11 @@ export function esignIntegration(options: EsignIntegrationOptions = {}): EsignAs
 					prerender: false,
 				});
 				injectRoute({
+					pattern: "/_esign/start",
+					entrypoint: "@semics-tech/emdash-esign/astro/self-serve-endpoint",
+					prerender: false,
+				});
+				injectRoute({
 					pattern: "/verify",
 					entrypoint: "@semics-tech/emdash-esign/astro/VerifyPage.astro",
 					prerender: false,

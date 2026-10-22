@@ -1,0 +1,79 @@
+---
+// The `esign-request` Portable Text block (BUILD-PLAN 3.4): a form for a self-serve template (E-sign Pro).
+// The visitor gives a name, an email address and any template fields and passes the security check; the
+// signing link is then emailed to that address and is never shown here. A site on Free, or a template
+// that is not offered, renders a short unavailable note instead of a form.
+import { START_PATH, anchorOf, loadSelfServe, readStartState, startMessage } from "./lib/self-serve.ts";
+
+interface Props {
+	node?: { template?: string; heading?: string };
+	template?: string;
+	heading?: string;
+}
+
+const props = Astro.props as Props;
+const templateId = (props.node?.template ?? props.template ?? "").trim();
+const heading = props.node?.heading ?? props.heading ?? "Sign this document";
+const view = templateId ? await loadSelfServe(Astro, { templateId }) : ({ state: "unavailable" } as const);
+const notice = readStartState(Astro.url, templateId);
+const returnTo = `${Astro.url.pathname}${Astro.url.search}`;
+const id = anchorOf(templateId || "none");
+---
+{
+	templateId && (
+		<section id={id} class="semics-esign semics-esign-request" aria-labelledby={`${id}-title`} data-testid="esign-request">
+			<h2 id={`${id}-title`}>{heading}</h2>
+			{
+				view.state === "unavailable" ? (
+					<p data-testid="esign-request-unavailable">This form is not available right now.</p>
+				) : notice.sent ? (
+					<p role="status" data-testid="esign-request-sent">
+						Check your email. We have sent a link to the address you gave; open it to read and sign the document.
+					</p>
+				) : (
+					<form method="post" action={START_PATH} data-testid="esign-request-form">
+						{notice.code && (
+							<p role="alert" data-testid="esign-request-error">
+								{startMessage(notice.code)}
+							</p>
+						)}
+						{view.template.description && <p>{view.template.description}</p>}
+						<input type="hidden" name="templateId" value={templateId} />
+						<input type="hidden" name="returnTo" value={returnTo} />
+						<p>
+							<label for={`${id}-name`}>Your name</label>
+							<input id={`${id}-name`} name="name" autocomplete="name" required maxlength="200" />
+						</p>
+						<p>
+							<label for={`${id}-email`}>Your email</label>
+							<input id={`${id}-email`} name="email" type="email" autocomplete="email" required maxlength="254" />
+						</p>
+						{view.template.fields.map((key) => (
+							<p>
+								<label for={`${id}-f-${key}`}>{key.replaceAll("_", " ")}</label>
+								<input id={`${id}-f-${key}`} name={`field:${key}`} required maxlength="500" />
+							</p>
+						))}
+						<p style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true">
+							<label>
+								Leave this empty
+								<input name="website" tabindex="-1" autocomplete="off" />
+							</label>
+						</p>
+						{view.turnstileSiteKey && (
+							<>
+								<div class="cf-turnstile" data-sitekey={view.turnstileSiteKey} />
+								<noscript>
+									<p>This form uses a security check that needs JavaScript.</p>
+								</noscript>
+								<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer />
+							</>
+						)}
+						<p>We will email you a link to sign. Only someone who can open that email can sign.</p>
+						<button type="submit">Email me the link</button>
+					</form>
+				)
+			}
+		</section>
+	)
+}

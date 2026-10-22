@@ -1,6 +1,8 @@
 // Astro entry for the e-sign UI. Auto-wired through componentsEntry. The pages themselves are
-// injected by `esignIntegration()`; this plugin registers no portable-text blocks.
-export const blockComponents = {};
+// injected by `esignIntegration()`; the one portable-text block is `esign-request` (a self-serve template, E-sign Pro).
+import SelfServeBlock from "./SelfServeBlock.astro";
+
+export const blockComponents = { "esign-request": SelfServeBlock };
 
 // The only way UI code calls the core (in-process public routes, fetch fallback).
 export { callPublicRoute, ESIGN_PLUGIN_ID } from "./lib/call.ts";
@@ -16,3 +18,4 @@ export {
 	normaliseStrokes,
 	receiptReturnUrl,
 } from "./lib/sign.ts";
+export { SelfServeBlock };
