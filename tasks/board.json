@@ -1819,7 +1819,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1830,7 +1830,7 @@
 				"EV-FR-18"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "done"
 		},
 		"T087": {
 			"file": "T087-events-retention-job.md",
@@ -2407,7 +2407,6 @@
 			"T106"
 		],
 		"ready": [
-			"T086",
 			"T100",
 			"T103",
 			"T111"
@@ -2492,6 +2491,7 @@
 			"T083",
 			"T084",
 			"T085",
+			"T086",
 			"T087",
 			"T090",
 			"T091",
