@@ -164,5 +164,6 @@ export function makeStore() {
 		occurrences: new FakeCollection(),
 		attendees: new FakeCollection(),
 		outbox: new FakeCollection(),
+		waitlist: new FakeCollection(),
 	};
 }

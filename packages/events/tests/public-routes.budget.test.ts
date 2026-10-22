@@ -150,7 +150,7 @@ describe("T057 every public route stays within 10 bridge calls (EV-NFR-01, R22)"
 		expect(body(await call("public/booking/cancel", { bookingRef, accessToken }))).toMatchObject({ ok: true });
 	});
 
-	it("EV-NFR-01 the routes declared for later phases answer NOT_FOUND within budget", async () => {
+	it("EV-NFR-01 the waitlist routes refuse bad input, and the later-phase receipt route answers NOT_FOUND, within budget", async () => {
 		for (const route of ["public/waitlist/join", "public/waitlist/claim", "signatures/receipt"]) {
 			expect(body(await call(route, {})), route).toMatchObject({ ok: false });
 		}

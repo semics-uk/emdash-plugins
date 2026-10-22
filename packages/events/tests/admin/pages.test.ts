@@ -505,6 +505,36 @@ describe("deletion on request (EV-FR-20, T087)", () => {
 		expect(json(out.blocks)).toContain("live booking was kept");
 	});
 
+	it("EV-FR-16 T081 deletion by email also removes that person's waitlist entries, within budget", async () => {
+		const w = world();
+		past(w.s);
+		const wl = (email: string) => ({ eventId: "ev1", email, name: "Ada", qty: 1, status: "waiting", createdAt: iso(NOW) });
+		w.s.waitlist.set("wl_ada", wl("ada@example.com"));
+		w.s.waitlist.set("wl_bob", wl("bob@example.com"));
+		const preview = await handleAdmin(w.deps, {
+			type: "form_submit",
+			action_id: "retention.preview",
+			values: { target: "Ada@Example.com" },
+		});
+		expect(json(preview.blocks)).toContain("1 waitlist entry");
+		meter.calls = 0;
+		const out = await act(w.deps, "retention.erase", "Ada@Example.com");
+		expect(meter.calls).toBeLessThanOrEqual(10);
+		expect([...w.s.waitlist.docs.keys()]).toEqual(["wl_bob"]);
+		expect(json(out.blocks)).toContain("1 waitlist entry");
+
+		// Someone only on a waitlist can be found and deleted too.
+		w.s.waitlist.set("wl_cy", wl("cy@example.com"));
+		const only = await handleAdmin(w.deps, {
+			type: "form_submit",
+			action_id: "retention.preview",
+			values: { target: "cy@example.com" },
+		});
+		expect(json(only.blocks)).toContain("retention.erase");
+		await act(w.deps, "retention.erase", "cy@example.com");
+		expect(w.s.waitlist.docs.has("wl_cy")).toBe(false);
+	});
+
 	it("a booking reference works, and an unknown one offers no delete", async () => {
 		const w = world();
 		past(w.s);

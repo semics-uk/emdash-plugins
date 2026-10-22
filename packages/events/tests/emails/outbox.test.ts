@@ -305,3 +305,46 @@ describe("T057 the give-up log never takes a drain tick past 10 bridge calls (R2
 		expect(meter.calls).toBeLessThanOrEqual(10);
 	});
 });
+
+describe("EV-FR-16 waitlist offer from the outbox", () => {
+	const HOLD = new Date(NOW + 24 * 3_600_000).toISOString();
+	async function offer(status = "held") {
+		const w = await world({ status });
+		w.storage.bookings.set(ID, { ...w.booking(), holdExpiresAt: HOLD, waitlistId: "wl_1" });
+		w.storage.outbox.docs.delete(`confirm-${ID}`);
+		w.storage.outbox.set(`offer-${ID}`, {
+			kind: "waitlist_offer",
+			to: "ada@example.com",
+			payload: { bookingId: ID },
+			attempts: 0,
+			nextAttemptAt: new Date(NOW).toISOString(),
+			status: "pending",
+		});
+		return w;
+	}
+
+	it("EV-FR-16 renders a claim link with a one-time code that lasts as long as the offer, within budget", async () => {
+		const w = await offer();
+		meter.calls = 0;
+		const result = await drainEventsOutbox(w.deps());
+		expect(result.sent).toBe(1);
+		expect(meter.calls).toBeLessThanOrEqual(8);
+		const [mail] = w.sent;
+		expect(mail?.to).toBe("ada@example.com");
+		expect(mail?.subject).toContain("Winter Concert");
+		expect(mail?.text).toContain(`https://site.test/booking?ref=${REF}&k=`);
+		expect(mail?.text).toContain("offer=1");
+		expect(mail?.text).toContain("2026-11-02 12:00 UTC");
+		const code = codeFrom(mail?.text ?? "");
+		expect(w.booking().redeemHash).toBe(await hashToken(code));
+		expect(w.booking().redeemExpiresAt).toBe(HOLD);
+		expect(JSON.stringify(row(w, `offer-${ID}`))).not.toContain(code);
+	});
+
+	it("EV-FR-16 sends nothing once the offer is no longer held", async () => {
+		const w = await offer("expired");
+		await drainEventsOutbox(w.deps());
+		expect(w.sent).toEqual([]);
+		expect(row(w, `offer-${ID}`).status).toBe("sent");
+	});
+});

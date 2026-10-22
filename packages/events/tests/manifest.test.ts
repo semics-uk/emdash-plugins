@@ -42,7 +42,7 @@ const EXPECTED_STORAGE = {
 		indexes: ["bookingId", "eventId", "email", ["eventId", "checkedInAt"]],
 		uniqueIndexes: ["code"],
 	},
-	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt"], uniqueIndexes: [] },
+	waitlist: { indexes: [["eventId", "status"], "offerExpiresAt", "email"], uniqueIndexes: [] },
 	promo_codes: { indexes: ["eventId"], uniqueIndexes: ["code"] },
 	outbox: { indexes: [["status", "nextAttemptAt"], "to"], uniqueIndexes: [] },
 };

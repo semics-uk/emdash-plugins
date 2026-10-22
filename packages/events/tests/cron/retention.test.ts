@@ -220,6 +220,23 @@ describe("retention job (EV-FR-20, R22)", () => {
 		expect([...w.storage.outbox.docs.keys()].sort()).toEqual(["o3", "o4"]);
 	});
 
+	it("EV-FR-16 T081 waitlist rows (they hold an email) older than the period are deleted; newer rows stay", async () => {
+		const w = world();
+		const entry = (email: string, days: number, status = "waiting") => ({
+			eventId: "e_old",
+			email,
+			name: "Someone",
+			qty: 1,
+			status,
+			createdAt: at(days),
+		});
+		w.storage.waitlist.set("w_old", entry("a@example.com", -400, "expired"));
+		w.storage.waitlist.set("w_old2", entry("b@example.com", -380));
+		w.storage.waitlist.set("w_new", entry("c@example.com", -10));
+		await drain(w);
+		expect([...w.storage.waitlist.docs.keys()]).toEqual(["w_new"]);
+	});
+
 	it("T057 F6 ipHash is cleared once the reserve rate window has passed, long before the period", async () => {
 		const w = world();
 		const minutesAgo = (m: number) => new Date(NOW - m * 60_000).toISOString();

@@ -48,6 +48,8 @@ describe("public routes (route list matches BUILD-PLAN 3.1)", () => {
 		"public/event/ics",
 		"public/events",
 		"public/event",
+		"public/waitlist/join",
+		"public/waitlist/claim",
 		// Free answers 503 (T078: see public-routes.budget.test.ts).
 		"webhooks/stripe",
 	]);

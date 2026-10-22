@@ -45,7 +45,7 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	});
 
 	it.each(ALWAYS_HIT)(
-		"%s queues the ensure task once, and its cron tick schedules both crons",
+		"%s queues the ensure task once, and its cron tick schedules every recurring cron",
 		async (route, input) => {
 			const { r, budget } = await setup();
 			const first = await budget.invokeRoute(route, input);
@@ -55,13 +55,14 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 
 			const ran = await budget.measure("ensure tick", () => tick(r));
 			expectWithinBudget(ran, TARGET);
-			expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds"]);
+			expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds", "waitlist"]);
 			const tasks = await r.inspect.scheduledTasks();
 			expect(tasks).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({ name: "sweep-holds", schedule: "*/5 * * * *" }),
 					expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
 					expect.objectContaining({ name: "retention", schedule: "17 * * * *" }),
+					expect.objectContaining({ name: "waitlist", schedule: "* * * * *" }),
 				]),
 			);
 			expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
@@ -83,12 +84,16 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	it("activation (registry installs) still schedules every cron; the ensure task then sets the flag once", async () => {
 		const { r, budget } = await setup();
 		const activated = await budget.measure("activate", () => r.actions.plugin.activate());
-		expect(activated.calls.filter(isSchedule)).toHaveLength(3);
-		expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds"]);
+		expect(activated.calls.filter(isSchedule)).toHaveLength(4);
+		expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds", "waitlist"]);
 		await budget.invokeRoute("public/events", {});
 		await tick(r);
-		expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds"]);
+		expect(await taskNames(r)).toEqual(["outbox-drain", "retention", "sweep-holds", "waitlist"]);
 		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
+	});
+
+	it("T081 the flag version was bumped with the waitlist task, so already scheduled sites schedule it too", () => {
+		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v9");
 	});
 
 	it("leaves the routes nearest the limit alone: checkout reserve/continue and admin actions make no check", async () => {
