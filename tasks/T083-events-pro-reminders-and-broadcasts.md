@@ -4,7 +4,7 @@ title: "Events Pro: reminders and broadcasts"
 phase: 5
 package: events
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T057, T071]
