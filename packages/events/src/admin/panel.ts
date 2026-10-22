@@ -263,6 +263,10 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
 		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
+		textInput("recurrence", "Repeats (RRULE)", {
+			initialValue: config.recurrence ?? "",
+			placeholder: "FREQ=WEEKLY;BYDAY=MO;COUNT=10;EXDATE=20261228",
+		}),
 		...waiverFields(config, waivers),
 		...tickets.flatMap(({ id, data: t }) => [
 			textInput(`tt_name:${id}`, `${t.name}: name`, { initialValue: t.name }),
@@ -321,7 +325,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
 		context(
-			`Dates are in ${zone}. Only the items you change are written. Capacity cannot go below the seats already held or sold.`,
+			`Dates are in ${zone}; a rule adds dates from the event start, 60 days ahead. Only the items you change are written. Capacity cannot go below the seats already held or sold.`,
 		),
 		form({ fields, submit: { label: "Save changes", actionId: "panel.save" }, blockId: "tickets" }),
 	]);
@@ -387,6 +391,8 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	const capacity = given(values.capacity) ? num(values.capacity) : stored.capacity;
 	if (capacity !== stored.capacity) changed++;
 	const waitlistEnabled = typeof values.waitlist === "boolean" ? values.waitlist : stored.waitlistEnabled;
+	const recurrence = values.recurrence === undefined ? (stored.recurrence ?? "") : str(values.recurrence, 500);
+	if (recurrence !== (stored.recurrence ?? "")) changed++;
 	if (waitlistEnabled !== stored.waitlistEnabled) changed++;
 	const storedSignature = stored.signature ?? { required: false, mode: "each_attendee" };
 	let signature = storedSignature;
@@ -486,7 +492,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	const result = await runSave(
 		deps,
 		eventId,
-		{ config: { ...base, status, capacity, waitlistEnabled, signature }, ticketTypes, occurrences },
+		{ config: { ...base, status, capacity, waitlistEnabled, signature, recurrence }, ticketTypes, occurrences },
 		state,
 		waiverCalls(deps),
 	);

@@ -1,6 +1,7 @@
 import { type RecurringTask, runEnsureSchedulesJob, scheduleTasks, withScheduleCheck } from "@semics-tech/shared";
 import type { SandboxedPlugin } from "emdash/plugin";
 
+import { OCCURRENCES_SCHEDULE, OCCURRENCES_TASK, runOccurrencesJob } from "./cron/occurrences";
 import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
 import { runCron, SWEEP_SCHEDULE, SWEEP_TASK } from "./cron/sweep";
 import { runWaitlistJob, WAITLIST_SCHEDULE, WAITLIST_TASK } from "./cron/waitlist";
@@ -32,6 +33,7 @@ const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE },
 	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
 	{ name: WAITLIST_TASK, schedule: WAITLIST_SCHEDULE },
+	{ name: OCCURRENCES_TASK, schedule: OCCURRENCES_SCHEDULE },
 ];
 
 /**
@@ -54,6 +56,7 @@ const plugin: SandboxedPlugin = {
 			if (await runEnsureSchedulesJob(event, ctx, RECURRING_TASKS, Date.now())) return;
 			if (await runRetentionJob(event, ctx)) return;
 			if (await runWaitlistJob(event, ctx)) return;
+			if (await runOccurrencesJob(event, ctx)) return;
 			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
 		},
 	},

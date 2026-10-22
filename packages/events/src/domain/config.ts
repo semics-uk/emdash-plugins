@@ -9,7 +9,7 @@
  * values and new ones start at zero, because only the inventory module changes counters. The one
  * rule that touches them is EV-FR-03: capacity may not drop below what is already reserved.
  */
-import { err, ok, type Result, toMinor } from "@semics-tech/shared";
+import { err, ok, parseRrule, type Result, toMinor } from "@semics-tech/shared";
 
 import type {
 	EventCatalog,
@@ -30,6 +30,7 @@ export type ConfigIssueCode =
 	| "INVALID_CURRENCY"
 	| "INVALID_DATE"
 	| "INVALID_WINDOW"
+	| "INVALID_RECURRENCE"
 	| "INVALID_NAME"
 	| "INVALID_QUANTITY_LIMITS"
 	| "TOO_MANY"
@@ -167,7 +168,10 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 	};
 	if (salesStart !== undefined) config.salesStart = salesStart;
 	if (salesEnd !== undefined) config.salesEnd = salesEnd;
-	if (typeof base.recurrence === "string" && base.recurrence !== "") config.recurrence = base.recurrence;
+	if (typeof base.recurrence === "string" && base.recurrence !== "") {
+		if (!parseRrule(base.recurrence)) issues.add("config.recurrence", "INVALID_RECURRENCE");
+		config.recurrence = base.recurrence;
+	}
 	if (stored?.orphaned !== undefined) config.orphaned = stored.orphaned;
 	if (stored?.unpublished !== undefined) config.unpublished = stored.unpublished;
 	return config;

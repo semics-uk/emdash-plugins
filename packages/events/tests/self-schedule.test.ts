@@ -85,7 +85,7 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	it("activation (registry installs) still schedules every cron; the ensure task then sets the flag once", async () => {
 		const { r, budget } = await setup();
 		const activated = await budget.measure("activate", () => r.actions.plugin.activate());
-		expect(activated.calls.filter(isSchedule)).toHaveLength(4);
+		expect(activated.calls.filter(isSchedule)).toHaveLength(5);
 		expect(await taskNames(r)).toEqual(["occurrences", "outbox-drain", "retention", "sweep-holds", "waitlist"]);
 		await budget.invokeRoute("public/events", {});
 		await tick(r);

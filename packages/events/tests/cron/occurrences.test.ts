@@ -85,7 +85,7 @@ function series(
 const dates = (s: Store, id = "ev1") =>
 	[...s.occurrences.docs.entries()]
 		.filter(([, d]) => d.eventId === id)
-		.map(([oid, d]) => ({ id: oid, ...(d as Doc) }))
+		.map(([oid, d]): Doc => ({ id: oid, ...d }))
 		.sort((a, b) => (a.startsAt < b.startsAt ? -1 : 1));
 
 const catalogIds = (s: Store, id = "ev1") =>

@@ -17,9 +17,9 @@
 /**
  * KV flag set once the recurring tasks are scheduled. Bump the version when a core's task list
  * changes, so sites scheduled under the old list schedule the new task too. v2: E-sign `nonce-sweep`
- * (T061). v3: Events `retention` (T087). v4: Events Pro `stripe-sweep` (T075). v5: E-sign `retention` (T097). v6: E-sign `expire` (T092). v7: E-sign Pro `reminders` (T090; the Pro build schedules it from the ensure task). v8: Events Pro `stripe-reconcile` (T120, the same way). v9: Events `waitlist` (T081). Each core has its own KV, so a bump only re-runs the ensure task once on the other core.
+ * (T061). v3: Events `retention` (T087). v4: Events Pro `stripe-sweep` (T075). v5: E-sign `retention` (T097). v6: E-sign `expire` (T092). v7: E-sign Pro `reminders` (T090; the Pro build schedules it from the ensure task). v8: Events Pro `stripe-reconcile` (T120, the same way). v9: Events `waitlist` (T081). v10: Events `occurrences` (T084). Each core has its own KV, so a bump only re-runs the ensure task once on the other core.
  */
-export const SCHEDULES_FLAG = "cron:scheduled:v9";
+export const SCHEDULES_FLAG = "cron:scheduled:v10";
 
 /** One-shot task that schedules the recurring ones from inside a cron invocation. */
 export const ENSURE_SCHEDULES_TASK = "ensure-schedules";
