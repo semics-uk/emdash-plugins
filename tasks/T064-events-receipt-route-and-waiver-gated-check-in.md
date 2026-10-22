@@ -4,7 +4,7 @@ title: "Events: receipt route and waiver-gated check-in"
 phase: 3
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T063, T071, T118]
@@ -40,6 +40,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Check-in refuses attendees whose booking is not `confirmed` (T049 does not mark attendee docs on cancel)
 - [ ] On the Events return page, read `#receipt=` from `location.hash`, clear it with `history.replaceState`, POST it to `signatures/receipt`; call `public/receipts/lookup` later for `pdfSha256` (null in the redirect receipt); an Events page embedding `<SigningCeremony>` redirects to `ceremonyRedirect(view)` after a sign/decline post (T062)
 - [ ] When receipts arrive, move the booking out of `awaiting_signature` (continue re-issues fresh intents while it waits, T063)
+- [ ] R43 in the Pro repo first: `pro-kit` build suite uses a 256 KiB Pro ceiling per backend (Free stays ≤ 104 KiB), validates Pro structure without the registry size check, and asserts the first invocation of the Pro backend stays within the 50 ms CPU budget
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify

@@ -1362,7 +1362,7 @@
 			"phase": 3,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1377,7 +1377,7 @@
 			"unblocks": [
 				"T065"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T065": {
 			"file": "T065-suite-package-and-bookingwithwaiver-flow.md",
@@ -2382,7 +2382,6 @@
 			"T106"
 		],
 		"ready": [
-			"T064",
 			"T073",
 			"T080",
 			"T081",
@@ -2395,6 +2394,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T064",
 			"T072"
 		],
 		"review": [],
