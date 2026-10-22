@@ -4,7 +4,7 @@ title: "E-sign: hardening from the Phase 1 review"
 phase: 6
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T034]

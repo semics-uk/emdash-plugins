@@ -2315,7 +2315,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2328,7 +2328,7 @@
 				"R29"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2369,11 +2369,11 @@
 			"T086",
 			"T087",
 			"T104",
-			"T111",
-			"T117"
+			"T111"
 		],
 		"in-progress": [
-			"T063"
+			"T063",
+			"T117"
 		],
 		"review": [],
 		"done": [
