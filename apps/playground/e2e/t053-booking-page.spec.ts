@@ -20,6 +20,30 @@ test("EU-FR-05 a plain form post to /_events/checkout redirects to the booking p
 	expect(location).toContain("error=");
 });
 
+// T057: EmDash 1.2 turns Astro's `security.checkOrigin` off, so the forms check for themselves.
+test("T057 cross-site posts to the checkout and the booking page's forms get 403", async ({ request }) => {
+	for (const headers of [{ origin: "https://evil.example" }, { "sec-fetch-site": "cross-site" }]) {
+		const checkout = await request.post("/_events/checkout", {
+			form: { eventId: "missing", "qty:general": "1", name: "Ada", email: "ada@example.com" },
+			headers,
+			maxRedirects: 0,
+		});
+		expect(checkout.status()).toBe(403);
+		const cancel = await request.post("/booking?ref=ABCDEFGHJK", {
+			form: { intent: "cancel" },
+			headers,
+			maxRedirects: 0,
+		});
+		expect(cancel.status()).toBe(403);
+		const redeem = await request.post("/booking?ref=ABCDEFGHJK", {
+			form: { intent: "redeem", k: "x".repeat(43) },
+			headers,
+			maxRedirects: 0,
+		});
+		expect(redeem.status()).toBe(403);
+	}
+});
+
 test("EU-FR-05 the no-JS redirect lands on a rendered booking page with a defined error", async ({ browser }) => {
 	const context = await browser.newContext({ javaScriptEnabled: false });
 	const page = await context.newPage();

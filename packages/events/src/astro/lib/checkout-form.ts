@@ -51,7 +51,14 @@ export function isCrossSiteRequest(request: Request, url: URL): boolean {
 	const site = request.headers.get("sec-fetch-site");
 	if (site) return site !== "same-origin" && site !== "none";
 	const origin = request.headers.get("origin");
-	return origin !== null && origin !== url.origin;
+	if (origin === null || origin === url.origin) return false;
+	// Astro builds `url` from `localhost` unless the host is in `security.allowedDomains`; the Host
+	// the browser sent is the site it posted to, and another site cannot set it.
+	try {
+		return new URL(origin).host !== request.headers.get("host");
+	} catch {
+		return true;
+	}
 }
 
 /** The answer to a refused cross-site post. */
