@@ -1882,7 +1882,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1894,7 +1894,7 @@
 				"Decision: OTP default"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T092": {
 			"file": "T092-e-sign-decline-void-reminders-and-expiry.md",
@@ -2415,7 +2415,6 @@
 			"T083",
 			"T084",
 			"T086",
-			"T091",
 			"T093",
 			"T094",
 			"T095",
@@ -2425,6 +2424,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T091",
 			"T120"
 		],
 		"review": [],
