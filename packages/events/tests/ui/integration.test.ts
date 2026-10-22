@@ -33,6 +33,7 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		expect(routes.map((r) => r.pattern).sort()).toEqual([
 			"/_events/check-in",
 			"/_events/checkout",
+			"/_events/opt-out",
 			"/_events/promo",
 			"/_events/sign",
 			"/_events/waitlist",
@@ -59,6 +60,13 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		const { routes } = await setup();
 		expect(routes.find((r) => r.pattern === "/_events/check-in")?.entrypoint).toBe(
 			"@semics-tech/emdash-events/astro/CheckIn.astro",
+		);
+	});
+
+	it("EV-FR-08 injects the email opt-out page from the package's own export (T083)", async () => {
+		const { routes } = await setup();
+		expect(routes.find((r) => r.pattern === "/_events/opt-out")?.entrypoint).toBe(
+			"@semics-tech/emdash-events/astro/OptOutPage.astro",
 		);
 	});
 

@@ -93,8 +93,8 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
 	});
 
-	it("T084 the flag version was bumped with the occurrences task, so already scheduled sites schedule it too", () => {
-		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v10");
+	it("T084 T083 the flag version was bumped with the occurrences task (v10) and Events Pro reminders (v11)", () => {
+		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v11");
 	});
 
 	it("leaves the routes nearest the limit alone: checkout reserve/continue and admin actions make no check", async () => {
