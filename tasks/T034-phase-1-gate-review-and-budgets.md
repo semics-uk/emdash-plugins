@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] No open Severity 1 or 2 findings
 - [ ] Route errors set the HTTP status from `toRouteError().status` (T021/T022 return the error body with 200)
+- [ ] E-sign admin envelope list pages past the newest 100 (T028); coverage thresholds hold for `packages/esign/src/admin` and `packages/events/src/admin` on CI
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
