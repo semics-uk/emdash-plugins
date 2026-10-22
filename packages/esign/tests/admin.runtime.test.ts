@@ -217,7 +217,11 @@ describe("ES-FR-11 admin pages in the host", () => {
 				updatedAt: at,
 			});
 		}
-		const first = await budget.invokeRoute("admin", { type: "form_submit", action_id: "envelopes.filter", values: { status: "sent" } });
+		const first = await budget.invokeRoute("admin", {
+			type: "form_submit",
+			action_id: "envelopes.filter",
+			values: { status: "sent" },
+		});
 		expectWithinBudget(first, { calls: 8 });
 		const table = (first.value as { blocks: Array<Record<string, unknown>> }).blocks.find((b) => b.type === "table");
 		expect(text({ blocks: [table] })).toContain("Envelope 100");

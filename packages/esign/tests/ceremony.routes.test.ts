@@ -373,7 +373,7 @@ describe("T033 signer-fillable fields", () => {
 			{ kind: "typed", typedName: "Ada Lovelace" },
 			{ fieldValues: { phone: "0123" }, salt: envelope?.piiSalt as string },
 		);
-		expect((signer?.signature as { sha256: string }).sha256).toBe(expected.sha256);
+		expect((signer?.signature as { sha256?: string } | undefined)?.sha256).toBe(expected.sha256);
 	});
 
 	it("envelopes/create rejects malformed signerFields", async () => {

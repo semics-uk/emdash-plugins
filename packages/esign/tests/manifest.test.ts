@@ -1,9 +1,9 @@
 import { createPluginRuntimeTestHost, createPluginTestHost, type PluginTestHost } from "@emdash-cms/plugin-test";
 import { ERROR_CODES } from "@semics-tech/shared";
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
+import { afterEach, describe, expect, it } from "vitest";
 import { CERTIFICATE_WORDING } from "../src/domain/pdf";
 import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
-import { afterEach, describe, expect, it } from "vitest";
 import plugin from "../src/plugin";
 import { PUBLIC_ROUTES } from "../src/routes/public";
 import { COLLECTIONS, STORAGE_DECLARATIONS } from "../src/storage/schema";
