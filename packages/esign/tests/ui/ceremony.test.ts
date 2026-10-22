@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { CEREMONY_CSS, CEREMONY_SCRIPT } from "../../src/astro/lib/assets";
+import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT } from "../../src/astro/lib/assets";
 import { ceremonyCsp, cspSource } from "../../src/astro/lib/csp";
 import { handleSign, normaliseStrokes } from "../../src/astro/lib/sign";
 import { missingForSign, pdfLinkFrom, safeDownloadHref } from "../../src/client/ceremony.js";
@@ -109,7 +109,7 @@ describe("strict CSP: only the package's hashed script (SU-NFR-02)", () => {
 			}),
 		);
 		expect(directives["default-src"]).toEqual(["'none'"]);
-		expect(directives["script-src"]).toEqual([await cspSource(CEREMONY_SCRIPT)]);
+		expect(directives["script-src"]).toEqual([await cspSource(CEREMONY_SCRIPT), await cspSource(PAD_SCRIPT)]);
 		expect(directives["style-src"]).toEqual([await cspSource(CEREMONY_CSS)]);
 		expect(directives["base-uri"]).toEqual(["'none'"]);
 		expect(directives["form-action"]).toEqual(["'self'"]);
@@ -127,7 +127,7 @@ describe("strict CSP: only the package's hashed script (SU-NFR-02)", () => {
 			readFileSync(resolve(root, "src/astro", f), "utf8"),
 		);
 		const uses = astro.flatMap((src) => [...src.matchAll(/set:html=\{([^}]*)\}/g)].map((m) => m[1]));
-		expect(uses.sort()).toEqual(["CEREMONY_CSS", "CEREMONY_SCRIPT"]);
+		expect(uses.sort()).toEqual(["CEREMONY_CSS", "CEREMONY_SCRIPT", "PAD_SCRIPT"]);
 		for (const src of astro) expect(src).not.toMatch(/innerHTML|set:text|is:raw/);
 		expect(readFileSync(resolve(root, "src/client/ceremony.js"), "utf8")).not.toMatch(
 			/innerHTML|outerHTML|insertAdjacentHTML|eval\(/,

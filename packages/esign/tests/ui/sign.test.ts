@@ -64,6 +64,27 @@ describe("handleSign (SU-FR-01, SU-FR-02, R31)", () => {
 		expect(h.seen.every((s) => !s.url.includes(TOKEN))).toBe(true);
 	});
 
+	it("T031 every call (session, submit, decline, the re-read) uses the integration's configured plugin id", async () => {
+		const ids: string[] = [];
+		const routes: Record<string, unknown> = {
+			"public/session": ready,
+			"public/submit": { ok: true, status: "completed" },
+			"public/decline": { ok: true },
+		};
+		const handler = async (id: string, _m: string, path: string) => {
+			ids.push(id);
+			return { success: true, data: routes[path] };
+		};
+		const ctx = { locals: { emdash: { handlePublicPluginApiRoute: handler } } as never, url, pluginId: "r_abc123" };
+		await handleSign(ctx, TOKEN, form(signForm));
+		await handleSign(ctx, TOKEN, form({ intent: "decline" }));
+		expect(ids).toHaveLength(5);
+		expect(new Set(ids)).toEqual(new Set(["r_abc123"]));
+		ids.length = 0;
+		await handleSign({ ...ctx, pluginId: undefined }, TOKEN, null);
+		expect(ids).toEqual([ESIGN_PLUGIN_ID]);
+	});
+
 	it("a bad token is a defined error view, not a throw", async () => {
 		const h = host({ "public/session": { ok: false, error: { code: "SIGNING_TOKEN_INVALID", message: "x" } } });
 		const view = await handleSign(h.ctx, TOKEN, null);

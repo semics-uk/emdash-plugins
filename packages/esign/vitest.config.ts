@@ -29,6 +29,7 @@ export default defineConfig({
 						"tests/ui/*.build.test.ts",
 						"tests/ui/markdown.test.ts",
 						"tests/ui/ceremony.test.ts",
+						"tests/ui/pad.test.ts",
 						"tests/fixtures/**",
 					],
 				},
@@ -46,7 +47,7 @@ export default defineConfig({
 				test: {
 					name: "ui",
 					environment: "node",
-					include: ["tests/ui/markdown.test.ts", "tests/ui/ceremony.test.ts"],
+					include: ["tests/ui/markdown.test.ts", "tests/ui/ceremony.test.ts", "tests/ui/pad.test.ts"],
 				},
 			},
 			{
