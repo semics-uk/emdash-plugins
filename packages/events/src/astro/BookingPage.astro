@@ -12,6 +12,7 @@ import { esignPluginId, pluginId, reconcile } from "virtual:semics-events/config
 
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
+import PaymentReturn from "./PaymentReturn.astro";
 import { callPublicRoute } from "./lib/call";
 import {
 	bookingCookieName,
@@ -20,7 +21,9 @@ import {
 	isCrossSiteRequest,
 	LINK_INVALID,
 	redeemBookingLink,
+	resumePayment,
 } from "./lib/checkout-form";
+import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
 import type { BookingView } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
@@ -69,6 +72,12 @@ if (form?.get("intent") === "redeem") {
 	if (result.cookie) Astro.cookies.set(result.cookie.name, result.cookie.value, bookingCookieOptions(url));
 	return Astro.redirect(result.location, 303);
 }
+if (form?.get("intent") === "resume") {
+	// "Pay now": the token is the cookie's, never a field; nothing Stripe appends to the URL is read.
+	const token = ref ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
+	const result = await resumePayment(ctx, { ref: rawRef, token }, { pluginId });
+	return Astro.redirect(result.location, 303);
+}
 // An emailed link: show the button and touch nothing else (GET must not redeem).
 const opening = Boolean(ref && code);
 const token = ref && !opening ? (Astro.cookies.get(bookingCookieName(ref))?.value ?? "") : "";
@@ -115,6 +124,7 @@ if (ref && token) {
 } else if (ref && !opening) {
 	missing = true;
 }
+const payment = booking && !cancelled ? paymentView(booking) : null;
 const passes = booking && !cancelled && booking.status === "confirmed" ? booking.attendees.filter((a) => a.code) : [];
 ---
 <!doctype html>
@@ -145,6 +155,7 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 				) : booking ? (
 					<>
 						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} />
+						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} />}
 						{passes.length > 0 && (
 							<section aria-labelledby="semics-passes-title">
 								<h2 id="semics-passes-title">Tickets</h2>
@@ -166,6 +177,7 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 		</main>
 		<script>
 			import "../client/receipt.ts";
+			import "../client/payment.ts";
 		</script>
 	</body>
 </html>

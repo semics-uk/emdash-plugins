@@ -1,0 +1,95 @@
+---
+// <PaymentReturn>: what the booking page says after Stripe sends the buyer back (EU-FR-09).
+// Rendered by `/booking` from the core's `public/booking` answer; the state is never taken from the
+// URL (Stripe's return URL carries nothing to trust). While a payment waits for the webhook
+// (`pending`), `src/client/payment.ts` re-reads the page politely; without JavaScript the "Check
+// again" link does the same by hand. "Pay now" is a plain form post back to the booking page.
+import type { PaymentView } from "./lib/payment";
+
+interface Props {
+	view: PaymentView;
+	bookingRef: string;
+	/** Where the "Pay now" form posts (the booking page itself). */
+	action: string;
+}
+
+const { view, bookingRef, action } = Astro.props;
+---
+<section
+	class="semics-events semics-payment"
+	data-semics-payment
+	data-testid="payment-return"
+	data-state={view.state}
+	aria-labelledby="semics-payment-title"
+>
+	<h2 id="semics-payment-title">{view.heading}</h2>
+	<div role="status" aria-live="polite" aria-atomic="true">
+		<p data-testid="payment-message">{view.body}</p>
+		{
+			view.poll && (
+				<>
+					<p data-semics-payment-checking data-testid="payment-checking" hidden>
+						Checking for your payment…
+					</p>
+					<p data-semics-payment-slow data-testid="payment-slow" hidden>
+						We have not heard back from the payment provider yet. If you paid, we will email you as soon as it is
+						confirmed: you do not need to wait on this page.
+					</p>
+				</>
+			)
+		}
+		<p data-semics-payment-live class="semics-visually-hidden"></p>
+	</div>
+	{
+		view.poll && (
+			<div class="semics-payment-actions">
+				<form method="post" action={action}>
+					<input type="hidden" name="intent" value="resume" />
+					<button type="submit" data-testid="payment-resume">Pay now</button>
+				</form>
+				<a href={`/booking?ref=${encodeURIComponent(bookingRef)}`} data-testid="payment-check">Check again</a>
+			</div>
+		)
+	}
+</section>
+
+<style>
+	.semics-payment {
+		box-sizing: border-box;
+		max-inline-size: 36rem;
+		margin-block: 1rem;
+		padding: 1rem;
+		border: 1px solid currentColor;
+		border-radius: var(--events-radius, 6px);
+		color: var(--events-fg, #1a1a1a);
+		overflow-wrap: anywhere;
+	}
+	.semics-payment h2 {
+		margin-block-start: 0;
+	}
+	.semics-payment[data-state="confirmed"] h2 {
+		color: var(--events-success, #146c2e);
+	}
+	.semics-payment-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 1rem;
+		align-items: center;
+	}
+	.semics-payment button,
+	.semics-payment-actions a {
+		font: inherit;
+		min-block-size: 2.75rem;
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5rem 1rem;
+	}
+	.semics-visually-hidden {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+</style>

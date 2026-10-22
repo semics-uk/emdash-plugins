@@ -29,6 +29,7 @@
 		"./astro/EventList.astro": "./src/astro/EventList.astro",
 		"./astro/EventCard.astro": "./src/astro/EventCard.astro",
 		"./astro/BookingStatus.astro": "./src/astro/BookingStatus.astro",
+		"./astro/PaymentReturn.astro": "./src/astro/PaymentReturn.astro",
 		"./astro/TicketPass.astro": "./src/astro/TicketPass.astro",
 		"./astro/AddToCalendar.astro": "./src/astro/AddToCalendar.astro"
 	},

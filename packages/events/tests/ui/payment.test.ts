@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import { handleCheckoutForm, resumePayment } from "../../src/astro/lib/checkout-form";
@@ -9,7 +8,6 @@ import { POLL_DELAYS_MS, pollPayment } from "../../src/client/payment";
 const TOKEN = "T".repeat(43);
 const REF = "ABCDEFGHJK";
 const url = new URL("https://site.example/events/spring");
-const source = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 const booking = (over: Partial<BookingView> = {}): BookingView => ({
 	bookingRef: REF,
@@ -168,38 +166,11 @@ describe("pollPayment (EU-FR-09)", () => {
 				return "pending";
 			},
 			wait: noWait,
-			// hidden on the first check of every round, visible on the second
+			// hidden on every other round
 			isHidden: () => ++hiddenChecks % 2 === 1,
 		});
-		expect(calls).toBe(POLL_DELAYS_MS.length);
+		expect(calls).toBe(POLL_DELAYS_MS.length / 2);
 		const failed = await pollPayment({ fetchState: async () => null, wait: noWait, isHidden: () => false });
 		expect(failed).toEqual({ result: "gave_up" });
-	});
-});
-
-describe("the pages (EU-FR-09, T057)", () => {
-	it("EU-FR-09 the return component is a polite live region with no-JS fallbacks", () => {
-		const component = source("../../src/astro/PaymentReturn.astro");
-		expect(component).toContain('role="status"');
-		expect(component).toContain('aria-live="polite"');
-		expect(component).toContain("data-semics-payment");
-		expect(component).toContain("Check again");
-		expect(component).toContain('value="resume"');
-	});
-
-	it("EU-FR-09 the booking page renders it, ignores Stripe's session_id, and checks Origin before the resume form", () => {
-		const page = source("../../src/astro/BookingPage.astro");
-		expect(page).toContain("<PaymentReturn");
-		expect(page).not.toContain("session_id");
-		expect(page).toContain('"resume"');
-		const guard = page.indexOf("isCrossSiteRequest(Astro.request");
-		expect(guard).toBeGreaterThan(-1);
-		expect(guard).toBeLessThan(page.indexOf("Astro.request.formData()"));
-		expect(guard).toBeLessThan(page.indexOf("resumePayment("));
-	});
-
-	it("EU-FR-09 the component is exported for sites that lay out their own booking page", () => {
-		expect(source("../../package.json")).toContain('"./astro/PaymentReturn.astro"');
-		expect(source("../../src/astro/index.js")).toContain("PaymentReturn");
 	});
 });

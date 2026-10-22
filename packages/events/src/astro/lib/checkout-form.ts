@@ -1,4 +1,5 @@
 import { callPublicRoute, type PublicRouteContext } from "./call";
+import { isPayUrl } from "./payment";
 import {
 	fieldsFromIssues,
 	newIdempotencyKey,
@@ -179,8 +180,34 @@ export async function handleCheckoutForm(
 	if (!next.ok) return fail(next.error.code, bookingRef, cookie);
 
 	const step = next.data.next;
-	if (step?.type === "pay" && step.url) return { location: step.url, cookie };
+	if (step?.type === "pay")
+		return isPayUrl(step.url) ? { location: step.url, cookie } : fail("PAYMENT_FAILED", bookingRef, cookie);
 	return { location: done, cookie };
+}
+
+/**
+ * "Pay now" on the booking page (EU-FR-09): continues the held or awaiting-payment booking again
+ * with the cookie's token (Events Pro answers with the payment page again, or a new one) and follows
+ * the `pay` step. Anything else lands on the booking page, which shows the booking as it is.
+ */
+export async function resumePayment(
+	ctx: PublicRouteContext,
+	input: { ref: string; token: string },
+	options: Pick<CheckoutFormOptions, "pluginId">,
+): Promise<{ location: string }> {
+	if (!REF_PATTERN.test(input.ref)) return { location: BOOKING_PATH };
+	const page = `${BOOKING_PATH}?ref=${encodeURIComponent(input.ref)}`;
+	if (!input.token) return { location: page };
+	const next = await callPublicRoute<{ next?: { type?: string; url?: unknown } }>(ctx, {
+		method: "POST",
+		path: "public/checkout/continue",
+		pluginId: options.pluginId,
+		body: { bookingRef: input.ref, accessToken: input.token },
+	});
+	if (!next.ok) return fail(next.error.code, input.ref);
+	const step = next.data.next;
+	if (step?.type === "pay") return isPayUrl(step.url) ? { location: step.url } : fail("PAYMENT_FAILED", input.ref);
+	return { location: page };
 }
 
 /** What `POST /_events/checkout` gets from Astro. */

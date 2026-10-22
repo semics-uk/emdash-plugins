@@ -5,6 +5,7 @@ import BookingStatus from "./BookingStatus.astro";
 import BookingWidget from "./BookingWidget.astro";
 import EventCard from "./EventCard.astro";
 import EventList from "./EventList.astro";
+import PaymentReturn from "./PaymentReturn.astro";
 import TicketPass from "./TicketPass.astro";
 
 export const blockComponents = {
@@ -14,4 +15,4 @@ export const blockComponents = {
 
 // The only way UI code calls the core (in-process public routes, fetch fallback).
 export { callPublicRoute, EVENTS_PLUGIN_ID } from "./lib/call.ts";
-export { AddToCalendar, BookingBlock, BookingStatus, BookingWidget, EventCard, EventList, TicketPass };
+export { AddToCalendar, BookingBlock, BookingStatus, BookingWidget, EventCard, EventList, PaymentReturn, TicketPass };
