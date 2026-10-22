@@ -4,7 +4,7 @@ title: "Events Pro: Stripe provider and checkout session"
 phase: 4
 package: events
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T071, T048, T118]
