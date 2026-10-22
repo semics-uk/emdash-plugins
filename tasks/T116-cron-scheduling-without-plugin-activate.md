@@ -4,7 +4,7 @@ title: "Cron scheduling without plugin:activate"
 phase: 2
 package: repo
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T056]
