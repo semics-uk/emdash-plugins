@@ -1645,7 +1645,7 @@
 			"phase": 4,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1659,7 +1659,7 @@
 			"unblocks": [
 				"T078"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T078": {
 			"file": "T078-phase-4-gate-payments-e2e.md",
@@ -2408,9 +2408,7 @@
 			"T111",
 			"T119"
 		],
-		"in-progress": [
-			"T077"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2479,6 +2477,7 @@
 			"T073",
 			"T074",
 			"T075",
+			"T077",
 			"T085",
 			"T087",
 			"T097",
