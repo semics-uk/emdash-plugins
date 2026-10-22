@@ -30,6 +30,29 @@ describe("events UI client budget and escaping (EU-NFR-01, EU-NFR-05)", () => {
 		expect(gzipped).toBeLessThanOrEqual(BUDGET_BYTES);
 	});
 
+	it("EV-FR-11 the check-in screen's script is self-contained, small, and has no HTML sinks (T082)", () => {
+		const source = readFileSync(resolve(root, "src/client/checkin.ts"), "utf8");
+		expect(source).not.toMatch(/^\s*import\s/m);
+		expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
+		const js = ts.transpileModule(source, {
+			compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true },
+		}).outputText;
+		expect(gzipSync(js).length).toBeLessThanOrEqual(4 * 1024);
+	});
+
+	it("EV-FR-11 the check-in page is server-rendered, noindex, and passes draw their QR as SVG (T082)", () => {
+		const page = readFileSync(resolve(root, "src/astro/CheckIn.astro"), "utf8");
+		expect(page).toContain('name="robots" content="noindex"');
+		expect(page).toContain("Referrer-Policy");
+		expect(page).toContain("../client/checkin.ts");
+		expect(page).toMatch(/<form[^>]*data-semics-checkin/);
+		const pass = readFileSync(resolve(root, "src/astro/TicketPass.astro"), "utf8");
+		expect(pass).toContain("qrPath(");
+		expect(pass).toContain("<svg");
+		expect(readFileSync(resolve(root, "src/astro/BookingPage.astro"), "utf8")).toMatch(/<TicketPass[^>]*qr=\{/);
+		expect(readFileSync(resolve(root, "package.json"), "utf8")).toContain('"./astro/CheckIn.astro"');
+	});
+
 	it("EU-NFR-05 never renders user content as HTML: no set:html in components, no HTML sinks in the client", () => {
 		const astro = files(resolve(root, "src/astro"), ".astro");
 		expect(astro.length).toBeGreaterThanOrEqual(5);
