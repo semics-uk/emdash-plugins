@@ -117,13 +117,13 @@ test("SU-FR-04 Sign stays disabled until consent, intent and required fields are
 	await expect(sign).toBeDisabled();
 	await page.getByLabel("Type your full name to sign").fill("Ada Lovelace");
 	await expect(sign).toBeDisabled();
-	await page.getByLabel(/sign this document electronically/).check();
+	await page.getByLabel(/electronic records and an electronic signature/).check();
 	await expect(sign).toBeDisabled();
 	await page.getByLabel(/I intend/).check();
 	await expect(sign).toBeDisabled();
 	await page.getByLabel(/Company/).fill("Analytical Engines Ltd");
 	await expect(sign).toBeEnabled();
-	await page.getByLabel(/sign this document electronically/).uncheck();
+	await page.getByLabel(/electronic records and an electronic signature/).uncheck();
 	await expect(sign).toBeDisabled();
 	await expect(page.getByTestId("sign-missing")).toContainText(/consent/i);
 });

@@ -22,7 +22,7 @@ test("ES-US-1..6 send, sign with a drawn signature, download the PDF, verify it"
 
 	await page.getByLabel("Type your full name to sign").fill(SIGNER.name);
 	await page.getByLabel(/Phone number/).fill(PHONE);
-	await page.getByLabel(/sign this document electronically/).check();
+	await page.getByLabel(/electronic records and an electronic signature/).check();
 	await page.getByLabel(/I intend/).check();
 	const canvas = page.getByTestId("sign-pad");
 	await canvas.scrollIntoViewIfNeeded();
