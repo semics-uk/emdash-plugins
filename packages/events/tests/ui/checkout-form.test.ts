@@ -184,7 +184,7 @@ describe("handleCheckoutForm (EU-FR-05, EU-FR-06)", () => {
 			expect(h.seen).toHaveLength(1);
 		});
 
-		it("EU-NFR-05 ignores a return path that leaves the site", async () => {
+		it("T055 ignores a return path that leaves the site", async () => {
 			const h = host({ success: false, error: { code: "SOLD_OUT", message: "Sold out" } }, done);
 			const out = await handleCheckoutForm(
 				{ locals: h.locals, url },

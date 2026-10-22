@@ -17,7 +17,7 @@ function files(dir: string, ext: string): string[] {
 	});
 }
 
-describe("events UI client budget and escaping (EU-NFR-01, EU-NFR-05)", () => {
+describe("events UI client budget and escaping (EU-NFR-01, T055 escaping)", () => {
 	it("EU-NFR-01 the booking client script is self-contained and at most 15 KB gzipped", () => {
 		const source = readFileSync(CLIENT, "utf8");
 		// No imports: what the transpiled file weighs is what the browser downloads.
@@ -53,7 +53,7 @@ describe("events UI client budget and escaping (EU-NFR-01, EU-NFR-05)", () => {
 		expect(readFileSync(resolve(root, "package.json"), "utf8")).toContain('"./astro/CheckIn.astro"');
 	});
 
-	it("EU-NFR-05 never renders user content as HTML: no set:html in components, no HTML sinks in the client", () => {
+	it("never renders user content as HTML: no set:html in components, no HTML sinks in the client", () => {
 		const astro = files(resolve(root, "src/astro"), ".astro");
 		expect(astro.length).toBeGreaterThanOrEqual(5);
 		for (const file of astro) expect(readFileSync(file, "utf8"), file).not.toMatch(/set:html|innerHTML/);

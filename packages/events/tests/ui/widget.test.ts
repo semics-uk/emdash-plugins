@@ -37,7 +37,7 @@ describe("return paths (EU-FR-04)", () => {
 		expect(safeReturnTo("/events/spring#frag", origin)).toBe("/events/spring");
 	});
 
-	it("EU-NFR-05 refuses anything that could leave the site (open redirect)", () => {
+	it("refuses anything that could leave the site (open redirect)", () => {
 		for (const raw of [
 			"",
 			"https://evil.example/x",
