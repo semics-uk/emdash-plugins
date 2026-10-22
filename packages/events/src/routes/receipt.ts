@@ -5,6 +5,7 @@ import { checkoutState, confirmationMessage, confirmationOutboxId } from "../dom
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
 import { mergeSignature, parseReceiptRef, receiptAttendeeIds, seatIds, type VerifiedReceipt } from "../domain/receipts";
+import { readSettings } from "../domain/settings";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, BookingStatus } from "../storage/schema";
 import { badRequest, fail } from "./reply";
@@ -141,7 +142,7 @@ export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<un
 	const { step, storage } = deps;
 	if (!step) return fail("NOT_FOUND");
 
-	const settings = Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+	const settings = await readSettings(deps);
 	const verified = await step.verify(token, settings);
 	if (!verified.ok) return fail(verified.error);
 	const receipt = verified.value;

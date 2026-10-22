@@ -3,6 +3,7 @@ import { type ErrorCode, ok, type TurnstileFetch, toRouteError, verifyTurnstile 
 import type { PluginContext } from "emdash/plugin";
 
 import type { InputIssue } from "../domain/checkout";
+import { settingsObject } from "../domain/settings";
 
 /** The error body for `code`. */
 export const fail = (code: ErrorCode) => toRouteError(code).body;
@@ -29,7 +30,7 @@ export function botCheck(
 	token: string | undefined,
 	ip: string | null,
 ) {
-	const settings = Object.fromEntries(entries.map((e) => [e.key, e.value]));
+	const settings = settingsObject(entries);
 	const secret = typeof settings.turnstileSecretKey === "string" ? settings.turnstileSecretKey : "";
 	const human = secret
 		? verifyTurnstile(fetch, { secret, token: token ?? "", ...(ip ? { remoteIp: ip } : {}) })

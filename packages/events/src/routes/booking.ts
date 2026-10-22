@@ -7,6 +7,7 @@ import { parseBookingAccessInput } from "../domain/checkout";
 import { CLAIM_STALE_MS, HOLD_STATUSES } from "../domain/holds";
 import { type CounterStorage, countersForBooking, release } from "../domain/inventory";
 import type { LinkKv } from "../domain/link-secret";
+import { readSettings } from "../domain/settings";
 import { iso } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
@@ -136,7 +137,7 @@ async function decide(
 ): Promise<CancelDecision & { settings: Record<string, unknown> }> {
 	if (b.status !== "confirmed") return { ...cancelDecision(b, null, 0, deps.now), settings: {} };
 	const config = (await deps.storage.event_configs.get(b.eventId)) as EventConfigDoc | null;
-	const settings = Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+	const settings = await readSettings(deps);
 	return { ...cancelDecision(b, config, cancelCutoffHours(settings), deps.now), settings };
 }
 
@@ -160,10 +161,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	const refs = b.waiver && (confirmed || b.status === "awaiting_signature") ? waitingRefs(b, pending) : [];
 	const lookups =
 		refs.length > 0 && deps.lookups
-			? await deps.lookups(
-					refs,
-					confirmed ? decision.settings : Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value])),
-				)
+			? await deps.lookups(refs, confirmed ? decision.settings : await readSettings(deps))
 			: undefined;
 	// Free has no waivers (no lookups step): an attendee a Pro waiver left pending on a confirmed booking
 	// gets their pass, and Free check-in admits them (R44, T119 F6).

@@ -14,6 +14,7 @@ import { type InputIssue, parseContinueInput } from "../domain/checkout";
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
 import { seatIds } from "../domain/receipts";
+import { readSettings } from "../domain/settings";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
 import { badRequest, fail } from "./reply";
@@ -195,25 +196,41 @@ async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknow
 	return done(b);
 }
 
-const settingsOf = async (deps: ContinueDeps): Promise<Record<string, unknown>> =>
-	Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+const settingsOf = readSettings;
+
+/**
+ * The step both Pro paths share: extend the hold into `status`, write the seats, re-arm `hold-<ref>`.
+ * The new expiry, or the refusal body when the hold lapsed meanwhile.
+ */
+async function advance(
+	c: Checkout,
+	b: BookingDoc,
+	status: BookingStatus,
+	until: number,
+	docs: () => Item[] | Promise<Item[]>,
+) {
+	const { storage, now, cron } = c.deps;
+	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
+	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
+	const { holdExpiresAt } = extended.value;
+	await storage.attendees.putMany(await docs());
+	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
+	return holdExpiresAt;
+}
 
 /** The Pro payment step: extend the hold, move to `awaiting_payment`, re-arm `hold-<ref>`. */
 async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item[]): Promise<unknown> {
-	const { storage, now, payment, cron } = c.deps;
+	const { storage, now, payment } = c.deps;
 	if (!payment) return fail("PAYMENT_FAILED");
 	const settings = await settingsOf(c.deps);
 	const prepared = await payment.prepare({ bookingId: c.id, booking: b, settings });
 	if (!prepared.ok) return fail(prepared.error.code);
 	const until = stepTarget(now, { paid: true }, holdSettings(settings));
-	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
-	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
-	const { holdExpiresAt } = extended.value;
 	// A waiver booking awaiting payment has its receipts in: keep the signed seats (1 call).
-	await storage.attendees.putMany(
-		b.waiver && b.status === status && !c.stored ? await keepSigned(storage, docs) : docs,
+	const holdExpiresAt = await advance(c, b, status, until, () =>
+		b.waiver && b.status === status && !c.stored ? keepSigned(storage, docs) : docs,
 	);
-	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
+	if (typeof holdExpiresAt !== "string") return holdExpiresAt;
 	const session = await prepared.value.start(holdExpiresAt);
 	if (!session.ok) return fail(session.error.code);
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.value.url } };
@@ -289,7 +306,7 @@ async function lockedAttendees(c: Checkout, b: BookingDoc): Promise<Result<Item[
 
 /** The Pro signature step: extend the hold, move to `awaiting_signature`, re-arm, return the intents. */
 async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: Item[]): Promise<unknown> {
-	const { storage, now, cron } = c.deps;
+	const { storage, now } = c.deps;
 	const settings = await settingsOf(c.deps);
 	const docs =
 		b.status === "awaiting_signature" ? reissued(c.stored ? planned : await keepSigned(storage, planned)) : planned;
@@ -299,13 +316,10 @@ async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: It
 		const refusal = prepared.error;
 		return "code" in refusal ? fail(refusal.code) : badRequest(refusal.issues);
 	}
-	const until = stepTarget(now, { paid: b.totals.totalMinor > 0 }, holdSettings(settings));
 	const status: BookingStatus = "awaiting_signature";
-	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
-	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
-	const { holdExpiresAt } = extended.value;
-	await storage.attendees.putMany(docs);
-	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
+	const until = stepTarget(now, { paid: b.totals.totalMinor > 0 }, holdSettings(settings));
+	const holdExpiresAt = await advance(c, b, status, until, () => docs);
+	if (typeof holdExpiresAt !== "string") return holdExpiresAt;
 	const intents = await prepared.value.issue(holdExpiresAt);
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "sign", intents } };
 }

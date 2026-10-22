@@ -18,6 +18,7 @@
  * never erased. The clock is passed in.
  */
 import { EXPIRABLE_STATUSES } from "../domain/holds";
+import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
 
@@ -219,7 +220,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 	if (!phase) {
 		const entries = await settings.list();
 		calls++;
-		s.days = retentionDays(Object.fromEntries(entries.map((e) => [e.key, e.value])));
+		s.days = retentionDays(settingsObject(entries));
 		s.phase = "ips";
 	} else if (phase === "ips") {
 		const page = await storage.bookings.query({

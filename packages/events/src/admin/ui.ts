@@ -1,5 +1,5 @@
 /** Small helpers the admin pages and the editor panel share (one copy in the bundle, R42). */
-import type { Block } from "@semics-tech/shared";
+import { type Block, meter, toMinor } from "@semics-tech/shared";
 
 import { EVENT_STATUSES, OCCURRENCE_STATUSES } from "../domain/config";
 
@@ -14,3 +14,26 @@ export const optionsOf = (values: readonly string[]) =>
 
 export const EVENT_STATUS_OPTIONS = optionsOf(EVENT_STATUSES);
 export const OCCURRENCE_STATUS_OPTIONS = optionsOf(OCCURRENCE_STATUSES);
+
+/** Seats held but not sold (`reserved` counts sold seats too). */
+export const held = (c: { reserved: number; sold: number }) => Math.max(c.reserved - c.sold, 0);
+
+/** The "sold, held of capacity" meter of a counted document. */
+export const soldMeter = (label: string, c: { reserved: number; sold: number; capacity: number }) =>
+	meter({ label, value: c.sold, max: c.capacity, customValue: `${c.sold} sold, ${held(c)} held of ${c.capacity}` });
+
+/**
+ * A typed price that differs from `priceMinor`, or does not parse (the validator then refuses it):
+ * the text to save and its minor units (null when unparsable). Null when blank or unchanged.
+ */
+export function priceEdit(raw: unknown, priceMinor: number, currency: string) {
+	const price = str(raw, 20);
+	if (price === "") return null;
+	let minor: number | null;
+	try {
+		minor = toMinor(price, currency);
+	} catch {
+		minor = null;
+	}
+	return minor === priceMinor ? null : { price, minor };
+}

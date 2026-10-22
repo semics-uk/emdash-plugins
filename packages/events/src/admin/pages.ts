@@ -10,20 +10,19 @@ import {
 	fromMinor,
 	header,
 	link,
-	meter,
 	type NoticeInput,
 	notices,
 	numberInput,
 	select,
 	table,
 	textInput,
-	toMinor,
 } from "@semics-tech/shared";
 
 import { eraseBookings, type RetentionStorage } from "../cron/retention";
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, validateMapping } from "../domain/mapping";
+import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "../routes/attendees";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
@@ -35,7 +34,7 @@ import {
 	type TicketTypeDoc,
 } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { EVENT_STATUS_OPTIONS, optionsOf, respond, str } from "./ui";
+import { EVENT_STATUS_OPTIONS, held, optionsOf, priceEdit, respond, soldMeter, str } from "./ui";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -133,7 +132,7 @@ const MAPPING_DEFAULTS: EventsMapping = {
 
 async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 	const [entries, collections] = await Promise.all([deps.settings.list(), deps.schema.listCollections()]);
-	const values = Object.fromEntries(entries.map((e) => [e.key, e.value]));
+	const values = settingsObject(entries);
 	const mapping = { ...MAPPING_DEFAULTS };
 	for (const key of Object.keys(mapping) as Array<keyof EventsMapping>) {
 		if (typeof values[key] === "string") mapping[key] = values[key] as string;
@@ -534,7 +533,7 @@ function editorForm(eventId: string, state: EventState, extra: Block[] = []): Ad
 		header(`Edit event: ${eventId}`),
 		...extra,
 		context(
-			`Sold ${config.sold}, held ${Math.max(config.reserved - config.sold, 0)}, capacity ${config.capacity}. Only the ticket types you change are written.`,
+			`Sold ${config.sold}, held ${held(config)}, capacity ${config.capacity}. Only the ticket types you change are written.`,
 		),
 		form({ fields, submit: { label: "Save changes", actionId: "event.save" }, blockId: `event:${eventId}` }),
 	]);
@@ -581,20 +580,12 @@ async function saveEditor(
 			after.capacity = Number(capacity);
 			changed++;
 		}
-		const price = str(values[`price:${ttId}`], 20);
-		if (price !== "") {
-			let minor: number | null = null;
-			try {
-				minor = toMinor(price, stored.currency);
-			} catch {
-				minor = null;
-			}
-			if (minor === null || minor !== t.priceMinor) {
-				delete item.priceMinor;
-				item.price = price;
-				if (minor !== null) after.priceMinor = minor;
-				changed++;
-			}
+		const edit = priceEdit(values[`price:${ttId}`], t.priceMinor, stored.currency);
+		if (edit) {
+			delete item.priceMinor;
+			item.price = edit.price;
+			if (edit.minor !== null) after.priceMinor = edit.minor;
+			changed++;
 		}
 		return item;
 	});
@@ -631,19 +622,7 @@ async function saveEditor(
 async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
 	const page = await deps.storage.event_configs.query({ where: { status: "on_sale" }, limit: 5 });
 	if (page.items.length === 0) return respond([context("No events are on sale.")]);
-	return respond(
-		page.items.map(({ id, data }) => {
-			const c = data as EventConfigDoc;
-			// `reserved` counts every held seat, sold ones included.
-			const held = Math.max(c.reserved - c.sold, 0);
-			return meter({
-				label: id,
-				value: c.sold,
-				max: c.capacity,
-				customValue: `${c.sold} sold, ${held} held of ${c.capacity}`,
-			});
-		}),
-	);
+	return respond(page.items.map(({ id, data }) => soldMeter(id, data as EventConfigDoc)));
 }
 
 // --- dispatch ---------------------------------------------------------------------------------

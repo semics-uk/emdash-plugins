@@ -253,6 +253,13 @@ function eventDeps(d: DrainDeps, tick: Tick): EventInfoDeps {
 	};
 }
 
+/** The booking's event (or date) for an email; a missing entry fails the row so the drain retries it. */
+async function eventOf(d: DrainDeps, tick: Tick, booking: BookingDoc): Promise<EventInfo> {
+	const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
+	if (!event) throw new Error("event entry not found");
+	return event;
+}
+
 /** A confirmation: null when the booking is gone or no longer confirmed (nothing to send). */
 async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
 	const booking = await loadBooking(d, tick, bookingId);
@@ -260,9 +267,8 @@ async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): 
 	const [attendees, event] = await Promise.all([
 		tick.attendees.get(bookingId) ??
 			d.storage.attendees.query({ where: { bookingId }, limit: ATTENDEE_PAGE }).then((r) => r.items),
-		loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId),
+		eventOf(d, tick, booking),
 	]);
-	if (!event) throw new Error("event entry not found");
 	const code = generateToken();
 	const minted = await d.storage.bookings.updateIf(bookingId, {
 		where: { status: "confirmed" },
@@ -288,8 +294,7 @@ async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): 
 async function renderCancellation(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
 	const booking = await loadBooking(d, tick, bookingId);
 	if (!booking) return null;
-	const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
-	if (!event) throw new Error("event entry not found");
+	const event = await eventOf(d, tick, booking);
 	return cancellationEmail({
 		to: booking.email,
 		buyerName: booking.buyer.name,
@@ -309,8 +314,7 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 	const booking = await loadBooking(d, tick, bookingId);
 	const until = booking?.holdExpiresAt;
 	if (booking?.status !== "held" || booking.releaseClaimedAt || !until) return null;
-	const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
-	if (!event) throw new Error("event entry not found");
+	const event = await eventOf(d, tick, booking);
 	const code = generateToken();
 	const minted = await d.storage.bookings.updateIf(bookingId, {
 		where: { status: "held", releaseClaimedAt: null, holdExpiresAt: until },
@@ -339,8 +343,7 @@ async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxM
 	if (custom) {
 		const booking = await loadBooking(d, tick, bookingId);
 		if (!booking) return null;
-		const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
-		if (!event) throw new Error("event entry not found");
+		const event = await eventOf(d, tick, booking);
 		return custom({ doc, booking, event, siteName: d.siteName });
 	}
 	throw new Error(`unknown outbox kind ${doc.kind}`);

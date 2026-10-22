@@ -11,7 +11,6 @@ import {
 	header,
 	isValidTimeZone,
 	link,
-	meter,
 	notices,
 	numberInput,
 	repeater,
@@ -20,17 +19,17 @@ import {
 	table,
 	textInput,
 	toggle,
-	toMinor,
 	utcToZoned,
 	zonedToUtc,
 } from "@semics-tech/shared";
 
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
+import { readSettings } from "../domain/settings";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { EVENT_STATUS_OPTIONS, OCCURRENCE_STATUS_OPTIONS, respond, str } from "./ui";
+import { EVENT_STATUS_OPTIONS, held, OCCURRENCE_STATUS_OPTIONS, priceEdit, respond, soldMeter, str } from "./ui";
 
 /**
  * The "Tickets & booking" panel on a saved event entry (EV-US-1, T043), built only with the shared
@@ -81,7 +80,7 @@ const waiverCalls = (deps: PanelDeps) => (deps.waivers ? 2 : 0);
 
 async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> {
 	if (!deps.waivers) return FREE_EDITION;
-	const settings = Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+	const settings = await readSettings(deps);
 	return deps.waivers(settings);
 }
 
@@ -191,22 +190,15 @@ const blankRow = (row: Obj) => Object.values(row).every((v) => !given(v) || (typ
 
 // --- render -----------------------------------------------------------------------------------
 
-const held = (reserved: number, sold: number) => Math.max(reserved - sold, 0);
-
 function statsBlocks(config: EventConfigDoc): Block[] {
 	return [
 		stats([
 			{ label: "Sold", value: String(config.sold) },
-			{ label: "Held", value: String(held(config.reserved, config.sold)) },
+			{ label: "Held", value: String(held(config)) },
 			{ label: "Remaining", value: String(Math.max(config.capacity - config.reserved, 0)) },
 			{ label: "Capacity", value: String(config.capacity) },
 		]),
-		meter({
-			label: "Seats sold",
-			value: config.sold,
-			max: config.capacity,
-			customValue: `${config.sold} sold, ${held(config.reserved, config.sold)} held of ${config.capacity}`,
-		}),
+		soldMeter("Seats sold", config),
 	];
 }
 
@@ -230,7 +222,7 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 					name: t.name,
 					price: fromMinor(t.priceMinor, config.currency),
 					sold: t.sold,
-					held: held(t.reserved, t.sold),
+					held: held(t),
 					capacity: t.capacity,
 				})),
 				pageActionId: "panel.tickets.page",
@@ -251,7 +243,7 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 					starts: localText(o.startsAt, zone),
 					status: o.status,
 					sold: o.sold,
-					held: held(o.reserved, o.sold),
+					held: held(o),
 					capacity: o.capacity,
 				})),
 				pageActionId: "panel.dates.page",
@@ -432,19 +424,11 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 			item.capacity = num(cap);
 			changed++;
 		}
-		const price = str(values[`tt_price:${id}`], 20);
-		if (price !== "") {
-			let minor: number | null = null;
-			try {
-				minor = toMinor(price, stored.currency);
-			} catch {
-				minor = null;
-			}
-			if (minor === null || minor !== data.priceMinor) {
-				delete item.priceMinor;
-				item.price = price;
-				changed++;
-			}
+		const edit = priceEdit(values[`tt_price:${id}`], data.priceMinor, stored.currency);
+		if (edit) {
+			delete item.priceMinor;
+			item.price = edit.price;
+			changed++;
 		}
 		ticketTypes.push(item);
 	}
