@@ -5,7 +5,7 @@
  * A submission needs the ESIGN consent flag and the separate intent flag (both literally `true`),
  * the `docSha256` the signer saw (it must still match the envelope's), and a signature: a typed
  * name, drawn strokes (normalised `[x, y]` points, at most 32 KB as JSON), or both. The signature is
- * bound to the document by `signature.sha256 = SHA256(JSON([docSha256, kind, typedName, strokes]))`.
+ * bound to the document and the signer's entered values by `bindSignature` (salted with the envelope's piiSalt).
  */
 import { err, ok, type Result, sha256Hex } from "@semics-tech/shared";
 import type { AuditInput } from "./audit";
@@ -24,7 +24,7 @@ const CONTROL = /[\u0000-\u001F\u007F]/;
 
 export const DEFAULT_CONSENT_VERSION = "1";
 export const DEFAULT_CONSENT_WORDING =
-	"I agree to sign this document electronically and that my electronic signature has the same legal effect as a handwritten one.";
+	"I agree to use electronic records and an electronic signature for this document.";
 
 export type SubmitIssueCode =
 	| "INVALID_INPUT"
@@ -113,10 +113,24 @@ export function cleanReason(v: unknown): string | null | undefined {
 	return reason.length === 0 || [...reason].length > MAX_REASON_CODE_POINTS || CONTROL.test(reason) ? null : reason;
 }
 
-/** The signature as stored, with the hash that binds it to the document. */
-export async function bindSignature(docSha256: string, signature: SubmitFields["signature"]): Promise<StoredSignature> {
+/**
+ * The signature as stored, with the hash that binds it to the document and to the values the signer
+ * entered (T034): `SHA256(piiSalt ‖ JSON([docSha256, kind, typedName, strokes, [[key, value]…]]))`, the
+ * values in key order. The hash goes into the audit chain (`signatureSha256`), so it is salted like a
+ * personal-field commitment: once the retention purge deletes the salt, a typed name or a short answer
+ * can no longer be confirmed by guessing (R28).
+ */
+export async function bindSignature(
+	docSha256: string,
+	signature: SubmitFields["signature"],
+	binding: { fieldValues: Readonly<Record<string, string>>; salt: string },
+): Promise<StoredSignature> {
+	const values = Object.keys(binding.fieldValues)
+		.sort()
+		.map((key) => [key, binding.fieldValues[key]]);
 	const sha256 = await sha256Hex(
-		JSON.stringify([docSha256, signature.kind, signature.typedName ?? null, signature.strokes ?? null]),
+		binding.salt +
+			JSON.stringify([docSha256, signature.kind, signature.typedName ?? null, signature.strokes ?? null, values]),
 	);
 	return { ...signature, sha256 };
 }

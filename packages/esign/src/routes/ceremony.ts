@@ -242,7 +242,10 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext) {
 
 	const version =
 		typeof consentVersion === "string" && consentVersion.length > 0 ? consentVersion : DEFAULT_CONSENT_VERSION;
-	const signature = await bindSignature(envelope.docSha256, fields.value.signature);
+	const signature = await bindSignature(envelope.docSha256, fields.value.signature, {
+		fieldValues: given,
+		salt: envelope.piiSalt,
+	});
 	const who = personalOf(routeCtx);
 	const inputs = signedAuditEvents({
 		at: now,

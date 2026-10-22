@@ -14,7 +14,7 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
 Astro.response.headers.set("Content-Security-Policy", await verifyCsp());
 
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
-const view = await handleVerify({ locals: Astro.locals, url: Astro.url, pluginId }, form);
+const view = await handleVerify({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, form);
 ---
 <!doctype html>
 <html lang="en">

@@ -15,7 +15,7 @@ Astro.response.headers.set("Cache-Control", "private, no-store");
 Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
-const view = await handleSignedCopy({ locals: Astro.locals, url: Astro.url, pluginId }, token);
+const view = await handleSignedCopy({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, token);
 ---
 <!doctype html>
 <html lang="en">

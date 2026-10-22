@@ -129,12 +129,21 @@ async function outboxBanners(deps: AdminDeps): Promise<Array<NoticeInput | false
 	];
 }
 
-async function envelopesPage(deps: AdminDeps, status: string, extra: Block[] = []): Promise<AdminResponse> {
+async function envelopesPage(
+	deps: AdminDeps,
+	status: string,
+	extra: Block[] = [],
+	cursor?: string,
+): Promise<AdminResponse> {
 	const filter = isEnvelopeStatus(status) ? status : "";
 	const [list, banners] = await Promise.all([
-		run(deps, envelopeRoute("envelopes/list"), filter ? { status: filter } : {}),
+		run(deps, envelopeRoute("envelopes/list"), {
+			...(filter ? { status: filter } : {}),
+			...(cursor ? { cursor } : {}),
+		}),
 		outboxBanners(deps),
 	]);
+	const nextCursor = typeof list.nextCursor === "string" ? list.nextCursor : undefined;
 	const rows = ((list.envelopes as Array<Record<string, unknown>>) ?? []).map((e) => {
 		const signer = e.signer as { name?: string; email?: string } | undefined;
 		return {
@@ -163,7 +172,7 @@ async function envelopesPage(deps: AdminDeps, status: string, extra: Block[] = [
 			],
 			submit: { label: "Filter", actionId: "envelopes.filter" },
 		}),
-		context("The 100 most recent envelopes. Create one from a template on the Templates page."),
+		context("Newest first, 100 a page. Create an envelope from a template on the Templates page."),
 		table({
 			columns: [
 				{ key: "title", label: "Title" },
@@ -173,7 +182,9 @@ async function envelopesPage(deps: AdminDeps, status: string, extra: Block[] = [
 				{ key: "open", label: "", format: "element" },
 			],
 			rows,
-			pageActionId: "envelopes.page",
+			// The filter rides on the action id, the next page's cursor on the value (T034).
+			pageActionId: `envelopes.page:${filter}`,
+			...(nextCursor ? { nextCursor } : {}),
 			emptyText: "No envelopes match.",
 		}),
 	]);
@@ -406,19 +417,47 @@ async function newEnvelopeForm(deps: AdminDeps, templateId: string, extra: Block
 	return respond([
 		header(`New envelope: ${tpl.name}`),
 		...extra,
-		context("Creates a draft you can check before sending it for signature."),
+		context(
+			"Creates a draft you can check before sending it for signature. Signer fields: one per line as key: Label, ending in * when required.",
+		),
 		form({
 			fields: [
 				textInput("title", "Title", { initialValue: tpl.name }),
 				textInput("signerName", "Signer name"),
 				textInput("signerEmail", "Signer email"),
 				...tpl.fields.filter((f) => !BUILT_IN.test(f)).map((f) => textInput(`field:${f}`, f)),
+				textInput("signerFields", "Fields the signer fills in (optional)", {
+					multiline: true,
+					placeholder: "phone: Phone number *",
+				}),
 			],
 			submit: { label: "Create draft", actionId: "envelope.create" },
 			blockId: `envelope-new:${templateId}`,
 		}),
 		actions([back("templates.back", "Back to templates")]),
 	]);
+}
+
+/**
+ * The form's signer-fields text (T033 `signerFields`, T034): one field per line, `key: Label`, a trailing
+ * `*` for a required one. Blank lines are skipped; anything else is passed on as written so
+ * `envelopes/create` reports it (`INVALID_FIELDS`) rather than it being silently dropped.
+ */
+export function parseSignerFields(value: unknown): Array<{ key: string; label: string; required?: boolean }> {
+	if (typeof value !== "string") return [];
+	return value
+		.slice(0, 4000)
+		.split("\n")
+		.map((line) => line.trim())
+		.filter((line) => line !== "")
+		.map((line) => {
+			const at = line.indexOf(":");
+			const key = (at === -1 ? line : line.slice(0, at)).trim();
+			let label = at === -1 ? "" : line.slice(at + 1).trim();
+			const required = label.endsWith("*");
+			if (required) label = label.slice(0, -1).trim();
+			return { key, label, ...(required ? { required: true } : {}) };
+		});
 }
 
 async function createEnvelope(
@@ -433,11 +472,13 @@ async function createEnvelope(
 		if (key.startsWith("field:")) fields[key.slice(6)] = typeof value === "string" ? value : "";
 	}
 	const title = str(values.title);
+	const signerFields = parseSignerFields(values.signerFields);
 	const reply = await run(deps, envelopeRoute("envelopes/create"), {
 		templateId,
 		...(title ? { title } : {}),
 		signer: { name: str(values.signerName), email: str(values.signerEmail) },
 		fields,
+		...(signerFields.length > 0 ? { signerFields } : {}),
 	});
 	if (reply.ok !== true) {
 		return newEnvelopeForm(deps, templateId, notices([error("Not saved", failure(reply))]));
@@ -753,6 +794,9 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 		}
 	} else {
 		const id = idOf(interaction.value);
+		if (interaction.action_id.startsWith("envelopes.page:")) {
+			return envelopesPage(deps, interaction.action_id.slice(15), [], str(interaction.value, 500) || undefined);
+		}
 		switch (interaction.action_id) {
 			case "envelopes.back":
 			case "envelopes.page":

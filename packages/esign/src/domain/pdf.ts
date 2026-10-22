@@ -49,8 +49,8 @@ export interface StoredPdf {
 
 export interface SignedPdfInput {
 	envelopeId: string;
-	envelope: Pick<EnvelopeDoc, "title" | "docSha256" | "completedAt" | "finalHash">;
-	signer: Pick<SignerDoc, "name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion">;
+	envelope: Pick<EnvelopeDoc, "title" | "docSha256" | "completedAt" | "finalHash" | "signerFields">;
+	signer: Pick<SignerDoc, "name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion" | "fieldValues">;
 	/** The frozen snapshot text (its SHA-256 is `docSha256`). */
 	snapshot: string;
 	/** The whole audit chain in seq order, already verified against `head`. */
@@ -105,6 +105,25 @@ function signatureBlock(signer: SignedPdfInput["signer"]): PdfBlock {
 	return { type: "signature", label: "Signature", typedName: signature?.typedName ?? signer.name, caption };
 }
 
+/**
+ * The values the signer entered (T033 signer fields), labelled, in the sender's order: part of the
+ * signed document, and covered by the signature hash (`bindSignature`). None declared: no block.
+ */
+function entriesBlocks(input: SignedPdfInput): PdfBlock[] {
+	const fields = input.envelope.signerFields ?? [];
+	if (fields.length === 0) return [];
+	const values = input.signer.fieldValues ?? {};
+	return [
+		{ type: "spacer", height: 12 },
+		{ type: "heading", text: "Details entered by the signer", level: 2 },
+		{
+			type: "table",
+			columns: [{ header: "Field" }, { header: "Value", width: 2 }],
+			rows: fields.map((f) => [f.label, values[f.key] ?? ""]),
+		},
+	];
+}
+
 /** The PDF content (exposed for tests; `renderSignedPdf` renders it). */
 export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
 	const { envelope, signer, events, head, envelopeId } = input;
@@ -142,6 +161,7 @@ export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
 		blocks: [
 			{ type: "heading", text: envelope.title, level: 1 },
 			...snapshotBlocks(input.snapshot),
+			...entriesBlocks(input),
 			{ type: "spacer", height: 18 },
 			signatureBlock(signer),
 			{ type: "pageBreak" },

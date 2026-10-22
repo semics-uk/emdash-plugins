@@ -20,6 +20,12 @@ export interface PublicRouteCall {
 export interface PublicRouteContext {
 	locals: PublicPluginRuntimeLocals | null | undefined;
 	url: URL;
+	/**
+	 * The visitor's request (`Astro.request`). Its user agent, client-IP headers and `cf` object are
+	 * carried onto the in-process call, so the core's `requestMeta` (audit IP and user agent, per-IP
+	 * rate limits) sees the visitor as a direct call would. Cookies, credentials and the Referer never are.
+	 */
+	request?: Request;
 	/** The core's plugin id when it is not the default slug (the integration's `pluginId`). */
 	pluginId?: string;
 	/** Injected for tests. Defaults to the global `fetch`. */
@@ -76,7 +82,7 @@ export async function callPublicRoute<T = unknown>(
 			via,
 		};
 	}
-	const request = buildRequest(ctx.url.origin, pluginId, method, path, call.body);
+	const request = buildRequest(ctx.url.origin, pluginId, method, path, call.body, ctx.request);
 
 	if (handler) {
 		try {
@@ -110,7 +116,50 @@ function tokenLikeKey(body: unknown): string | undefined {
 	return Object.keys(body).find((key) => TOKEN_LIKE.test(key));
 }
 
-function buildRequest(origin: string, pluginId: string, method: string, path: string, body: unknown): Request {
+/**
+ * Headers never copied from the visitor's request: credentials (a public route has no use for them),
+ * the Referer (the sign page's own URL holds the token), and the framing of the page's own body.
+ */
+const NOT_FORWARDED = new Set([
+	"authorization",
+	"connection",
+	"content-length",
+	"content-type",
+	"cookie",
+	"expect",
+	"host",
+	"keep-alive",
+	"proxy-authorization",
+	"referer",
+	"transfer-encoding",
+	"upgrade",
+	"x-emdash-request",
+]);
+
+function forwardedHeaders(incoming: Request | undefined): Headers {
+	const headers = new Headers();
+	incoming?.headers.forEach((value, key) => {
+		if (!NOT_FORWARDED.has(key.toLowerCase())) headers.set(key, value);
+	});
+	return headers;
+}
+
+/** On Cloudflare the host trusts `cf-connecting-ip` only on a request that carries a `cf` object. */
+function withCf(request: Request, incoming: Request | undefined): Request {
+	const cf = (incoming as { cf?: unknown } | undefined)?.cf;
+	if (cf !== undefined && cf !== null) Object.defineProperty(request, "cf", { value: cf, enumerable: true });
+	return request;
+}
+
+function buildRequest(
+	origin: string,
+	pluginId: string,
+	method: string,
+	path: string,
+	body: unknown,
+	incoming?: Request,
+): Request {
+	const headers = forwardedHeaders(incoming);
 	const url = new URL(`/_emdash/api/plugins/${encodeURIComponent(pluginId)}/${path}`, origin);
 	if (method === "GET") {
 		if (body && typeof body === "object") {
@@ -120,13 +169,11 @@ function buildRequest(origin: string, pluginId: string, method: string, path: st
 				}
 			}
 		}
-		return new Request(url, { method });
+		return withCf(new Request(url, { method, headers }), incoming);
 	}
-	return new Request(url, {
-		method,
-		headers: { "content-type": "application/json" },
-		body: body === undefined ? undefined : JSON.stringify(body),
-	});
+	headers.set("content-type", "application/json");
+	const json = body === undefined ? undefined : JSON.stringify(body);
+	return withCf(new Request(url, { method, headers, body: json }), incoming);
 }
 
 /** A sandboxed route's own refusal (`{ ok: false, error, issues? }`), which the host wraps as a success. */

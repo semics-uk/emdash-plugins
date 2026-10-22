@@ -53,7 +53,7 @@
 				"label": "Consent wording",
 				"type": "string",
 				"multiline": true,
-				"default": "I agree to sign this document electronically and that my electronic signature has the same legal effect as a handwritten one.",
+				"default": "I agree to use electronic records and an electronic signature for this document.",
 				"description": "Shown to signers before they sign."
 			},
 			"expiryDays": { "label": "Envelope expiry (days)", "type": "number", "default": 30, "min": 1, "max": 365 },

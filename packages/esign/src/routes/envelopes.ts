@@ -72,7 +72,8 @@ export interface Collection<T> {
 		where?: Record<string, unknown>;
 		orderBy?: Record<string, "asc" | "desc">;
 		limit?: number;
-	}): Promise<{ items: Array<{ id: string; data: T }> }>;
+		cursor?: string;
+	}): Promise<{ items: Array<{ id: string; data: T }>; hasMore?: boolean; cursor?: string }>;
 }
 
 interface ClientDoc {
@@ -343,15 +344,24 @@ async function voidEnvelope(routeCtx: { input?: unknown }, ctx: PluginContext) {
 
 const LIST_LIMIT = 100;
 
+/** Newest first, 100 a page; `cursor` (from the previous page) continues the same filter (T034). */
 async function list(routeCtx: { input?: unknown }, ctx: PluginContext) {
-	const status = obj(routeCtx.input).status;
+	const { status, cursor } = obj(routeCtx.input);
 	if (status !== undefined && !isEnvelopeStatus(status)) return badRequest();
-	const { items } = await stores(ctx).envelopes.query({
+	if (cursor !== undefined && !(typeof cursor === "string" && cursor.length > 0 && cursor.length <= 500)) {
+		return badRequest();
+	}
+	const page = await stores(ctx).envelopes.query({
 		...(status === undefined ? {} : { where: { status } }),
 		orderBy: { createdAt: "desc" },
 		limit: LIST_LIMIT,
+		...(cursor === undefined ? {} : { cursor }),
 	});
-	return { ok: true, envelopes: items.map((i) => summary(i.id, i.data)) };
+	return {
+		ok: true,
+		envelopes: page.items.map((i) => summary(i.id, i.data)),
+		...(page.hasMore && page.cursor ? { nextCursor: page.cursor } : {}),
+	};
 }
 
 export const ENVELOPE_ROUTES: Record<string, RouteDef> = {

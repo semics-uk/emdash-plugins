@@ -16,7 +16,7 @@ Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
-const view = await handleSign({ locals: Astro.locals, url: Astro.url, pluginId }, token, form);
+const view = await handleSign({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, token, form);
 ---
 <!doctype html>
 <html lang="en">
