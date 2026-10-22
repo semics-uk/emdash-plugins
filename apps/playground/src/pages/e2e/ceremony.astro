@@ -2,7 +2,10 @@
 // e2e-only page (T030): <SigningCeremony> in fixed states the seeded site can't reach yet (no
 // envelope is sent until T033's fixture). ?state=ready|signed|closed, ?doc=xss renders the XSS
 // payload suite as the document, ?csp=off drops the CSP header so the sanitiser is tested alone.
+// T101: ?state=otp shows the email-code step (&otp=sent after "Email me a code", &otp=<OTP_* code> for a
+// refusal only E-sign Pro's routes produce); ?state=fix&fields=typedName,consent re-renders a refused sign.
 import { ceremonyCsp } from "@semics-tech/emdash-esign/astro";
+import { MESSAGES } from "@semics-tech/emdash-esign/astro/lib/sign";
 import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
 import payloads from "../../../../../packages/esign/tests/ui/xss-payloads.json";
 
@@ -47,12 +50,22 @@ const session = {
 };
 
 const state = params.get("state");
+const otp = params.get("otp") ?? "";
+const refused = (code: string) => ({ errorCode: code, message: MESSAGES[code] ?? "Something went wrong. Please try again." });
 const view =
 	state === "signed"
 		? ({ kind: "signed", pdf: "pending" } as const)
 		: state === "closed"
 			? ({ kind: "closed", status: "completed", pdf: "ready", download: "/signed.pdf" } as const)
-			: ({ kind: "ready", session } as const);
+			: state === "otp"
+				? ({
+						kind: "ready",
+						session: { ...session, otp: "required" },
+						...(otp === "sent" ? { otpSent: true as const } : otp ? refused(otp) : {}),
+					} as const)
+				: state === "fix"
+					? ({ kind: "ready", session, fields: (params.get("fields") ?? "").split(","), ...refused("BAD_REQUEST") } as const)
+					: ({ kind: "ready", session } as const);
 ---
 <!doctype html>
 <html lang="en">
