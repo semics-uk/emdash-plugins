@@ -496,7 +496,18 @@ any re-planning after the spikes.
   staging. The probe route has been removed. Note for e2e: the workerd runner binds fixed ports
   from 18788. A leftover `workerd` process holding them makes the next server fail with
   `bind(): Address already in use`, so two playground servers can't run at once.
-- S10b (storage survives a Free to Pro swap) waits for the Pro build in Phase 4.
+- **S10b confirmed (T071, 2026-10-22).** Storage survives swapping Free for Pro and back. Run on the
+  EmDash runtime test host (`@emdash-cms/plugin-test` 0.2.8, emdash 1.2.0, local D1), not the
+  playground, because installing Pro there would put Pro into this repo (R40). The Pro repo's edition
+  tests load the real Free and Pro builds in turn over one database, each as a fresh EmDash runtime
+  and isolate: Events event configs, ticket types, occurrences and settings, and E-sign template
+  versions and settings, written on Free are read and updated on Pro, and everything written on
+  either is read again on Free. Plugin rows are keyed by the manifest slug, so the same slug and
+  publisher is all continuity needs; the Pro manifest is generated from Free's plus additions only.
+  The Free bundle has none of the Pro-only routes (`pro/licence`); after a downgrade they are simply
+  "Route not found". Caveat found: EmDash caches loaded sandboxed plugins in module scope by
+  `<slug>:<version>`, which Free and Pro share, so in one long-lived process the swap only takes
+  effect after a restart (which every deploy is); the test helper stops the running site first.
 - **T005 probes (2026-10-11).** Run in the Worker Loader + local D1 test hosts (`@emdash-cms/plugin-test`
   0.2.8, emdash 1.2.0), so numbers that depend on D1 are local; T110 re-measures on Cloudflare.
   Evidence: `packages/events/tests/probes/README.md`, probes at commit `2b5249d`.
@@ -764,6 +775,7 @@ https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
 | R38 | Sandboxed JSON routes answer refusals with HTTP 200 (T034 review) | EmDash 1.2 gives a sandboxed route no way to set the status of a JSON response: a returned value is always wrapped as `{ success: true, data }` with 200, and a thrown error becomes 400 `ROUTE_ERROR` (only the host's own 503 codes keep a status). Only `response: "raw"` routes set a status, and they drop the envelope that `callPublicRoute` and every other caller rely on. So refusals stay `{ ok: false, error: { code } }` inside a 200 (as R33), `toRouteError().status` is used by raw routes (`public/download`), and the HTTP column of the protocol's §9 is what a non-sandboxed implementation should send. Revisit if EmDash adds a status to the JSON route contract |
 | R39 | UI calls carry the visitor's request metadata (T034 review) | `callPublicRoute` builds a new `Request` for the in-process handler, which had no user agent, client-IP header or `cf` object, so every ceremony audit event lost IP and user agent and every per-IP limit (`public/verify`; the Events checkout, fixed in T056) became one site-wide `unknown` bucket. Pages pass `Astro.request`; the helper copies its headers except cookies, credentials, the Referer and body framing, and its `cf`. The host still applies its own trust rules (`cf-connecting-ip` only with `cf`, otherwise the configured trusted proxy headers), exactly as for a direct call |
 | R40 | Pro code never enters the public repo (T063 pre-check) | The public repo is wholly MIT and its history will be published, so Pro packages live from day one in a separate local git repo `../emdash-plugins-pro` that links the public workspace packages; T071 creates it, and every Pro task depends on T071. The private GitHub repo is created when the owner sets up GitHub |
+| R41 | How a Pro build is made (T071) | Each Pro package's `src/plugin.ts` imports the linked Free core's default export and composes it with `extendCore`: Free routes and hooks are kept as they are, Pro routes are added, a Free route is replaced only through an explicit override, Pro cron jobs run before Free's. The Pro manifest is generated from Free's plus additions (identity can't change, nothing Free declares can be replaced or removed). The licence public key, product and build date are generated constants (key from the environment or a committed public key file; development builds use a throwaway key that a release refuses); no private key exists in either repo. Gating new work costs one bridge call (`settings.get`); in-flight work never checks. The public cores needed no extension point for this; a Pro feature that needs a Free seam adds the smallest MIT one here first |
 
 ## 13. Editions and licensing
 
