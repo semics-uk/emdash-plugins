@@ -776,7 +776,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -795,7 +795,7 @@
 			"unblocks": [
 				"T034"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T034": {
 			"file": "T034-phase-1-gate-review-and-budgets.md",
@@ -818,7 +818,7 @@
 				"T060",
 				"T071"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T040": {
 			"file": "T040-events-manifest-storage-and-settings-schema.md",
@@ -2232,7 +2232,6 @@
 	},
 	"columns": {
 		"backlog": [
-			"T034",
 			"T057",
 			"T060",
 			"T061",
@@ -2274,12 +2273,12 @@
 			"T106"
 		],
 		"ready": [
+			"T034",
 			"T043",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T033",
 			"T056"
 		],
 		"review": [],
@@ -2316,6 +2315,7 @@
 			"T030",
 			"T031",
 			"T032",
+			"T033",
 			"T040",
 			"T041",
 			"T042",
@@ -2339,11 +2339,10 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T033",
-		"T034",
-		"T060",
-		"T061",
-		"T062",
+		"T056",
+		"T057",
+		"T063",
+		"T064",
 		"T065",
 		"T066",
 		"T067",
