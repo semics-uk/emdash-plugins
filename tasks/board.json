@@ -1088,7 +1088,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1102,7 +1102,7 @@
 			"unblocks": [
 				"T056"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T052": {
 			"file": "T052-events-block-kit-admin-pages-csv-export-dashboard-widget.md",
@@ -2278,13 +2278,13 @@
 		"ready": [
 			"T032",
 			"T043",
-			"T051",
 			"T054",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T031"
+			"T031",
+			"T051"
 		],
 		"review": [],
 		"done": [
