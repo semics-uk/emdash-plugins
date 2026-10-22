@@ -45,6 +45,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] Full playground e2e passes on main after T100 (T100 skipped it; the reserve ipSalt write is the change near it)
 - [ ] Bump vitest to ≥4.1.12 (dev-only audit advisory, T100) and re-run verify in both repos
 - [ ] Decide whether E-sign Pro's PDF active-content refusal should also cover GoToR, GoToE and embedded files (accepted at severity 4 in tasks/reviews/security.md); record as a §12 row
+- [ ] Pro pro.json drops the Free manifest's new sections and release fields (drop: ["sections", "release"]) before any Pro registry validate or publish (follow-up from T103)
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
