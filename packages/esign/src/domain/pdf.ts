@@ -6,7 +6,7 @@
  * (`renderPdf`, T016), so the same envelope always renders the same bytes; `pdfSha256` is the
  * SHA-256 of those bytes and the download serves them unchanged.
  *
- * Layout: the document (snapshot text, then the signature block), then a certificate of
+ * Layout: the document (the snapshot's parsed Markdown, then the signature block), then a certificate of
  * completion: the envelope facts, every audit event in order, the audit chain head and the
  * envelope's `finalHash` (T023). The certificate wording is owned here and never claims more than
  * a simple electronic signature.
@@ -17,6 +17,8 @@
  * chunks again.
  */
 import { type PdfBlock, type PdfDocument, renderPdf, sha256Hex } from "@semics-tech/shared";
+// The ceremony's own parser (pure, no imports), so the PDF shows the document the way the page did.
+import { parseSnapshot, type Block as SnapshotBlock, type Inline as SnapshotInline } from "../astro/lib/markdown";
 import type { AuditEventDoc } from "./audit";
 import type { EnvelopeDoc, SignerDoc } from "./envelopes";
 
@@ -50,7 +52,10 @@ export interface StoredPdf {
 export interface SignedPdfInput {
 	envelopeId: string;
 	envelope: Pick<EnvelopeDoc, "title" | "docSha256" | "completedAt" | "finalHash" | "signerFields">;
-	signer: Pick<SignerDoc, "name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion" | "fieldValues">;
+	signer: Pick<
+		SignerDoc,
+		"name" | "as" | "participant" | "signature" | "signedAt" | "consentVersion" | "consentSha256" | "fieldValues"
+	>;
 	/** The frozen snapshot text (its SHA-256 is `docSha256`). */
 	snapshot: string;
 	/** The whole audit chain in seq order, already verified against `head`. */
@@ -70,25 +75,66 @@ const CAPACITY: Record<SignerDoc["as"], string> = { self: "Self", guardian: "Par
 /** `2026-10-21T10:00:00.000Z` → `2026-10-21 10:00:00 UTC`. */
 const utc = (iso: string | null | undefined) => (iso ? `${iso.slice(0, 10)} ${iso.slice(11, 19)} UTC` : "");
 
-/** The snapshot as PDF blocks: `#` lines become headings, blank lines separate paragraphs. */
+type Inline = SnapshotInline;
+
+/** The visible text of inline nodes: emphasis and code as their text, a link as `text (href)`. */
+function inlineText(nodes: readonly Inline[]): string {
+	return nodes
+		.map((n) => {
+			switch (n.type) {
+				case "text":
+				case "code":
+					return n.text;
+				case "break":
+					return "\n";
+				case "link": {
+					const label = inlineText(n.children);
+					return label === n.href ? label : `${label} (${n.href})`;
+				}
+				default:
+					return inlineText(n.children);
+			}
+		})
+		.join("");
+}
+
+/**
+ * The snapshot as PDF blocks, from the same parsed tree the ceremony renders (`parseSnapshot`, T117):
+ * headings, paragraphs, list items (bullet or number), quotes (italic), code verbatim and rules. The
+ * PDF writer has no inline styles, so emphasis shows as its plain text and a link as `text (href)`;
+ * anything the parser leaves literal (an unsafe link, an image) stays literal, as on the page.
+ */
 function snapshotBlocks(text: string): PdfBlock[] {
-	const blocks: PdfBlock[] = [];
-	let para: string[] = [];
-	const flush = () => {
-		if (para.length > 0) blocks.push({ type: "paragraph", text: para.join("\n") });
-		para = [];
+	const out: PdfBlock[] = [];
+	const walk = (tree: readonly SnapshotBlock[], quoted: boolean) => {
+		for (const b of tree) {
+			switch (b.type) {
+				case "heading":
+					out.push({ type: "heading", text: inlineText(b.children), level: Math.min(b.level, 3) as 2 | 3 });
+					break;
+				case "paragraph":
+					out.push({ type: "paragraph", text: inlineText(b.children), ...(quoted ? { font: "italic" as const } : {}) });
+					break;
+				case "list":
+					b.items.forEach((item, i) => {
+						const marker = b.ordered ? `${(b.start ?? 1) + i}.` : "\u2022";
+						out.push({ type: "paragraph", text: `${marker} ${inlineText(item)}`, ...(quoted ? { font: "italic" as const } : {}) });
+					});
+					break;
+				case "quote":
+					walk(b.children, true);
+					break;
+				case "code":
+					out.push({ type: "paragraph", text: b.text, size: 9 });
+					break;
+				case "rule":
+					out.push({ type: "rule" });
+					break;
+			}
+		}
 	};
-	for (const line of text.split("\n")) {
-		const heading = /^(#{1,6})\s+(.*)$/.exec(line);
-		if (heading) {
-			flush();
-			const level = Math.min((heading[1] as string).length, 3) as 1 | 2 | 3;
-			blocks.push({ type: "heading", text: (heading[2] as string).trim(), level });
-		} else if (line.trim() === "") flush();
-		else para.push(line);
-	}
-	flush();
-	return blocks;
+	walk(parseSnapshot(text), false);
+	return out;
 }
 
 function signatureBlock(signer: SignedPdfInput["signer"]): PdfBlock {
@@ -138,6 +184,7 @@ export function signedPdfDocument(input: SignedPdfInput): PdfDocument {
 		["Signature", signature?.kind === "drawn" ? "Drawn" : "Typed"],
 		["Signature SHA-256", signature?.sha256 ?? ""],
 		["Consent version", signer.consentVersion ?? ""],
+		...(signer.consentSha256 ? [["Consent wording SHA-256", signer.consentSha256]] : []),
 		["Signed", utc(signer.signedAt)],
 		["Completed", utc(envelope.completedAt)],
 		["Audit events", String(events.length)],
