@@ -464,3 +464,40 @@ describe("ES-FR-22 deletion on request (admin)", () => {
 		expect(JSON.stringify(none.value)).toContain("No envelopes");
 	});
 });
+
+describe("ES-FR-17 deletion on request finds drafts by signer email (T092)", () => {
+	const erase = (budget: BudgetedHost, value: string) =>
+		budget.invokeRoute("admin", { type: "block_action", page: "/envelopes", action_id: "retention.erase", value });
+
+	it("ES-FR-17 a draft is found by its signer's email, though it has no signer document", async () => {
+		const { budget, templateId } = await setup();
+		const created = (
+			await budget.invokeRoute("envelopes/create", {
+				templateId,
+				signer: { name: "Ada Lovelace", email: "Ada@Example.com" },
+				fields: { event: "Gig" },
+			})
+		).value as { envelope: { id: string } };
+		const id = created.envelope.id;
+		const preview = await budget.invokeRoute("admin", {
+			type: "form_submit",
+			page: "/envelopes",
+			action_id: "retention.preview",
+			values: { subject: "ada@example.com" },
+		});
+		expectWithinBudget(preview, TARGET);
+		expect(JSON.stringify(preview.value)).toContain("1 envelope(s) to delete");
+		expectWithinBudget(await erase(budget, "ada@example.com"), TARGET);
+		expect(await host().inspect.storage.get("envelopes", id)).toBeNull();
+		expect(await eventsOf(id)).toEqual([]);
+	});
+
+	it("ES-FR-17 the lookup copy of the email is cleared with the rest of the personal data", async () => {
+		const { budget, templateId } = await setup();
+		const id = await sent(budget, templateId);
+		expect((await envelopeOf(id)).signerEmail).toBe("ada@example.com");
+		await budget.invokeRoute("envelopes/void", { id });
+		expectWithinBudget(await erase(budget, id), TARGET);
+		expect(await envelopeOf(id)).not.toHaveProperty("signerEmail");
+	});
+});
