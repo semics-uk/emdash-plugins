@@ -1,13 +1,11 @@
 import { expect, test } from "@playwright/test";
 
 // Spike S2 (EU-FR-02): SSR components reach the sandboxed core's public routes in-process.
-// The temporary public/probe route was removed after the spike (findings in BUILD-PLAN §7), so the
-// success case is skipped. T009 should repoint it at the first real public route.
+// T054 pointed the page at the first real public route, `public/events` (T046).
 
-test("EU-FR-02 a page server-renders data returned by the sandboxed public/probe route", async ({
+test("EU-FR-02 a page server-renders data returned by the sandboxed public/events route", async ({
 	browser,
 }) => {
-	test.skip(true, "public/probe removed after Spike S2 (T004); repoint at the first real public route in T009");
 	// No JavaScript: whatever is on the page was rendered on the server.
 	const context = await browser.newContext({ javaScriptEnabled: false });
 	const page = await context.newPage();
@@ -18,8 +16,8 @@ test("EU-FR-02 a page server-renders data returned by the sandboxed public/probe
 	await expect(result).toHaveAttribute("data-state", "ok");
 	await expect(result).toHaveAttribute("data-via", "in-process");
 	await expect(page.getByTestId("s2-plugin-id")).toHaveText("semics-events");
-	await expect(page.getByTestId("s2-method")).toHaveText("POST");
-	await expect(page.getByTestId("s2-echo")).toHaveText('{"ping":"s2"}');
+	await expect(page.getByTestId("s2-method")).toHaveText("GET");
+	await expect(page.getByTestId("s2-echo")).toHaveText("London Community Meetup,New York Design Workshop,Sydney Summit");
 	await context.close();
 });
 
