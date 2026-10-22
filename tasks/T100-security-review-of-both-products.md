@@ -44,6 +44,7 @@ Write these tests before any implementation and confirm they fail for the right 
 - [ ] CSV formula defence also covers full-width `＝ ＋ － ＠` (T057 review F13)
 - [ ] Confirm the T117 exception: the E-sign core imports the pure, import-free `src/astro/lib/markdown.ts` for the signed PDF; it must stay dependency-free (add a test that it imports nothing)
 - [ ] E-sign Pro `public/self-serve/start` runs at exactly 10 bridge calls (T093): get it to ≤ 9 so an error-path log can never be the 11th; clean up `ss:cap:<template>:<day>` KV counters
+- [ ] Shared `rateLimit` KV keys (`rl:<scope>:<hash>:<window>`) are never deleted (KV has no TTL; T081): sweep expired windows in both cores' retention jobs
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
