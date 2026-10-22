@@ -1,0 +1,5 @@
+---
+"@semics-tech/emdash-events": minor
+---
+
+Promo codes in the booking widget and fixes from the Phase 4 payments review. When the core takes promo codes (Events Pro says so in `public/event` with `promoCodes: true`) the widget shows a "Promo code" field with its own "Apply code" form, posted to the new injected `POST /_events/promo` (Origin-checked, works without JavaScript): it asks `public/promo/check`, keeps an accepted code in an HttpOnly cookie for the event (never in a URL), shows what it takes off and, for an unlock code, the hidden ticket types it reveals; the order then carries the code as `promoCode`. Free sites show no field and send no `promoCode`. Fixes: `webhooks/stripe` in the Free core now answers 503 instead of a 200 refusal, so a Stripe payment made after switching from Pro back to Free is redelivered once Pro is back rather than lost; and continuing a paid waiver booking that awaits payment ("Pay now") keeps its stored attendees, so an adult who signs by email keeps their own name, email and ticket code.

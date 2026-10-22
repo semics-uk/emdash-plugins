@@ -51,8 +51,13 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `awaiting_payment` through a `PaymentStep` seam that Free leaves empty (`PAYMENT_FAILED`): `prepare` sees the
   booking as read (`held` = new, `awaiting_payment` = in-flight) and the settings, may refuse before any write; then
   `start(holdExpiresAt)` (Pro Stripe, T073: 5 Free calls + fetch + payment record = 7). A waiver booking already
-  `awaiting_payment` keeps its signed attendees (`keepSigned`, +1 = 8). The
+  `awaiting_payment` continued without attendee details keeps its stored seats, unsigned ones too, and writes none back
+  (T078: an emailed adult keeps their own name; 7 with the provider); given new details it keeps the signed seats
+  (`keepSigned`, +1 = 8). The
   status graph and next-step rule live in `src/domain/booking-state.ts`.
+- Free's `webhooks/stripe` is a raw route answering 503 `WEBHOOK_NOT_HANDLED` (T078), never a 200 refusal: a site
+  switched back from Pro must make Stripe keep (and redeliver) payments for Pro's sessions. Pro's confirm leaves a
+  waiver booking's `pending` attendees pending (their waiver is unsigned; check-in refuses them).
 - Payment webhook (Pro, T074): the Pro build replaces the `webhooks/stripe` stub and composes the Free domain
   modules directly (`booking-state`, `holds`: `planExpiries`/`expireBookings`, `inventory`: `reserve`,
   `release`, `confirmSold`, `planReservation`), so keep their signatures stable. It confirms an
@@ -160,6 +165,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   `refunded`, `refunded_unavailable`). `src/client/payment.ts` re-reads the page (cookie goes along) at 3, 5, 8, 13, 21, 30 s, then
   un-hides "we will email you"; no-JS has "Check again" and "Pay now" (`intent=resume` -> `resumePayment`: continue with the cookie
   token, follow `pay`). Only `https:` pay URLs are followed (`handleCheckoutForm`, `resumePayment`, the suite).
+- Promo codes in the widget (T078, EV-FR-14; codes are Pro's): `<BookingWidget>` shows a "Promo code" field only when
+  `public/event` answers `promoCodes: true` (Pro adds it). The field and "Apply code" belong to a separate hidden form
+  (`form=` attributes, so Enter in the order's fields still books) posted to the injected `POST /_events/promo`
+  (`src/astro/lib/promo.ts`, `handlePromoRequest`: Origin check, `public/promo/check`, HttpOnly Lax cookie
+  `semics_promo_<eventId>` for 30 min, back to the widget; refusals as `booking_error=PROMO_*&booking_fields=promo`, never
+  the code). The widget re-checks the cookie's code on render (`promoView`), lists an unlock code's hidden types and puts
+  the applied code in a hidden `promoCode` field of the order; `handleCheckoutForm` sends `promoCode` only when present
+  (Free's reserve refuses unknown keys).
 - UI (T054): `<EventList>` (also the `events-list` block) calls `public/events` through `callPublicRoute` with the
   integration's `pluginId` (virtual config module) and renders `<EventCard>`s, no client JS; states `ok`, `empty`,
   `error` (`data-state`). Time and price formatting is the pure `src/astro/lib/list.ts` (`cardView`,
