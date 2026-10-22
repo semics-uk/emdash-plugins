@@ -17,7 +17,7 @@ import { bundlePlugin } from "@emdash-cms/plugin-cli";
 /** The registry's per-file cap on `backend.js`. */
 export const REGISTRY_FILE_LIMIT = 128 * 1024;
 /** Room kept free under the cap for Pro features (R42). */
-export const BUNDLE_HEADROOM = 16 * 1024; // R47 (was 24 KiB, R42)
+export const BUNDLE_HEADROOM = 12 * 1024; // R51 (was 16 KiB R47, 24 KiB R42)
 /** Largest `backend.js` a build may produce. */
 export const BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - BUNDLE_HEADROOM;
 
