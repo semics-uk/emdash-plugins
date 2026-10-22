@@ -87,6 +87,31 @@ async function calendarFile(page: Page, request: APIRequestContext): Promise<str
 	return res.text();
 }
 
+function cronTasks(plugin: string): string[] {
+	const db = new DatabaseSync(DB, { readOnly: true });
+	try {
+		const rows = db
+			.prepare("SELECT task_name FROM _emdash_cron_tasks WHERE plugin_id = ? ORDER BY task_name")
+			.all(plugin) as Array<{ task_name: string }>;
+		return rows.map((r) => r.task_name);
+	} finally {
+		db.close();
+	}
+}
+
+// T116 (R37): EmDash 1.2 never runs `plugin:activate` for the config-declared sandboxed core, so the
+// core schedules its own crons from the first public read (the widget's `public/event`).
+test("T116 the core schedules sweep-holds and outbox-drain without plugin:activate", async ({ page, request }) => {
+	await page.goto("/events/london-meetup");
+	await expect(page.getByTestId("booking-widget")).toBeVisible();
+	await expect
+		.poll(() => cronTasks("semics-events"), { timeout: 20_000 })
+		.toEqual(expect.arrayContaining(["outbox-drain", "sweep-holds"]));
+	const ran = (await (await request.post("/e2e/cron?task=outbox-drain")).json()) as Record<string, unknown>;
+	expect(ran).toMatchObject({ ok: true, scheduled: 1 });
+	expect(ran).not.toHaveProperty("activated");
+});
+
 test("Phase 2 journey: list → book → email (captured) → open from the email → ICS → cancel", async ({
 	browser,
 	request,
