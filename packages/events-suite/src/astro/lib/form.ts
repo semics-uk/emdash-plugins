@@ -81,7 +81,13 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 
 	const attendees: WaiverAttendee[] = [];
 	const rows: number[] = [];
-	for (let row = 1; row <= MAX_SEATS; row++) {
+	// An event that needs no waiver (T066) is booked by ticket type and quantity: no attendee rows.
+	const plain = form.get("plain") === "1";
+	const plainType = text(form, "ticketTypeId");
+	const plainQty = Number(text(form, "qty"));
+	if (plain && !(plainType && Number.isInteger(plainQty) && plainQty >= 1 && plainQty <= MAX_SEATS))
+		bad.push("tickets");
+	for (let row = 1; row <= (plain ? 0 : MAX_SEATS); row++) {
 		const name = text(form, seatField(row, "name"));
 		const email = text(form, seatField(row, "email"));
 		const minor = form.get(seatField(row, "minor")) === "on";
@@ -93,10 +99,10 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 		attendees.push({ ticketTypeId, name, ...(email ? { email } : {}), ...(minor ? { minor: true as const } : {}) });
 		rows.push(row);
 	}
-	if (attendees.length === 0) bad.push("attendees");
+	if (!plain && attendees.length === 0) bad.push("attendees");
 	if (bad.length > 0) return { ok: false, code: control ? "CONTROL_CHARACTERS" : "BAD_REQUEST", fields: bad };
 
-	const counts = new Map<string, number>();
+	const counts = new Map<string, number>(plain ? [[plainType, plainQty]] : []);
 	for (const a of attendees) counts.set(a.ticketTypeId, (counts.get(a.ticketTypeId) ?? 0) + 1);
 	const turnstileToken = text(form, "cf-turnstile-response");
 	return {
@@ -126,7 +132,8 @@ export const WAIVER_MESSAGES: Record<string, string> = {
 	TURNSTILE_FAILED: "The security check did not pass. Please try again.",
 	HOLD_EXPIRED: "Your hold on these tickets expired. Please start again.",
 	NOT_FOUND: "This event is not taking bookings.",
-	SIGNING_UNAVAILABLE: "Waivers for this event cannot be signed online right now. Please contact the organiser.",
+	SIGNING_UNAVAILABLE:
+		"The waiver could not be opened for signing just now. Your tickets are still held for a short time: try again, or contact the organiser.",
 	INTERNAL: "Something went wrong. Please try again.",
 };
 
@@ -166,7 +173,7 @@ export function waiverErrorLocation(
 }
 
 const KNOWN_FIELD = new RegExp(
-	`^(event|occurrence|name|email|attendees|attendee\\.([1-9]|${MAX_SEATS})\\.(ticketTypeId|name|email))$`,
+	`^(event|occurrence|name|email|tickets|attendees|attendee\\.([1-9]|${MAX_SEATS})\\.(ticketTypeId|name|email))$`,
 );
 
 /** The refusal a widget shows after a round trip; only for the widget of `eventId`. */

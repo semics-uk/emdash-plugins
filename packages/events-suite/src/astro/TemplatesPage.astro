@@ -1,0 +1,73 @@
+---
+// Injected at `/_events/templates` by the suite (SX-FR-07): where the Events panel's "Refresh templates"
+// lands. The panel (Events Pro) links to `/_events/templates#catalog=<request>`, a short-lived signed
+// request minted where the pairing secret lives. The request stays in the fragment: Events'
+// `receipt.ts` client script clears it and posts it here; this page asks E-sign for the catalogue in
+// process and hands it to Events, whose panel then offers the templates in a select. No account is
+// needed: the request itself is the credential (five minutes, read-only), and Events checks it again.
+import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
+import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+
+import { refreshCatalogue, TEMPLATES_PATH } from "./lib/templates";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const MESSAGES: Record<string, string> = {
+	REQUEST_INVALID: "This refresh link is not valid. Press Refresh templates in the event panel again.",
+	TOKEN_EXPIRED: "This refresh link expired. Press Refresh templates in the event panel again.",
+	TOKEN_INVALID: "This refresh link is not valid. Press Refresh templates in the event panel again.",
+	NOT_FOUND: "Refreshing templates needs Events Pro and the E-sign plugin on this site.",
+};
+
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
+let count = -1;
+let error = "";
+if (Astro.request.method === "POST") {
+	const form = await Astro.request.formData().catch(() => new FormData());
+	const result = await refreshCatalogue(
+		{ locals: Astro.locals, url: Astro.url, request: Astro.request },
+		form.get("catalog"),
+		{ eventsPluginId, esignPluginId },
+	);
+	if (result.ok) count = result.count;
+	else error = MESSAGES[result.code] ?? "The templates could not be refreshed. Please try again.";
+}
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Refresh waiver templates</title>
+	</head>
+	<body>
+		<main data-testid="templates-page">
+			<h1>Refresh waiver templates</h1>
+			{error && <p role="alert" data-testid="templates-error">{error}</p>}
+			{
+				count >= 0 && (
+					<p data-testid="templates-done">
+						{count === 0
+							? "E-sign has no templates available to integrations yet. Mark a template as available in E-sign, then refresh again."
+							: count === 1
+								? "One template loaded."
+								: `${count} templates loaded.`}{" "}
+						Reload the event panel to choose one.
+					</p>
+				)
+			}
+			{count < 0 && !error && <p>Fetching the templates…</p>}
+			<form method="post" action={TEMPLATES_PATH} data-semics-fragment="catalog" hidden>
+				<input type="hidden" name="catalog" value="" />
+			</form>
+		</main>
+		<script>
+			import "@semics-tech/emdash-events/client/receipt";
+		</script>
+	</body>
+</html>

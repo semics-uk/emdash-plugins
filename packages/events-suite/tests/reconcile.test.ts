@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { TEMPLATES_PATH, refreshCatalogue } from "../src/astro/lib/templates";
 import { reconcileBooking } from "../src/astro/lib/reconcile";
+import { refreshCatalogue, TEMPLATES_PATH } from "../src/astro/lib/templates";
 
 // Reconciliation and catalogue refresh (SX-FR-05, SX-FR-07): a booking waiting for signatures is
 // brought up to date from e-sign when its status page loads (a signer who closed the tab, or signed
@@ -33,7 +32,10 @@ function host(routes: Record<string, (body: Body) => Answer>) {
 		calls.push({ id, path, body });
 		return (routes[`${id} ${path}`] ?? (() => refused("NOT_FOUND")))(body);
 	};
-	return { calls, ctx: { locals: { emdash: { handlePublicPluginApiRoute: handler } } as never, url: new URL(`${ORIGIN}/booking`) } };
+	return {
+		calls,
+		ctx: { locals: { emdash: { handlePublicPluginApiRoute: handler } } as never, url: new URL(`${ORIGIN}/booking`) },
+	};
 }
 
 /** The booking page's data while two seats wait: seat 1 closed its tab, seat 2 is still unsigned. */
@@ -185,7 +187,9 @@ describe("catalogue refresh (SX-FR-07)", () => {
 		const sent: Body[] = [];
 		const h = host({
 			[`${ESIGN} public/templates/catalog`]: () =>
-				ok({ templates: [...templates, { id: "bad id!", name: "x", version: 1 }, { id: "tpl_n", name: 5, version: 1 }] }),
+				ok({
+					templates: [...templates, { id: "bad id!", name: "x", version: 1 }, { id: "tpl_n", name: 5, version: 1 }],
+				}),
 			[`${EVENTS} esign/catalog`]: (body) => {
 				sent.push(body);
 				return ok({ count: 2 });

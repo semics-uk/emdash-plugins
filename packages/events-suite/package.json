@@ -13,7 +13,9 @@
 		},
 		"./astro": "./src/astro/index.js",
 		"./astro/BookingWithWaiver.astro": "./src/astro/BookingWithWaiver.astro",
-		"./astro/WaiverPage.astro": "./src/astro/WaiverPage.astro"
+		"./astro/WaiverPage.astro": "./src/astro/WaiverPage.astro",
+		"./astro/TemplatesPage.astro": "./src/astro/TemplatesPage.astro",
+		"./astro/lib/*": "./src/astro/lib/*.ts"
 	},
 	"files": [
 		"dist",

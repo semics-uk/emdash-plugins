@@ -1,5 +1,5 @@
 import { createHmac, randomInt } from "node:crypto";
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 import { route } from "./harness/esign-journey";
 
@@ -16,25 +16,19 @@ const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const newRef = () => Array.from({ length: 10 }, () => CROCKFORD[randomInt(32)]).join("");
 const visitor = () => ({ "x-forwarded-for": `198.51.100.${randomInt(1, 250)}` });
 
-async function fillAttendee(page: Page, n: number, name: string, options: { minor?: boolean; email?: string } = {}) {
-	await page.getByLabel(`Attendee ${n} name`).fill(name);
-	if (options.email) await page.getByLabel(`Attendee ${n} email (optional)`).fill(options.email);
-	if (options.minor) await page.getByLabel(`Attendee ${n} is under 18`).check();
-}
-
 test("SX-FR-02 Free: the waiver booking completes in one flow (no JS) and lands confirmed", async ({ browser }) => {
 	const context = await browser.newContext({ javaScriptEnabled: false, extraHTTPHeaders: visitor() });
 	const page = await context.newPage();
 	await page.goto(PAGE);
 	const widget = page.getByTestId("booking-with-waiver");
 	await expect(widget.getByRole("heading", { name: "Book with waiver" })).toBeVisible();
-	// One "under 18" control per attendee row.
-	await expect(widget.getByRole("checkbox", { name: /is under 18/i })).toHaveCount(4);
+	// T066: this event needs no waiver (`public/event` says so), so no attendee rows: ticket and quantity.
+	await expect(widget.getByTestId("waiver-plain")).toBeVisible();
+	await expect(widget.getByRole("checkbox", { name: /is under 18/i })).toHaveCount(0);
 
 	await page.getByLabel("Your name").fill("Ada Lovelace");
 	await page.getByLabel("Your email").fill("ada@example.com");
-	await fillAttendee(page, 1, "Ada Lovelace");
-	await fillAttendee(page, 2, "Byron Lovelace", { minor: true });
+	await widget.getByLabel("How many").fill("2");
 	await widget.getByRole("button", { name: "Book" }).click();
 
 	await expect(page).toHaveURL(/\/booking\?ref=[0-9A-Z]{10}$/);
@@ -47,11 +41,9 @@ test("SX-FR-02 a name with a control character is refused before anything is boo
 	const context = await browser.newContext({ extraHTTPHeaders: visitor() });
 	const page = await context.newPage();
 	await page.goto(PAGE);
-	await page.getByLabel("Your name").fill("Ada Lovelace");
 	await page.getByLabel("Your email").fill("ada@example.com");
-	await fillAttendee(page, 1, "Ada Lovelace");
 	// A pasted bell character: e-sign would refuse the intent (esign-intent/1 §5 `name`).
-	await page.getByLabel("Attendee 2 name").evaluate((input: HTMLInputElement) => {
+	await page.getByLabel("Your name").evaluate((input: HTMLInputElement) => {
 		input.value = "Byron\u0007Lovelace";
 	});
 	await page.getByTestId("booking-with-waiver").getByRole("button", { name: "Book" }).click();
@@ -59,7 +51,7 @@ test("SX-FR-02 a name with a control character is refused before anything is boo
 	await expect(page).toHaveURL(/waiver_error=CONTROL_CHARACTERS/);
 	expect(page.url()).not.toContain("Byron");
 	await expect(page.getByTestId("waiver-alert")).toContainText("control characters");
-	await expect(page.getByLabel("Attendee 2 name")).toHaveAttribute("aria-invalid", "true");
+	await expect(page.getByLabel("Your name")).toHaveAttribute("aria-invalid", "true");
 	await context.close();
 });
 

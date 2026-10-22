@@ -36,7 +36,7 @@ describe("suite boundaries (SX-FR-01, SX-FR-02)", () => {
 
 	it("SX-FR-02 imports only the products' public entry points, never a core's internals", () => {
 		const allowed =
-			/^(\.{1,2}\/|emdash($|\/)|virtual:semics-events-suite\/config$|@semics-tech\/emdash-(events|esign)(\/(ui|integration|astro(\/lib\/[a-z-]+|\/[A-Za-z]+\.astro)?))?$)/;
+			/^(\.{1,2}\/|emdash($|\/)|virtual:semics-events-suite\/config$|@semics-tech\/emdash-(events|esign)(\/(ui|integration|client\/receipt|astro(\/lib\/[a-z-]+|\/[A-Za-z]+\.astro)?))?$)/;
 		const offenders = sources.flatMap(({ path, text }) =>
 			imports(text)
 				.filter((spec) => !allowed.test(spec))

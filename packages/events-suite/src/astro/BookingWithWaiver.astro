@@ -58,7 +58,10 @@ const when = (iso: string) => {
 		return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(new Date(iso));
 	}
 };
-const rows = Array.from({ length: seats }, (_, i) => i + 1);
+// Attendee rows are only for an event whose waiver is required (`public/event` says so, T066); any other
+// event is booked by ticket type and quantity, as a plain booking.
+const needsWaiver = data?.waiver === true;
+const rows = needsWaiver ? Array.from({ length: seats }, (_, i) => i + 1) : [];
 const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 ---
 <section id={id} class="semics-events semics-waiver-widget" aria-labelledby={`${id}-title`} data-testid="booking-with-waiver">
@@ -102,10 +105,31 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 					</div>
 				</fieldset>
 
-				<p class="semics-note" id={`${id}-who`}>
-					List everyone attending, including you if you are going. You sign the waiver now, for yourself and
-					for anyone under 18. Other adults need their own email address: they are sent their waiver to sign.
-				</p>
+				{!needsWaiver && (
+					<fieldset data-testid="waiver-plain">
+						<legend>Tickets</legend>
+						<input type="hidden" name="plain" value="1" />
+						<div class="semics-field">
+							<label for={`${id}-plain-type`}>Ticket</label>
+							<select id={`${id}-plain-type`} name="ticketTypeId" aria-invalid={bad("tickets")}>
+								{ticketTypes.map((t) => (
+									<option value={t.id}>{t.name} ({price(t.priceMinor)})</option>
+								))}
+							</select>
+						</div>
+						<div class="semics-field">
+							<label for={`${id}-plain-qty`}>How many</label>
+							<input id={`${id}-plain-qty`} name="qty" type="number" min="1" max={MAX_SEATS} value="1" required aria-invalid={bad("tickets")} />
+						</div>
+					</fieldset>
+				)}
+
+				{needsWaiver && (
+					<p class="semics-note" id={`${id}-who`}>
+						List everyone attending, including you if you are going. You sign the waiver now, for yourself and
+						for anyone under 18. Other adults need their own email address: they are sent their waiver to sign.
+					</p>
+				)}
 				{bad("attendees") && <p class="semics-field-error" data-testid="waiver-attendees-error">Add at least one attendee, and an email for each other adult.</p>}
 
 				{rows.map((n) => (
@@ -138,7 +162,7 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 					</fieldset>
 				))}
 
-				{single && <p class="semics-note">{single.name}: {price(single.priceMinor)} per attendee.</p>}
+				{needsWaiver && single && <p class="semics-note">{single.name}: {price(single.priceMinor)} per attendee.</p>}
 
 				{siteKey && (
 					<>

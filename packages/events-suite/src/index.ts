@@ -58,6 +58,10 @@ const VIRTUAL = "virtual:semics-events-suite/config";
 const RESOLVED = `\0${VIRTUAL}`;
 /** The suite's own page: the inline signing step of <BookingWithWaiver>. */
 export const WAIVER_ROUTE = "/_events/waiver";
+/** The suite's catalogue page: where the Events panel's Refresh templates link lands (T066). */
+export const TEMPLATES_ROUTE = "/_events/templates";
+/** What Events' booking page runs for a booking waiting for signatures (T066). */
+const RECONCILE_MODULE = "@semics-tech/emdash-events-suite/astro/lib/reconcile";
 
 /**
  * Injects `/_events/waiver` (the booking and signing steps of `<BookingWithWaiver>`) and gives it,
@@ -75,6 +79,11 @@ export function suiteIntegration(ids: { eventsPluginId: string; esignPluginId: s
 				injectRoute({
 					pattern: WAIVER_ROUTE,
 					entrypoint: "@semics-tech/emdash-events-suite/astro/WaiverPage.astro",
+					prerender: false,
+				});
+				injectRoute({
+					pattern: TEMPLATES_ROUTE,
+					entrypoint: "@semics-tech/emdash-events-suite/astro/TemplatesPage.astro",
 					prerender: false,
 				});
 				updateConfig({
@@ -111,7 +120,7 @@ export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 		sandboxed: [events.descriptor, esign.descriptor].filter((d): d is PluginDescriptor => d !== undefined),
 		plugins: [eventsUi(), esignUi()],
 		integrations: [
-			eventsIntegration({ pluginId: events.id, esignPluginId: esign.id }),
+			eventsIntegration({ pluginId: events.id, esignPluginId: esign.id, reconcile: RECONCILE_MODULE }),
 			esignIntegration({ pluginId: esign.id }),
 			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id }),
 		],

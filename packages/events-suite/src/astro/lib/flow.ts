@@ -120,7 +120,7 @@ function fieldsOf(issues: ReadonlyArray<{ path?: unknown }> | undefined, order: 
 		else if (path.startsWith("buyer.name")) out.add("name");
 		else if (path.startsWith("buyer.email")) out.add("email");
 		else if (path.startsWith("occurrenceId")) out.add("occurrence");
-		else if (path.startsWith("lines")) out.add("attendees");
+		else if (path.startsWith("lines")) out.add(order.rows.length > 0 ? "attendees" : "tickets");
 	}
 	return [...out];
 }
@@ -200,7 +200,8 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 		call,
 		ids.eventsPluginId,
 		"public/checkout/continue",
-		{ bookingRef: ref, accessToken, attendees: order.attendees },
+		// An event with no waiver is booked without attendee rows: Events plans the seats itself.
+		{ bookingRef: ref, accessToken, ...(order.attendees.length > 0 ? { attendees: order.attendees } : {}) },
 	);
 	if (!continued.ok) {
 		// Nothing to sign or pay for yet: release the held seats so a corrected order can have them.
@@ -210,14 +211,50 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 		return refuse(waiverIssue ? waiverIssue.code : code, fieldsOf(issues, order));
 	}
 
-	const next = continued.data.next;
+	return proceed(ctx, ids, ref, continued.data.next, cookies);
+}
+
+/** Follows continue's `next`: the provider, the booking page, or the signing step. */
+async function proceed(
+	ctx: WaiverRequestContext,
+	ids: SuiteIds,
+	ref: string,
+	next: { type?: unknown; url?: unknown; intents?: unknown } | undefined,
+	cookies: CookieOp[],
+): Promise<WaiverOutcome> {
 	if (next?.type === "pay" && typeof next.url === "string") return redirect(next.url, cookies);
 	if (next?.type !== "sign" || !Array.isArray(next.intents)) return redirect(bookingPage(ref), cookies);
 
+	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
 	const inline = await redeemIntents(call, ids, next.intents as Intent[]);
+	// E-sign refused an intent: the booking stays held, and the page offers a retry (below).
 	if (inline === null) return redirect(`${WAIVER_PATH}?ref=${ref}&error=SIGNING_UNAVAILABLE`, cookies);
 	if (inline.length === 0) return redirect(bookingPage(ref), cookies);
 	return redirect(`${WAIVER_PATH}?ref=${ref}`, [...cookies, flowCookie(ctx.url, ref, inline.slice(0, MAX_INLINE))]);
+}
+
+/**
+ * "Try again" after e-sign refused an intent (T066): continues the held booking once more with its
+ * booking cookie. No attendees are sent: Events keeps the stored ones, and Pro issues intents only for
+ * the seats that have not signed. A lapsed hold or a refusal comes back as an error on this page.
+ */
+async function retry(ctx: WaiverRequestContext, ids: SuiteIds): Promise<WaiverOutcome> {
+	const ref = ctx.url.searchParams.get("ref") ?? "";
+	if (!BOOKING_REF.test(ref)) return redirect(BOOKING_PATH);
+	const accessToken = ctx.cookie(bookingCookieName(ref));
+	if (!accessToken) return redirect(bookingPage(ref));
+	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
+	const continued = await post<{ next?: { type?: unknown; url?: unknown; intents?: unknown } }>(
+		call,
+		ids.eventsPluginId,
+		"public/checkout/continue",
+		{ bookingRef: ref, accessToken },
+	);
+	if (!continued.ok) {
+		const code = ERROR_CODE.test(continued.error.code) ? continued.error.code : "INTERNAL";
+		return redirect(`${WAIVER_PATH}?ref=${ref}&error=${code}`);
+	}
+	return proceed(ctx, ids, ref, continued.data.next, []);
 }
 
 /** The receipt a finished ceremony hands back (the fragment of `ceremonyRedirect(view)`, §8.2). */
@@ -281,5 +318,6 @@ export async function handleWaiverRequest(
 	if (isCrossSiteRequest(ctx.request, ctx.url)) return { type: "forbidden" };
 	const form = ctx.request.method === "POST" ? await ctx.request.formData().catch(() => new FormData()) : null;
 	if (form?.get("intent") === "book") return book(ctx, form, ids, deps);
+	if (form?.get("intent") === "retry") return retry(ctx, ids);
 	return sign(ctx, ids, form);
 }
