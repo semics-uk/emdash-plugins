@@ -82,6 +82,31 @@ describe("ES-FR-07 signed PDF and certificate", () => {
 		expect(text).not.toMatch(/qualified|advanced/i);
 	});
 
+	it("T034 the document shows the values the signer entered, labelled and in the sender's order", async () => {
+		const input = await fixture({ fieldValues: { nickname: "Countess", phone: "0123 456" } });
+		input.envelope.signerFields = [
+			{ key: "phone", label: "Phone number", required: true },
+			{ key: "nickname", label: "Nickname" },
+			{ key: "unused", label: "Left blank" },
+		];
+		const doc = signedPdfDocument(input);
+		const entries = doc.blocks.find((b) => b.type === "table" && JSON.stringify(b).includes("Phone number"));
+		expect(entries).toMatchObject({
+			rows: [
+				["Phone number", "0123 456"],
+				["Nickname", "Countess"],
+				["Left blank", ""],
+			],
+		});
+		// The entries belong to the signed document: before the signature, not only in the certificate.
+		const at = (pred: (b: (typeof doc.blocks)[number]) => boolean) => doc.blocks.findIndex(pred);
+		expect(at((b) => b === entries)).toBeLessThan(at((b) => b.type === "signature"));
+		expect(latin1((await renderSignedPdf(input)).bytes)).toContain("0123 456");
+		// No declared fields: no entries table.
+		const plain = signedPdfDocument(await fixture());
+		expect(plain.blocks.some((b) => b.type === "table" && JSON.stringify(b).includes("Phone number"))).toBe(false);
+	});
+
 	it("ES-FR-07 rendering is deterministic: the same envelope gives the same bytes", async () => {
 		const a = await renderSignedPdf(await fixture());
 		const b = await renderSignedPdf(await fixture());

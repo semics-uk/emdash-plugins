@@ -202,6 +202,69 @@ describe("ES-FR-11 admin pages in the host", () => {
 		expect(text(page)).not.toContain("EMDASH_ENCRYPTION_KEY is not set");
 	});
 
+	it("T034 the envelope list pages past the newest 100, keeping the status filter", async () => {
+		const { r, budget } = await setup();
+		const base = (await r.inspect.storage.list("envelopes")).length;
+		expect(base).toBe(0);
+		for (let i = 0; i < 101; i++) {
+			const at = new Date(Date.UTC(2026, 0, 1, 0, 0, i)).toISOString();
+			await r.fixtures.plugin.storage("envelopes", `env-${String(i).padStart(3, "0")}`, {
+				title: `Envelope ${String(i).padStart(3, "0")}`,
+				status: "sent",
+				signer: { name: "Ada", email: "ada@example.com", as: "self" },
+				signerIds: [],
+				createdAt: at,
+				updatedAt: at,
+			});
+		}
+		const first = await budget.invokeRoute("admin", { type: "form_submit", action_id: "envelopes.filter", values: { status: "sent" } });
+		expectWithinBudget(first, { calls: 8 });
+		const table = (first.value as { blocks: Array<Record<string, unknown>> }).blocks.find((b) => b.type === "table");
+		expect(text({ blocks: [table] })).toContain("Envelope 100");
+		expect(text({ blocks: [table] })).not.toContain("Envelope 000");
+		const cursor = table?.next_cursor;
+		expect(typeof cursor).toBe("string");
+		const pageAction = table?.page_action_id as string;
+		const next = await budget.invokeRoute("admin", { type: "block_action", action_id: pageAction, value: cursor });
+		expectWithinBudget(next, { calls: 8 });
+		const out = text(next.value as { blocks?: unknown });
+		expect(out).toContain("Envelope 000");
+		expect(out).not.toContain("Envelope 100");
+		// The filter survives paging: a draft never shows on the "sent" pages.
+		expect(pageAction).toBe("envelopes.page:sent");
+	});
+
+	it("T034 the new-envelope form takes signer fields, one per line, and creates the draft with them", async () => {
+		const { r, templateId } = await setup();
+		const form = await r.admin.act("/templates", "envelope.new", { value: templateId });
+		expect(text(form)).toContain("signerFields");
+		const res = await r.admin.submit(
+			"/envelopes",
+			"envelope.create",
+			{
+				title: "Gig waiver",
+				signerName: "Ada Lovelace",
+				signerEmail: "ada@example.com",
+				"field:event": "Gig",
+				signerFields: "phone: Phone number *\nnickname: Nickname\n\n",
+			},
+			{ blockId: `envelope-new:${templateId}` },
+		);
+		expect(text(res)).toContain("Draft created");
+		const rows = (await r.inspect.storage.list("envelopes")) as Row<{ signerFields?: unknown }>[];
+		expect(rows[0]?.data.signerFields).toEqual([
+			{ key: "phone", label: "Phone number", required: true },
+			{ key: "nickname", label: "Nickname" },
+		]);
+		const bad = await r.admin.submit(
+			"/envelopes",
+			"envelope.create",
+			{ signerName: "Ada", signerEmail: "ada@example.com", "field:event": "Gig", signerFields: "bad key: Label" },
+			{ blockId: `envelope-new:${templateId}` },
+		);
+		expect(text(bad)).toContain("Not saved");
+	});
+
 	it("ES-FR-11 admin actions stay within the bridge-call budget in the sandbox", async () => {
 		const { r, budget, templateId } = await setup();
 		const id = await draft(r, templateId);

@@ -1,3 +1,4 @@
+import { sha256Hex } from "@semics-tech/shared";
 import { describe, expect, it } from "vitest";
 import {
 	AUDIT_GENESIS,
@@ -19,6 +20,7 @@ import {
 } from "../src/domain/signing";
 
 const SHA = "a".repeat(64);
+const OPTS = { fieldValues: {}, salt: "ab".repeat(32) };
 const base = { consent: true, intent: true, docSha256: SHA, signature: { kind: "typed", typedName: "Ada" } };
 const codes = (input: unknown) => {
 	const r = parseSubmit(input);
@@ -81,21 +83,38 @@ describe("ES-FR-04 parseSubmit", () => {
 
 describe("ES-FR-04 signature binding and audit inputs", () => {
 	it("binds the signature to the document hash", async () => {
-		const a = await bindSignature(SHA, { kind: "typed", typedName: "Ada" });
-		const b = await bindSignature("b".repeat(64), { kind: "typed", typedName: "Ada" });
+		const a = await bindSignature(SHA, { kind: "typed", typedName: "Ada" }, OPTS);
+		const b = await bindSignature("b".repeat(64), { kind: "typed", typedName: "Ada" }, OPTS);
 		expect(a.sha256).toMatch(/^[0-9a-f]{64}$/);
 		expect(a.sha256).not.toBe(b.sha256);
 	});
 
+	it("T034 binds the values the signer entered, and salts the hash so a purged name cannot be guessed (R28)", async () => {
+		const typed = { kind: "typed", typedName: "Ada" } as const;
+		const salt = "ab".repeat(32);
+		const plain = await bindSignature(SHA, typed, { fieldValues: { phone: "0123" }, salt });
+		const other = await bindSignature(SHA, typed, { fieldValues: { phone: "0999" }, salt });
+		const none = await bindSignature(SHA, typed, { fieldValues: {}, salt });
+		const resalted = await bindSignature(SHA, typed, { fieldValues: { phone: "0123" }, salt: "cd".repeat(32) });
+		expect(new Set([plain.sha256, other.sha256, none.sha256, resalted.sha256]).size).toBe(4);
+		// Key order does not matter: the values are hashed in key order.
+		const ab = await bindSignature(SHA, typed, { fieldValues: { a: "1", b: "2" }, salt });
+		const ba = await bindSignature(SHA, typed, { fieldValues: { b: "2", a: "1" }, salt });
+		expect(ab.sha256).toBe(ba.sha256);
+		// Unsalted, a typed name could be confirmed from signatureSha256 alone after the retention purge.
+		const unsalted = await sha256Hex(JSON.stringify([SHA, "typed", "Ada", null, []]));
+		expect(none.sha256).not.toBe(unsalted);
+	});
+
 	it("builds the view, signed and declined events with request data only as personal fields", async () => {
 		const who = { ip: "203.0.113.9", ua: "UA" };
-		const signature = await bindSignature(SHA, { kind: "drawn", strokes: [dot] });
+		const signature = await bindSignature(SHA, { kind: "drawn", strokes: [dot] }, OPTS);
 		const args = { at: "t", docSha256: SHA, consentVersion: "1", signerName: "Ada" };
 		const signed = signedAuditEvents({ ...args, signature, who });
 		expect(signed.map((e) => e.type)).toEqual(["signer.consented", "signer.signed", "envelope.completed"]);
 		expect(signed[1]?.personal).toEqual({ name: "Ada", ...who });
 		expect(signed[2]?.personal).toBeUndefined();
-		const typed = await bindSignature(SHA, { kind: "typed", typedName: "A. Lovelace" });
+		const typed = await bindSignature(SHA, { kind: "typed", typedName: "A. Lovelace" }, OPTS);
 		expect(signedAuditEvents({ ...args, signature: typed, who: {} })[1]?.personal).toEqual({ name: "A. Lovelace" });
 		expect(viewedAuditEvent("t", SHA, {}).personal).toEqual({});
 		const declined = declinedAuditEvents({ at: "t", docSha256: null, hasReason: true, who });

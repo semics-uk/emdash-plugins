@@ -3,6 +3,7 @@ import { canonicalSnapshot, hashToken, renderTemplate, sha256Hex } from "@semics
 import { type BudgetedHost, expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { type AuditEventDoc, finalEnvelopeHash, verifyAuditChain } from "../src/domain/audit";
+import { bindSignature } from "../src/domain/signing";
 
 /** R22: target ≤ 8 bridge calls per route; submit is at 9 since it schedules the signed-PDF job (T025). */
 const TARGET = { calls: 8, cpuMs: 50 };
@@ -362,6 +363,14 @@ describe("T033 signer-fillable fields", () => {
 		expect(done).toMatchObject({ ok: true, status: "completed" });
 		const signer = await runtime?.inspect.storage.get<Record<string, unknown>>("signers", `${s.id}:s1`);
 		expect(signer?.fieldValues).toEqual({ phone: "0123" });
+		// T034: the entered values are bound into the signature hash the audit chain records, salted per envelope.
+		const envelope = await envelopeOf(s.id);
+		const expected = await bindSignature(
+			s.docSha256,
+			{ kind: "typed", typedName: "Ada Lovelace" },
+			{ fieldValues: { phone: "0123" }, salt: envelope?.piiSalt as string },
+		);
+		expect((signer?.signature as { sha256: string }).sha256).toBe(expected.sha256);
 	});
 
 	it("envelopes/create rejects malformed signerFields", async () => {

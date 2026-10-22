@@ -1,7 +1,9 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 
 import { callPublicRoute, ESIGN_PLUGIN_ID } from "../../src/astro/lib/call";
-import { handleSign, handleSignedCopy } from "../../src/astro/lib/sign";
+import { handleSign, handleSignedCopy, handleVerify } from "../../src/astro/lib/sign";
 
 const url = new URL("https://site.example/sign/TOKEN");
 const DOC = "a".repeat(64);
@@ -51,6 +53,63 @@ describe("callPublicRoute (SU-FR-01, T055)", () => {
 		const result = await callPublicRoute(h.ctx, { method: "POST", path: "public/session", body: { token: TOKEN } });
 		expect(result).toMatchObject({ ok: false, error: { code: "SIGNING_TOKEN_INVALID" } });
 		expect(h.seen[0]?.url).toBe(`https://site.example/_emdash/api/plugins/${ESIGN_PLUGIN_ID}/public/session`);
+	});
+});
+
+describe("callPublicRoute keeps the visitor's request metadata in-process (T034, ES-FR-05)", () => {
+	function incoming() {
+		const request = new Request("https://site.example/sign/TOKEN", {
+			method: "POST",
+			headers: {
+				"user-agent": "Mozilla/5.0 Signer",
+				"cf-connecting-ip": "203.0.113.9",
+				"x-forwarded-for": "203.0.113.9",
+				cookie: "emdash-session=secret",
+				authorization: "Bearer secret",
+				referer: "https://site.example/sign/TOKEN",
+				"content-type": "application/x-www-form-urlencoded",
+			},
+			body: "a=b",
+		});
+		Object.defineProperty(request, "cf", { value: { country: "GB" } });
+		return request;
+	}
+
+	it("forwards the user agent, the client IP headers and the cf object, never cookies, credentials or the Referer", async () => {
+		const seen: Request[] = [];
+		const handler = async (_id: string, _method: string, _path: string, request: Request) => {
+			seen.push(request);
+			return { success: true, data: { ok: true } };
+		};
+		const ctx = { locals: { emdash: { handlePublicPluginApiRoute: handler } } as never, url, request: incoming() };
+		await callPublicRoute(ctx, { method: "POST", path: "public/session", body: { token: TOKEN } });
+		const sent = seen[0] as Request & { cf?: unknown };
+		expect(sent.headers.get("user-agent")).toBe("Mozilla/5.0 Signer");
+		expect(sent.headers.get("cf-connecting-ip")).toBe("203.0.113.9");
+		expect(sent.headers.get("x-forwarded-for")).toBe("203.0.113.9");
+		expect(sent.cf).toEqual({ country: "GB" });
+		for (const header of ["cookie", "authorization", "referer"]) expect(sent.headers.get(header), header).toBeNull();
+		expect(sent.headers.get("content-type")).toBe("application/json");
+		expect(await sent.json()).toEqual({ token: TOKEN });
+	});
+
+	it("handleSign and handleVerify pass the page request through", async () => {
+		const seen: Request[] = [];
+		const handler = async (_id: string, _method: string, path: string, request: Request) => {
+			seen.push(request);
+			return { success: true, data: path === "public/verify" ? { ok: true, matched: false } : ready };
+		};
+		const ctx = { locals: { emdash: { handlePublicPluginApiRoute: handler } } as never, url, request: incoming() };
+		await handleSign(ctx, TOKEN, null);
+		await handleVerify(ctx, form({ sha256: DOC }));
+		expect(seen.map((r) => r.headers.get("user-agent"))).toEqual(["Mozilla/5.0 Signer", "Mozilla/5.0 Signer"]);
+	});
+
+	it("the pages hand Astro.request to the helpers", () => {
+		for (const page of ["SignPage.astro", "SignedCopyPage.astro", "VerifyPage.astro"]) {
+			const source = readFileSync(resolve(import.meta.dirname, "../../src/astro", page), "utf8");
+			expect(source, page).toContain("request: Astro.request");
+		}
 	});
 });
 

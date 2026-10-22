@@ -1,5 +1,8 @@
-import { createPluginTestHost, type PluginTestHost } from "@emdash-cms/plugin-test";
+import { createPluginRuntimeTestHost, createPluginTestHost, type PluginTestHost } from "@emdash-cms/plugin-test";
 import { ERROR_CODES } from "@semics-tech/shared";
+import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
+import { CERTIFICATE_WORDING } from "../src/domain/pdf";
+import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 import { afterEach, describe, expect, it } from "vitest";
 import plugin from "../src/plugin";
 import { PUBLIC_ROUTES } from "../src/routes/public";
@@ -136,5 +139,36 @@ describe("ES settings schema (T020)", () => {
 		expect(schema.turnstileSecretKey?.type).toBe("secret");
 		const secrets = Object.entries(schema).filter(([, field]) => field.type === "secret");
 		expect(secrets.map(([key]) => key).sort()).toEqual(["integrationMasterKey", "turnstileSecretKey"]);
+	});
+});
+
+describe("ES-NFR-07 the product never claims more than a simple electronic signature (T034)", () => {
+	// eIDAS Art. 25(2) gives only a qualified signature the equivalent effect of a handwritten one.
+	const OVERCLAIMS = [/handwritten/i, /same legal effect/i, /qualified/i, /advanced electronic/i, /tamper-?proof/i];
+
+	it("the default consent wording (manifest and code) and the certificate wording make no stronger claim", async () => {
+		host = await createPluginTestHost();
+		const schema = (host.manifest as unknown as { admin: { settingsSchema: Record<string, Record<string, unknown>> } })
+			.admin.settingsSchema;
+		expect(schema.consentWording?.default).toBe(DEFAULT_CONSENT_WORDING);
+		for (const text of [DEFAULT_CONSENT_WORDING, CERTIFICATE_WORDING]) {
+			for (const claim of OVERCLAIMS) expect(text, String(claim)).not.toMatch(claim);
+		}
+		expect(CERTIFICATE_WORDING).toContain("simple electronic signature");
+	});
+});
+
+describe("T034 every public route has a budget assertion", () => {
+	it("each declared public route answers a bad request within the bridge-call budget", async () => {
+		const runtime = await createPluginRuntimeTestHost();
+		try {
+			const budget = withBudget(runtime);
+			for (const spec of PUBLIC_ROUTES) {
+				const result = await budget.invokeRoute(spec.name, spec.body === "json" ? {} : undefined);
+				expectWithinBudget(result, { calls: 8, cpuMs: 50 });
+			}
+		} finally {
+			await runtime.dispose();
+		}
 	});
 });
