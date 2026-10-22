@@ -1063,7 +1063,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1079,7 +1079,7 @@
 			"unblocks": [
 				"T056"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T051": {
 			"file": "T051-events-json-ld-and-content-hooks.md",
@@ -2287,7 +2287,6 @@
 			"T111"
 		],
 		"in-progress": [
-			"T050",
 			"T113"
 		],
 		"review": [],
@@ -2329,6 +2328,7 @@
 			"T047",
 			"T048",
 			"T049",
+			"T050",
 			"T052",
 			"T053",
 			"T055",
