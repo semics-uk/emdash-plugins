@@ -9,10 +9,15 @@
 //
 // The snapshot is rendered only through the parsed tree (lib/markdown.ts) and `{…}` text, never
 // as HTML. Its exact hashed text is offered verbatim beside its SHA-256.
+//
+// An uploaded PDF (E-sign Pro, T094) is offered as links to open or download it, beside the SHA-256 of the
+// file, and never embedded: the core serves it with `Content-Security-Policy: sandbox`, under which browsers'
+// built-in PDF viewers do not run in a frame, and this page's CSP allows no frames. Without a link (a core that
+// cannot serve the PDF) the page says so and offers no signing form.
 import { CEREMONY_CSS, CEREMONY_SCRIPT, PAD_SCRIPT } from "./lib/assets";
 import { ESIGN_PLUGIN_ID } from "./lib/call";
 import { parseSnapshot } from "./lib/markdown";
-import { fieldName, type SignView, sessionFields } from "./lib/sign";
+import { fieldName, pdfDocumentView, type SignView, sessionFields } from "./lib/sign";
 import SnapshotBlocks from "./SnapshotBlocks.astro";
 
 interface Props {
@@ -30,6 +35,8 @@ const ready = view.kind === "ready" ? view : undefined;
 const session = ready?.session;
 const blocks = session ? parseSnapshot(session.snapshot ?? "") : [];
 const fields = session ? sessionFields(session) : [];
+const pdfDoc = session ? pdfDocumentView(session) : undefined;
+const canSign = session?.otp !== "required" && (!pdfDoc || pdfDoc.url !== undefined);
 const bad = (name: string) => (ready?.fields ?? []).includes(name) || undefined;
 const pdfPending =
 	(view.kind === "signed" || (view.kind === "closed" && view.status === "completed")) &&
@@ -106,14 +113,32 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 					Signing as <strong>{session.signer?.name}</strong>
 					{session.signer?.as ? ` (${session.signer.as})` : ""}
 				</p>
-				<section aria-label="Document to sign" data-testid="sign-document">
-					<div class="semics-doc"><SnapshotBlocks blocks={blocks} /></div>
-					<details data-testid="sign-exact">
-						<summary>Exact text you are signing</summary>
-						<p>SHA-256 fingerprint: <span class="semics-hash">{session.envelope?.docSha256}</span></p>
-						<pre>{session.snapshot}</pre>
-					</details>
-				</section>
+				{pdfDoc ? (
+					<section aria-label="Document to sign" data-testid="sign-pdf">
+						<p>
+							The document is a PDF file: <strong>{pdfDoc.name}</strong> ({pdfDoc.pages === 1 ? "1 page" : `${pdfDoc.pages} pages`}, {pdfDoc.size}). Read it before you sign.
+						</p>
+						{pdfDoc.url ? (
+							<p>
+								<a href={pdfDoc.url} target="_blank" rel="noopener noreferrer" data-testid="sign-pdf-open">Open the PDF</a>
+								{" or "}
+								<a href={pdfDoc.url} download={pdfDoc.name} data-testid="sign-pdf-download">download it</a>
+							</p>
+						) : (
+							<p role="alert" class="semics-error" data-testid="sign-pdf-unavailable">This PDF cannot be shown right now, so it cannot be signed yet. Please try again later.</p>
+						)}
+						<p>SHA-256 fingerprint of the PDF file you are signing: <span class="semics-hash">{session.envelope?.docSha256}</span></p>
+					</section>
+				) : (
+					<section aria-label="Document to sign" data-testid="sign-document">
+						<div class="semics-doc"><SnapshotBlocks blocks={blocks} /></div>
+						<details data-testid="sign-exact">
+							<summary>Exact text you are signing</summary>
+							<p>SHA-256 fingerprint: <span class="semics-hash">{session.envelope?.docSha256}</span></p>
+							<pre>{session.snapshot}</pre>
+						</details>
+					</section>
+				)}
 				{
 					session.otp === "required" && (
 						<section data-testid="sign-otp" aria-label="Email code">
@@ -132,7 +157,7 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 						</section>
 					)
 				}
-				{session.otp !== "required" && <form method="post" action={action} data-esign-sign-form data-consent-version={session.consent?.version}>
+				{canSign && <form method="post" action={action} data-esign-sign-form data-consent-version={session.consent?.version}>
 					{
 						fields.length > 0 && (
 							<fieldset>

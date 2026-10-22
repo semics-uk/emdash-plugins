@@ -290,7 +290,13 @@ describe("drawn signatures and field values in handleSign (SU-FR-05, SU-FR-06)",
 
 describe("an uploaded PDF in the ceremony (ES-FR-19, T094)", () => {
 	const link = "/_emdash/api/plugins/semics-esign/public/download?d=e1&exp=1&sig=x";
-	const pdf = { kind: "pdf", name: "lease.pdf", bytes: 48_213, pages: 3, view: { url: link, expiresAt: "2030-01-01T00:00:00Z" } };
+	const pdf = {
+		kind: "pdf",
+		name: "lease.pdf",
+		bytes: 48_213,
+		pages: 3,
+		view: { url: link, expiresAt: "2030-01-01T00:00:00Z" },
+	};
 
 	it("ES-FR-19 a PDF document is described by name, pages and size, with its same-site link", () => {
 		expect(pdfDocumentView({ ...ready, snapshot: "", document: pdf } as never)).toEqual({
@@ -304,12 +310,17 @@ describe("an uploaded PDF in the ceremony (ES-FR-19, T094)", () => {
 	it("ES-FR-19 no PDF view for a text document, and no link that leaves the site", () => {
 		expect(pdfDocumentView(ready as never)).toBeUndefined();
 		for (const url of ["javascript:alert(1)", "//evil.example/x", "https://evil.example/x.pdf", 7]) {
-			expect(pdfDocumentView({ ...ready, document: { ...pdf, view: { url } } } as never)).toMatchObject({ url: undefined });
+			expect(pdfDocumentView({ ...ready, document: { ...pdf, view: { url } } } as never)).toMatchObject({
+				url: undefined,
+			});
 		}
 	});
 
 	it("ES-FR-19 a PDF the core cannot show (the Free core, no link) has no url, and odd names are cleaned", () => {
-		const view = pdfDocumentView({ ...ready, document: { kind: "pdf", name: `a\u0000b${"x".repeat(300)}`, bytes: 2_500_000, pages: 1 } } as never);
+		const view = pdfDocumentView({
+			...ready,
+			document: { kind: "pdf", name: `a\u0000b${"x".repeat(300)}`, bytes: 2_500_000, pages: 1 },
+		} as never);
 		expect(view).toMatchObject({ pages: 1, size: "2.4 MB", url: undefined });
 		expect(view?.name).toBe(`ab${"x".repeat(118)}`);
 	});

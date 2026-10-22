@@ -87,7 +87,7 @@ describe("ES-FR-19 an uploaded-PDF envelope on the Free core", () => {
 		});
 		expect(Object.keys(body.document as object).sort()).toEqual(["bytes", "kind", "name", "pages"]);
 		// Limiter, signer, envelope and the consent settings: no snapshot read.
-		expect(calls.filter((c) => c.startsWith("storage.") && c.includes("snapshots"))).toEqual([]);
+		expect(calls.filter((c) => c.collection === "snapshots")).toEqual([]);
 		expect(calls).toHaveLength(4);
 	});
 
@@ -112,7 +112,10 @@ describe("ES-FR-19 an uploaded-PDF envelope on the Free core", () => {
 	it("ES-FR-19 a decline still works, so a signer can always say no", async () => {
 		const { budget, id } = await pdfEnvelope();
 		await call(budget, "public/session", { token: TOKEN, open: true });
-		expect((await call(budget, "public/decline", { token: TOKEN })).body).toMatchObject({ ok: true, status: "declined" });
+		expect((await call(budget, "public/decline", { token: TOKEN })).body).toMatchObject({
+			ok: true,
+			status: "declined",
+		});
 		expect(await host().inspect.storage.get<Doc>("envelopes", id)).toMatchObject({ status: "declined" });
 	});
 });

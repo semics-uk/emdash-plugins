@@ -18,6 +18,14 @@ export interface SessionData {
 	envelope?: { id: string; title: string; status: string; docSha256: string | null; expiresAt: string | null };
 	signer?: { name: string; as?: string; participant?: string };
 	snapshot?: string;
+	/** An uploaded PDF (E-sign Pro, T094): what it is, and a short-lived link to it (none when the core cannot serve it). */
+	document?: {
+		kind: "pdf";
+		name?: string;
+		bytes?: number;
+		pages?: number;
+		view?: { url?: unknown; expiresAt?: string };
+	};
 	/** An emailed one-time code is needed before signing (E-sign Pro, T091); `verified` once it has been entered. */
 	otp?: "required" | "verified";
 	/** `sha256` is the SHA-256 of `wording`, posted back with the signature (T117). */
@@ -54,6 +62,39 @@ export const sessionFields = (session: SessionData): SessionField[] =>
 	(Array.isArray(session.fields) ? session.fields : []).filter(
 		(f) => f && typeof f.key === "string" && FIELD_KEY.test(f.key) && typeof f.label === "string",
 	);
+
+/** What the ceremony shows of an uploaded PDF (T094). */
+export interface PdfDocumentView {
+	name: string;
+	pages: number;
+	/** The file size for people (`47 KB`, `2.4 MB`). */
+	size: string;
+	/** The site's own link to the PDF; absent when the core cannot serve it (then it cannot be signed here). */
+	url?: string;
+}
+
+// biome-ignore lint/suspicious/noControlCharactersInRegex: control characters are removed from a file name before it is shown.
+const CONTROLS = /[\u0000-\u001f\u007f]/g;
+
+const sizeOf = (bytes: number) =>
+	bytes >= 1024 * 1024 ? `${(bytes / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+
+/**
+ * The session's uploaded PDF, if it is one: name (control characters dropped, at most 120 characters), pages, size,
+ * and the link only when it is a path on this site (never `//host`, a scheme or another origin).
+ */
+export function pdfDocumentView(session: SessionData): PdfDocumentView | undefined {
+	const doc = session.document;
+	if (!doc || doc.kind !== "pdf") return undefined;
+	const url = doc.view?.url;
+	const name = (typeof doc.name === "string" ? doc.name.replace(CONTROLS, "").trim() : "").slice(0, 120);
+	return {
+		name: name || "document.pdf",
+		pages: Number.isSafeInteger(doc.pages) ? (doc.pages as number) : 0,
+		size: sizeOf(Number.isFinite(doc.bytes) ? (doc.bytes as number) : 0),
+		url: typeof url === "string" && /^\/(?![/\\])/.test(url) ? url : undefined,
+	};
+}
 
 /** Limits of `public/submit` (T024): at most 64 strokes, at most 32 KB of stroke JSON. */
 export const MAX_STROKES = 64;

@@ -187,6 +187,45 @@ reminder is a `reminder.sent` audit event. If a site switches back to the Free e
 left exactly as it is: views and declines are still recorded, but Free refuses to take further signatures, so it cannot
 complete with signatures missing. [C34]
 
+### 5.6 Uploaded PDF documents (Pro)
+
+The Pro edition can send an uploaded PDF instead of a text template. Everything in sections 3 to 5.5 holds, with the
+PDF file in the place of the text snapshot:
+
+- **The document is the file.** An administrator uploads a PDF from the site's media library and marks where the
+  signature, the signer's name, the signing date and any values the signer types go (a box on a page, in points). When
+  the envelope is sent, `docSha256` is the SHA-256 of the uploaded file's bytes, exactly as uploaded. The file is stored
+  under that hash, so the envelope can only ever point at those bytes, and it cannot change after sending.
+- **What the signer sees.** Instead of the text, the signing page names the PDF file (name, number of pages, size), offers
+  links to open it in the browser or download it, and shows its SHA-256. The links serve the stored file byte for byte
+  (checked against `docSha256` each time) and work only while the envelope can be signed. The PDF is not embedded in
+  the page (see below). The signer still types their name, may draw a signature, fills in any fields, ticks both boxes
+  and submits; the server checks the document hash the signer was shown, as for text.
+- **What is bound.** The signature hash, the consent and signed events and the final hash use `docSha256` (the file's
+  hash) exactly as they use the text hash, so the chain binds the signature to that file.
+- **The signed PDF.** It is the uploaded file, unchanged, followed by a PDF "incremental update" (a standard way to add to
+  a PDF without rewriting it) that draws the signature, name, date and entered values in the boxes the template gives,
+  and adds the signature and certificate pages of section 5.3. The certificate's wording says the document is "the exact
+  PDF file identified by the document SHA-256" and gives the original file's length: the first that-many bytes of the
+  signed PDF are the original file, so anyone can cut the signed copy to that length and check it against
+  `docSha256`. `pdfSha256` is the hash of the whole signed file, and `/verify` works as in section 5.4. The bytes are
+  deterministic: the same envelope always gives the same file.
+- **What the stamps are not.** The positions of the boxes are part of the template, not of the hashed document; the hash
+  covers the original file only, and the stamps show the values the chain records. Values the signer entered are also
+  listed on the added pages ("Details entered by the signer").
+- **Uploads that are refused.** Files over 3 MB, files that are not PDFs or cannot be read, encrypted or
+  password-protected PDFs, and PDFs that contain scripts, launch actions or dynamic (XFA) forms are refused at upload
+  with a reason.
+- **Why links and not an embedded viewer.** EmDash serves every file a plugin returns with a content security policy that
+  stops any script in it from running in the site's origin. Browsers' built-in PDF viewers do not run inside such a
+  sandboxed frame, and drawing the pages as images on the server is not feasible within the platform's limits, so the
+  page offers the file to open or download instead. The signer reads the PDF in their browser's or device's viewer.
+- **Retention.** The uploaded file belongs to the template (it is the same for every signer), so it is kept with the
+  template and is not removed by the personal-data purge; any personal data the owner puts in the template file is the
+  owner's to manage. The signed copy follows the signed-records period like any signed PDF (section 9).
+- **Back on Free.** An envelope with an uploaded PDF can still be declined on Free, but Free cannot show or stamp the
+  PDF, so it refuses to take the signature; the envelope waits for Pro, as one with several signers does. [C36]
+
 ## 6. Identity assurance
 
 - **Free edition: email link only.** The sender enters the signer's name and email. The signer is whoever can open the
@@ -390,10 +429,14 @@ people; the integration tokens are signed with keys derived per client, never st
     evidence, and should the wording of the certificate say so?
 15. **Excluded document types.** Should the product warn site owners against using it for documents excluded from
     electronic signing in each region?
+16. **Uploaded PDFs (section 5.6).** Is a signed copy made of the original file followed by an incremental update (stamps
+    and certificate added after the untouched original) good evidence, or should the product produce a single flattened
+    file? Is offering the PDF as a link (open or download) rather than shown inside the signing page enough to say the
+    signer was shown the document, and should the page require the signer to open it before signing?
 
 ## 14. Changes since last review
 
-None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; and the Pro email one-time code in section 6, T091.)
+None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094.)
 
 ## 15. Code references
 
@@ -432,3 +475,4 @@ None. This is the first issue. (Added before review: section 5.5, several signer
 [C33] `packages/esign/src/astro/lib/csp.ts`; `packages/esign/src/routes/ceremony.ts` (rate limit, `TOKEN_IN_QUERY`); `packages/esign/src/domain/clients.ts` and `docs/protocol/esign-intent-v1.md` section 12 (keys derived per client).
 [C34] `packages/esign/src/seams.ts` and `packages/esign/src/routes/ceremony.ts` (`ceremonyHandlers`, per-signer `signer.viewed` and `signer.declined`, Free refuses a several-signer submit); `packages/esign/src/domain/pdf.ts`, `signedPdfDocument` (every signer); `packages/esign/CONTEXT.md`, "Several signers (T090)". The routing itself is in the Pro edition.
 [C35] `packages/esign/src/routes/ceremony.ts` (`OTP_REQUIRED`, session `otp`), `src/domain/pdf.ts` (certificate line); Pro repo `packages/esign-pro/src/domain/otp.ts`, `src/otp/routes.ts`, `src/otp/stamp.ts` (rules, routes, who needs a code).
+[C36] `packages/esign/src/routes/ceremony.ts` (`document` in `public/session`, no text snapshot; Free refuses to sign it) and `src/astro/SigningCeremony.astro` (open and download links, no embed); Pro repo `packages/esign-pro/src/domain/pdf-templates.ts` (upload checks, fields, `PDF_CERTIFICATE_WORDING`), `src/pdf/update.ts` (the incremental update), `src/pdftemplates/` (upload, send, the document link, the signed-PDF job); BUILD-PLAN section 12, R53.

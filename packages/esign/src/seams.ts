@@ -11,6 +11,9 @@
  * - `onEnvelopeSend(fn)`: `fn(ctx, settings, template)` returns fields to stamp on an envelope as
  *   `envelopes/send` freezes it, from the settings that route already read (no bridge call). Pro uses it to
  *   mark an envelope as needing an email one-time code (`otp`, T091); Free enforces the flag but never sets it.
+ * - An uploaded PDF (T094) needs no factory: an envelope carrying `document` (and no text snapshot) is shown by
+ *   `public/session` as that PDF's name, size and pages, and `public/submit` signs it only when built with a
+ *   `ceremonyHandlers` step (Pro's), so Free never signs a document it cannot show or stamp.
  */
 
 export { ceremonyHandlers, type SeveralSigners, type SeveralSignersStep } from "./routes/ceremony";

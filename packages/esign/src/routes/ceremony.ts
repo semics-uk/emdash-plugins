@@ -24,7 +24,8 @@
  *  - session: limiter read (1), signer (1), envelope (1), snapshot and consent settings (2) = 5; the first
  *    view (`open`) adds the transition (1) and the audit head + create-only write (2) = 8 (with several
  *    signers, T090, each signer's guarded `viewedAt` write is +1: 9 for the view that also opens); a wrong token
- *    is the limiter read, the signer and copy-token lookups and the counter write = 4; a completed
+ *    is the limiter read, the signer and copy-token lookups and the counter write = 4 (an uploaded PDF, E-sign
+ *    Pro T094, has no text snapshot: one call fewer); a completed
  *    envelope is limiter, signer, envelope, download-link key (+ the master key for an integration) = 4-5;
  *  - submit: signer (1), envelope (1), settings (1), audit head (1), transition (1), signer update (1),
  *    audit first event + `putMany` of the rest (2), the signed-PDF one-shot (1) = 9 (T025: the PDF
@@ -278,11 +279,13 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 	const now = toIso();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 
+	// An uploaded PDF (Pro, T094) has no text snapshot to read.
+	const doc = envelope.document;
 	const [chunks, consent] = await Promise.all([
 		envelope.snapshot ? snapshots.getMany(envelope.snapshot.ids) : Promise.resolve(new Map()),
 		consentSettings(ctx, false),
 	]);
-	const text = joinSnapshot([...chunks.values()]);
+	const text = doc && !envelope.snapshot ? "" : joinSnapshot([...chunks.values()]);
 	if (text === null) return fail("INTERNAL");
 
 	let status = envelope.status;
@@ -321,6 +324,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		},
 		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant } : {}) },
 		snapshot: text,
+		...(doc ? { document: { kind: doc.kind, name: doc.name, bytes: doc.bytes, pages: doc.pages } } : {}),
 		...(envelope.otp ? { otp: signer.data.otpVerifiedAt ? "verified" : "required" } : {}),
 		...(envelope.signerFields?.length ? { fields: envelope.signerFields } : {}),
 		consent: { version: consent.version, wording: consent.wording, sha256: consent.sha256 },
@@ -343,7 +347,8 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext, several?: Severa
 	const envelope = await envelopes.get(envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	if (envelope.status === "sent") return fail("SESSION_REQUIRED");
-	if (envelope.status !== "in_progress") return fail("ENVELOPE_CLOSED");
+	// An uploaded PDF (T094) is signed only by the edition that can show and stamp it; Free writes nothing.
+	if (envelope.status !== "in_progress" || (envelope.document && !several)) return fail("ENVELOPE_CLOSED");
 	const now = toIso();
 	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
 	if (envelope.otp && !signer.data.otpVerifiedAt) return fail("OTP_REQUIRED");

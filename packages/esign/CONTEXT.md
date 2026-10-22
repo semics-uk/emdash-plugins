@@ -195,3 +195,13 @@ offered, or no Turnstile keys) the block renders `esign-request-unavailable` and
 posting to the injected `POST /_esign/start` (`self-serve-endpoint.ts`: `isCrossSiteRequest` first, then the route, then a 303
 back to the page with `esign_start=sent|<CODE>&esign_t=<templateId>`; values are never put in the redirect). The block never
 imports `@semics-tech/shared` (R35). The start answers `check_email` only: the signing link is emailed, never shown (R50).
+
+Uploaded PDFs (T094, ES-FR-19, R53; uploading, sending and stamping are Pro, Free only keeps such envelopes safe). An envelope may
+carry `document: { kind: "pdf", name, bytes, pages, ... }` (Pro keeps its chunk ids and field layout there too) with `snapshot: null`;
+its `docSha256` is the uploaded file's SHA-256. `public/session` then reads no snapshot (4 calls) and answers `snapshot: ""` and
+`document` with only `kind`, `name`, `bytes`, `pages`; Pro adds `document.view` (a link). `public/submit` refuses such an envelope
+with `ENVELOPE_CLOSED` (nothing written) unless built with a `ceremonyHandlers` step (Pro's); decline works. Free's signed-PDF job
+skips it (no snapshot). The sign page (`pdfDocumentView` in `lib/sign.ts`) shows the file's name, pages, size and SHA-256 with links
+to open or download it, never an embed (raw plugin responses carry `CSP: sandbox`, under which browser PDF viewers do not run in
+frames; the page CSP stays frame-free), and no signing form while there is no same-site link.
+E-sign Free backend after T094: 105.0 KiB of 112 (R47).

@@ -77,6 +77,11 @@ export interface EnvelopeDoc {
 	signerIds: string[];
 	docSha256: string | null;
 	snapshot: { ids: string[]; length: number } | null;
+	/**
+	 * An uploaded PDF (E-sign Pro, T094): the document is that file, `docSha256` its SHA-256, and there is no
+	 * text snapshot. Free shows the signer `kind`, `name`, `bytes` and `pages` only and never signs it.
+	 */
+	document?: EnvelopeDocument;
 	expiresAt: string | null;
 	sentAt: string | null;
 	completedAt: string | null;
@@ -95,6 +100,14 @@ export interface EnvelopeDoc {
 	personalPurgedAt?: string;
 	/** Set when the signed-records period ended: the envelope is a tombstone (R45). */
 	recordsPurgedAt?: string;
+}
+
+/** What an envelope says about an uploaded PDF; the edition that sends it keeps its own details beside these. */
+export interface EnvelopeDocument {
+	kind: "pdf";
+	name: string;
+	bytes: number;
+	pages: number;
 }
 
 export interface SignerDoc {
