@@ -1739,7 +1739,7 @@
 			"phase": 5,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -1750,7 +1750,7 @@
 				"Free and Pro table"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T083": {
 			"file": "T083-events-pro-reminders-and-broadcasts.md",
@@ -1946,7 +1946,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -1959,7 +1959,7 @@
 				"Spike S5"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T095": {
 			"file": "T095-e-sign-pro-bulk-send.md",
@@ -2407,7 +2407,6 @@
 			"T106"
 		],
 		"ready": [
-			"T082",
 			"T083",
 			"T086",
 			"T096",
@@ -2418,7 +2417,7 @@
 			"T111"
 		],
 		"in-progress": [
-			"T094"
+			"T082"
 		],
 		"review": [],
 		"done": [
@@ -2500,6 +2499,7 @@
 			"T091",
 			"T092",
 			"T093",
+			"T094",
 			"T095",
 			"T097",
 			"T104",
@@ -2517,7 +2517,8 @@
 		"blocked": []
 	},
 	"criticalPath": [
-		"T094"
+		"T100",
+		"T106"
 	],
 	"criticalWeight": 3
 }
