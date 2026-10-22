@@ -282,13 +282,56 @@ describe("ES-FR-10 completion email", () => {
 		expect(fresh).not.toBe(token);
 		expect(done?.message.text).not.toContain("public/download");
 		expect(done?.message.html).toContain(`/signed/${fresh}`);
-		// The old invitation link no longer opens; the new token yields a fresh download link.
-		expect(await call(budget, "public/session", { token })).toMatchObject({ ok: false });
+		// R36/T115: the signing token is not rotated, so the sign page's poll still gets the link.
+		expect(await call(budget, "public/session", { token })).toMatchObject({
+			ok: true,
+			state: "closed",
+			status: "completed",
+			pdf: "ready",
+			download: { url: expect.stringContaining("public/download?") },
+		});
+		// The emailed copy token (its own credential) yields a fresh download link, within budget.
 		expect(await call(budget, "public/session", { token: fresh })).toMatchObject({
 			ok: true,
 			status: "completed",
 			pdf: "ready",
 			download: { url: expect.stringContaining("public/download?") },
 		});
+		// Only the copy token's hash is stored, beside the signing token's.
+		const signer = (await host().inspect.storage.list<{ tokenHash: string; copyTokenHash?: string }>("signers"))[0]?.data;
+		expect(signer?.tokenHash).toBe(await hashToken(token));
+		expect(signer?.copyTokenHash).toBe(await hashToken(fresh));
+		// Re-running the job once the email is queued mints no second copy token.
+		const again = await budget.invokeHook("cron", {
+			name: completionTaskName(id),
+			data: { envelopeId: id },
+			scheduledAt: new Date().toISOString(),
+		});
+		expectWithinBudget(again, TARGET);
+		expect(await outbox()).toHaveLength(2);
+		const after = (await host().inspect.storage.list<{ copyTokenHash?: string }>("signers"))[0]?.data;
+		expect(after?.copyTokenHash).toBe(signer?.copyTokenHash);
+	});
+
+	it("a copy token opens no session for a non-completed envelope and cannot submit", async () => {
+		const { budget, templateId } = await setup();
+		const id = await createEnvelope(budget, templateId);
+		await call(budget, "envelopes/send", { id }, ONE_MORE);
+		const copy = "C".repeat(43);
+		// Plant a copy hash on the signer of a sent (not completed) envelope.
+		const [row] = await host().inspect.storage.list<Record<string, unknown>>("signers");
+		await host().fixtures.plugin.storage("signers", row?.id as string, {
+			...row?.data,
+			copyTokenHash: await hashToken(copy),
+		});
+		expect(await call(budget, "public/session", { token: copy })).toMatchObject({ ok: false });
+		const submit = await call(
+			budget,
+			"public/submit",
+			{ token: copy, consent: true, intent: true, docSha256: "x", signature: { kind: "typed", typedName: "Ada Lovelace" } },
+			ONE_MORE,
+		);
+		expect(submit).toMatchObject({ ok: false });
+		expect((await host().inspect.storage.list<{ status: string }>("envelopes"))[0]?.data.status).toBe("sent");
 	});
 });
