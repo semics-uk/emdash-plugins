@@ -86,6 +86,9 @@ describe("manifest (EU-FR-01, BUILD-PLAN 3.1)", () => {
 	});
 });
 
+/** Secret settings only Events Pro reads; Free declares them so its settings stay readable (T067). */
+const PRO_RESERVED_SECRETS = ["licenceKey", "stripeSecretKey", "stripeWebhookSecret"];
+
 describe("settings schema", () => {
 	const settings = () => readManifest().admin.settingsSchema as Record<string, Record<string, unknown>>;
 
@@ -124,11 +127,29 @@ describe("settings schema", () => {
 			.filter(([, field]) => field.type === "secret")
 			.map(([key]) => key)
 			.sort();
-		expect(secrets).toEqual(["esignPairing", "turnstileSecretKey"]);
-		expect([...SECRET_SETTING_KEYS].sort()).toEqual(secrets);
+		expect(secrets).toEqual([
+			"esignPairing",
+			"licenceKey",
+			"stripeSecretKey",
+			"stripeWebhookSecret",
+			"turnstileSecretKey",
+		]);
+		expect([...SECRET_SETTING_KEYS].sort()).toEqual(secrets.filter((k) => !PRO_RESERVED_SECRETS.includes(k)));
 	});
 
-	it("is a Free edition: no Stripe settings", () => {
-		expect(Object.keys(settings()).filter((k) => /stripe/i.test(k))).toEqual([]);
+	it("T067 S10b declares the secrets a Pro build stores, so Free still reads its settings after a downgrade", () => {
+		// EmDash refuses to list an encrypted value whose key the running manifest does not declare as a
+		// secret: without these, every `settings.list` (checkout included) throws once Pro has saved one.
+		const s = settings();
+		for (const key of PRO_RESERVED_SECRETS) {
+			expect(s[key]?.type, key).toBe("secret");
+			expect(String(s[key]?.label), key).toMatch(/\(Pro\)$/);
+			expect(String(s[key]?.description), key).toMatch(/Free edition ignores it/);
+		}
+	});
+
+	it("is a Free edition: Stripe appears only in the settings reserved for Pro", () => {
+		const stripe = Object.keys(settings()).filter((k) => /stripe/i.test(k));
+		expect(stripe.filter((k) => !PRO_RESERVED_SECRETS.includes(k))).toEqual([]);
 	});
 });

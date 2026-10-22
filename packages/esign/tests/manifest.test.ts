@@ -123,6 +123,7 @@ describe("ES settings schema (T020)", () => {
 				"consentWording",
 				"expiryDays",
 				"integrationMasterKey",
+				"licenceKey",
 				"otpContractTemplates",
 				"otpDefault",
 				"reminderCadenceDays",
@@ -140,7 +141,19 @@ describe("ES settings schema (T020)", () => {
 		expect(schema.integrationMasterKey?.type).toBe("secret");
 		expect(schema.turnstileSecretKey?.type).toBe("secret");
 		const secrets = Object.entries(schema).filter(([, field]) => field.type === "secret");
-		expect(secrets.map(([key]) => key).sort()).toEqual(["integrationMasterKey", "turnstileSecretKey"]);
+		expect(secrets.map(([key]) => key).sort()).toEqual(["integrationMasterKey", "licenceKey", "turnstileSecretKey"]);
+	});
+
+	it("T067 S10b declares the Pro licence key as a secret, so Free still reads its settings after a downgrade", async () => {
+		// EmDash refuses to list an encrypted value whose key the running manifest does not declare as a
+		// secret: without it, every `settings.list` (the signing ceremony's included) throws once E-sign
+		// Pro has saved its licence key and the site switches back to Free.
+		host = await createPluginTestHost();
+		const schema = (host.manifest as unknown as { admin: { settingsSchema: Record<string, Record<string, unknown>> } })
+			.admin.settingsSchema;
+		expect(schema.licenceKey?.type).toBe("secret");
+		expect(String(schema.licenceKey?.label)).toMatch(/\(Pro\)$/);
+		expect(String(schema.licenceKey?.description)).toMatch(/Free edition ignores it/);
 	});
 });
 
