@@ -2007,7 +2007,7 @@
 			"phase": 6,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2022,7 +2022,7 @@
 				"T103",
 				"T105"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T100": {
 			"file": "T100-security-review-of-both-products.md",
@@ -2157,7 +2157,7 @@
 			"unblocks": [
 				"T106"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T106": {
 			"file": "T106-1-0-release-readiness-and-trust-contract-freeze.md",
@@ -2388,7 +2388,6 @@
 			"T101",
 			"T102",
 			"T103",
-			"T105",
 			"T106"
 		],
 		"ready": [
@@ -2405,12 +2404,12 @@
 			"T093",
 			"T094",
 			"T096",
+			"T105",
 			"T111",
 			"T119"
 		],
 		"in-progress": [
-			"T077",
-			"T097"
+			"T077"
 		],
 		"review": [],
 		"done": [
@@ -2482,6 +2481,7 @@
 			"T075",
 			"T085",
 			"T087",
+			"T097",
 			"T104",
 			"T110",
 			"T112",
