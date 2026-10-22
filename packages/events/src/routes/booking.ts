@@ -23,7 +23,11 @@ import { badRequest, fail } from "./reply";
  * `cancelled` guarded on its own claim, and queues the notice. A booking being held or paid for
  * may always be abandoned; a confirmed one only until `cancelCutoffHours` before the event starts
  * (`src/domain/cancel-policy.ts`). A cancelled booking answers ok on a replay and writes nothing.
- * Refunding a paid booking is a separate step (Pro).
+ * A paid confirmed booking (`payment` is set, only by an edition that takes payments) is never
+ * cancelled without its refund: Free refuses it (`CANCEL_NOT_ALLOWED`); an edition passes a
+ * `RefundStep`, which runs after the claim and before the seats are released. A refused refund
+ * clears the claim and answers `PAYMENT_FAILED`; the step's own calls (`calls`) come out of the
+ * counters' room, and it may change the notice's `kind`/`payload` (T075).
  *
  * Bridge calls (R22: hard limit 10, design target 8), cancelling a confirmed booking:
  * `bookings.query`, `event_configs.get`, `settings.list`, claim, one release per counter, move,
@@ -63,11 +67,23 @@ export interface BookingDeps {
 	kv?: LinkKv;
 	/** Pro (T066): a signed receipt-lookup request per ref, from the settings (the pairing). */
 	lookups?: LookupStep;
+	/** Pro (T075): refunds a paid booking. Without it a paid confirmed booking cannot be cancelled. */
+	refund?: RefundStep;
 	now: number;
 }
 
 /** Mints e-sign receipt-lookup requests (`esign-lookup/1`) for the refs; refs it cannot mint are left out. */
 export type LookupStep = (refs: string[], settings: Record<string, unknown>) => Promise<Record<string, string>>;
+
+/** Pro (T075): refunds a paid booking's payment during cancel; its settings are the ones cancel read. */
+export interface RefundStep {
+	/** Bridge calls `run` makes for this booking. */
+	calls(b: BookingDoc): number;
+	run(
+		b: BookingDoc,
+		settings: Record<string, unknown>,
+	): Promise<{ ok: true; mail?: { kind: string; payload?: Record<string, unknown> } } | { ok: false }>;
+}
 
 /** Refs listed for reconciliation: a page load asks e-sign once per ref. */
 const MAX_WAITING_REFS = 10;
@@ -105,12 +121,14 @@ async function authenticate(deps: BookingDeps, raw: unknown): Promise<Found | { 
 }
 
 /** The policy decision for a booking; a hold state is always cancellable and needs no reads. */
-async function decide(deps: BookingDeps, b: BookingDoc): Promise<CancelDecision> {
-	if (b.status !== "confirmed") return cancelDecision(b, null, 0, deps.now);
+async function decide(
+	deps: BookingDeps,
+	b: BookingDoc,
+): Promise<CancelDecision & { settings: Record<string, unknown> }> {
+	if (b.status !== "confirmed") return { ...cancelDecision(b, null, 0, deps.now), settings: {} };
 	const config = (await deps.storage.event_configs.get(b.eventId)) as EventConfigDoc | null;
-	const entries = await deps.settings.list();
-	const hours = cancelCutoffHours(Object.fromEntries(entries.map((e) => [e.key, e.value])));
-	return cancelDecision(b, config, hours, deps.now);
+	const settings = Object.fromEntries((await deps.settings.list()).map((e) => [e.key, e.value]));
+	return { ...cancelDecision(b, config, cancelCutoffHours(settings), deps.now), settings };
 }
 
 export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<unknown> {
@@ -157,11 +175,16 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	};
 }
 
-function cancellationMessage(id: string, b: BookingDoc, now: number): OutboxDoc {
+function cancellationMessage(
+	id: string,
+	b: BookingDoc,
+	now: number,
+	mail?: { kind: string; payload?: Record<string, unknown> },
+): OutboxDoc {
 	return {
-		kind: "booking_cancelled",
+		kind: mail?.kind ?? "booking_cancelled",
 		to: b.email,
-		payload: { bookingId: id, bookingRef: b.ref },
+		payload: { bookingId: id, bookingRef: b.ref, ...mail?.payload },
 		attempts: 0,
 		nextAttemptAt: iso(now),
 		status: "pending",
@@ -187,7 +210,8 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 	if (held && !(Date.parse(b.holdExpiresAt ?? "") > now)) return fail("HOLD_EXPIRED");
 
 	const decision = await decide(deps, b);
-	if (!decision.allowed) return fail("CANCEL_NOT_ALLOWED");
+	const paid = b.status === "confirmed" && b.payment != null;
+	if (!decision.allowed || (paid && !deps.refund)) return fail("CANCEL_NOT_ALLOWED");
 
 	const claim = iso(now);
 	const claimed = await storage.bookings.updateIf(id, {
@@ -196,11 +220,25 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 	});
 	if (!claimed.applied) return fail(held ? "HOLD_EXPIRED" : "INTERNAL");
 
+	let mail: { kind: string; payload?: Record<string, unknown> } | undefined;
+	const step = paid ? deps.refund : undefined;
+	if (step) {
+		const refunded = await step.run(b, decision.settings);
+		if (!refunded.ok) {
+			await storage.bookings.updateIf(id, {
+				where: { status: b.status, releaseClaimedAt: claim },
+				set: { releaseClaimedAt: null },
+			});
+			return fail("PAYMENT_FAILED");
+		}
+		mail = refunded.mail;
+	}
+
 	// Event and occurrence counters first: they decide whether the event sells out. A stale claim
 	// is a cancel that died after claiming, maybe after releasing: releasing again could under-count
 	// (oversell), so like the sweeper's `close` it releases nothing and drift repair, which does not
 	// count cancelled bookings, settles the counters (an over-count meanwhile is the safe direction).
-	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS);
+	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS) - (step?.calls(b) ?? 0);
 	const stale = b.releaseClaimedAt != null;
 	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, Math.max(room, 0));
 	await release(storage, refs, { sold: b.status === "confirmed" }).catch(() => undefined);
@@ -210,12 +248,16 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 		set: { status: "cancelled", cancelledAt: claim },
 	});
 	if (!moved.applied) return fail("INTERNAL");
-	await storage.outbox.put(`cancel-${id}`, cancellationMessage(id, b, now));
+	await storage.outbox.put(`cancel-${id}`, cancellationMessage(id, b, now, mail));
 	return cancelled;
 }
 
 const handler =
-	(fn: (deps: BookingDeps, raw: unknown) => Promise<unknown>, lookups?: LookupStep): Handler =>
+	(
+		fn: (deps: BookingDeps, raw: unknown) => Promise<unknown>,
+		lookups?: LookupStep,
+		refund?: (ctx: PluginContext) => RefundStep,
+	): Handler =>
 	async (routeCtx, ctx) =>
 		fn(
 			{
@@ -223,6 +265,7 @@ const handler =
 				settings: ctx.settings,
 				kv: ctx.kv,
 				...(lookups ? { lookups } : {}),
+				...(refund ? { refund: refund(ctx) } : {}),
 				now: Date.now(),
 			},
 			routeCtx.input,
@@ -236,8 +279,10 @@ export const bookingStatusRoute = (lookups?: LookupStep): RouteDef => ({
 });
 
 export const BOOKING_ROUTE: RouteDef = bookingStatusRoute();
-export const BOOKING_CANCEL_ROUTE: RouteDef = {
+/** `public/booking/cancel` with the given refund step (none: the Free route; a Pro build supplies one, `src/seams.ts`). */
+export const bookingCancelRoute = (refund?: (ctx: PluginContext) => RefundStep): RouteDef => ({
 	methods: ["POST"],
 	public: true,
-	handler: handler(cancelBooking) as never,
-};
+	handler: handler(cancelBooking, undefined, refund) as never,
+});
+export const BOOKING_CANCEL_ROUTE: RouteDef = bookingCancelRoute();

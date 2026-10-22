@@ -13,6 +13,8 @@
  *   the booking on (T064). Free declares the route as a stub that answers NOT_FOUND.
  * - `bookingStatusRoute(lookups)`: `public/booking` with a step that mints e-sign receipt-lookup requests
  *   for the refs a waiver booking still waits for (T066). Free has none: the answer lists the refs only.
+ * - `bookingCancelRoute(refund)`: `public/booking/cancel` with a refund step for paid bookings (T075). Free
+ *   has none and refuses to cancel a paid confirmed booking.
  * - `adminRoute({ signingLink })`: the Block Kit admin with a signing link for attendees that
  *   check-in refuses because their waiver is pending. Free refuses them without a link.
  */
@@ -22,7 +24,7 @@ export type { WaiverAvailability, WaiverCheck } from "./admin/panel";
 export type { InputIssue } from "./domain/checkout";
 export type { ReceiptStatus, VerifiedReceipt } from "./domain/receipts";
 export { type AdminSteps, adminRoute } from "./routes/admin";
-export { bookingStatusRoute, type LookupStep } from "./routes/booking";
+export { bookingCancelRoute, bookingStatusRoute, type LookupStep, type RefundStep } from "./routes/booking";
 export {
 	type ContinueSteps,
 	checkoutContinueRoute,

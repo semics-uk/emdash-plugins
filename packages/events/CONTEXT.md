@@ -65,7 +65,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   be abandoned; confirmed ones until `cancelCutoffHours` (setting, default 24) before the occurrence
   start (`src/domain/cancel-policy.ts`), else `CANCEL_NOT_ALLOWED`. Counters over the budget are left
   to drift repair. A cancel that takes over a stale claim (an earlier cancel died) releases nothing:
-  drift repair settles the counters, so seats are never released twice (T057).
+  drift repair settles the counters, so seats are never released twice (T057). Paid (T075): a confirmed booking with `payment` is refused in Free; Pro passes `bookingCancelRoute(refund)`, a `RefundStep` run after the claim (a failed refund clears the claim: `PAYMENT_FAILED`) whose `calls` shrink the counters' room and whose `mail` replaces the notice kind. `outbox-drain` takes edition renderers (`DrainDeps.render`) for kinds such as Pro's `booking_refunded`.
 - Emails and calendar (`src/emails`, `src/routes/ics.ts`, `redeem.ts`, T050): outbox rows hold ids only;
   `outbox-drain` (every minute) runs the shared `drainOutbox` over an adapter (`OutboxDoc` ISO strings
   <-> `OutboxRecord` numbers) whose `email.send` renders at send time from fresh reads, two messages
@@ -96,7 +96,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Outbox drain: a batch whose config lacks `info` is cut to one message so the worst case stays 10 calls.
 - Cron scheduling (T116, R37): EmDash 1.2 never runs `plugin:activate` for a core in `sandboxed: [...]`, so
   `public/events`, `public/event` and admin `page_load`s are wrapped in `withScheduleCheck` (shared
-  `schedules.ts`): 1 KV read of `cron:scheduled:v3` (v3 since T087); when missing, +1 to queue the one-shot `ensure-schedules`,
+  `schedules.ts`): 1 KV read of `cron:scheduled:v4` (v4 since T075); when missing, +1 to queue the one-shot `ensure-schedules`,
   whose tick schedules `sweep-holds` + `outbox-drain` and sets the flag. Never add it to checkout or admin
   actions. New recurring tasks go in `RECURRING_TASKS` (`src/plugin.ts`); bump the flag version.
 - Waivers (Pro): `signature.mode` `each_attendee` (default) or `buyer`. The buyer signs inline for self

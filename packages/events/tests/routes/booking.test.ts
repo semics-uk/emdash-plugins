@@ -5,10 +5,10 @@ import {
 	BOOKING_MAX_CALLS,
 	BOOKING_TARGET_CALLS,
 	type BookingDeps,
-	type RefundStep,
 	type BookingRouteStorage,
 	bookingStatus,
 	cancelBooking,
+	type RefundStep,
 } from "../../src/routes/booking";
 import { makeStore, meter } from "../domain/fake-storage";
 
@@ -265,13 +265,13 @@ describe("public/booking/cancel (EV-US-4)", () => {
 });
 
 describe("public/booking/cancel of a paid booking (EV-US-4, T075)", () => {
-	const ok = (): RefundStep & { seen: unknown[] } => {
+	const ok = (probe: () => unknown = () => null): RefundStep & { seen: unknown[] } => {
 		const seen: unknown[] = [];
 		return {
 			seen,
 			calls: () => 2,
 			run: async (b, settings) => {
-				seen.push({ status: b.status, claimed: b.releaseClaimedAt, key: settings.stripeSecretKey });
+				seen.push({ status: b.status, claimed: probe(), key: settings.stripeSecretKey });
 				meter.calls += 2;
 				return { ok: true, mail: { kind: "booking_refunded", payload: { reason: "cancelled" } } };
 			},
@@ -291,7 +291,7 @@ describe("public/booking/cancel of a paid booking (EV-US-4, T075)", () => {
 
 	it("T075 the refund step runs after the claim and before the seats are released, then the status moves", async () => {
 		const w = await world({ paid: true, settings: keyed });
-		const step = ok();
+		const step = ok(() => w.booking().releaseClaimedAt);
 		const seats: unknown[] = [];
 		w.storage.event_configs.beforeUpdate = () => seats.push(step.seen.length);
 		const { body, calls } = await run(cancelBooking, { ...w.deps(T0), refund: step }, w.input);
@@ -299,7 +299,9 @@ describe("public/booking/cancel of a paid booking (EV-US-4, T075)", () => {
 		expect(step.seen).toEqual([{ status: "confirmed", claimed: at(0), key: "sk_test_1" }]);
 		expect(seats).toEqual([1]);
 		expect(w.booking()).toMatchObject({ status: "cancelled" });
-		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ reserved: 0, sold: 0 });
+		// Event and occurrence first; the type counter is left to drift repair (the step took two calls).
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 0, sold: 0 });
+		expect(w.counter("occurrences", "oc1")).toMatchObject({ reserved: 0, sold: 0 });
 		expect(w.storage.outbox.docs.get(`cancel-${ID}`)).toMatchObject({
 			kind: "booking_refunded",
 			payload: { bookingId: ID, bookingRef: REF, reason: "cancelled" },

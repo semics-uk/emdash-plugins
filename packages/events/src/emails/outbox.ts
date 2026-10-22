@@ -37,7 +37,7 @@ import {
 } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
-import { type EventInfoDeps, loadEventInfo } from "../domain/event-info";
+import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { cancellationEmail, confirmationEmail } from "./confirmation";
@@ -84,7 +84,17 @@ export interface DrainDeps {
 	pluginId: string;
 	siteName: string;
 	now: number;
+	/** An edition's renderers for its own outbox kinds (Pro refunds, T075), given what the tick read. */
+	render?: Record<string, EditionRender>;
 }
+
+/** The booking and event info a tick already read for an edition's own kind of message. */
+export type EditionRender = (input: {
+	doc: OutboxDoc;
+	booking: BookingDoc;
+	event: EventInfo;
+	siteName: string;
+}) => Promise<OutboxMessage | null>;
 
 interface Row {
 	id: string;
@@ -296,6 +306,14 @@ async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxM
 	if (typeof bookingId !== "string") throw new Error(`outbox row has no bookingId (kind ${doc.kind})`);
 	if (doc.kind === "booking_confirmed") return renderConfirmation(d, tick, bookingId);
 	if (doc.kind === "booking_cancelled") return renderCancellation(d, tick, bookingId);
+	const custom = d.render?.[doc.kind];
+	if (custom) {
+		const booking = await loadBooking(d, tick, bookingId);
+		if (!booking) return null;
+		const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
+		if (!event) throw new Error("event entry not found");
+		return custom({ doc, booking, event, siteName: d.siteName });
+	}
 	throw new Error(`unknown outbox kind ${doc.kind}`);
 }
 
@@ -376,10 +394,17 @@ function meteredDeps(d: DrainDeps, meter: { calls: number }): DrainDeps {
  * bridge call too, so it is written only when the tick left room for it (a full tick of two
  * confirmations with occurrences is already 10): the row itself still records `failed`.
  */
-export async function runOutboxJob(event: CronEvent, ctx: PluginContext, now = Date.now()): Promise<boolean> {
+export async function runOutboxJob(
+	event: CronEvent,
+	ctx: PluginContext,
+	now = Date.now(),
+	render?: Record<string, EditionRender>,
+): Promise<boolean> {
 	if (event.name !== OUTBOX_TASK) return false;
 	const meter = { calls: 0 };
-	const result = await drainEventsOutbox(meteredDeps(drainDepsOf(ctx, now), meter));
+	const result = await drainEventsOutbox(
+		meteredDeps({ ...drainDepsOf(ctx, now), ...(render ? { render } : {}) }, meter),
+	);
 	if (result.gaveUp > 0 && meter.calls < MAX_CALLS) {
 		ctx.log.error("emails given up after repeated failures", { count: result.gaveUp });
 	}
