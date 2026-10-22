@@ -408,6 +408,21 @@ describe("public/booking waiver reconciliation data (SX-FR-05, T066)", () => {
 		expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);
 	});
 
+	it("T067 SX-FR-05 a seat with a terminal receipt recorded is not asked again until continue re-issues its intent", async () => {
+		const w = await waiting(["tt_a", "tt_b", "tt_c"]);
+		const sig = (status: string, extra = {}) => ({ envelopeId: "env", status, docSha256: "a".repeat(64), at: 5, ...extra });
+		(w.storage.attendees.docs.get(`${ID}-1`) as Doc).signature = sig("declined");
+		(w.storage.attendees.docs.get(`${ID}-2`) as Doc).signature = sig("expired", { reissued: true });
+		const { body } = await run(bookingStatus, w.deps(T0), w.input);
+		// Seat 1's decline is on record and nothing new was asked of e-sign: asking again only
+		// re-forwards the same receipt. Seat 2 got a fresh intent, so its new envelope is looked up.
+		expect(body).toMatchObject({ waiver: { refs: [`${REF}:2`, `${REF}:3`] } });
+		const buyer = await waiting(["tt_a", "tt_b"]);
+		buyer.booking().waiver = { ...WAIVER, mode: "buyer" };
+		for (const seat of [1, 2]) (buyer.storage.attendees.docs.get(`${ID}-${seat}`) as Doc).signature = sig("declined");
+		expect((await run(bookingStatus, buyer.deps(T0), buyer.input)).body).not.toHaveProperty("waiver");
+	});
+
 	it("SX-FR-05 at most ten refs are listed, so a large booking stays within the bridge budget", async () => {
 		const w = await waiting(Array.from({ length: 12 }, (_, i) => `tt_${i}`));
 		const { body } = await run(bookingStatus, w.deps(T0), w.input);

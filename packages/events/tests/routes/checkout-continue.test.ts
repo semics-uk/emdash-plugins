@@ -405,6 +405,24 @@ describe("checkout/continue signature step seam (EV-FR-12, R5; Pro fills it)", (
 		expect([...w.storage.attendees.docs.values()]).toEqual(before);
 	});
 
+	it("T067 SX-FR-05 re-issuing intents marks seats whose receipt was declined, so reconciliation looks them up again", async () => {
+		const w = await world({ types: ["tt_a", "tt_b"] });
+		w.booking().waiver = WAIVER;
+		await run(w.deps(T0 + MIN, { signature: step({ holds: [] }) }), { ...w.input, attendees: withMinor });
+		const receipt = (status: string) => ({ envelopeId: "env_1", status, docSha256: "a".repeat(64), at: 7 });
+		const signed = { ...(w.storage.attendees.docs.get(`${ID}-1`) as Doc), status: "valid", signature: receipt("completed") };
+		const declined = { ...(w.storage.attendees.docs.get(`${ID}-2`) as Doc), signature: receipt("declined") };
+		w.storage.attendees.set(`${ID}-1`, signed);
+		w.storage.attendees.set(`${ID}-2`, declined);
+		const { body } = await run(w.deps(T0 + 2 * MIN, { signature: step({ holds: [] }) }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "awaiting_signature", next: { type: "sign" } });
+		expect(w.storage.attendees.docs.get(`${ID}-1`)).toEqual(signed);
+		expect(w.storage.attendees.docs.get(`${ID}-2`)).toEqual({
+			...declined,
+			signature: { ...receipt("declined"), reissued: true },
+		});
+	});
+
 	it("EV-FR-12 a refusal from the step writes nothing (a code, or input issues)", async () => {
 		for (const refusal of [{ code: "LICENCE_INVALID" }, { issues: [{ path: "attendees.1.email", code: "X" }] }]) {
 			const w = await world();

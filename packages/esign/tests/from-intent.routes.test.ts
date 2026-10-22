@@ -383,3 +383,55 @@ describe("ES-FR-13 SX-NFR-03 from-intent route rules", () => {
 		expect(bad).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" } });
 	});
 });
+
+// T067 (Phase 3 gate, finding F2): §8.1 returns a signing token "only for `delivery: "inline"` while
+// the envelope awaits this signer". The idempotent return must honour both halves: an inline intent
+// for the person an email envelope is waiting for (Events' door-signing link at check-in) gets a
+// token, and an intent naming someone else, or the same person in another capacity, gets none.
+describe("T067 SX-NFR-03 idempotent return hands a signing token only to the awaited signer", () => {
+	const adult = { signer: { name: "Charles Babbage", email: "charles@example.com" }, ref: "BK7Q2M:3" };
+
+	it("SX-NFR-03 an inline intent for the signer an email envelope awaits gets a fresh token (door signing)", async () => {
+		const budget = await integration();
+		const emailed = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
+		expect(emailed).toMatchObject({ ok: true, status: "sent" });
+		expect(emailed.signingToken).toBeUndefined();
+		const door = await call(
+			budget,
+			await sign(payload({ ...adult, signer: { name: "Charles Babbage", email: "Charles@Example.com" } })),
+		);
+		expect(door).toMatchObject({ ok: true, envelopeId: emailed.envelopeId, status: "sent" });
+		expect(door.signingToken).toBeTypeOf("string");
+		const signers = (await runtime?.inspect.storage.list<{ tokenHash: string }>("signers")) ?? [];
+		expect(signers.map((s) => s.data.tokenHash)).toEqual([await hashToken(door.signingToken as string)]);
+		expect(await runtime?.inspect.storage.list("envelopes")).toHaveLength(1);
+	});
+
+	it("SX-NFR-03 an intent for another person, or as guardian, gets the envelope but no token, and rotates nothing", async () => {
+		const budget = await integration();
+		const first = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
+		const before = await runtime?.inspect.storage.list("signers");
+		const buyer = { name: "Ada Lovelace", email: "ada@example.com" };
+		for (const over of [
+			{ signer: buyer },
+			{ signer: buyer, as: "guardian" as const, participant: { name: "Charles Babbage" } },
+			{ as: "guardian" as const, participant: { name: "Charles Babbage" } },
+			{ delivery: "email" as const },
+		]) {
+			const r = await call(budget, await sign(payload({ ...adult, ...over })));
+			expect(r, JSON.stringify(over)).toMatchObject({ ok: true, envelopeId: first.envelopeId });
+			expect(r.signingToken, JSON.stringify(over)).toBeUndefined();
+		}
+		expect(await runtime?.inspect.storage.list("signers")).toEqual(before);
+
+		// An inline envelope: another person's intent for the ref cannot take over its signer's session.
+		const inline = await call(budget, await sign(payload({ ref: "BK7Q2M:1", signer: buyer })));
+		const held = await runtime?.inspect.storage.list("signers");
+		const other = await call(budget, await sign(payload({ ref: "BK7Q2M:1", signer: adult.signer })));
+		expect(other).toMatchObject({ ok: true, envelopeId: inline.envelopeId });
+		expect(other.signingToken).toBeUndefined();
+		expect(await runtime?.inspect.storage.list("signers")).toEqual(held);
+		const same = await call(budget, await sign(payload({ ref: "BK7Q2M:1", signer: buyer })));
+		expect(same.signingToken).toBeTypeOf("string");
+	});
+});

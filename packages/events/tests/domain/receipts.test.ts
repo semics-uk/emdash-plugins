@@ -100,6 +100,14 @@ describe("storing a receipt (SX-FR-04, §8.4 idempotent and monotonic)", () => {
 		expect(mergeSignature(declined, receipt({ at: 1_700_000_000 }))).toEqual(stored(receipt({ at: 1_700_000_000 })));
 	});
 
+	it("T067 SX-FR-05 the re-issued mark survives a replay of the old receipt and goes with the new envelope's", () => {
+		const declined = receipt({ status: "declined", pdfSha256: null, finalHash: null });
+		const marked = { ...stored(declined), reissued: true };
+		expect(mergeSignature(marked, declined)).toBeNull();
+		const next = receipt({ envelopeId: "env_2", status: "expired", pdfSha256: null, finalHash: null, at: declined.at + 60 });
+		expect(mergeSignature(marked, next)).toEqual(stored(next));
+	});
+
 	it("SX-FR-04 among non-completed receipts a later `at` wins", () => {
 		const declined = receipt({ status: "declined", pdfSha256: null, finalHash: null });
 		const voided = receipt({

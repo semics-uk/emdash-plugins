@@ -115,6 +115,17 @@ const expectRedirect = (outcome: WaiverOutcome) => {
 const cookieValue = (outcome: Extract<WaiverOutcome, { type: "redirect" }>, name: string) =>
 	outcome.cookies.find((c) => c.name === name);
 
+/** The cookies a browser would send to `path` (RFC 6265 path-match), from the ones a response set. */
+function browserJar(set: ReadonlyArray<{ name: string; value: string; options: Record<string, unknown> }>, path: string) {
+	const jar: Record<string, string> = {};
+	for (const c of set) {
+		const p = String(c.options.path ?? "/");
+		const matches = path === p || (path.startsWith(p) && (p.endsWith("/") || path[p.length] === "/"));
+		if (matches && Number(c.options.maxAge ?? 1) > 0) jar[c.name] = c.value;
+	}
+	return jar;
+}
+
 describe("booking (SX-FR-02)", () => {
 	it("SX-FR-02 Free: no signature step, so the waiver flow is a plain booking that lands confirmed", async () => {
 		const h = host({
@@ -455,6 +466,35 @@ describe("retry after e-sign refuses an intent (T066, SX-FR-03)", () => {
 		const none = host({});
 		expect(expectRedirect(await run(none, retry())).location).toBe(`/booking?ref=${REF}`);
 		expect(none.calls).toEqual([]);
+	});
+
+	it("T067 SX-FR-03 the retry works in a browser: the page that offers it can read the booking's access", async () => {
+		// A browser sends a cookie only to paths under its Path: the booking cookie (Path=/booking)
+		// never reaches /_events/waiver, so the flow must leave the retry its own credential there.
+		const first = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/checkout/continue`]: signNext,
+			[`${ESIGN} public/envelopes/from-intent`]: () => refused("TEMPLATE_NOT_FOUND"),
+		});
+		const refusedOnce = expectRedirect(await run(first, post(WAIVER_PATH, ORDER)));
+		expect(refusedOnce.location).toBe(`${WAIVER_PATH}?ref=${REF}&error=SIGNING_UNAVAILABLE`);
+		const jar = browserJar(refusedOnce.cookies, WAIVER_PATH);
+		for (const c of refusedOnce.cookies.filter((c) => c.options.path === WAIVER_PATH)) {
+			expect(c.options).toMatchObject({ httpOnly: true, sameSite: "strict", secure: true });
+		}
+
+		const again = host({
+			[`${EVENTS} public/checkout/continue`]: signNext,
+			[`${ESIGN} public/envelopes/from-intent`]: fromIntent(),
+		});
+		const outcome = expectRedirect(await run(again, retry(), jar));
+		expect(again.calls[0]).toEqual({
+			id: EVENTS,
+			path: "public/checkout/continue",
+			body: { bookingRef: REF, accessToken: ACCESS },
+		});
+		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}`);
+		expect(outcome.location).not.toContain(ACCESS);
 	});
 
 	it("SX-FR-03 a retry for a malformed ref, or from another site, does nothing", async () => {
