@@ -38,6 +38,9 @@ const WORD = /[\p{L}\p{N}]/u;
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control characters never belong in a link.
 const UNSAFE_URL_CHARS = /[\s"'<>`\\\u0000-\u001F\u007F]/;
 const SAFE_URL_START = /^(https?:\/\/|mailto:)/i;
+/** Every character the inline parser treats specially; anything else is plain text. */
+const SPECIAL_CHARS = new Set(["\\", "&", "\n", "`", "*", "_", "[", "!", "<"]);
+const SPECIAL = /[\\&\n`*_[!<]/g;
 
 /** An absolute http, https or mailto URL, normalised; anything else is `undefined`. */
 export function safeHref(raw: string): string | undefined {
@@ -66,11 +69,14 @@ function pairs(src: string): Map<number, number> {
 	const out = new Map<number, number>();
 	const stacks: Record<string, number[]> = { "]": [], ")": [] };
 	const openerOf: Record<string, string> = { "[": "]", "(": ")" };
-	for (let j = 0; j < src.length; j++) {
-		const c = src[j] as string;
-		if (c === "\\") j++;
+	// Only brackets and backslashes matter: jump between them rather than walking every character.
+	const marks = /[\\[\]()]/g;
+	for (let found = marks.exec(src); found; found = marks.exec(src)) {
+		const j = found.index;
+		const c = found[0];
+		if (c === "\\") marks.lastIndex = j + 2;
 		else if (c in openerOf) stacks[openerOf[c] as string]?.push(j);
-		else if (c === "]" || c === ")") {
+		else {
 			const open = stacks[c]?.pop();
 			if (open !== undefined) out.set(open, j);
 		}
@@ -98,6 +104,16 @@ class InlineParser {
 		let i = from;
 		while (i < to) {
 			const ch = src[i] as string;
+			if (!SPECIAL_CHARS.has(ch)) {
+				// Plain text up to the next character any rule below looks at, in one slice (the signed PDF
+				// job parses whole documents, so this keeps it linear with a small constant; T117).
+				SPECIAL.lastIndex = i;
+				const next = SPECIAL.exec(src);
+				const stop = next && next.index < to ? next.index : to;
+				buf += src.slice(i, stop);
+				i = stop;
+				continue;
+			}
 			if (ch === "\\" && i + 1 < to && PUNCT.test(src[i + 1] as string)) {
 				buf += src[i + 1];
 				i += 2;
