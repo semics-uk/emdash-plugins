@@ -4,7 +4,7 @@ title: "Events: end-to-end and concurrency proof"
 phase: 2
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T050, T051, T052, T054, T055, T009]
