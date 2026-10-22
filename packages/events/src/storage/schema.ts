@@ -183,6 +183,13 @@ export interface BookingDoc {
 	/** SHA-256 of the access token; the token itself is never stored. */
 	accessTokenHash: string;
 	/**
+	 * SHA-256 of the one-time code in the emailed booking link (T050), or `null` once redeemed.
+	 * The code is never stored; redeeming it mints a new access token and replaces `accessTokenHash`.
+	 */
+	redeemHash?: string | null;
+	/** When the emailed code stops working. */
+	redeemExpiresAt?: string | null;
+	/**
 	 * Salted hash of the client IP that created the booking (never the IP): checkout's rate limit
 	 * counts recent bookings by it. Erased with the booking's personal data.
 	 */
@@ -252,6 +259,11 @@ export interface PromoCodeDoc {
 
 export type OutboxStatus = "pending" | "sent" | "failed";
 
+/**
+ * A queued email. It holds references only (`payload` ids); the message is rendered when it is
+ * sent (`src/emails/outbox.ts` adapts this to the shared `OutboxRecord`: ISO `nextAttemptAt` here,
+ * epoch ms there), so the row never carries a token, a ticket code or a body.
+ */
 export interface OutboxDoc {
 	kind: string;
 	to: string;
@@ -259,6 +271,8 @@ export interface OutboxDoc {
 	attempts: number;
 	nextAttemptAt: string;
 	status: OutboxStatus;
+	lastError?: string;
+	sentAt?: string;
 }
 
 /** Document shape for each collection, for typed `ctx.storage` access in later tasks. */

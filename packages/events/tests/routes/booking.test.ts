@@ -124,7 +124,8 @@ describe("public/booking (EV-US-4)", () => {
 			attendees: [{ name: "Ada Lovelace", ticketTypeId: "tt_a", status: "valid" }],
 		});
 		expect(JSON.stringify(body)).not.toContain("accessTokenHash");
-		expect(JSON.stringify(body)).not.toContain('"code":"c0"');
+		// R33 (T050): the token holder gets each valid attendee's check-in code for the pass.
+		expect(body).toMatchObject({ attendees: [{ code: "c0" }] });
 		expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);
 	});
 

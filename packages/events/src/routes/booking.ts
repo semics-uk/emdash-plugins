@@ -6,7 +6,9 @@ import { type CancelDecision, cancelCutoffHours, cancelDecision } from "../domai
 import { type InputIssue, parseBookingAccessInput } from "../domain/checkout";
 import { CLAIM_STALE_MS, HOLD_STATUSES } from "../domain/holds";
 import { type CounterStorage, countersForBooking, release } from "../domain/inventory";
+import type { LinkKv } from "../domain/link-secret";
 import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
+import { bookingCalendarQuery } from "./ics";
 
 /**
  * `POST public/booking` (status) and `POST public/booking/cancel` (EV-US-4, EV-FR-09). Both are
@@ -26,7 +28,12 @@ import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
  * `outbox.put`: 6 plus the counters. One ticket type without an occurrence is 8. Counters beyond
  * the budget (event and occurrence go first) are left for the sweeper's drift repair, which counts
  * only live bookings. Abandoning a held booking skips the config and settings reads.
- * Status is query, attendees query, and for a confirmed booking the config and settings reads.
+ * Status is query, attendees query, and for a confirmed booking the config and settings reads, plus
+ * the calendar link's key read (the first use creates it): 5, or 7 on that first use.
+ *
+ * A confirmed booking's answer carries `calendar: { query }`, a 15-minute signed query for
+ * `public/booking/ics` (T050), and each valid attendee's check-in `code` (R33): only the token
+ * holder sees them, and neither travels in a URL or an email.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
@@ -50,6 +57,8 @@ export interface BookingRouteStorage extends CounterStorage {
 export interface BookingDeps {
 	storage: BookingRouteStorage;
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
+	/** Holds the calendar link key; without it the answer has no `calendar`. */
+	kv?: LinkKv;
 	now: number;
 }
 
@@ -92,9 +101,12 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	const auth = await authenticate(deps, raw);
 	if ("error" in auth) return auth.error;
 	const { id, booking: b } = auth;
-	const [{ items }, decision] = await Promise.all([
+	const [{ items }, decision, calendar] = await Promise.all([
 		deps.storage.attendees.query({ where: { bookingId: id }, limit: 100 }),
 		decide(deps, b),
+		b.status === "confirmed" && deps.kv
+			? bookingCalendarQuery(deps.kv, b.ref, deps.now).catch(() => undefined)
+			: undefined,
 	]);
 	return {
 		ok: true,
@@ -107,9 +119,15 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 		totals: b.totals,
 		...(b.holdExpiresAt !== undefined && HOLD_STATUSES.includes(b.status) ? { holdExpiresAt: b.holdExpiresAt } : {}),
 		attendees: items.map((i) => {
-			const a = i.data as { name: string; ticketTypeId: string; status: string };
-			return { name: a.name, ticketTypeId: a.ticketTypeId, status: a.status };
+			const a = i.data as { name: string; ticketTypeId: string; status: string; code?: string };
+			return {
+				name: a.name,
+				ticketTypeId: a.ticketTypeId,
+				status: a.status,
+				...(a.status === "valid" && a.code ? { code: a.code } : {}),
+			};
 		}),
+		...(calendar ? { calendar: { query: calendar } } : {}),
 		canCancel: decision.allowed,
 		...(decision.cancelBy ? { cancelBy: decision.cancelBy } : {}),
 	};
@@ -172,7 +190,7 @@ const handler =
 	(fn: (deps: BookingDeps, raw: unknown) => Promise<unknown>): Handler =>
 	async (routeCtx, ctx) =>
 		fn(
-			{ storage: ctx.storage as unknown as BookingRouteStorage, settings: ctx.settings, now: Date.now() },
+			{ storage: ctx.storage as unknown as BookingRouteStorage, settings: ctx.settings, kv: ctx.kv, now: Date.now() },
 			routeCtx.input,
 		);
 

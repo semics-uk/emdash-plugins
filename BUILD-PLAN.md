@@ -197,6 +197,7 @@ Public (`public: true`, all `methods`-restricted, Turnstile + KV rate-limit on w
 | `POST public/booking/cancel` | Self-service cancel within policy |
 | `GET public/booking/ics` (raw `text/calendar`, `Content-Disposition: attachment; filename=booking.ics`) | Calendar file (short-lived signed link, not the access token) |
 | `GET public/event/ics` (raw) | Event calendar file |
+| `POST public/booking/redeem` | Exchanges the one-time code from the emailed booking link for a fresh access token (T050, R34) |
 | `POST public/waitlist/join`, `POST public/waitlist/claim` | Waitlist |
 | `POST webhooks/stripe` (`request.body: "text"`, header `stripe-signature`) | Payment confirmation; HMAC-verified |
 | `POST signatures/receipt` | Accepts an e-sign **SignedReceipt** (§5), verifies HMAC |
@@ -756,6 +757,7 @@ https://claude.ai/code/artifact/d08f19a6-8ca1-435a-9a2c-bad0745124e6
 | R31 | Signing submit only from `in_progress` (T025 review) | The view transition (`sent → in_progress`, writes `signer.viewed`) happens in `public/session`; `submit` refuses a `sent` envelope with `SESSION_REQUIRED`. This removes the audit-head race whose rebuild path reached 13 bridge calls (hard limit 10). Fixed in T112 |
 | R32 | Clear-text signing tokens in the outbox (T027) | Unavoidable at queue time (only hashes are stored elsewhere); the drain scrubs body and payload in the same write that marks a row sent or failed (T113), and retention purges old rows. Email bodies use a plain `fill`, not `renderTemplate`, whose Markdown escaping corrupts base64url tokens and hyphenated names |
 | R33 | Attendee check-in codes go to the booking's token holder (T055 review) | The buyer owns the tickets and needs passes on the booking page; `public/booking` returns codes only after `verifyToken` and never in the outbox or URLs. Sandboxed refusals are `{ ok: false }` inside `{ success: true }`: `callPublicRoute` treats them as errors (T055 fix) |
+| R34 | Emailed booking links use a one-time code, not the access token (T050) | The confirmation is rendered at send time (the outbox row holds ids only) and carries `/booking?ref=<ref>&k=<code>`; only the code's SHA-256 is stored (`redeemHash`, 7 days). The booking page POSTs `{ bookingRef, code }` to `public/booking/redeem`, which swaps in a fresh access token for the HttpOnly cookie and clears the code (single use, constant-time check, unknown ref = wrong code = expired = `NOT_FOUND`). Redeeming replaces `accessTokenHash`, so an older token stops working. The redeem must be a POST from a button or the server after a click, never a GET side effect, so mail scanners that prefetch the link cannot burn it. A crash-retry of the send mints a newer code and invalidates the earlier link. The drain sends one email a minute (8-9 bridge calls per tick), the cost of rendering from fresh reads |
 
 ## 13. Editions and licensing
 

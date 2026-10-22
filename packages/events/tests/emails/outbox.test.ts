@@ -100,8 +100,7 @@ describe("EV-FR-08 confirmation from the outbox", () => {
 
 	it("EV-FR-08 does nothing without a mail transport", async () => {
 		const w = await world();
-		const { email: _drop, ...rest } = w.deps();
-		const result = await drainEventsOutbox(rest);
+		const result = await drainEventsOutbox(w.deps({ email: undefined }));
 		expect(result.sent).toBe(0);
 		expect(row(w, `confirm-${ID}`).status).toBe("pending");
 		expect(meter.calls).toBe(0);
@@ -109,7 +108,10 @@ describe("EV-FR-08 confirmation from the outbox", () => {
 
 	it("EV-FR-08 skips rows that are not due yet", async () => {
 		const w = await world();
-		w.storage.outbox.set(`confirm-${ID}`, { ...row(w, `confirm-${ID}`), nextAttemptAt: new Date(NOW + 1000).toISOString() });
+		w.storage.outbox.set(`confirm-${ID}`, {
+			...row(w, `confirm-${ID}`),
+			nextAttemptAt: new Date(NOW + 1000).toISOString(),
+		});
 		expect((await drainEventsOutbox(w.deps())).sent).toBe(0);
 	});
 });

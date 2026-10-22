@@ -2,8 +2,8 @@ import { generateToken, hashToken, signLink } from "@semics-tech/shared";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { LINK_KEY } from "../../src/domain/link-secret";
-import { BOOKING_ICS_PURPOSE, bookingIcs, eventIcs, type IcsDeps } from "../../src/routes/ics";
 import { type BookingDeps, type BookingRouteStorage, bookingStatus } from "../../src/routes/booking";
+import { bookingIcs, eventIcs, type IcsDeps } from "../../src/routes/ics";
 import { type RedeemDeps, redeemBooking } from "../../src/routes/redeem";
 import { meter } from "../domain/fake-storage";
 import { type Doc, ID, NOW, REF, START, world } from "../emails/world";

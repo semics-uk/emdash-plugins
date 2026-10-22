@@ -1,6 +1,7 @@
 import type { SandboxedPlugin } from "emdash/plugin";
 
 import { runCron, scheduleSweeper } from "./cron/sweep";
+import { runOutboxJob, scheduleOutbox } from "./emails/outbox";
 import { ADMIN_ROUTES } from "./routes/admin";
 import { ATTENDEE_ROUTES } from "./routes/attendees";
 import { CONFIG_ROUTES } from "./routes/config";
@@ -13,8 +14,13 @@ import { PUBLIC_ROUTES } from "./routes/public";
  */
 const plugin: SandboxedPlugin = {
 	hooks: {
-		"plugin:activate": async (_event, ctx) => scheduleSweeper(ctx),
-		cron: async (event, ctx) => runCron(event, ctx),
+		"plugin:activate": async (_event, ctx) => {
+			await scheduleSweeper(ctx);
+			await scheduleOutbox(ctx);
+		},
+		cron: async (event, ctx) => {
+			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
+		},
 	},
 	routes: {
 		hello: {

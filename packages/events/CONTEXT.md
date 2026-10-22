@@ -56,6 +56,13 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   be abandoned; confirmed ones until `cancelCutoffHours` (setting, default 24) before the occurrence
   start (`src/domain/cancel-policy.ts`), else `CANCEL_NOT_ALLOWED`. Counters over the budget are left
   to drift repair.
+- Emails and calendar (`src/emails`, `src/routes/ics.ts`, `redeem.ts`, T050): outbox rows hold ids only;
+  `outbox-drain` (every minute) runs the shared `drainOutbox` over an adapter (`OutboxDoc` ISO strings
+  <-> `OutboxRecord` numbers) whose `email.send` renders at send time from fresh reads, one message
+  per tick (8-9 calls). The link is `/booking?ref=&k=<one-time code>` (hash in `redeemHash`); the
+  page POSTs it to `public/booking/redeem` for a fresh access token (R34). `public/booking` also
+  returns `calendar.query` (`signLink`, `events/booking-ics`, 15 min, key in KV `events:link-key`) and
+  valid attendees' `code` (R33). Event fields for emails/ICS come from `src/domain/event-info.ts`.
 - Tokens never in URLs: booking access tokens travel in POST bodies; `callPublicRoute` refuses
   token-like keys on GET. Calendar files use short-lived signed links.
 - Errors go through `toRouteError` from `@semics-tech/shared`. A wrong booking token is a 404.

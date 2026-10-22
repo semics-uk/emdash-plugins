@@ -40,10 +40,31 @@ describe("EV-FR-08 confirmation email", () => {
 	it("EV-FR-08 shows the start in the event's own zone: London, New York and Tokyo", () => {
 		const text = (zone: string) => confirmationEmail({ ...base, event: event(zone) }).text;
 		const when = (zone: string) => /^When: (.*)$/m.exec(text(zone))?.[1];
-		expect(when("Europe/London")).toBe("Sat, 14 Nov 2026, 19:00 GMT");
-		expect(when("America/New_York")).toBe("Sat, 14 Nov 2026, 14:00 GMT-5");
-		expect(when("Asia/Tokyo")).toBe("Sun, 15 Nov 2026, 04:00 GMT+9");
-		expect(text("Asia/Tokyo")).toMatchInlineSnapshot();
+		expect(when("Europe/London")).toBe("Sat 14 Nov 2026, 19:00 UTC (Europe/London)");
+		expect(when("America/New_York")).toBe("Sat 14 Nov 2026, 14:00 UTC-5 (America/New_York)");
+		expect(when("Asia/Tokyo")).toBe("Sun 15 Nov 2026, 04:00 UTC+9 (Asia/Tokyo)");
+		expect(when("Asia/Kolkata")).toBe("Sun 15 Nov 2026, 00:30 UTC+5:30 (Asia/Kolkata)");
+		expect(when("Not/AZone")).toBe("Sat 14 Nov 2026, 19:00 UTC (UTC)");
+		expect(text("Asia/Tokyo")).toMatchInlineSnapshot(`
+			"Hi Ada Lovelace,
+
+			Your booking for Winter Concert is confirmed.
+
+			When: Sun 15 Nov 2026, 04:00 UTC+9 (Asia/Tokyo)
+			Where: Town Hall, Market Street
+			Reference: ABCDEFGHJK
+
+			Tickets:
+			- Ada Lovelace
+			- Grace Hopper
+
+			View or cancel your booking: https://site.test/booking?ref=ABCDEFGHJK&k=one-time-code_-x
+			Your tickets (check-in passes): https://site.test/booking?ref=ABCDEFGHJK&k=one-time-code_-x#tickets
+			Add to calendar: https://site.test/_emdash/api/plugins/r_abc/public/event/ics?eventId=ev1
+
+			The booking link opens your booking once on the device you use it from, so keep this email private.
+			Town Hall"
+		`);
 	});
 
 	it("EV-FR-08 escapes HTML in names and titles but leaves tokens and hyphens alone (R32)", () => {
@@ -68,7 +89,7 @@ describe("EV-FR-09 cancellation email", () => {
 		expect(m.subject).toContain("cancelled");
 		expect(m.text).toContain("Winter Concert");
 		expect(m.text).toContain("ABCDEFGHJK");
-		expect(m.text).toContain("19:00 GMT");
+		expect(m.text).toContain("19:00 UTC (Europe/London)");
 		expect(m.text).not.toContain("k=");
 		expect(m.html).not.toContain("k=");
 	});

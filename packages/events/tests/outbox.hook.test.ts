@@ -99,7 +99,11 @@ describe("outbox-drain in the shipped plugin (EV-FR-08, R22, R23)", () => {
 	it("EV-FR-08 the booking calendar route rejects an unsigned request with a JSON error", async () => {
 		await seed();
 		const budget = withBudget(host());
-		const r = await budget.invokeRoute("public/booking/ics", {}, { url: "https://site.test/x?ref=ABCDEFGHJK", method: "GET" });
+		const r = await budget.invokeRoute(
+			"public/booking/ics",
+			{},
+			{ url: "https://site.test/x?ref=ABCDEFGHJK", method: "GET" },
+		);
 		expectWithinBudget(r, { calls: 3 });
 		const body = r.value as { status?: number; body?: { value?: string } };
 		expect(body.status).toBe(401);

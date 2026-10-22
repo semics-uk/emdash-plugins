@@ -4,6 +4,8 @@ import type { SandboxedPlugin } from "emdash/plugin";
 import { BOOKING_CANCEL_ROUTE, BOOKING_ROUTE } from "./booking";
 import { CHECKOUT_CONTINUE_ROUTE } from "./checkout-continue";
 import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
+import { bookingIcsHandler, eventIcsHandler } from "./ics";
+import { BOOKING_REDEEM_ROUTE } from "./redeem";
 
 /**
  * Every public route of BUILD-PLAN 3.1. Routes are declared in code (the manifest schema has no
@@ -28,8 +30,15 @@ export const PUBLIC_ROUTES: Record<string, RouteDef> = {
 	"public/checkout/continue": CHECKOUT_CONTINUE_ROUTE,
 	"public/booking": BOOKING_ROUTE,
 	"public/booking/cancel": BOOKING_CANCEL_ROUTE,
-	"public/booking/ics": route({ methods: ["GET"], response: "raw" }),
-	"public/event/ics": route({ methods: ["GET"], response: "raw" }),
+	"public/booking/redeem": BOOKING_REDEEM_ROUTE,
+	"public/booking/ics": { methods: ["GET"], public: true, response: "raw", handler: bookingIcsHandler },
+	"public/event/ics": {
+		methods: ["GET"],
+		public: true,
+		response: "raw",
+		cacheControl: "public, max-age=300",
+		handler: eventIcsHandler,
+	},
 	"public/waitlist/join": route({ methods: ["POST"] }),
 	"public/waitlist/claim": route({ methods: ["POST"] }),
 	"webhooks/stripe": route({
