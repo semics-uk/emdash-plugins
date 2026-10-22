@@ -731,7 +731,7 @@
 			"phase": 1,
 			"package": "esign",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -744,7 +744,7 @@
 			"unblocks": [
 				"T033"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T032": {
 			"file": "T032-e-sign-ui-verify-page.md",
@@ -2277,7 +2277,6 @@
 			"T106"
 		],
 		"ready": [
-			"T031",
 			"T032",
 			"T043",
 			"T051",
@@ -2285,6 +2284,7 @@
 			"T111"
 		],
 		"in-progress": [
+			"T031",
 			"T046"
 		],
 		"review": [],
