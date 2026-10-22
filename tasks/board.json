@@ -1160,7 +1160,7 @@
 			"phase": 2,
 			"package": "events",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -1174,7 +1174,7 @@
 			"unblocks": [
 				"T056"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T055": {
 			"file": "T055-events-ui-booking-widget-status-pass-and-calendar.md",
@@ -2277,12 +2277,12 @@
 		],
 		"ready": [
 			"T043",
-			"T054",
 			"T072",
 			"T111"
 		],
 		"in-progress": [
-			"T032"
+			"T032",
+			"T054"
 		],
 		"review": [],
 		"done": [
