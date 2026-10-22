@@ -36,7 +36,7 @@ async function call(budget: BudgetedHost, route: string, input: unknown): Promis
 }
 
 /** A sent envelope whose signer token is known (the real token is only emailed, T027). */
-async function sent(): Promise<Sent> {
+async function sent(extra: Record<string, unknown> = {}): Promise<Sent> {
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 	runtime = await createPluginRuntimeTestHost();
 	const budget = withBudget(runtime);
@@ -48,6 +48,7 @@ async function sent(): Promise<Sent> {
 			templateId: t.template.id,
 			signer: { name: "Ada Lovelace", email: "ada@example.com" },
 			fields: { event: "Gig" },
+			...extra,
 		})
 	).value as { envelope: { id: string } };
 	const id = created.envelope.id;
@@ -326,5 +327,51 @@ describe("ES-FR-04 public/decline", () => {
 		expect(await call(s.budget, "public/decline", { token: "w".repeat(43) })).toMatchObject({
 			error: { code: "SIGNING_TOKEN_INVALID" },
 		});
+	});
+});
+
+describe("T033 signer-fillable fields", () => {
+	const signerFields = [
+		{ key: "phone", label: "Phone number", required: true },
+		{ key: "nickname", label: "Nickname" },
+	];
+
+	it("public/session lists the fields the sender asked the signer to fill, and none otherwise", async () => {
+		const s = await sent({ signerFields });
+		expect(await view(s)).toMatchObject({ ok: true, state: "ready", fields: signerFields });
+		const plain = await sent();
+		expect((await view(plain)).fields).toBeUndefined();
+	});
+
+	it("public/submit refuses a missing required field and an undeclared one, and stores the declared values", async () => {
+		const s = await sent({ signerFields });
+		await view(s);
+		expect(await call(s.budget, "public/submit", good(s, { fieldValues: { nickname: "Ada" } }))).toMatchObject({
+			ok: false,
+			error: { code: "BAD_REQUEST" },
+		});
+		expect(await call(s.budget, "public/submit", good(s, { fieldValues: { phone: "1", other: "x" } }))).toMatchObject({
+			ok: false,
+			error: { code: "BAD_REQUEST" },
+		});
+		expect((await envelopeOf(s.id))?.status).toBe("in_progress");
+		const done = await call(s.budget, "public/submit", good(s, { fieldValues: { phone: "0123" } }));
+		expect(done).toMatchObject({ ok: true, status: "completed" });
+		const signer = await runtime?.inspect.storage.get<Record<string, unknown>>("signers", `${s.id}:s1`);
+		expect(signer?.fieldValues).toEqual({ phone: "0123" });
+	});
+
+	it("envelopes/create rejects malformed signerFields", async () => {
+		process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
+		runtime = await createPluginRuntimeTestHost();
+		const budget = withBudget(runtime);
+		const t = (await budget.invokeRoute("templates/create", { name: "W", body: BODY })).value as { template: { id: string } };
+		const r = await budget.invokeRoute("envelopes/create", {
+			templateId: t.template.id,
+			signer: { name: "Ada", email: "ada@example.com" },
+			fields: { event: "Gig" },
+			signerFields: [{ key: "bad key", label: "x" }],
+		});
+		expect(r.value).toMatchObject({ ok: false });
 	});
 });
