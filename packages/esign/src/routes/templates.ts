@@ -9,6 +9,7 @@ import {
 	updateTemplate,
 	versionDocId,
 } from "../domain/templates";
+import { obj } from "./envelopes";
 
 /**
  * Private (admin) template routes (ES-FR-01): `templates/create`, `update`, `get`, `list`,
@@ -35,9 +36,6 @@ const badRequest = (issues?: readonly TemplateIssue[]) => ({
 	...(issues ? { issues } : {}),
 });
 const notFound = () => toRouteError("TEMPLATE_NOT_FOUND").body;
-
-const obj = (input: unknown): Record<string, unknown> =>
-	typeof input === "object" && input !== null ? (input as Record<string, unknown>) : {};
 
 function idOf(input: unknown): string | null {
 	const id = obj(input).id;

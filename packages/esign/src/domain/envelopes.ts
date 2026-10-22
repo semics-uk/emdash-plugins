@@ -66,6 +66,8 @@ export interface EnvelopeDoc {
 	externalRef?: string;
 	returnUrl?: string;
 	signer: SignerInput;
+	/** Lower-cased `signer.email`, indexed so deletion by email finds drafts (no signer document yet); purged with the rest (T092). */
+	signerEmail?: string;
 	fieldValues: Record<string, string>;
 	/** Fields the signer fills in at signing; absent when the sender asked for none. */
 	signerFields?: SignerFieldSpec[];
@@ -303,6 +305,7 @@ function draftDoc(
 		status: "draft",
 		routing: "parallel",
 		...rest,
+		signerEmail: rest.signer.email.toLowerCase(),
 		signerIds: [],
 		docSha256: null,
 		snapshot: null,

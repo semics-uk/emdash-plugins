@@ -98,12 +98,18 @@ function failure(reply: Reply, fallback = "The change was refused."): string {
 	return reply.error?.message ?? fallback;
 }
 
-const error = (title: string, message?: string): NoticeInput => ({
-	severity: "error",
+const note = (severity: NoticeInput["severity"], title: string, message?: string): NoticeInput => ({
+	severity,
 	title,
 	...(message ? { message } : {}),
 });
+const error = (title: string, message?: string) => note("error", title, message);
+const warn = (title: string, message?: string) => note("warning", title, message);
 const back = (id: string, label: string) => button(id, label, { style: "secondary" });
+const info = (title: string, message?: string) => note("info", title, message);
+const toEnvelopes = () => back("envelopes.back", "Back to envelopes");
+const toTemplates = () => back("templates.back", "Back to templates");
+const openEnvelope = (id: string) => button("envelope.open", "Open envelope", { value: id });
 
 const EVENT_LABELS: Record<string, string> = {
 	"envelope.created": "Envelope created",
@@ -122,23 +128,22 @@ const EVENT_LABELS: Record<string, string> = {
 
 /** No site URL: emails with links are not queued (T117), and this says why. */
 const siteUrlBanner = (deps: AdminDeps): NoticeInput | false =>
-	!siteOrigin(deps.ctx) && { severity: "warning", title: "Set the site URL", message: SITE_URL_WARNING };
+	!siteOrigin(deps.ctx) && warn("Set the site URL", SITE_URL_WARNING);
 
 async function outboxBanners(deps: AdminDeps): Promise<Array<NoticeInput | false>> {
 	const report = await outboxReport(deps.ctx);
 	return [
 		siteUrlBanner(deps),
-		report.state === "no_transport" && {
-			severity: "warning" as const,
-			title: "No email transport",
-			message:
+		report.state === "no_transport" &&
+			warn(
+				"No email transport",
 				"No email provider is configured, so signing invitations stay queued and are not delivered. Install an email provider plugin.",
-		},
-		report.failed > 0 && {
-			severity: "warning" as const,
-			title: `${report.failed} email${report.failed === 1 ? "" : "s"} could not be delivered`,
-			message: "Open the envelope and use Resend invitation if a signer never received theirs.",
-		},
+			),
+		report.failed > 0 &&
+			warn(
+				`${report.failed} email${report.failed === 1 ? "" : "s"} could not be delivered`,
+				"Open the envelope and use Resend invitation if a signer never received theirs.",
+			),
 	];
 }
 
@@ -248,7 +253,7 @@ async function erasure(deps: AdminDeps, subject: string, run: boolean): Promise<
 						}),
 					]
 				: []),
-			back("envelopes.back", "Back to envelopes"),
+			toEnvelopes(),
 		]),
 	]);
 }
@@ -286,7 +291,7 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 		return respond([
 			header("Envelope"),
 			...notices([error("Envelope not found", "It may have been removed.")]),
-			actions([back("envelopes.back", "Back to envelopes")]),
+			actions([toEnvelopes()]),
 		]);
 	}
 	const open = envelope.status === "sent" || envelope.status === "in_progress";
@@ -342,7 +347,7 @@ async function detailPage(deps: AdminDeps, id: string, opts: DetailOpts = {}): P
 					style: "danger",
 				},
 			}),
-		back("envelopes.back", "Back to envelopes"),
+		toEnvelopes(),
 	];
 	const buttons = candidates.filter((b): b is ActionElement => b !== false);
 
@@ -417,14 +422,14 @@ async function sendEnvelope(deps: AdminDeps, id: string): Promise<AdminResponse>
 					"Open the envelope and use Resend invitation.",
 				),
 			]),
-			actions([button("envelope.open", "Open envelope", { value: id })]),
+			actions([openEnvelope(id)]),
 		]);
 	}
 	if (reply.ok !== true) {
 		return respond([
 			header("Envelope"),
 			...notices([error("Not sent", failure(reply))]),
-			actions([button("envelope.open", "Open envelope", { value: id }), back("envelopes.back", "Back to envelopes")]),
+			actions([openEnvelope(id), toEnvelopes()]),
 		]);
 	}
 	const unqueued = reply.invitation === "SITE_URL_MISSING";
@@ -433,9 +438,9 @@ async function sendEnvelope(deps: AdminDeps, id: string): Promise<AdminResponse>
 		...notices([
 			unqueued
 				? { severity: "warning", title: "Envelope sent, but no invitation was queued", message: SITE_URL_WARNING }
-				: { severity: "info", title: "Envelope sent", message: "The signer's invitation is queued." },
+				: info("Envelope sent", "The signer's invitation is queued."),
 		]),
-		actions([button("envelope.open", "Open envelope", { value: id }), back("envelopes.back", "Back to envelopes")]),
+		actions([openEnvelope(id), toEnvelopes()]),
 	]);
 }
 
@@ -455,7 +460,7 @@ async function voidEnvelope(deps: AdminDeps, id: string): Promise<AdminResponse>
 	return detailPage(deps, id, {
 		envelope: reply.envelope as DetailOpts["envelope"],
 		invite: "n/a",
-		extra: notices([{ severity: "info", title: "Voided", message: "The signer can no longer sign this envelope." }]),
+		extra: notices([info("Voided", "The signer can no longer sign this envelope.")]),
 	});
 }
 
@@ -466,7 +471,7 @@ async function resendInvitation(deps: AdminDeps, id: string): Promise<AdminRespo
 		return detailPage(deps, id, {
 			extra: notices([
 				queued
-					? { severity: "info", title: "Already queued", message: "The invitation is queued or was sent." }
+					? info("Already queued", "The invitation is queued or was sent.")
 					: error("Not resent", failure(reply, "Only an envelope that is sent and unsigned can be resent.")),
 			]),
 		});
@@ -475,9 +480,7 @@ async function resendInvitation(deps: AdminDeps, id: string): Promise<AdminRespo
 		envelope: reply.envelope as DetailOpts["envelope"],
 		invite: "queued",
 		signers: reply.signers as SignerView[],
-		extra: notices([
-			{ severity: "info", title: "Invitation queued", message: "A new email with a new signing link is on its way." },
-		]),
+		extra: notices([info("Invitation queued", "A new email with a new signing link is on its way.")]),
 	});
 }
 
@@ -511,7 +514,7 @@ async function newEnvelopeForm(deps: AdminDeps, templateId: string, extra: Block
 			submit: { label: "Create draft", actionId: "envelope.create" },
 			blockId: `envelope-new:${templateId}`,
 		}),
-		actions([back("templates.back", "Back to templates")]),
+		actions([toTemplates()]),
 	]);
 }
 
@@ -562,7 +565,7 @@ async function createEnvelope(
 	}
 	const id = (reply.envelope as { id: string }).id;
 	return detailPage(deps, id, {
-		extra: notices([{ severity: "info", title: "Draft created", message: "Check the details, then send it." }]),
+		extra: notices([info("Draft created", "Check the details, then send it.")]),
 	});
 }
 
@@ -666,7 +669,7 @@ function templateEditor(id: string, tpl: Record<string, unknown>, extra: Block[]
 					style: "danger",
 				},
 			}),
-			back("templates.back", "Back to templates"),
+			toTemplates(),
 		]),
 	]);
 }
@@ -687,7 +690,7 @@ async function createTemplate(deps: AdminDeps, v: Record<string, unknown>): Prom
 		integrations: v.integrations === true,
 	});
 	if (reply.ok !== true) return templatesPage(deps, notices([error("Not saved", failure(reply))]));
-	return templatesPage(deps, notices([{ severity: "info", title: "Template created" }]));
+	return templatesPage(deps, notices([info("Template created")]));
 }
 
 async function saveTemplate(
@@ -707,16 +710,14 @@ async function saveTemplate(
 	if (reply.ok !== true) {
 		return templateEditor(id, { ...input, version: "?" }, notices([error("Not saved", failure(reply))]));
 	}
-	return templateEditor(id, reply.template as Record<string, unknown>, notices([{ severity: "info", title: "Saved" }]));
+	return templateEditor(id, reply.template as Record<string, unknown>, notices([info("Saved")]));
 }
 
 async function archiveTemplate(deps: AdminDeps, id: string): Promise<AdminResponse> {
 	const reply = await run(deps, templateRoute("templates/archive"), { id });
 	return templatesPage(
 		deps,
-		notices([
-			reply.ok === true ? { severity: "info", title: "Template archived" } : error("Not archived", failure(reply)),
-		]),
+		notices([reply.ok === true ? info("Template archived") : error("Not archived", failure(reply))]),
 	);
 }
 
@@ -749,11 +750,11 @@ function settingsView(values: Record<string, unknown>, secrets: Record<string, S
 		header("Settings"),
 		...notices([
 			unreadable && missing && { severity: "error", title: "Encryption key missing", message: missing.message },
-			secrets.integrationMasterKey === "unset" && {
-				severity: "warning",
-				title: "Integration master key not set",
-				message: "Other plugins cannot create envelopes through the integration protocol until it is saved.",
-			},
+			secrets.integrationMasterKey === "unset" &&
+				warn(
+					"Integration master key not set",
+					"Other plugins cannot create envelopes through the integration protocol until it is saved.",
+				),
 		]),
 		...extra,
 		form({
@@ -830,7 +831,7 @@ async function saveSettings(deps: AdminDeps, input: Record<string, unknown>): Pr
 		);
 	}
 	if (changes.length + secretChanges.length === 0) {
-		return settingsView(values, secrets, notices([{ severity: "info", title: "Nothing to save" }]));
+		return settingsView(values, secrets, notices([info("Nothing to save")]));
 	}
 
 	const next = { ...values };
@@ -854,7 +855,7 @@ async function saveSettings(deps: AdminDeps, input: Record<string, unknown>): Pr
 			notices([{ severity: "error", title: "Encryption key missing", message: banner?.message }]),
 		);
 	}
-	return settingsView(next, nextSecrets, notices([{ severity: "info", title: "Saved" }]));
+	return settingsView(next, nextSecrets, notices([info("Saved")]));
 }
 
 // --- dispatch ---------------------------------------------------------------------------------

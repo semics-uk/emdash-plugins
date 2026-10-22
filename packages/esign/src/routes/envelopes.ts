@@ -187,7 +187,7 @@ const summary = (id: string, { snapshot: _s, fieldValues: _f, piiSalt: _p, ...re
 });
 
 /** Appends to an existing chain; an append that loses every race fails the route (500). */
-async function appendAudit(ctx: PluginContext, id: string, envelope: EnvelopeDoc, input: AuditInput) {
+export async function appendAudit(ctx: PluginContext, id: string, envelope: EnvelopeDoc, input: AuditInput) {
 	const appended = await appendAuditEvent(stores(ctx).audit_events, id, input, { salt: envelope.piiSalt });
 	if (!appended.ok) throw new Error("audit chain contention");
 }

@@ -28,8 +28,9 @@ async function setup() {
 	process.env.EMDASH_ENCRYPTION_KEY = `emdash_enc_v1_${"A".repeat(43)}`;
 	runtime = await createPluginRuntimeTestHost();
 	const budget = withBudget(runtime);
-	const t = (await budget.invokeRoute("templates/create", { name: "Waiver", body: "# Waiver\n\nI accept {{event}}.\n" }))
-		.value as { template: { id: string } };
+	const t = (
+		await budget.invokeRoute("templates/create", { name: "Waiver", body: "# Waiver\n\nI accept {{event}}.\n" })
+	).value as { template: { id: string } };
 	return { budget, templateId: t.template.id };
 }
 

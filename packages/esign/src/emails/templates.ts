@@ -38,20 +38,7 @@ function fill(template: string, values: Record<string, string>, encode: (v: stri
 	return template.replace(PLACEHOLDER, (_all, key: string) => encode(values[key] ?? ""));
 }
 
-const MONTHS = [
-	"January",
-	"February",
-	"March",
-	"April",
-	"May",
-	"June",
-	"July",
-	"August",
-	"September",
-	"October",
-	"November",
-	"December",
-];
+const MONTHS = "January February March April May June July August September October November December".split(" ");
 function longDate(iso: string): string {
 	const d = new Date(iso);
 	return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;

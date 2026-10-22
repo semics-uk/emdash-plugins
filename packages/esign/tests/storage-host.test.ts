@@ -35,6 +35,7 @@ function sample(collection: CollectionName, n: number): Doc {
 				clientId: `c${n}`,
 				externalRef: `r${n}`,
 				pdfSha256: `p${n}`,
+				signerEmail: `s${n}@example.com`,
 			};
 		case "signers":
 			return {

@@ -73,7 +73,7 @@ function scrubSigner(id: string, s: SignerDoc): SignerDoc {
 }
 
 function scrubEnvelope(e: EnvelopeDoc, at: string): EnvelopeDoc {
-	const { piiSalt, returnUrl, ...keep } = e;
+	const { piiSalt, returnUrl, signerEmail, ...keep } = e;
 	return {
 		...keep,
 		signer: { name: "", email: "", as: e.signer.as },
@@ -247,9 +247,16 @@ export async function findForErasure(ctx: PluginContext, subject: string): Promi
 	const st = stores(ctx);
 	let items: Item[];
 	if (subject.includes("@")) {
-		const found = await st.signers.query({ where: { email: subject.toLowerCase() }, limit: ON_REQUEST });
-		const envs = await st.envelopes.getMany([...new Set(found.items.map((i) => i.data.envelopeId))]);
-		items = [...envs].map(([id, data]) => ({ id, data }));
+		// Drafts have no signer document yet: they are found by the indexed `signerEmail` (T092).
+		const email = subject.toLowerCase();
+		const [found, drafts] = await Promise.all([
+			st.signers.query({ where: { email }, limit: ON_REQUEST }),
+			st.envelopes.query({ where: { signerEmail: email }, limit: ON_REQUEST }),
+		]);
+		const all = new Map(drafts.items.map((i) => [i.id, i.data] as const));
+		const rest = [...new Set(found.items.map((i) => i.data.envelopeId))].filter((id) => !all.has(id));
+		if (rest.length > 0) for (const [id, data] of await st.envelopes.getMany(rest)) all.set(id, data);
+		items = [...all].slice(0, ON_REQUEST).map(([id, data]) => ({ id, data }));
 	} else {
 		const env = await st.envelopes.get(subject);
 		items = env ? [{ id: subject, data: env }] : [];

@@ -7,6 +7,7 @@ import {
 } from "@semics-tech/shared";
 import type { SandboxedPlugin } from "emdash/plugin";
 import { runCompletionEmailJob } from "./cron/completion-email";
+import { EXPIRE_SCHEDULE, EXPIRE_TASK, runExpireJob } from "./cron/expire";
 import { runIntentFinishJob } from "./cron/intent-finish";
 import { NONCE_SWEEP_SCHEDULE, NONCE_SWEEP_TASK, runNonceSweepJob } from "./cron/nonce-sweep";
 import { runPdfJob } from "./cron/pdf";
@@ -37,6 +38,8 @@ const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: NONCE_SWEEP_TASK, schedule: NONCE_SWEEP_SCHEDULE },
 	// T097: the shared flag moved to v5.
 	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
+	// T092: expiry closes unsigned envelopes (Free); the shared flag moved to v6.
+	{ name: EXPIRE_TASK, schedule: EXPIRE_SCHEDULE },
 ];
 
 const PUBLIC = publicRoutes({
@@ -61,6 +64,7 @@ const plugin: SandboxedPlugin = {
 			if (await runIntentFinishJob(event, ctx)) return;
 			if (await runNonceSweepJob(event, ctx)) return;
 			if (await runRetentionJob(event, ctx)) return;
+			if (await runExpireJob(event, ctx)) return;
 			await runPdfJob(event, ctx);
 		},
 	},
