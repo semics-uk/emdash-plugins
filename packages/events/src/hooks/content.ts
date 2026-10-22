@@ -1,4 +1,4 @@
-import type { ContentDeleteEvent, ContentHookEvent, PluginContext } from "emdash/plugin";
+import type { ContentDeleteEvent, ContentHookEvent, ContentStateChangeEvent, PluginContext } from "emdash/plugin";
 
 import { infoOfEntry, mappingOf } from "../domain/event-info";
 
@@ -67,7 +67,7 @@ const isEvents = async (deps: InfoHookDeps, collection: string) =>
 
 export async function markUnpublished(
 	deps: InfoHookDeps,
-	event: Pick<ContentHookEvent, "collection" | "content">,
+	event: Pick<ContentStateChangeEvent, "collection" | "content">,
 	unpublished: boolean,
 ): Promise<void> {
 	const id = event.content.id;
@@ -94,9 +94,9 @@ export async function orphanConfig(deps: InfoHookDeps, event: ContentDeleteEvent
 	await deps.storage.event_configs.updateIf(event.id, { where: {}, set: { orphaned: true } });
 }
 
-export const contentAfterUnpublish = async (event: ContentHookEvent, ctx: PluginContext): Promise<void> =>
+export const contentAfterUnpublish = async (event: ContentStateChangeEvent, ctx: PluginContext): Promise<void> =>
 	markUnpublished(depsOf(ctx), event, true);
-export const contentAfterPublish = async (event: ContentHookEvent, ctx: PluginContext): Promise<void> =>
+export const contentAfterPublish = async (event: ContentStateChangeEvent, ctx: PluginContext): Promise<void> =>
 	markUnpublished(depsOf(ctx), event, false);
 export const contentBeforeDelete = async (event: ContentDeleteEvent, ctx: PluginContext): Promise<false | undefined> =>
 	vetoDelete(depsOf(ctx), event);
