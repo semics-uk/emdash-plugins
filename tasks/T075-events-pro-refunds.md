@@ -4,7 +4,7 @@ title: "Events Pro: refunds"
 phase: 4
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: sonnet-5.5
 size: S
 depends_on: [T074, T071]
@@ -36,6 +36,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Within budget
 - [ ] Self-service cancel of a paid confirmed booking (T049 `public/booking/cancel`) issues the refund per policy, or is refused until the refund step exists; never cancel a paid booking without refunding
+- [ ] From T074: email buyers about refunds (including R2 `refunded_unavailable` and duplicate-payment refunds) through the outbox; a paged sweep settles `paid` payment records whose one-shot never ran
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
