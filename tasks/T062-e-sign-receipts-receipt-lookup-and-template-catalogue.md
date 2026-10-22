@@ -4,7 +4,7 @@ title: "E-sign: receipts, receipt lookup and template catalogue"
 phase: 3
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T061]
@@ -38,6 +38,7 @@ Write these tests before any implementation and confirm they fail for the right 
 
 - [ ] Within budget
 - [ ] Events treats an e-sign `from-intent` answer with status `draft` (T113: email retry after a terminal envelope, finished by the `intent-finish-<id>` cron within a minute) as "invitation on its way", not an error
+- [ ] The template catalogue lists only templates where `availableToIntegrations(head)` is true (T061); cover the remaining receipt/lookup/catalog vectors from `docs/protocol/vectors.json` through the real routes
 - [ ] Meets the Definition of Done in `tasks/README.md`
 
 ## Verify
