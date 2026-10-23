@@ -4,12 +4,17 @@ name: Release
 #   1. While changesets are pending on main, this opens (or updates) the "Version Packages" PR.
 #   2. When that PR is merged there are none left, so the same step runs `pnpm release`, which
 #      publishes the unpublished versions to npm with provenance (Sigstore).
+# npm publishing is trusted publishing (BUILD-PLAN R84): npm (>= 11.5.1; pnpm 10 publishes through the
+# npm CLI) swaps this job's GitHub OIDC token for a one-off publish token. No npm token is stored. Each
+# package's trusted publisher on npmjs.com names semics-uk/emdash-plugins, release.yml and the
+# npm-publish environment, so renaming this file or the environment breaks publishing until it is updated.
 # The EmDash registry publish is a second, separate job that only runs once the owner enables it
 # (repository variable EMDASH_REGISTRY_PUBLISH=true), after the real publisher DID replaced the
 # placeholder (BUILD-PLAN R21).
 #
-# Owner setup (see CONTRIBUTING, "Releasing"): secret NPM_TOKEN in the `npm-publish` environment,
-# that environment with required reviewers, and the variable above.
+# Owner setup (see CONTRIBUTING, "Releasing"): the `npm-publish` environment with required reviewers,
+# a trusted publisher per package (`node scripts/npm-trust.mjs bootstrap --publish`, once), and the
+# variable above.
 
 on:
   push:
@@ -34,7 +39,7 @@ jobs:
     permissions:
       contents: write # push the version branch
       pull-requests: write # open the Version Packages PR
-      id-token: write # npm provenance (Sigstore)
+      id-token: write # npm trusted publishing (OIDC) and provenance (Sigstore)
     outputs:
       published: ${{ steps.changesets.outputs.published }}
       published-packages: ${{ steps.changesets.outputs.publishedPackages }}
@@ -52,6 +57,8 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
       - run: pnpm install --frozen-lockfile
+      - name: Check npm can publish by trusted publishing
+        run: node scripts/npm-trust.mjs check-npm
       - name: Build and audit what would be published
         run: pnpm release:dry-run --build
       - name: Create the version PR or publish to npm
@@ -64,7 +71,6 @@ jobs:
           commit: "chore: version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
   registry:
