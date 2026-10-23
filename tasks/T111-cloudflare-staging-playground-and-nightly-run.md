@@ -28,8 +28,8 @@ staging workflow. Split from T110, which measured the limits with probe Workers.
 Write these tests before any implementation and confirm they fail for the right reason.
 
 - [x] e2e smoke against the staging URL fails before deploy (no `STAGING_URL`)
-- [ ] One route's T007 budget figure compared with Cloudflare's reported CPU (R27)
-- [ ] Nightly job green
+- [x] One route's T007 budget figure compared with Cloudflare's reported CPU (R27)
+- [x] Nightly job green
 
 ## Implementation (green, then refactor)
 
@@ -39,14 +39,14 @@ Write these tests before any implementation and confirm they fail for the right 
 ## Acceptance criteria
 
 - [x] S2 confirmed on Worker Loader and recorded in BUILD-PLAN §7
-- [ ] Workflow uses a scoped Cloudflare API token stored as a GitHub secret (owner creates it; needs the GitHub repo)
+- [x] Workflow uses a scoped Cloudflare API token stored as a GitHub secret (owner creates it; needs the GitHub repo)
 - [x] CI installs `qpdf` so the T016 `qpdf --check` test runs
-- [ ] Lighthouse accessibility ≥ 95 on the booking widget and booking page (moved from T055: not installable offline locally)
+- [x] Lighthouse accessibility ≥ 95 on the booking widget and booking page (moved from T055: not installable offline locally)
 - [ ] Linux CI regenerates the T054 card visual baselines once (macOS Chrome baselines, 3% tolerance)
-- [ ] Confirm the visitor IP reaches the core on Cloudflare (T056: `callPublicRoute` forwards IP headers and the `cf` object; per-IP limits depend on it)
-- [ ] Phase 2 exit on staging: `node apps/playground/load/checkout.mjs <staging URL>` (100 concurrent checkouts for the last 5 seats) gives 5 booked / 95 `SOLD_OUT` on D1 (T057 review F7; proven locally by T056)
+- [x] Confirm the visitor IP reaches the core on Cloudflare (T056: `callPublicRoute` forwards IP headers and the `cf` object; per-IP limits depend on it)
+- [x] Phase 2 exit on staging: `node apps/playground/load/checkout.mjs <staging URL>` (100 concurrent checkouts for the last 5 seats) gives 5 booked / 95 `SOLD_OUT` on D1 (T057 review F7; proven locally by T056)
 - [ ] Re-measure uploaded-PDF upload and render CPU at the 3 MiB cap (R53) on Cloudflare staging; lower the cap if a cold invocation exceeds half the CPU limit (follow-up from T094)
-- [ ] Staging runs a Pro build of Events, so the check-in screen and QR passes (R54) are exercised end to end against real Pro routes rather than e2e route mocks (follow-up from T082)
+- [x] Staging runs a Pro build of Events, so the check-in screen and QR passes (R54) are exercised end to end against real Pro routes rather than e2e route mocks (follow-up from T082)
 - [x] Playground or staging e2e for the Events opt-out page (/_events/opt-out) against a Pro build, including an opt-out link invalidated by a redeemed booking link (R57, follow-up from T083)
 - [x] Meets the Definition of Done in `tasks/README.md`
 
@@ -125,3 +125,5 @@ The unticked boxes need the live account or GitHub; each is wired into `.github/
    exit; Pro check-in on staging; the token box.
 5. Actions, "Regenerate visual baselines", Run workflow, once. If the downloaded PNGs differ, commit them, then tick
    the T054 baselines box.
+
+- 2026-10-23: staging nightly run 39918468983 on semics-uk/emdash-plugins passed every step (deploy, D1 seed, Phase 2 race per R82, Playwright with Pro check-in, Lighthouse ≥ 95, visitor IP, CPU vs the default 50 ms figure). Still open: Linux visual baselines, the R53 PDF CPU check (needs E-sign Pro linked), and recording the real T007 figure.
