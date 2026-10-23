@@ -38,7 +38,6 @@ test("release.yml: Changesets version PR, then npm publish with provenance", () 
 	assert.match(text, /changesets\/action@/);
 	assert.match(text, /id-token: write/);
 	assert.match(text, /NPM_CONFIG_PROVENANCE: "?true"?/);
-	assert.match(text, /secrets\.NPM_TOKEN/);
 	assert.match(text, /publish: pnpm release/);
 	assert.match(text, /version: pnpm version-packages/);
 	assert.match(text, /pnpm release:dry-run/);
@@ -64,4 +63,27 @@ test("emdash-release.yml is the reusable registry workflow (OIDC, no stored toke
 	assert.match(text, /release-action@/);
 	assert.match(text, /--require-real-did/);
 	assert.ok(!/secrets\./.test(text), "the registry publish uses GitHub OIDC, not a secret");
+});
+
+test("R84: release.yml publishes to npm by trusted publishing (OIDC), with no stored npm token", () => {
+	const text = read("release.yml");
+	assert.match(text, /id-token: write/);
+	assert.match(text, /if: github\.repository == 'semics-uk\/emdash-plugins'/);
+	assert.match(text, /environment: npm-publish/);
+	assert.match(text, /registry-url: https:\/\/registry\.npmjs\.org/);
+	// npm CLI >= 11.5.1 is what exchanges the OIDC token; the run refuses an older one before publishing.
+	assert.match(text, /node scripts\/npm-trust\.mjs check-npm/);
+	assert.ok(text.indexOf("npm-trust.mjs check-npm") < text.indexOf("uses: changesets/action@"));
+	assert.doesNotMatch(text, /NPM_TOKEN/);
+	assert.doesNotMatch(text, /NODE_AUTH_TOKEN/);
+	const secrets = [...text.matchAll(/secrets\.([A-Z_]+)/g)].map((m) => m[1]);
+	assert.deepEqual([...new Set(secrets)], ["GITHUB_TOKEN"]);
+});
+
+test("R84: no workflow references a long-lived npm token", () => {
+	for (const file of all()) {
+		const text = read(file);
+		assert.doesNotMatch(text, /NPM_TOKEN/, `${file}: NPM_TOKEN`);
+		assert.doesNotMatch(text, /NODE_AUTH_TOKEN:\s*\$\{\{\s*secrets\./, `${file}: NODE_AUTH_TOKEN from a secret`);
+	}
 });
