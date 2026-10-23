@@ -68,6 +68,8 @@ Nothing is published from a laptop. Releases run in GitHub Actions, from the pub
      (`--release`), then `changeset publish`, which publishes `@semics-tech/emdash-events`,
      `@semics-tech/emdash-esign` (and the suite package once it exists) to npm with provenance
      (`NPM_CONFIG_PROVENANCE`, OIDC `id-token: write`). `@semics-tech/shared` stays private.
+     Publishing is npm trusted publishing (R84): npm swaps the job's OIDC token for a one-off publish
+     token, so no npm token is stored; the run first checks npm >= 11.5.1 (`node scripts/npm-trust.mjs check-npm`).
 3. If the repository variable `EMDASH_REGISTRY_PUBLISH` is `true`, the `registry` job then calls
    `.github/workflows/emdash-release.yml`, which plans, bundles (`emdash-plugin release prepare`), attests
    and submits each published plugin to the EmDash registry over GitHub OIDC. No registry token is stored.
@@ -87,8 +89,14 @@ check of the release workflows (pinned actions, provenance, the registry gate, n
 **Owner setup before the first real release** (none of it is in the repo):
 
 1. Create the public GitHub repository `semics-uk/emdash-plugins` and push (releases need a public repo).
-2. npm: create the `@semics-tech` organisation, then an automation or granular token that can publish it, and store
-   it as the secret `NPM_TOKEN` in a GitHub **environment** named `npm-publish` (add required reviewers).
+2. npm (trusted publishing, R84; no npm token anywhere): create the GitHub **environment** `npm-publish` (add
+   required reviewers). npm only lets a trusted publisher be added to a package that exists, so once, from a
+   laptop with npm >= 11.15.0, `npm login` (an account with 2FA that owns the `@semics-tech` org) and run
+   `node scripts/npm-trust.mjs bootstrap` (prints the plan) then `node scripts/npm-trust.mjs bootstrap --publish`:
+   for each package not yet on npm it publishes an empty, deprecated `0.0.0-bootstrap.0` under the dist-tag
+   `bootstrap`, then adds the trusted publisher (organisation `semics-uk`, repository `emdash-plugins`, workflow
+   `release.yml`, environment `npm-publish`). The first real publish must follow within 2 days. Then, per
+   package on npmjs.com, Settings, Publishing access: "Require two-factor authentication and disallow tokens".
 3. Remove `"private": true` from `packages/events` and `packages/esign` (and the suite) in the PR that first
    releases them. Until then `pnpm release` refuses, and Changesets would skip them.
 4. Publisher DID (R21): make `semics.dev` resolve as an atproto handle, run `emdash-plugin login`, and replace
@@ -99,8 +107,9 @@ check of the release workflows (pinned actions, provenance, the registry gate, n
    handoff) and approve the first release (`release approve`).
 6. Set the repository variable `EMDASH_REGISTRY_PUBLISH=true` to switch the registry job on, and pin the
    `emdash-cms/emdash/apps/release-action@main` reference in `emdash-release.yml` to a tag or commit.
-7. Pro: see `.github/workflows/pro-release.yml` in the private Pro repo. It needs a private registry (or GitHub
-   Packages), the secret `PRO_NPM_TOKEN` in a `pro-publish` environment, and the real licence public key
+7. Pro: see `.github/workflows/pro-release.yml` in the private Pro repo. It publishes restricted packages to npm
+   by trusted publishing too (R84: the org needs a paid npm plan for private packages; no `PRO_NPM_TOKEN`), from
+   a `pro-publish` environment, and needs the real licence public key
    (`licence/public-key.txt` or `SEMICS_LICENCE_PUBLIC_KEY`), because `generate --release` refuses a development key.
 
 ## TDD standard

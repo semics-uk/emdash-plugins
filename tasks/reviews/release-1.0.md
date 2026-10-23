@@ -74,13 +74,34 @@ Do these in order; each says exactly what to run or click. Nothing here was done
    `node scripts/release-dry-run.mjs --release` (must print no blocker) and re-run `npx emdash-plugin release setup
    --trigger=changesets` to regenerate `.github/workflows/emdash-release.yml` (diff it against the committed one).
 2. **GitHub.** Create the public repo `semics-uk/emdash-plugins` and the private `semics-uk/emdash-plugins-pro`; push
-   `main` of each. In the public repo create the environment `npm-publish` with required reviewers and the secret
-   `NPM_TOKEN` (an npm automation token of the `@semics-tech` org owner); leave the variable `EMDASH_REGISTRY_PUBLISH`
-   unset until step 6. In the Pro repo create the environment `pro-publish` with required reviewers and the secret
-   `PRO_NPM_TOKEN`. Pin `changesets/action@v1` and `emdash-cms/emdash/apps/release-action@main` to commit SHAs (T104).
-3. **npm.** Confirm the `@semics-tech` org owns the names `@semics-tech/emdash-events`, `@semics-tech/emdash-esign`,
-   `@semics-tech/emdash-events-suite`, `@semics-tech/emdash-events-pro` and `@semics-tech/emdash-esign-pro`
-   (publish nothing by hand). Turn on 2FA for publishing.
+   `main` of each. In the public repo create the environment `npm-publish` with required reviewers; in the Pro repo
+   the environment `pro-publish` with required reviewers. **No npm secret in either** (R84: npm trusted publishing;
+   delete any `NPM_TOKEN` / `PRO_NPM_TOKEN` secret or old npm automation token you made earlier). Leave the
+   variable `EMDASH_REGISTRY_PUBLISH` unset until step 7. Do not rename `release.yml`, `pro-release.yml` or the
+   two environments: npm's trusted publishers name them. Pin `changesets/action@v1` and
+   `emdash-cms/emdash/apps/release-action@main` to commit SHAs (T104).
+3. **npm (trusted publishing, R84).** Do this in the 2 days before step 7: npm drops a trusted publisher that has
+   not published within 2 days of being added.
+   1. Account: on npmjs.com enable 2FA on the account that owns the `@semics-tech` org (Account, Two-Factor
+      Authentication). Locally: `npm install -g npm@^11.15.0` (for `npm trust`), then `npm login`.
+   2. Org plan: the `semics-tech` org is on npm's Free plan, which cannot hold private packages. Upgrade it to the
+      paid Teams plan (npmjs.com, the org, Billing) before the Pro bootstrap in 4; the public packages do not need it.
+   3. Public packages: in the public repo run `node scripts/npm-trust.mjs bootstrap` (prints the plan, changes
+      nothing), then `node scripts/npm-trust.mjs bootstrap --publish`. For each of `@semics-tech/emdash-events`,
+      `@semics-tech/emdash-esign` and `@semics-tech/emdash-events-suite` that is not on npm yet it publishes an empty
+      `0.0.0-bootstrap.0` under the dist-tag `bootstrap` (npm only lets a trusted publisher be added to an existing
+      package), deprecates it, and adds the trusted publisher. Each package then shows, under Settings, Trusted
+      Publisher, GitHub Actions: organization or user `semics-uk`, repository `emdash-plugins`, workflow filename
+      `release.yml`, environment `npm-publish`, allowed action `npm publish`. (By hand instead: same values in
+      that form, or `npm trust github <pkg> --file release.yml --repository semics-uk/emdash-plugins --environment
+      npm-publish --allow-publish`.)
+   4. Pro packages: in the Pro repo run `node scripts/npm-trust.mjs bootstrap` then `node scripts/npm-trust.mjs
+      bootstrap --publish`. It does the same for `@semics-tech/emdash-events-pro` and
+      `@semics-tech/emdash-esign-pro` as **restricted** (private) packages, with organization or user `semics-uk`,
+      repository `emdash-plugins-pro`, workflow filename `pro-release.yml`, environment `pro-publish`.
+   5. For all five packages: Settings, Publishing access, "Require two-factor authentication and disallow tokens",
+      Update Package Settings (trusted publishing is not affected by it). Until 1.0.0 is published, `latest` points at
+      the deprecated placeholder, so installs of the RC use `@rc`.
 4. **Lawyer (D4).** Send `docs/legal/brief.md` to counsel; get written answers to its §13 questions and sign-off on the
    consent wording, certificate wording and retention defaults. Any wording change is a normal task before 1.0.0.
 5. **Paddle and the licence Worker (T072, R67).** In Paddle create the products and yearly prices (Events Pro 79,
@@ -99,10 +120,17 @@ Do these in order; each says exactly what to run or click. Nothing here was done
 6. **Pro package access (R67).** For each sale, create an npm granular access token: read-only, packages
    `@semics-tech/emdash-events-pro` and `@semics-tech/emdash-esign-pro` only, expiry at or before the licence's
    `updatesUntil` (or npm's maximum, then renew), and email it to the buyer (the key email tells them it is coming).
-7. **Publish the release candidate.** Merge to `main`: the release workflow runs `pnpm release`, which publishes
-   `1.0.0-rc.0` under the `rc` dist-tag after the strict dry run. Then set `EMDASH_REGISTRY_PUBLISH=true` and re-run
-   the workflow to submit the plugins to the EmDash registry. In the Pro repo run the `pro-release` workflow (it checks
-   lockstep with Free first).
+   Unchanged by trusted publishing (R84): that covers publishing only, and installing a private package still
+   takes a read-only token. Buyers' tokens are read-only, so npm's restriction on 2FA-bypassing publish tokens does
+   not touch them.
+7. **Publish the release candidate** (within 2 days of step 3). Merge to `main`: the release workflow, after approval
+   in `npm-publish`, runs `pnpm release`, which publishes `1.0.0-rc.0` under the `rc` dist-tag by trusted
+   publishing, with provenance, after the strict dry run. Check each package page on npmjs.com shows the provenance
+   badge. Then set `EMDASH_REGISTRY_PUBLISH=true` and re-run the workflow to submit the plugins to the EmDash
+   registry. In the Pro repo run the `pro-release` workflow by hand (public ref `main`) with `dry-run` ticked, then
+   again with it unticked and approve it in `pro-publish`; it checks lockstep with Free first and publishes to npmjs.com,
+   restricted, with no provenance (private repo). An `ENEEDAUTH` or 404 at publish means a trusted publisher field
+   does not match the repository, workflow filename or environment exactly.
 8. **Cloudflare staging (T111, from its Notes).**
    1. Cloudflare (Workers Paid, needed for Worker Loader): enable R2 and make sure the account has a workers.dev
       subdomain. Create an API token at My Profile, API Tokens, Custom token, scoped to this account only, with:
