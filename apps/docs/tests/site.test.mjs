@@ -187,3 +187,16 @@ test("T121 R85: Pro installs from public npm and the licence key unlocks it; no 
 	assert.match(review, /installs? (it )?from npm[^.]*key/i, "the each-sale step: install from npm, paste the key");
 	assert.doesNotMatch(read("CONTRIBUTING.md"), /paid npm plan/i);
 });
+
+test("T122 R86 R87: the plan and owner steps carry the real publisher and Cloudflare Email Service for licence mail", () => {
+	const read = (p) => readFileSync(join(repoRoot, p), "utf8");
+	const plan = read("BUILD-PLAN.md");
+	assert.match(plan, /^\| R86 \|.*did:plc:mire6xkehfirmoj5pmpqgpvq/m, "R86 names the DID");
+	assert.match(plan, /^\| R87 \|.*send_email/m, "R87 names the send_email binding");
+	assert.match(plan.match(/^\| R21 \|.*$/m)?.[0] ?? "", /R86/, "R21 points at R86");
+	const review = read("tasks/reviews/release-1.0.md");
+	assert.match(review, /Email Sending/, "onboard the domain in Cloudflare Email Sending");
+	assert.match(review, /licences@semics\.co\.uk/);
+	assert.doesNotMatch(review, /MAIL_API_KEY|Resend/);
+	assert.match(review, /did:plc:mire6xkehfirmoj5pmpqgpvq/);
+});

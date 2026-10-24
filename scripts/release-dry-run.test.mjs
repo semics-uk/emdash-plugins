@@ -1,19 +1,20 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
 import {
 	auditBundle,
 	auditTarball,
-	PLACEHOLDER_DID,
+	PUBLISHER_DID,
 	publishablePackages,
 	readTarball,
 	releaseBlockers,
 } from "./release-dry-run.mjs";
 
 const NAME = "@semics-tech/emdash-events";
+const repoRoot = join(dirname(new URL(import.meta.url).pathname), "..");
 
 /** A well-formed package tarball: path (without the `package/` prefix) -> text. */
 function goodEntries(overrides = {}) {
@@ -142,13 +143,33 @@ test("bundle: needs manifest.json and backend.js, and nothing private", () => {
 	assert.ok(problems.some((p) => p.includes("tests/a.test.js")));
 });
 
-test("release blockers: the placeholder DID and a still-private package stop a real release", () => {
-	const ready = { manifest: { publisher: "did:plc:abcdefghijklmnopqrstuvwx" }, pkg: { private: false } };
+test("R86: release blockers: any publisher but the semics DID, and a still-private package, stop a real release", () => {
+	assert.equal(PUBLISHER_DID, "did:plc:mire6xkehfirmoj5pmpqgpvq");
+	const ready = { manifest: { publisher: PUBLISHER_DID }, pkg: { private: false } };
 	assert.deepEqual(releaseBlockers(ready), []);
-	const blockers = releaseBlockers({ manifest: { publisher: PLACEHOLDER_DID }, pkg: { private: true } });
+	const blockers = releaseBlockers({ manifest: { publisher: "did:plc:abcdefghijklmnopqrstuvwx" }, pkg: { private: true } });
 	assert.equal(blockers.length, 2);
-	assert.ok(blockers.some((b) => b.includes("R21")));
+	assert.ok(blockers.some((b) => b.includes("R86") && b.includes("publisher DID")));
 	assert.ok(blockers.some((b) => b.includes("private")));
+});
+
+test("R86: every manifest and fixture names the semics publisher DID, semics.co.uk and its security address", () => {
+	const listed = spawnSync("git", ["ls-files", "*emdash-plugin.jsonc"], { cwd: repoRoot, encoding: "utf8" });
+	const manifests = listed.stdout.split("\n").filter(Boolean);
+	assert.ok(manifests.length >= 5, manifests.join(", "));
+	for (const file of manifests) {
+		const text = readFileSync(join(repoRoot, file), "utf8");
+		assert.match(text, new RegExp(`"publisher": "${PUBLISHER_DID}"`), file);
+		assert.match(text, /"url": "https:\/\/semics\.co\.uk"/, file);
+		assert.match(text, /"email": "security@semics\.co\.uk"/, file);
+	}
+});
+
+test("R86: no tracked file mentions the old handle or the placeholder DID", () => {
+	// Built from parts so this file does not match itself.
+	const old = new RegExp(["semics", "\\.dev|semicsdev", "placeholder"].join(""));
+	const listed = spawnSync("git", ["grep", "-l", "-E", old.source], { cwd: repoRoot, encoding: "utf8" });
+	assert.deepEqual(listed.stdout.split("\n").filter(Boolean), []);
 });
 
 test("readTarball extracts a real .tgz into a path -> text map without the package/ prefix", () => {
