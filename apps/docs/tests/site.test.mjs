@@ -161,3 +161,29 @@ test("SX-FR-06 the docs carry the pairing guide: a client, its pairing string sh
 		"paste it into the Events setting": /paste it into\W*E-sign pairing string/,
 	});
 });
+
+test("T121 R85: Pro installs from public npm and the licence key unlocks it; no access token, no paid npm plan", () => {
+	const install = {
+		"Pro comes from public npm packages": /public npm package/i,
+		"the npm install line": /npm install @semics-tech\/emdash-events-pro/,
+		"nothing Pro works without a key": /nothing Pro (works|runs) without (a valid|the) (licence )?key/i,
+	};
+	says(PAGE("install"), install);
+	says(PAGE("editions"), { "Pro comes from public npm packages": install["Pro comes from public npm packages"] });
+	for (const page of ["install", "editions"]) {
+		const text = pageText(PAGE(page));
+		assert.doesNotMatch(text, /private npm package/i, page);
+		assert.doesNotMatch(text, /installed with an access token/i, page);
+	}
+	const read = (p) => readFileSync(join(repoRoot, p), "utf8");
+	const plan = read("BUILD-PLAN.md");
+	assert.match(plan, /^\| R85 \|/m, "R85 is in the decision log");
+	assert.match(plan.match(/^\| R67 \|.*$/m)?.[0] ?? "", /R85/, "R67 points at R85");
+	assert.doesNotMatch(plan, /private npm packages `@semics-tech\/emdash-events-pro`/);
+	const review = read("tasks/reviews/release-1.0.md");
+	assert.doesNotMatch(review, /granular access token/i, "no per-sale npm token step");
+	assert.doesNotMatch(review, /paid Teams plan/i, "no paid npm plan step");
+	assert.doesNotMatch(review, /\*\*restricted\*\*/);
+	assert.match(review, /installs? (it )?from npm[^.]*key/i, "the each-sale step: install from npm, paste the key");
+	assert.doesNotMatch(read("CONTRIBUTING.md"), /paid npm plan/i);
+});
