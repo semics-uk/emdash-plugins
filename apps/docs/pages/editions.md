@@ -56,8 +56,9 @@ free, so any other system can integrate with E-sign.
 - **Same plugin, two builds.** Pro is the Free plugin built with more features, under the same slug and
   publisher. It reads the same data. Moving from Free to Pro, or back, keeps everything. Going back switches
   Pro features off; it never deletes data.
-- **Delivery.** Pro comes as a private npm package, installed with an access token. You put it in
-  `sandboxed` where the Free core was ([Install](install.md#pro-builds)).
+- **Delivery.** Pro comes as a public npm package under a commercial licence: anyone can install it, and
+  the licence key is what unlocks it. You put it in `sandboxed` where the Free core was
+  ([Install](install.md#pro-builds)).
 - **Licence key.** A key bound to your site's hostnames, pasted into the plugin's **Licence key (Pro)**
   setting. The plugin checks it offline: no call home, no extra outside host. Local and preview hosts
   (`localhost`, `*.workers.dev`, `*.pages.dev`) need no key.

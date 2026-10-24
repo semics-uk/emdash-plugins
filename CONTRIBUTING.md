@@ -107,8 +107,9 @@ check of the release workflows (pinned actions, provenance, the registry gate, n
    handoff) and approve the first release (`release approve`).
 6. Set the repository variable `EMDASH_REGISTRY_PUBLISH=true` to switch the registry job on, and pin the
    `emdash-cms/emdash/apps/release-action@main` reference in `emdash-release.yml` to a tag or commit.
-7. Pro: see `.github/workflows/pro-release.yml` in the private Pro repo. It publishes restricted packages to npm
-   by trusted publishing too (R84: the org needs a paid npm plan for private packages; no `PRO_NPM_TOKEN`), from
+7. Pro: see `.github/workflows/pro-release.yml` in the private Pro repo. It publishes the Pro packages to npm
+   as public packages under the proprietary licence (R85: the npm org stays on its Free plan; the licence key unlocks them), by
+   trusted publishing too (R84: no `PRO_NPM_TOKEN`), from
    a `pro-publish` environment, and needs the real licence public key
    (`licence/public-key.txt` or `SEMICS_LICENCE_PUBLIC_KEY`), because `generate --release` refuses a development key.
 

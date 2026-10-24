@@ -218,11 +218,17 @@ The Events **Setup check** page shows the field mapping and whether a Turnstile 
 
 ## Pro builds
 
-Events Pro and E-sign Pro are the same plugins (same slug, same data) built with more features. They come
-from a private npm package (`@semics-tech/emdash-events-pro`, `@semics-tech/emdash-esign-pro`). Put the Pro
-package's default export in `sandboxed` where the Free core was (with the suite:
-`eventsSuite({ events: <the Pro export> })`), then paste the licence key into the plugin's
-**Licence key (Pro)** setting. Switching back to Free keeps all data. See [Free and Pro](editions.md).
+Events Pro and E-sign Pro are the same plugins (same slug, same data) built with more features. They are
+public npm packages under a commercial licence: no npm account or token needed.
+
+```sh
+npm install @semics-tech/emdash-events-pro    # or @semics-tech/emdash-esign-pro
+```
+
+Put the Pro package's default export in `sandboxed` where the Free core was (with the suite:
+`eventsSuite({ events: <the Pro export> })`), then paste the licence key from your purchase email into the
+plugin's **Licence key (Pro)** setting. Nothing Pro works without a valid key for your site's hostname
+(local and preview hosts excepted). Switching back to Free keeps all data. See [Free and Pro](editions.md).
 
 ## Develop the plugins themselves
 

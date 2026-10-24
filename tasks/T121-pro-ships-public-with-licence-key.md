@@ -4,7 +4,7 @@ title: "Pro ships as public npm packages, unlocked by the licence key"
 phase: 6
 package: suite
 edition: pro
-status: in-progress
+status: done
 model: opus-5.5
 size: S
 depends_on: [T106]
@@ -24,9 +24,28 @@ licence. Anyone can install them; nothing Pro works without a valid key from the
 
 ## Acceptance criteria
 
-- [ ] R85 recorded in `BUILD-PLAN.md` §12; R67 and §13 updated to point at it
-- [ ] Pro publishing is `--access public` (release workflow, `scripts/npm-trust.mjs` bootstrap) with tests first; still no npm token (R84)
-- [ ] Each published Pro `package.json` has the proprietary `license` (`SEE LICENSE IN LICENSE`) and ships the LICENSE file; `pnpm pack` dry run shows no source maps or tests
-- [ ] The licence gate still blocks every Pro feature with no key, a wrong-host key and an expired key (existing tests pass; add one if a path is untested)
-- [ ] `tasks/reviews/release-1.0.md` owner steps, the docs install page and the "each Pro sale" step say: buyer installs from npm, pastes the key; no paid npm plan
-- [ ] Meets the Definition of Done
+- [x] R85 recorded in `BUILD-PLAN.md` §12; R67 and §13 updated to point at it
+- [x] Pro publishing is `--access public` (release workflow, `scripts/npm-trust.mjs` bootstrap) with tests first; still no npm token (R84)
+- [x] Each published Pro `package.json` has the proprietary `license` (`SEE LICENSE IN LICENSE`) and ships the LICENSE file; `pnpm pack` dry run shows no source maps or tests
+- [x] The licence gate still blocks every Pro feature with no key, a wrong-host key and an expired key (existing tests pass; add one if a path is untested)
+- [x] `tasks/reviews/release-1.0.md` owner steps, the docs install page and the "each Pro sale" step say: buyer installs from npm, pastes the key; no paid npm plan
+- [x] Meets the Definition of Done
+
+## Notes
+
+- Pro repo (branch `agent-t121`, worktree `.pro-worktrees/agent-t121`): `pro-release.yml` and the
+  `npm-trust.mjs` bootstrap publish `--access public`; the placeholder ships the LICENSE too. Both Pro
+  packages are `SEE LICENSE IN LICENSE`, carry a copy of the root LICENSE (a test keeps them equal) and
+  `files` excludes `**/*.map`; `src` and `tests` were never in `files`. `npm pack --dry-run` on events-pro
+  (with stub `.map` files in `dist`) lists only `LICENSE`, `dist/*.mjs`, `dist/*.d.mts`,
+  `emdash-plugin.jsonc` and `package.json`. Only events-pro and esign-pro publish: `pro-kit` is bundled
+  (dev dependency) and `licence-worker` is a Worker, so no other Pro package is needed at install time.
+- The licence Worker's key email now gives the `npm install` line(s) for the plan's product(s) in place
+  of "reply and we will send your npm access token". `semreg_` tokens are still minted, now described
+  as kept for a future registry.
+- Licence gate: no code change. `pro-kit/tests/licence.test.ts` already covers no key, another site's
+  key and a build after `updatesUntil` ("new Pro work is refused ..."), and the editions tests cover the
+  routes; all pass. No untested path found, so no new gate test.
+- A full Pro build could not run here (the linked Free checkout has no built `@semics-tech/shared`);
+  the docs snippet and routes tests need built Free packages for the same reason. Neither is touched
+  by this task.
