@@ -1,8 +1,8 @@
 name: Publish EmDash plugins
 
 # Shaped like the workflow `emdash-plugin release setup --trigger=changesets` generates (CLI 0.13.3),
-# so the CLI's own checks recognise it. `release setup` needs `emdash-plugin login <real DID>`, which
-# the placeholder DID (R21) rules out, hence it is committed by hand. When the real DID exists, re-run
+# so the CLI's own checks recognise it. `release setup` needs `emdash-plugin login semics.co.uk` (the
+# publisher DID, R86) on the owner's machine, hence it is committed by hand. After that login, re-run
 # `emdash-plugin release setup --trigger=changesets --force` in a plugin directory and diff against
 # this file. Differences from the generated one: pnpm 10.23.0 (this repo's pin, the generator emits
 # 11), Node from .nvmrc, and the DID gate before "Prepare plugin release".
@@ -103,7 +103,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build packages
         run: pnpm build
-      - name: Refuse the placeholder publisher DID (R21)
+      - name: Require the semics publisher DID (R86)
         run: node scripts/release-dry-run.mjs --require-real-did
       - name: Prepare plugin release
         id: prepare

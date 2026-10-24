@@ -1,4 +1,4 @@
-Report security problems to security@semics.dev, not in a public issue.
+Report security problems to security@semics.co.uk, not in a public issue.
 
 - Signing links are 256-bit random tokens, stored only as hashes. The signing page sends
   `Referrer-Policy: no-referrer` and posts the token rather than putting it in later URLs.

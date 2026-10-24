@@ -99,9 +99,9 @@ check of the release workflows (pinned actions, provenance, the registry gate, n
    package on npmjs.com, Settings, Publishing access: "Require two-factor authentication and disallow tokens".
 3. Remove `"private": true` from `packages/events` and `packages/esign` (and the suite) in the PR that first
    releases them. Until then `pnpm release` refuses, and Changesets would skip them.
-4. Publisher DID (R21): make `semics.dev` resolve as an atproto handle, run `emdash-plugin login`, and replace
-   `did:plc:semicsdevplaceholder2222` with the real DID in every `emdash-plugin.jsonc`. Then confirm by running
-   `emdash-plugin release setup --trigger=changesets --force` once in a plugin directory and diffing the result
+4. Publisher DID (R86): done. Every `emdash-plugin.jsonc` names `did:plc:mire6xkehfirmoj5pmpqgpvq` (handle `semics.co.uk`), and
+   `release-dry-run --require-real-did` refuses any other. Run `emdash-plugin login semics.co.uk`, then
+   `emdash-plugin release setup --trigger=changesets --force` once in a plugin directory and diff the result
    against `emdash-release.yml`.
 5. Delegate release authority to the repository for that DID (`emdash-plugin release delegate`, a browser
    handoff) and approve the first release (`release approve`).

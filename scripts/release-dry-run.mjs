@@ -14,9 +14,9 @@
 // keys, Pro code or licence material, no runtime import of @semics-tech/shared in shipped UI (R35),
 // no unresolved `workspace:` dependency.
 //
-// Release blockers (the placeholder publisher DID from R21, a package still marked private) are
-// warnings in a plain dry run. `--release` turns them into failures; `--require-real-did` fails on
-// the placeholder alone (the registry workflow uses it). Exit code 0 means clean.
+// Release blockers (a publisher other than the semics DID from R86, a package still marked private)
+// are warnings in a plain dry run. `--release` turns them into failures; `--require-real-did` fails on
+// the publisher alone (the registry workflow uses it). Exit code 0 means clean.
 
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
@@ -26,8 +26,8 @@ import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** R21: the publisher in every manifest until the real DID replaces it. */
-export const PLACEHOLDER_DID = "did:plc:semicsdevplaceholder2222";
+/** R86: the publisher every manifest must name (handle semics.co.uk). */
+export const PUBLISHER_DID = "did:plc:mire6xkehfirmoj5pmpqgpvq";
 
 /** Private by design: source-only, inlined by the sandbox bundler, never published. */
 const NEVER_PUBLISHED = new Set(["@semics-tech/shared"]);
@@ -136,8 +136,8 @@ export function auditBundle({ entries }) {
 /** What stops a real release, as opposed to a dry run. */
 export function releaseBlockers({ manifest, pkg }) {
 	const blockers = [];
-	if (manifest.publisher === PLACEHOLDER_DID) {
-		blockers.push(`publisher is still the placeholder DID ${PLACEHOLDER_DID} (R21): replace it with the real DID`);
+	if (manifest.publisher !== PUBLISHER_DID) {
+		blockers.push(`publisher is ${manifest.publisher}, not the semics publisher DID ${PUBLISHER_DID} (R86)`);
 	}
 	if (pkg.private) blockers.push(`${pkg.name} is still "private": true; remove it for the first npm publish`);
 	return blockers;
@@ -247,7 +247,7 @@ export function main(argv = process.argv.slice(2)) {
 			const hard = [...r.problems];
 			const soft = [];
 			for (const blocker of r.blockers) {
-				const isDid = blocker.includes("placeholder");
+				const isDid = blocker.includes("publisher DID");
 				(release || (requireRealDid && isDid) ? hard : soft).push(`release blocker: ${blocker}`);
 			}
 			console.log(

@@ -55,4 +55,4 @@ files, the admin and the suite's waiver pages are English ([Translations](transl
 
 ## Where do I report a security problem?
 
-Email security@semics.dev. Please do not open a public issue.
+Email security@semics.co.uk. Please do not open a public issue.

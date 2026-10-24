@@ -9,8 +9,8 @@ name: Release
 # package's trusted publisher on npmjs.com names semics-uk/emdash-plugins, release.yml and the
 # npm-publish environment, so renaming this file or the environment breaks publishing until it is updated.
 # The EmDash registry publish is a second, separate job that only runs once the owner enables it
-# (repository variable EMDASH_REGISTRY_PUBLISH=true), after the real publisher DID replaced the
-# placeholder (BUILD-PLAN R21).
+# (repository variable EMDASH_REGISTRY_PUBLISH=true); every manifest names the real publisher DID
+# (BUILD-PLAN R86).
 #
 # Owner setup (see CONTRIBUTING, "Releasing"): the `npm-publish` environment with required reviewers,
 # a trusted publisher per package (`node scripts/npm-trust.mjs bootstrap --publish`, once), and the
@@ -77,7 +77,7 @@ jobs:
     name: Publish to the EmDash registry
     needs: release
     # Off until the owner sets EMDASH_REGISTRY_PUBLISH=true. The reusable workflow additionally
-    # refuses the placeholder publisher DID.
+    # refuses any publisher but the semics DID (R86).
     if: needs.release.outputs.published == 'true' && vars.EMDASH_REGISTRY_PUBLISH == 'true'
     permissions:
       contents: read

@@ -2,11 +2,11 @@
 	"$schema": "./node_modules/@emdash-cms/plugin-cli/schemas/emdash-plugin.schema.json",
 
 	"slug": "semics-events",
-	"publisher": "did:plc:semicsdevplaceholder2222",
+	"publisher": "did:plc:mire6xkehfirmoj5pmpqgpvq",
 
 	"license": "MIT",
-	"author": { "name": "semics", "url": "https://semics.dev" },
-	"security": { "email": "security@semics.dev" },
+	"author": { "name": "semics", "url": "https://semics.co.uk" },
+	"security": { "email": "security@semics.co.uk" },
 	"description": "Events bookings and ticketing for EmDash",
 	"repo": "https://github.com/semics-uk/emdash-plugins",
 

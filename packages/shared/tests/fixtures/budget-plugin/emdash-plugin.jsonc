@@ -3,11 +3,11 @@
 
 	// Test-only plugin (never published) used by tests/budget.host.test.ts to drive the T007 budget harness.
 	"slug": "semics-budget-fixture",
-	"publisher": "did:plc:semicsdevplaceholder2222",
+	"publisher": "did:plc:mire6xkehfirmoj5pmpqgpvq",
 
 	"license": "MIT",
-	"author": { "name": "semics", "url": "https://semics.dev" },
-	"security": { "email": "security@semics.dev" },
+	"author": { "name": "semics", "url": "https://semics.co.uk" },
+	"security": { "email": "security@semics.co.uk" },
 	"description": "Budget harness fixture: routes with a known number of bridge calls and a fixed CPU workload",
 	"repo": "https://github.com/semics-uk/emdash-plugins",
 

@@ -147,7 +147,10 @@ test("R86: release blockers: any publisher but the semics DID, and a still-priva
 	assert.equal(PUBLISHER_DID, "did:plc:mire6xkehfirmoj5pmpqgpvq");
 	const ready = { manifest: { publisher: PUBLISHER_DID }, pkg: { private: false } };
 	assert.deepEqual(releaseBlockers(ready), []);
-	const blockers = releaseBlockers({ manifest: { publisher: "did:plc:abcdefghijklmnopqrstuvwx" }, pkg: { private: true } });
+	const blockers = releaseBlockers({
+		manifest: { publisher: "did:plc:abcdefghijklmnopqrstuvwx" },
+		pkg: { private: true },
+	});
 	assert.equal(blockers.length, 2);
 	assert.ok(blockers.some((b) => b.includes("R86") && b.includes("publisher DID")));
 	assert.ok(blockers.some((b) => b.includes("private")));

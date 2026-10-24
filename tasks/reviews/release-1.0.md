@@ -31,7 +31,7 @@ the RC, let the nightly run green on it, then cut 1.0.0 (the last owner action).
 | 12 | Dependency audit | Go | vitest 4.1.12 in both repos clears the dev-only advisory (R75); the rest is playground/host-only (security.md) |
 | 13 | Release candidates built | Go | Changesets `rc` pre mode, `1.0.0-rc.0` with changelogs; `release:dry-run` packs and bundles each package clean in `pnpm verify` (R65) |
 | 14 | Scaffold `hello` route removed | Go | Removed in T100 (security.md finding 12); not in `trust-contract.json` |
-| 15 | Publisher DID | **Owner-gated** | Manifests still carry `did:plc:semicsdevplaceholder2222` (R21); the release workflows refuse it |
+| 15 | Publisher DID | Go | Manifests carry `did:plc:mire6xkehfirmoj5pmpqgpvq`, handle `semics.co.uk` (R86); the release checks require exactly it |
 | 16 | Lawyer review of the e-sign wording (D4) | **Owner-gated** | `docs/legal/brief.md` §13 lists the questions; not yet answered |
 | 17 | Cloudflare staging (EV-NFR-01/ES-NFR-01 CPU on real hardware, Lighthouse R83, Phase 2 exit R82) | **Owner-gated (T111 blocked on setup)** | Built and run locally by T111 (R80–R83); the local T007 harness passes (R27); turns green on the first nightly after the owner's Cloudflare/GitHub setup |
 | 18 | Upstream EmDash bug (sandboxed `plugin:activate`) | Worked around (R37) | Filing it is an owner action (draft in `docs/upstream/`) |
@@ -67,12 +67,11 @@ the RC, let the nightly run green on it, then cut 1.0.0 (the last owner action).
 
 Do these in order; each says exactly what to run or click. Nothing here was done by an agent.
 
-1. **Publisher identity (R21).** Create the Atmosphere/Bluesky account for the handle `semics.dev` (add the DNS TXT
-   record `_atproto.semics.dev` it asks for), then run `npx emdash-plugin login semics.dev` and note the DID it prints
-   (`did:plc:...`). Replace `did:plc:semicsdevplaceholder2222` with it in `packages/events/emdash-plugin.jsonc`,
-   `packages/esign/emdash-plugin.jsonc` and the Pro repo's tests/fixtures that mention it, then run
-   `node scripts/release-dry-run.mjs --release` (must print no blocker) and re-run `npx emdash-plugin release setup
-   --trigger=changesets` to regenerate `.github/workflows/emdash-release.yml` (diff it against the committed one).
+1. **Publisher identity (R86).** Done: the account `did:plc:mire6xkehfirmoj5pmpqgpvq` (handle `semics.co.uk`, PDS
+   `https://auriporia.us-west.host.bsky.network/`) is in every manifest. Left: run `npx emdash-plugin login
+   semics.co.uk`, then `npx emdash-plugin release setup --trigger=changesets --force` in a plugin directory and diff
+   the result against `.github/workflows/emdash-release.yml`. `node scripts/release-dry-run.mjs --release` then
+   reports only the `"private": true` blocker until step 3 of CONTRIBUTING's Releasing.
 2. **GitHub.** Create the public repo `semics-uk/emdash-plugins` and the private `semics-uk/emdash-plugins-pro`; push
    `main` of each. In the public repo create the environment `npm-publish` with required reviewers; in the Pro repo
    the environment `pro-publish` with required reviewers. **No npm secret in either** (R84: npm trusted publishing;
@@ -111,8 +110,11 @@ Do these in order; each says exactly what to run or click. Nothing here was done
    Then, in `packages/licence-worker` of the Pro repo: `node scripts/keypair.mjs` (commit `licence/public-key.txt`,
    pipe the private half to `wrangler secret put LICENCE_SIGNING_KEY`); `wrangler d1 create semics-licences` (put the
    id in `wrangler.jsonc`) and `wrangler d1 migrations apply semics-licences --remote` (applies 0001 and 0002);
-   `wrangler secret put` each of `PADDLE_WEBHOOK_SECRET`, `PADDLE_API_KEY`, `MAIL_API_KEY` and `ADMIN_TOKEN`
-   (`openssl rand -hex 32`; keep it in the password manager); set `MAIL_FROM`, `SUPPORT_EMAIL`,
+   `wrangler secret put` each of `PADDLE_WEBHOOK_SECRET`, `PADDLE_API_KEY` (already set) and `ADMIN_TOKEN`
+   (`openssl rand -hex 32`; keep it in the password manager). Mail (R87): in the Cloudflare dashboard,
+   Email, Email Sending, onboard `semics.co.uk` (add the DNS records it asks for); the Worker's `EMAIL` send_email binding then
+   sends from `licences@semics.co.uk` with no API key. Check `MAIL_FROM` (`semics <licences@semics.co.uk>`), `SUPPORT_EMAIL`
+   (`support@semics.co.uk`) and set
    `LICENCE_PUBLIC_KEY`; `wrangler deploy` (deploys the `*/15` stuck-event cron too). Support use:
    `curl -H "Authorization: Bearer $ADMIN_TOKEN" "https://<worker host>/admin/licences?email=buyer@example.org"` and
    `curl -X POST -H "Authorization: Bearer $ADMIN_TOKEN" -H "content-type: application/json" -d

@@ -1,4 +1,4 @@
-Report security problems to security@semics.dev, not in a public issue.
+Report security problems to security@semics.co.uk, not in a public issue.
 
 - Booking access tokens are random, stored only as hashes, and never put in URLs. Emailed links carry a
   one-time code that is used only when the visitor presses a button, so mail scanners cannot use it up.
