@@ -156,6 +156,11 @@ test("R86: release blockers: any publisher but the semics DID, and a still-priva
 	assert.ok(blockers.some((b) => b.includes("private")));
 });
 
+test("R86: an npm-only package (no emdash-plugin manifest, nothing for the registry) needs no publisher DID", () => {
+	assert.deepEqual(releaseBlockers({ manifest: null, pkg: { private: false } }), []);
+	assert.equal(releaseBlockers({ manifest: null, pkg: { private: true } }).length, 1);
+});
+
 test("R86: every manifest and fixture names the semics publisher DID, semics.co.uk and its security address", () => {
 	const listed = spawnSync("git", ["ls-files", "*emdash-plugin.jsonc"], { cwd: repoRoot, encoding: "utf8" });
 	const manifests = listed.stdout.split("\n").filter(Boolean);
