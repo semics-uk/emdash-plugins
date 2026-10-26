@@ -9,9 +9,9 @@ import {
 	MIN_NPM_PUBLISH,
 	MIN_NPM_TRUST,
 	npmAtLeast,
-	waitForVersion,
 	placeholderManifest,
 	TRUST,
+	waitForVersion,
 } from "./npm-trust.mjs";
 import { publishablePackages } from "./release-dry-run.mjs";
 
@@ -89,7 +89,12 @@ test("an already-published package only gets the trusted publisher", () => {
 });
 
 test("a package whose placeholder is on npm gets the deprecation and the trusted publisher, not a second publish", () => {
-	const cmds = bootstrapCommands("@semics-tech/x", { dir: "/tmp/x", access: "public", exists: true, placeholder: true });
+	const cmds = bootstrapCommands("@semics-tech/x", {
+		dir: "/tmp/x",
+		access: "public",
+		exists: true,
+		placeholder: true,
+	});
 	assert.deepEqual(
 		cmds.map((c) => c[1]),
 		["deprecate", "trust"],

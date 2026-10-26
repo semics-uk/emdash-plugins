@@ -50,8 +50,11 @@ export function placeholderManifest(pkg) {
 	};
 }
 
-/** The commands for one package, in order. `exists`: already on npm, so only the trust step is left. */
-export function bootstrapCommands(name, { dir, access, exists = false, trust = TRUST }) {
+/**
+ * The commands for one package, in order. `exists`: already on npm, so no publish. `placeholder`: the
+ * bootstrap placeholder is among its versions (a run stopped half way), so it still gets deprecated.
+ */
+export function bootstrapCommands(name, { dir, access, exists = false, placeholder = false, trust = TRUST }) {
 	const trustCmd = [
 		"npm",
 		"trust",
@@ -66,12 +69,9 @@ export function bootstrapCommands(name, { dir, access, exists = false, trust = T
 		"--allow-publish",
 		"--yes",
 	];
-	if (exists) return [trustCmd];
-	return [
-		["npm", "publish", dir, "--access", access, "--tag", "bootstrap"],
-		["npm", "deprecate", `${name}@${BOOTSTRAP_VERSION}`, DEPRECATION],
-		trustCmd,
-	];
+	const deprecateCmd = ["npm", "deprecate", `${name}@${BOOTSTRAP_VERSION}`, DEPRECATION];
+	if (exists) return placeholder ? [deprecateCmd, trustCmd] : [trustCmd];
+	return [["npm", "publish", dir, "--access", access, "--tag", "bootstrap"], deprecateCmd, trustCmd];
 }
 
 function npm(args, opts = {}) {
@@ -82,8 +82,28 @@ function npmVersion() {
 	return npm(["--version"]).stdout ?? "";
 }
 
-function onRegistry(name) {
-	return npm(["view", name, "name"]).status === 0;
+/** The versions npm shows for a package, or null when it is not on npm. */
+function registryVersions(name) {
+	const result = npm(["view", name, "versions", "--json"]);
+	if (result.status !== 0) return null;
+	try {
+		return [JSON.parse(result.stdout)].flat();
+	} catch {
+		return [];
+	}
+}
+
+/** npm takes a while to show a fresh publish; deprecate and trust fail with 404 until it does. */
+export function waitForVersion(name, version, { versions = registryVersions, sleep = sleepMs, tries = 30 } = {}) {
+	for (let i = 0; i < tries; i++) {
+		if ((versions(name) ?? []).includes(version)) return true;
+		if (i < tries - 1) sleep(10_000);
+	}
+	return false;
+}
+
+function sleepMs(ms) {
+	Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 export function main(argv = process.argv.slice(2)) {
@@ -119,8 +139,10 @@ export function main(argv = process.argv.slice(2)) {
 	try {
 		for (const { name, pkg } of publishablePackages()) {
 			const dir = join(scratch, name.replace(/[@/]/g, "_"));
-			const exists = publish ? onRegistry(name) : false;
-			const commands = bootstrapCommands(name, { dir, access: "public", exists });
+			const versions = publish ? registryVersions(name) : null;
+			const exists = versions !== null;
+			const placeholder = exists && versions.includes(BOOTSTRAP_VERSION);
+			const commands = bootstrapCommands(name, { dir, access: "public", exists, placeholder });
 			console.log(`${name}${exists ? " (already on npm: trust only)" : ""}`);
 			for (const cmd of commands) {
 				const shown = cmd.map((a) => (/\s/.test(a) ? JSON.stringify(a) : a)).join(" ");
@@ -133,6 +155,10 @@ export function main(argv = process.argv.slice(2)) {
 				}
 				if (npm(cmd.slice(1), { stdio: "inherit" }).status !== 0) {
 					console.error(`failed: ${shown}`);
+					return 1;
+				}
+				if (cmd[1] === "publish" && !waitForVersion(name, BOOTSTRAP_VERSION)) {
+					console.error(`${name}@${BOOTSTRAP_VERSION} is still not visible on npm after 5 minutes: re-run later`);
 					return 1;
 				}
 			}
