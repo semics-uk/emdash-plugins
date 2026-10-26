@@ -9,9 +9,9 @@
 		"node": ">=24.15.0"
 	},
 	"scripts": {
-		"build": "pnpm -r --filter ./packages/** build",
-		"test": "pnpm -r --filter ./packages/** test",
-		"validate": "pnpm -r --filter ./packages/** validate",
+		"build": "pnpm -r --filter './packages/**' build",
+		"test": "pnpm -r --filter './packages/**' test",
+		"validate": "pnpm -r --filter './packages/**' validate",
 		"typecheck": "pnpm -r typecheck",
 		"dev": "pnpm --filter playground dev",
 		"tasks": "node scripts/tasks.mjs",
