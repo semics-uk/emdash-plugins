@@ -1,0 +1,15 @@
+// The product site (T124), served at https://plugins.semics.co.uk: static assets only, no Worker script.
+// Deploy with `corepack pnpm@10.23.0 --filter site deploy` (builds dist/, then `wrangler deploy`).
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "semics-plugins-site",
+	"compatibility_date": "2026-08-20",
+	"workers_dev": false,
+	"routes": [{ "pattern": "plugins.semics.co.uk", "custom_domain": true }],
+	"assets": {
+		"directory": "./dist",
+		// /pricing serves pricing.html; unknown paths get 404.html with a 404 status.
+		"html_handling": "drop-trailing-slash",
+		"not_found_handling": "404-page"
+	}
+}

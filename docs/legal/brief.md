@@ -434,10 +434,20 @@ people; the integration tokens are signed with keys derived per client, never st
     and certificate added after the untouched original) good evidence, or should the product produce a single flattened
     file? Is offering the PDF as a link (open or download) rather than shown inside the signing page enough to say the
     signer was shown the document, and should the page require the signer to open it before signing?
+17. **The product site's legal text needs your review before launch (T124).** https://plugins.semics.co.uk
+    publishes terms of sale (`/terms`), a refund policy (`/refunds`) and a privacy policy (`/privacy`), written in
+    plain English by the build agents, not by a lawyer; the source is `apps/site/pages.mjs`. Paddle.com is the
+    Merchant of Record and reseller, and the terms use Paddle's reseller wording. Please check in particular: the
+    liability limits (capped at the year's fee; unforeseeable and business losses excluded), the 14-day
+    no-questions refund and what happens after it, consumer rights for UK and EU buyers of a yearly renewing
+    licence, governing law (England and Wales), and the privacy policy's retention periods (licence records 6
+    years after the licence ends, support email 2 years), which are proposed defaults the owner has not yet
+    confirmed. The customer-facing Pro licence (BUILD-PLAN D6) the terms refer to is still a placeholder in the
+    Pro repo.
 
 ## 14. Changes since last review
 
-None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094.)
+None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094; and question 17, the product site's terms, refund and privacy text, T124.)
 
 ## 15. Code references
 

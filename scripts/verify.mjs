@@ -42,6 +42,7 @@ export function steps(root) {
 		},
 		// After the packages: the docs' snippets import their built entry points (T103).
 		{ name: "Docs: build, links, snippets and listings", ...pnpm("--filter", "docs", "verify") },
+		{ name: "Product site: pages, prices, legal text, links (T124)", ...pnpm("--filter", "site", "verify") },
 		// Packs and audits what would be published (the packages were just built); publishes nothing.
 		{ name: "Release dry run (pack and audit)", ...pnpm("run", "release:dry-run") },
 		{ name: "Playground typecheck", ...pnpm("--filter", "playground", "typecheck") },
