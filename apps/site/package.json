@@ -1,0 +1,17 @@
+{
+	"name": "site",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"description": "The product site at https://plugins.semics.co.uk: plugins, pricing, terms, refunds, privacy, contact (T124)",
+	"scripts": {
+		"build": "node build.mjs",
+		"test": "vitest run --reporter=dot",
+		"verify": "vitest run --reporter=dot",
+		"deploy": "node build.mjs && wrangler deploy"
+	},
+	"devDependencies": {
+		"vitest": "^4.1.12",
+		"wrangler": "4.149.0"
+	}
+}

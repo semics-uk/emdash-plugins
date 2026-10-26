@@ -97,6 +97,15 @@ importers:
         specifier: 4.149.0
         version: 4.149.0(@cloudflare/workers-types@5.20261010.1)(@types/node@26.6.5)
 
+  apps/site:
+    devDependencies:
+      vitest:
+        specifier: ^4.1.12
+        version: 4.1.12(@types/node@26.6.5)(@vitest/coverage-v8@4.1.12)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(yaml@2.9.1))
+      wrangler:
+        specifier: 4.149.0
+        version: 4.149.0(@cloudflare/workers-types@5.20261010.1)(@types/node@26.6.5)
+
   packages/esign:
     devDependencies:
       '@emdash-cms/plugin-cli':
@@ -5036,8 +5045,8 @@ snapshots:
     dependencies:
       '@atcute/identity': 2.0.2(@atcute/lexicons@2.1.1)(typescript@5.9.3)
       '@atcute/lexicons': 2.1.1
-      '@atcute/util-fetch': 2.1.0(typescript@5.9.3)
-      valibot: 1.5.0(typescript@5.9.3)
+      '@atcute/util-fetch': 2.1.0(typescript@6.0.3)
+      valibot: 1.5.0(typescript@6.0.3)
     transitivePeerDependencies:
       - typescript
 
@@ -5133,12 +5142,6 @@ snapshots:
       '@mary-ext/ds-queue': 0.1.0
 
   '@atcute/uint8array@1.2.0': {}
-
-  '@atcute/util-fetch@2.1.0(typescript@5.9.3)':
-    dependencies:
-      valibot: 1.5.0(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
 
   '@atcute/util-fetch@2.1.0(typescript@6.0.3)':
     dependencies:
