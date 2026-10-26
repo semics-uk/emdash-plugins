@@ -55,7 +55,7 @@
 		"test": "emdash-plugin validate && vitest run",
 		"bundle": "emdash-plugin bundle",
 		"login": "emdash-plugin login",
-		"publish": "emdash-plugin publish",
+		"registry:publish": "emdash-plugin publish",
 		"release:setup": "emdash-plugin release setup"
 	},
 	"peerDependencies": {

@@ -62,7 +62,7 @@ into the site.
 
 ```sh
 pnpm run login -- alice.example.com
-pnpm run publish          # builds and uploads artifacts to your PDS
+pnpm run registry:publish # builds and uploads artifacts to your PDS
 ```
 
 To publish from GitHub Actions, run `pnpm run release:setup`. The command creates one shared workflow at the
