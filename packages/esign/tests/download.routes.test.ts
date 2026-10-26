@@ -4,7 +4,7 @@ import { type BudgetedHost, type BudgetResult, expectWithinBudget, withBudget } 
 import { afterEach, describe, expect, it } from "vitest";
 import { pdfTaskName } from "../src/cron/pdf";
 import type { AuditEventDoc } from "../src/domain/audit";
-import { MAX_DOCUMENT_BYTES, type SnapshotChunkDoc, snapshotChunks } from "../src/domain/envelopes";
+import { MAX_SNAPSHOT_CHARS, MAX_SNAPSHOT_LINES, type SnapshotChunkDoc, snapshotChunks } from "../src/domain/envelopes";
 import { ARTIFACT_CHUNK_CHARS, type ArtifactChunkDoc } from "../src/domain/pdf";
 import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 import { DOWNLOAD_PURPOSE, LINK_KEY } from "../src/routes/download";
@@ -258,15 +258,16 @@ describe("ES-FR-08 public/download", () => {
 
 	it("ES-FR-08 a large PDF round-trips through chunked storage", async () => {
 		const s = await sent();
-		// The largest document an envelope may hold (MAX_DOCUMENT_BYTES, T125): the cron renders,
-		// hashes and chunks it inside the platform CPU budget, measured strictly on CI.
-		const paragraph = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor. "
-			.repeat(2)
-			.trim();
-		const count = Math.floor((MAX_DOCUMENT_BYTES - 16) / (paragraph.length + 2));
-		const text = canonicalSnapshot(`# Terms\n\n${Array.from({ length: count }, () => paragraph).join("\n\n")}`);
-		expect(new TextEncoder().encode(text).length).toBeGreaterThan(MAX_DOCUMENT_BYTES - 200);
-		expect(new TextEncoder().encode(text).length).toBeLessThanOrEqual(MAX_DOCUMENT_BYTES);
+		// The costliest document an envelope may hold (T125): as many characters and as many lines as
+		// the snapshot limits allow, as list items. The cron renders, hashes and chunks it inside the
+		// platform CPU budget, measured strictly on CI.
+		const items = MAX_SNAPSHOT_LINES - 2;
+		const lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor. ".repeat(4);
+		const item = `- ${lorem.slice(0, Math.floor((MAX_SNAPSHOT_CHARS - 9) / items) - 3).trim()}`;
+		const text = canonicalSnapshot(`# Terms\n\n${Array.from({ length: items }, () => item).join("\n")}`);
+		expect(text.length).toBeGreaterThan(MAX_SNAPSHOT_CHARS - items);
+		expect(text.length).toBeLessThanOrEqual(MAX_SNAPSHOT_CHARS);
+		expect(text.split("\n").length - 1).toBe(MAX_SNAPSHOT_LINES);
 		const docSha256 = await sha256Hex(text);
 		const chunks = snapshotChunks(s.id, text, docSha256);
 		for (const c of chunks) await host().fixtures.plugin.storage("snapshots", c.id, c.data as SnapshotChunkDoc);

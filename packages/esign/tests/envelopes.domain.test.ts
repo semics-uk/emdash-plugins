@@ -7,6 +7,8 @@ import {
 	type EnvelopeDoc,
 	joinSnapshot,
 	MAX_DOCUMENT_BYTES,
+	MAX_SNAPSHOT_CHARS,
+	MAX_SNAPSHOT_LINES,
 	parseDraftInput,
 	pickTemplateVersion,
 	renderSnapshot,
@@ -145,6 +147,22 @@ describe("ES-FR-02 snapshot and docSha256", () => {
 		expect(r).toEqual({ ok: true, value: { text: expected, docSha256: await sha256Hex(expected) } });
 		expect(expected).toContain("Rock &amp; &lt;Roll&gt;");
 		expect(expected.endsWith("Signed\n")).toBe(true);
+	});
+
+	it("T125 a document over the snapshot limits is refused, so the PDF job stays inside its CPU budget", async () => {
+		expect([MAX_SNAPSHOT_CHARS, MAX_SNAPSHOT_LINES]).toEqual([256 * 1024, 2000]);
+		const tooLarge = { ok: false, error: [{ path: "body", code: "DOCUMENT_TOO_LARGE" }] };
+		// At the limits: exactly MAX_SNAPSHOT_CHARS characters, exactly MAX_SNAPSHOT_LINES lines.
+		const atChars = `${"x".repeat(MAX_SNAPSHOT_CHARS - 1)}\n`;
+		expect((await renderSnapshot(draft(), atChars)).ok).toBe(true);
+		const atLines = "a\n".repeat(MAX_SNAPSHOT_LINES);
+		expect((await renderSnapshot(draft(), atLines)).ok).toBe(true);
+		// One over either limit, counted after rendering (field values count) and canonicalising.
+		expect(await renderSnapshot(draft(), `${"x".repeat(MAX_SNAPSHOT_CHARS)}\n`)).toEqual(tooLarge);
+		expect(await renderSnapshot(draft(), `a\n${atLines}`)).toEqual(tooLarge);
+		expect(await renderSnapshot(draft(), `${"x".repeat(MAX_SNAPSHOT_CHARS - 4)}{{event}}`)).toEqual(tooLarge);
+		// sendEnvelope passes the refusal on, and nothing is frozen.
+		expect(await send(draft(), template({ body: "a\n".repeat(MAX_SNAPSHOT_LINES + 1), fields: [] }))).toEqual(tooLarge);
 	});
 
 	it("ES-FR-02 a guardian intent fills participant.name", async () => {
