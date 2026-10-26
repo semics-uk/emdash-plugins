@@ -9,6 +9,7 @@ import {
 	MIN_NPM_PUBLISH,
 	MIN_NPM_TRUST,
 	npmAtLeast,
+	waitForVersion,
 	placeholderManifest,
 	TRUST,
 } from "./npm-trust.mjs";
@@ -85,4 +86,33 @@ test("an already-published package only gets the trusted publisher", () => {
 	const commands = bootstrapCommands("@semics-tech/emdash-esign", { dir: "/tmp/x", access: "public", exists: true });
 	assert.equal(commands.length, 1);
 	assert.deepEqual(commands[0].slice(0, 4), ["npm", "trust", "github", "@semics-tech/emdash-esign"]);
+});
+
+test("a package whose placeholder is on npm gets the deprecation and the trusted publisher, not a second publish", () => {
+	const cmds = bootstrapCommands("@semics-tech/x", { dir: "/tmp/x", access: "public", exists: true, placeholder: true });
+	assert.deepEqual(
+		cmds.map((c) => c[1]),
+		["deprecate", "trust"],
+	);
+});
+
+test("after publishing, the bootstrap waits until npm shows the placeholder version (npm processes a publish for a while)", () => {
+	const seen = [[], ["0.0.0-stage"], ["0.0.0-stage", BOOTSTRAP_VERSION]];
+	let calls = 0;
+	const slept = [];
+	const ok = waitForVersion("@semics-tech/x", BOOTSTRAP_VERSION, {
+		versions: () => seen[Math.min(calls++, seen.length - 1)],
+		sleep: (ms) => slept.push(ms),
+		tries: 5,
+	});
+	assert.equal(ok, true);
+	assert.equal(calls, 3);
+	assert.equal(slept.length, 2);
+});
+
+test("the wait gives up after its tries and says so", () => {
+	assert.equal(
+		waitForVersion("@semics-tech/x", BOOTSTRAP_VERSION, { versions: () => [], sleep: () => {}, tries: 3 }),
+		false,
+	);
 });
