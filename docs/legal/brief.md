@@ -1,6 +1,6 @@
 # E-sign: brief for legal review of consent, evidence and retention
 
-Issue 1. Prepared from the code of `packages/esign` (the E-sign plugin) and the Events integration protocol as they stand
+Issue 2. Prepared from the code of `packages/esign` (the E-sign plugin) and the Events integration protocol as they stand
 in this repository. Numbers in square brackets, such as [C3], point to the code list at the end. Where a project document
 and the code disagree, this brief follows the code and says so (section 12).
 
@@ -17,8 +17,9 @@ lets a person read a document and sign it on a web page, then produces a signed 
 and keeps a tamper-evident record of how the signature was made. The Events plugin (a booking plugin by the same
 maker) can use E-sign to collect waivers at booking time. [C1]
 
-**What it claims.** A *simple* electronic signature only: under ESIGN and UETA in the US, and a "simple electronic
-signature" (SES) under eIDAS in the UK/EU. The certificate says this in its own words: the signer "consented to sign
+**What it claims.** A *simple* electronic signature only: under ESIGN and UETA in the US, and an ordinary electronic
+signature under eIDAS Article 3(10) in the EU and UK eIDAS in the UK. The industry calls this a "simple electronic
+signature" (SES); eIDAS itself defines only electronic, advanced and qualified signatures. The certificate says this in its own words: the signer "consented to sign
 electronically, confirmed their intent to sign, and signed the exact text identified by the document SHA-256". [C2]
 
 **What it does not claim or do.**
@@ -31,8 +32,9 @@ electronically, confirmed their intent to sign, and signed the exact text identi
   ESIGN section 7003, or certain consumer, property or family-law documents). That is the site owner's decision.
 - It does not give the site owner legal advice, or choose the text of the documents or the consent wording on their
   behalf. The default consent wording is a starting point (section 4).
-- It does not currently show the consumer-consent disclosures that ESIGN section 7001(c) requires before electronic
-  records replace paper ones for consumers (right to paper, withdrawal, hardware and software requirements). See question 2.
+- It does not currently show the consumer-consent disclosures in ESIGN section 7001(c) (right to paper, withdrawal,
+  hardware and software requirements). These apply only where a statute or regulation requires information to be given
+  to a consumer in writing, which some documents a site owner uses may do. See question 1.
 
 **Who is who.** The site owner (the business running the EmDash site) decides why and how signatures are collected, so
 will normally be the data controller. The maker of the plugin does not receive signing data: it stays in the site
@@ -40,7 +42,7 @@ owner's own EmDash database. We have not drafted any contract between the maker 
 
 **Editions.** The Free edition has one signer per document, typed or drawn signatures, the consent record, the audit
 trail, the signed PDF and certificate, `/verify`, retention and deletion on request. The Pro edition adds several
-signers, an email one-time code (not built yet, section 6), automatic reminders, PDF templates and the Events waiver
+signers, an email one-time code (section 6), automatic reminders, PDF templates and the Events waiver
 flow. [C1]
 
 ## 3. The signing ceremony, step by step
@@ -240,7 +242,7 @@ PDF file in the place of the text snapshot:
   stored only as a salted hash, expires after 10 minutes, allows 5 wrong tries, can be re-sent after 30 seconds (at most
   5 an hour), and the requests are also limited per visitor address. Each signer of an envelope with several signers
   verifies their own code. A successful check is recorded as an `otp.verified` audit event (method `email`, time, IP and
-  user agent; never the code), and the certificate shows "Email one-time code verified" for that signer. What it proves is
+  user agent; never the code), and the certificate shows "Email one-time code verified" for that signer, in a row labelled "Identity check". What it proves is
   that the person signing could read the inbox of the address the sender gave, at that moment, in addition to holding
   the link. It is not identity verification: it does not show who the person is, that the address belongs to the named
   person, or that the inbox is not shared. Who needs a code: the sender may ask for one per envelope; otherwise the
@@ -356,8 +358,10 @@ so the list below is what *may* apply and should be adapted to the owner's setup
 | Cloudflare Turnstile | Bot check | Request data processed by Cloudflare | Only if the owner sets a Turnstile key; E-sign's own signing ceremony does not use it (the plugin may contact `challenges.cloudflare.com`) |
 | Stripe | Payment | Payment details, handled by Stripe | Events Pro only, for paid tickets; E-sign does not send signature data to Stripe |
 
-The maker of the plugin is not a processor of signature data in the design. If the maker also hosts sites, or offers a
-licence service that sees site data, that would change this table; we have not set up such a service. [C1][C32]
+The maker of the plugin is not a processor of signature data in the design. The maker does run a licence service for
+the Pro edition (the licence Worker at licences.semics.co.uk). It receives Pro buyers' names and email addresses from
+Paddle and emails them their licence keys, so the maker is a controller of that buyer data. Sites do not contact it, and
+it receives no signing data or other site data. See question 12. [C1][C32]
 
 ## 11. Security measures relevant to evidence
 
@@ -379,8 +383,9 @@ people; the integration tokens are signed with keys derived per client, never st
   the Free build only enforces the flag on an envelope that already carries it. [C20][C35]
 - **`signer.viewed` on GET.** An earlier question (review T034, task T117) was whether a view should be recorded when a
   mail scanner fetches the page. The code now records a view only on the first submit (sign or decline). [C6]
-- The `Free`/`Pro` split is described in the build plan; this brief describes the Free code and treats Pro features as
-  described in the protocol and Events notes, not as reviewed code. [C1][C22]
+- The `Free`/`Pro` split is described in the build plan; this brief describes the Free code, and the Pro code for the email
+  one-time code (section 6, [C35]). Other Pro features are described from the protocol and Events notes, not as reviewed
+  code. [C1][C22]
 
 ## 13. Open questions for the lawyer
 
@@ -395,7 +400,8 @@ people; the integration tokens are signed with keys derived per client, never st
    text be stored on the signer record or printed on the certificate?
 4. **Retention periods.** Are 12 months (personal data) and 7 years (signed record) suitable defaults for a waiver or
    contract in the UK, EU and US? Do limitation periods (England and Wales 6 years for contract; 3 years for personal
-   injury, with extended times for minors; EU Member State periods) suggest different defaults for waivers for minors,
+   injury from the injury or, if later, the date of knowledge, which for a minor starts only at 18 and which the court may
+   disapply (Limitation Act 1980 ss.11, 14, 28 and 33); EU Member State periods) suggest different defaults for waivers for minors,
    whose limitation periods may start only at 18?
 5. **Name and IP kept for 7 years inside the PDF.** Is it defensible under UK/EU data minimisation and storage
    limitation to keep the signer's name and IP in the signed record for the signed-records period, given that the
@@ -417,7 +423,7 @@ people; the integration tokens are signed with keys derived per client, never st
 10. **Identity assurance.** Is "control of an email inbox" a fair basis for a waiver or low-value agreement? Should the
     product say, in the ceremony or on the certificate, that the identity of the signer is not verified? The Pro email
     OTP (section 6) proves access to the inbox a second time and is shown on the certificate as "Email one-time code
-    verified": is that wording fair, and should it say more or less?
+    verified", in a row labelled "Identity check": is that wording fair, and should it say more or less?
 11. **Notice to other adults.** The buyer enters other attendees' email addresses and E-sign emails them. Who must give
     these people privacy notice, and what should the invitation say? Does the 10-per-booking limit address spam
     sufficiently?
@@ -447,7 +453,13 @@ people; the integration tokens are signed with keys derived per client, never st
 
 ## 14. Changes since last review
 
-None. This is the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094; and question 17, the product site's terms, refund and privacy text, T124.)
+Issue 2 corrects Issue 1 after a first round of AI-assisted research (`docs/legal/research.md`, not legal advice):
+section 2 now says when ESIGN section 7001(c) applies and that eIDAS does not define a "simple" signature; the email
+one-time code is no longer called "not built yet"; sections 6 and 13 name the "Identity check" label on the
+certificate; section 10 describes the licence service; section 12 says which Pro code was reviewed; and question 4 gives
+the limitation rules for minors in full.
+
+Issue 1 was the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094; and question 17, the product site's terms, refund and privacy text, T124.)
 
 ## 15. Code references
 
