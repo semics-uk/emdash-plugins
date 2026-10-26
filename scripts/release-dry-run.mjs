@@ -133,10 +133,10 @@ export function auditBundle({ entries }) {
 	return problems;
 }
 
-/** What stops a real release, as opposed to a dry run. */
+/** What stops a real release, as opposed to a dry run. `manifest` is null for an npm-only package. */
 export function releaseBlockers({ manifest, pkg }) {
 	const blockers = [];
-	if (manifest.publisher !== PUBLISHER_DID) {
+	if (manifest && manifest.publisher !== PUBLISHER_DID) {
 		blockers.push(`publisher is ${manifest.publisher}, not the semics publisher DID ${PUBLISHER_DID} (R86)`);
 	}
 	if (pkg.private) blockers.push(`${pkg.name} is still "private": true; remove it for the first npm publish`);
@@ -224,8 +224,10 @@ function dryRunPackage(candidate, { build }, scratch) {
 			problems.push(...auditBundle({ entries: bundle }).map((p) => `registry bundle: ${p}`));
 		}
 	}
-	const manifestText = hasManifest ? readFileSync(join(dir, "emdash-plugin.jsonc"), "utf8") : "";
-	const blockers = releaseBlockers({ manifest: { publisher: readPublisher(manifestText) }, pkg });
+	const manifest = hasManifest
+		? { publisher: readPublisher(readFileSync(join(dir, "emdash-plugin.jsonc"), "utf8")) }
+		: null;
+	const blockers = releaseBlockers({ manifest, pkg });
 	return { name, version: pkg.version, files: entries.size, bundleFiles, problems, blockers };
 }
 
