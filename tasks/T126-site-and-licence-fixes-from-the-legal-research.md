@@ -4,7 +4,7 @@ title: "Site and Pro licence fixes from the legal research (question 17)"
 phase: 6
 package: suite
 edition: free
-status: in-progress
+status: done
 model: opus-5.5
 size: M
 depends_on: [T124]
@@ -24,24 +24,34 @@ deletion the licence Worker never does; prices are shown "before tax" without th
 
 ## Acceptance criteria
 
-- [ ] Pro licence (Pro repo, `packages/esign-pro/LICENSE`, `packages/events-pro/LICENSE`): a real commercial
+- [x] Pro licence (Pro repo, `packages/esign-pro/LICENSE`, `packages/events-pro/LICENSE`): a real commercial
       licence from SEMICS LTD matching D6 (one key per production hostname, local and preview hosts free, a year of
       updates, perpetual use of versions released in the term, modification for own use, no redistribution),
       marked as needing the lawyer's review; a Pro test keeps the two files identical and free of the placeholder
-- [ ] Refund period decided (R89: 14 days) and consistent across the site, BUILD-PLAN D6/R88 and the docs
-- [ ] The site's licence-end and refund sentences describe what the code does (offline keys keep working with the
+- [x] Refund period decided (R89: 14 days) and consistent across the site, BUILD-PLAN D6/R88 and the docs
+- [x] The site's licence-end and refund sentences describe what the code does (offline keys keep working with the
       versions released in the term; no new keys; newer versions need a renewed key)
-- [ ] Privacy: Paddle as an independent controller; legal bases for website logs and support email (legitimate
+- [x] Privacy: Paddle as an independent controller; legal bases for website logs and support email (legitimate
       interests); rights to portability and to object; retention matching the licence Worker
-- [ ] Licence Worker: the cron deletes licence records (and their registry tokens) 6 years after the licence ends,
+- [x] Licence Worker: the cron deletes licence records (and their registry tokens) 6 years after the licence ends,
       and Paddle event records after 1 year (R91), test first
-- [ ] Prices: the pricing page says the total including tax is shown at checkout before payment
-- [ ] `docs/legal/brief.md` question 17 mentions the licence text, the refund decision and the 2027 UK subscription
+- [x] Prices: the pricing page says the total including tax is shown at checkout before payment
+- [x] `docs/legal/brief.md` question 17 mentions the licence text, the refund decision and the 2027 UK subscription
       rules
-- [ ] Tests first in `apps/site/tests/site.test.mjs` for each site change
-- [ ] Meets the Definition of Done
+- [x] Tests first in `apps/site/tests/site.test.mjs` for each site change
+- [x] Meets the Definition of Done
 
 ## Notes
 
 - Do not deploy the site or publish anything: the owner deploys (`pnpm --filter site deploy`) and the Pro licence
   ships with the next Pro release.
+- Pro repo branch `pro-agent-frosty-curran-3a5222` (worktree `/Users/semics/code/semics/.pro-worktrees/agent-frosty-curran-3a5222`):
+  the LICENSE draft in both Pro packages, `scripts/licence.test.mjs`, and `licence-worker/src/retention.ts`
+  (`store.purgeExpired`, run by the 15-minute cron before the stuck-event alert). Pro `pnpm verify` green.
+- The root Pro LICENSE stays the repository notice (now naming SEMICS LTD). The R84 npm placeholder bootstrap
+  (`scripts/npm-trust.mjs`) still copies the root notice into placeholder packages; they hold no code.
+- Owner follow-ups: deploy the site (`corepack pnpm@10.23.0 --filter site deploy`) and the licence Worker
+  (`wrangler deploy` in the Pro repo) after landing; the lawyer reviews the licence and site text (brief Q17);
+  confirm the retention periods.
+- `node scripts/tasks.mjs` refuses on main as it stands ("T125 is in-progress but T123 is in-progress"), so the
+  board was not regenerated here.

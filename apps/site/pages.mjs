@@ -88,17 +88,17 @@ const pricing = {
 <section class="card"><h2>Free</h2><p class="price">$0</p><p>Events and E-sign, MIT licensed, for any number of sites.</p><p><a href="${docsPage("install.md")}">Install</a></p></section>
 ${PLANS.map(
 	(p) =>
-		`<section class="card"><h2>${p.name}</h2><p class="price">$${p.usd} a year <small>${p.sites}</small></p><p>${p.what}</p></section>`,
+		`<section class="card"><h2>${p.name}</h2><p class="price">$${p.usd} a year <small>${p.sites}, plus VAT or sales tax where it applies</small></p><p>${p.what}</p></section>`,
 ).join("\n")}
 </div>
 <p class="note"><strong>Buy links are coming.</strong> Online checkout opens soon. Until then, email ${mail} to buy a licence or ask a question.</p>
 <h2>How it works</h2>
 <ul>
-<li>Prices are in US dollars, before tax. At checkout Paddle adds VAT or sales tax where it applies, and may show the price in your currency.</li>
+<li>Prices are in US dollars. Paddle adds VAT or sales tax where it applies and may show the price in your currency: the total price, including any VAT or sales tax, is shown at checkout before you pay.</li>
 <li>${MOR} Your receipt and invoice come from Paddle.</li>
 <li>After payment you receive a licence key by email, tied to your site's hostnames. Paste it into the plugin's settings. The plugin checks it offline; it never calls home.</li>
 <li>A licence renews each year until you cancel. You can cancel at any time and keep Pro until the end of the year you paid for.</li>
-<li>Versions released while your licence was current keep working after it ends. See <a href="${docsPage("editions.md")}">how Pro works</a>.</li>
+<li>Versions released while your licence was current keep working after it ends: the key is checked offline and never switched off. Newer versions need a renewed key. See <a href="${docsPage("editions.md")}">how Pro works</a>.</li>
 <li>Changed your mind? You can have a full refund within 14 days, no questions asked. See <a href="/refunds">Refunds</a>.</li>
 </ul>
 `,
@@ -121,13 +121,13 @@ const terms = {
 <h2 id="licence">What you get</h2>
 <ul>
 <li>A licence key for the plan you chose: one site for Events Pro, E-sign Pro or Suite Pro, or up to 10 sites for Agency. A site is identified by its hostnames.</li>
-<li>The right to install and use the Pro plugin on the licensed sites, under the licence that comes with the Pro package.</li>
+<li>The right to install and use the Pro plugin on the licensed sites, under our Pro licence (the <code>LICENSE</code> file in each Pro package). It lets you change the plugin for your own use on those sites, but not sell or redistribute it.</li>
 <li>Updates and email support for one year from the date you pay.</li>
 </ul>
-<p>Prices are on the <a href="/pricing">pricing page</a>. The price you pay is the one shown at checkout.</p>
+<p>Prices are on the <a href="/pricing">pricing page</a>. The total price, including any VAT or sales tax, is shown at checkout before you pay.</p>
 <h2 id="renewal">Renewal and cancelling</h2>
 <p>A licence renews each year and Paddle charges you for the next year unless you cancel. You can cancel at any time from the link in your Paddle receipt or by emailing ${mail}. Cancelling stops the next renewal; you keep Pro features and updates until the end of the year you paid for.</p>
-<p>When a licence ends, Pro features stop taking new work on your site, but nothing is deleted. Work already in progress carries on, and versions released while your licence was current keep working.</p>
+<p>When a licence ends, we issue no new keys for it. The key you already have keeps working, offline, with every version released before its year of updates ended: we cannot switch it off, and nothing is deleted. Versions released later need a renewed key. If you install one without it, Pro features stop taking new work (work in progress carries on) until you renew or go back to an earlier version.</p>
 <h2 id="refunds">Refunds</h2>
 <p>You can have a full refund within 14 days of a purchase or renewal, for any reason. See our <a href="/refunds">refund policy</a>. If you are a consumer, this does not affect your legal rights.</p>
 <h2 id="use">Your use of the plugins</h2>
@@ -162,7 +162,7 @@ const refunds = {
 </ul>
 <p>${MOR} Paddle sends the refund to the card or account you paid with. Banks usually take 5 to 10 working days to show it.</p>
 <h2 id="after">After a refund</h2>
-<p>The licence ends when the refund is made: we issue no new keys for it, and you should remove the licence key from your site. Your data stays where it is; Pro features simply stop taking new work, as they do when any licence ends.</p>
+<p>The licence ends when the refund is made: we issue no new keys for it and give no further updates or support, and you should remove the licence key from your site. Keys are checked offline on your site and we cannot switch them off, so the key you already have keeps working with versions released before its year of updates ends, but you no longer have a licence to use it. Your data stays where it is.</p>
 <h2 id="later">After 14 days</h2>
 <p>After 14 days we do not usually refund, but you can cancel at any time so that your licence does not renew. If a Pro feature does not work as described and we cannot fix it, we will refund the current year's fee. If you are a consumer, this policy does not affect your legal rights.</p>
 `,
@@ -181,9 +181,9 @@ const privacy = {
 <h2 id="plugins">The plugins themselves</h2>
 <p>The Events and E-sign plugins run on your own EmDash site. The plugins do not send your visitors', attendees' or signers' data to us, and the licence check works offline. For that data, the site owner is the controller; see <a href="${docsPage("privacy.md")}">Data and retention</a> in the docs.</p>
 <h2 id="site">This website</h2>
-<p>This site sets no cookies and runs no analytics or tracking scripts. It is served by Cloudflare, which processes your IP address and request details to deliver the pages and protect the site from abuse.</p>
+<p>This site sets no cookies and runs no analytics or tracking scripts. It is served by Cloudflare, which processes your IP address and request details to deliver the pages and protect the site from abuse. Our legal basis is our legitimate interests in running a working, secure website.</p>
 <h2 id="buying">When you buy a licence</h2>
-<p>${MOR} Paddle collects your payment and billing details and is responsible for them under its own <a href="https://www.paddle.com/legal/privacy">privacy policy</a>. We never see your card details.</p>
+<p>${MOR} Paddle is an independent controller of the payment, billing and order details it collects: it decides how to use them and is responsible for them under its own <a href="https://www.paddle.com/legal/privacy">privacy policy</a>. We never see your card details.</p>
 <p>When Paddle tells us about a sale, our licence service stores:</p>
 <ul>
 <li>your email address, which we look up from Paddle so we can send your licence key;</li>
@@ -193,17 +193,18 @@ const privacy = {
 <li>a record of each notification Paddle sends us (its id, type and when it arrived), so that no sale is handled twice.</li>
 </ul>
 <p>We use this to issue and re-issue licence keys, handle renewals, cancellations and refunds, and answer support requests. Our legal basis is that we need it to perform our contract with you, and to keep records the law requires.</p>
-<p>If you email us, we keep your message and address to answer you.</p>
+<h2 id="support">When you email us</h2>
+<p>If you email us, we keep your message and address to answer you. Our legal basis is our legitimate interests in answering your questions and, if you are a customer, performing our contract with you.</p>
 <h2 id="processors">Who processes it for us</h2>
 <ul>
 <li><strong>Cloudflare</strong> runs our licence service, stores its database (located in Western Europe) and sends our licence emails.</li>
-<li><strong>Paddle</strong>, as Merchant of Record, holds the payment and order data.</li>
+<li>The provider that hosts our support mailbox stores the emails you send us.</li>
 </ul>
 <p>Some of these providers may process data outside the UK. Where they do, they use safeguards recognised under UK law, such as the UK International Data Transfer Addendum.</p>
 <h2 id="retention">How long we keep it</h2>
-<p>We keep a licence record while the licence is active and for 6 years after it ends, so we can support refunds and disputes and meet UK tax and accounting record-keeping rules. We then delete it. Support emails are deleted 2 years after the last message.</p>
+<p>We keep a licence record while the licence is active and for 6 years after it ends, so we can support refunds and disputes and meet UK tax and accounting record-keeping rules. Our licence service then deletes it automatically, with its registry access tokens. The record of each notification Paddle sends us is deleted automatically after 1 year. Support emails are deleted 2 years after the last message.</p>
 <h2 id="rights">Your rights</h2>
-<p>You can ask for a copy of your data, ask us to correct it, or ask us to delete it or stop using it where the law allows. Email ${mail}. If you are unhappy with how we handle your data, you can complain to the Information Commissioner's Office at <a href="https://ico.org.uk">ico.org.uk</a>.</p>
+<p>You can ask for a copy of your data, ask us to correct it, ask us to delete it or restrict how we use it, ask for the data you gave us in a portable, machine-readable form, and object to our use of it where we rely on our legitimate interests. Some of these rights apply only in certain cases. Email ${mail}. If you are unhappy with how we handle your data, you can complain to the Information Commissioner's Office at <a href="https://ico.org.uk">ico.org.uk</a>.</p>
 <h2 id="changes">Changes</h2>
 <p>We will update this page if what we collect or how we use it changes.</p>
 `,

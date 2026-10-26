@@ -441,16 +441,33 @@ people; the integration tokens are signed with keys derived per client, never st
     and certificate added after the untouched original) good evidence, or should the product produce a single flattened
     file? Is offering the PDF as a link (open or download) rather than shown inside the signing page enough to say the
     signer was shown the document, and should the page require the signer to open it before signing?
-17. **The product site's legal text needs your review before launch (T124).** https://plugins.semics.co.uk
-    publishes terms of sale (`/terms`), a refund policy (`/refunds`) and a privacy policy (`/privacy`), written in
-    plain English by the build agents, not by a lawyer; the source is `apps/site/pages.mjs`. Paddle.com is the
-    Merchant of Record and reseller, and the terms use Paddle's reseller wording. Please check in particular: the
-    liability limits (capped at the year's fee; unforeseeable and business losses excluded), the 14-day
-    no-questions refund and what happens after it, consumer rights for UK and EU buyers of a yearly renewing
-    licence, governing law (England and Wales), and the privacy policy's retention periods (licence records 6
-    years after the licence ends, support email 2 years), which are proposed defaults the owner has not yet
-    confirmed. The customer-facing Pro licence (BUILD-PLAN D6) the terms refer to is still a placeholder in the
-    Pro repo.
+17. **The product site's legal text and the Pro licence need your review before launch (T124, T126).**
+    https://plugins.semics.co.uk publishes terms of sale (`/terms`), a refund policy (`/refunds`) and a privacy policy
+    (`/privacy`), written in plain English by the build agents, not by a lawyer; the source is `apps/site/pages.mjs`.
+    Paddle.com is the Merchant of Record and reseller, and the terms use Paddle's reseller wording. The terms grant use
+    of Pro under the commercial licence shipped in each public Pro npm package (`packages/events-pro/LICENSE` and
+    `packages/esign-pro/LICENSE` in the Pro repo, identical): a draft by the build agents from SEMICS LTD following
+    BUILD-PLAN D6 and R90 (one key per production hostname, local and preview hosts free, a year of updates, perpetual
+    use of versions released in that year, modification for own use, no redistribution). Please check in particular:
+    - the Pro licence text, including its termination clause and that it defers liability to the terms of sale;
+    - the liability limits (capped at the year's fee; unforeseeable and business losses excluded), for business buyers
+      and, as to digital-content quality, for UK consumers, and who the "trader" is when Paddle resells;
+    - the refund period: the owner chose 14 days (R89), no questions asked, on every purchase and renewal, replacing
+      the 30 days in D6, so the site, D6, the licence and the docs now agree; whether 14 days is right;
+    - consumer rights for UK and EU buyers of a yearly renewing licence, including the UK subscription contract rules
+      expected from 1 January 2027 (pre-contract information, reminder notices, easy exit, a 14-day cooling-off after
+      each renewal and after a discounted first year, D5), and whether Paddle's reminders and exit route meet them;
+    - prices, which are now shown "plus VAT or sales tax where it applies", with the total shown at checkout before
+      payment (DMCCA s.230);
+    - what the site says happens when a licence ends or is refunded: an issued key keeps verifying offline and cannot
+      be switched off (`licence-worker/src/handlers.ts`), so the site says no new keys or updates are issued and newer
+      versions need a renewed key;
+    - governing law (England and Wales);
+    - the privacy policy: Paddle as an independent controller, legitimate interests for website logs and support
+      email, the rights listed (including portability and objection), whether an EU representative is needed (Art 27),
+      and the retention periods (licence records 6 years after the licence ends, deleted automatically by the licence
+      service's scheduled job, R91; Paddle notification records 1 year; support email 2 years), which are proposed
+      defaults the owner has not yet confirmed.
 
 ## 14. Changes since last review
 
@@ -458,7 +475,9 @@ Issue 2 corrects Issue 1 after a first round of AI-assisted research (`docs/lega
 section 2 now says when ESIGN section 7001(c) applies and that eIDAS does not define a "simple" signature; the email
 one-time code is no longer called "not built yet"; sections 6 and 13 name the "Identity check" label on the
 certificate; section 10 describes the licence service; section 12 says which Pro code was reviewed; and question 4 gives
-the limitation rules for minors in full.
+the limitation rules for minors in full. Question 17 (the product site, new in this review) now also covers the Pro licence text, the
+14-day refund decision (R89), the 2027 UK subscription rules, the price-with-tax note, the licence-end wording and the
+privacy changes (T126).
 
 Issue 1 was the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094; and question 17, the product site's terms, refund and privacy text, T124.)
 

@@ -215,7 +215,6 @@ describe("privacy", () => {
 		expect(retention).toMatch(/automatically/);
 	});
 
-
 	test("says what the licence Worker stores, who processes it, how long it is kept and who to contact", () => {
 		const body = text("/privacy");
 		expect(body).toMatch(/email address/i);

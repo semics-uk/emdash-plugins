@@ -65,6 +65,8 @@ free, so any other system can integrate with E-sign.
 - **Without a valid key**, Pro features stop taking new work (no new paid checkouts, for example), but work in
   progress carries on: refunds, signatures already started and reports stay available.
 - **Updates.** A key includes a year of updates and support. Versions released during that year keep working
-  after it ends.
+  after it ends: the key is checked offline and is never switched off. Newer versions need a renewed key.
+- **Refunds.** A full refund within 14 days of a purchase or renewal, no questions asked
+  ([refund policy](https://plugins.semics.co.uk/refunds)).
 - **Prices.** Per site per year: Events Pro $79, E-sign Pro $79, Suite Pro $129, Agency (10 sites, both
   products) $349. See [plugins.semics.co.uk/pricing](https://plugins.semics.co.uk/pricing).
