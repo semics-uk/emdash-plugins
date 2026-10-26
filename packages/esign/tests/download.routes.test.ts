@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { pdfTaskName } from "../src/cron/pdf";
 import type { AuditEventDoc } from "../src/domain/audit";
 import { MAX_SNAPSHOT_CHARS, MAX_SNAPSHOT_LINES, type SnapshotChunkDoc, snapshotChunks } from "../src/domain/envelopes";
-import { ARTIFACT_CHUNK_CHARS, type ArtifactChunkDoc } from "../src/domain/pdf";
+import { ARTIFACT_CHUNK_BYTES, ARTIFACT_CHUNK_CHARS, type ArtifactChunkDoc } from "../src/domain/pdf";
 import { DEFAULT_CONSENT_WORDING } from "../src/domain/signing";
 import { DOWNLOAD_PURPOSE, LINK_KEY } from "../src/routes/download";
 
@@ -284,7 +284,7 @@ describe("ES-FR-08 public/download", () => {
 		expect(stored.length).toBeGreaterThan(1);
 		expect(stored.every((c) => c.data.length <= ARTIFACT_CHUNK_CHARS)).toBe(true);
 		const bytes = bytesOf(await download(s.budget, await linkFromSession(s.budget)));
-		expect(bytes.length).toBeGreaterThan(256 * 1024);
+		expect(bytes.length).toBeGreaterThan(ARTIFACT_CHUNK_BYTES);
 		expect(await sha256Hex(bytes)).toBe((await envelopeOf(s.id)).pdfSha256);
 	});
 

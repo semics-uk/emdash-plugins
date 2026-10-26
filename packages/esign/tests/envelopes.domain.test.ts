@@ -150,7 +150,7 @@ describe("ES-FR-02 snapshot and docSha256", () => {
 	});
 
 	it("T125 a document over the snapshot limits is refused, so the PDF job stays inside its CPU budget", async () => {
-		expect([MAX_SNAPSHOT_CHARS, MAX_SNAPSHOT_LINES]).toEqual([256 * 1024, 2000]);
+		expect([MAX_SNAPSHOT_CHARS, MAX_SNAPSHOT_LINES]).toEqual([128 * 1024, 1500]);
 		const tooLarge = { ok: false, error: [{ path: "body", code: "DOCUMENT_TOO_LARGE" }] };
 		// At the limits: exactly MAX_SNAPSHOT_CHARS characters, exactly MAX_SNAPSHOT_LINES lines.
 		const atChars = `${"x".repeat(MAX_SNAPSHOT_CHARS - 1)}\n`;
