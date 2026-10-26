@@ -50,11 +50,12 @@ test("release.yml: Changesets version PR, then npm publish with provenance", () 
 test("T123 release.yml pins changesets/action v2 by commit, with its v2 input and output names", () => {
 	const text = read("release.yml");
 	assert.match(text, /uses: changesets\/action@[0-9a-f]{40} # v2\.\d+\.\d+/);
+	const step = text.slice(text.indexOf("uses: changesets/action@")).split(/\n\s*- |\n\S/)[0];
 	for (const v1 of ["publish", "version", "title", "commit"]) {
-		assert.doesNotMatch(text, new RegExp(`^\\s+${v1}: `, "m"), `v1 input ${v1}`);
+		assert.doesNotMatch(step, new RegExp(`^\\s+${v1}: `, "m"), `v1 input ${v1}`);
 	}
-	assert.match(text, /pr-title: /);
-	assert.match(text, /commit-message: /);
+	assert.match(step, /pr-title: /);
+	assert.match(step, /commit-message: /);
 	assert.match(text, /steps\.changesets\.outputs\.published-packages/);
 	assert.doesNotMatch(text, /publishedPackages/);
 });

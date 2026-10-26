@@ -52,8 +52,7 @@ function cleanEnv(env) {
 	return { ...env, HOME: home, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null" };
 }
 
-const land = (env) =>
-	spawnSync("bash", [script, "x", "T999"], { env: cleanEnv(env), cwd: tmpdir(), encoding: "utf8" });
+const land = (env) => spawnSync("bash", [script, "x", "T999"], { env: cleanEnv(env), cwd: tmpdir(), encoding: "utf8" });
 
 test("T123 land-pro.sh is a bash script (ubuntu-latest has no zsh) and land.sh runs it with bash", () => {
 	assert.equal(readFileSync(script, "utf8").split("\n")[0], "#!/usr/bin/env bash");

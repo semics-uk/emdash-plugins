@@ -64,7 +64,8 @@ Nothing is published from a laptop. Releases run in GitHub Actions, from the pub
 2. `.github/workflows/release.yml` runs on each push to `main`. It builds, then runs the dry run
    (`pnpm release:dry-run --build`), then `changesets/action`:
    - while changesets are pending it opens or updates the "Version Packages" PR (`pnpm version-packages`);
-   - when that PR is merged nothing is pending, so it runs `pnpm release`: the dry run in strict mode
+   - when that PR is merged nothing is pending, so, once the owner has set the repository variable
+     `NPM_PUBLISH=true` (until then the run stops after the dry run), it runs `pnpm release`: the dry run in strict mode
      (`--release`), then `changeset publish`, which publishes `@semics-tech/emdash-events`,
      `@semics-tech/emdash-esign` (and the suite package once it exists) to npm with provenance
      (`NPM_CONFIG_PROVENANCE`, OIDC `id-token: write`). `@semics-tech/shared` stays private.
@@ -105,7 +106,11 @@ check of the release workflows (pinned actions, provenance, the registry gate, n
    against `emdash-release.yml`.
 5. Delegate release authority to the repository for that DID (`emdash-plugin release delegate`, a browser
    handoff) and approve the first release (`release approve`).
-6. Set the repository variable `EMDASH_REGISTRY_PUBLISH=true` to switch the registry job on, and pin the
+6. Set the repository variable `NPM_PUBLISH=true` to let the release job publish to npm (T123: until then it
+   opens the version PR or stops after the dry run). Changesets is in `rc` pre mode (CLI 3 layout: `pre.json`
+   holds only `mode` and `tag`, and the changesets 1.0.0-rc.0 consumed sit in `.changeset/pre/`), so with nothing
+   pending the first publish after the switch is `1.0.0-rc.0` under the `rc` dist-tag.
+   Set the repository variable `EMDASH_REGISTRY_PUBLISH=true` to switch the registry job on, and pin the
    `emdash-cms/emdash/apps/release-action@main` reference in `emdash-release.yml` to a tag or commit.
 7. Pro: see `.github/workflows/pro-release.yml` in the private Pro repo. It publishes the Pro packages to npm
    as public packages under the proprietary licence (R85: the npm org stays on its Free plan; the licence key unlocks them), by
