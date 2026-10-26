@@ -66,6 +66,11 @@ export function toWinAnsi(text: string): string {
 	return out;
 }
 
+/** The face's width of every WinAnsi byte, in 1/1000 em (for loops that sum widths themselves). */
+export function widthTable(font: PdfFont): Uint16Array {
+	return WIDTHS[font];
+}
+
 /** Width of WinAnsi-encoded bytes in 1/1000 em. */
 export function unitsOf(bytes: string, font: PdfFont): number {
 	const widths = WIDTHS[font];

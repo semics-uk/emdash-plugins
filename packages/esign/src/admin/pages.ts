@@ -88,6 +88,7 @@ const ISSUE_TEXT: Record<string, string> = {
 	INVALID_SIGNER_EMAIL: "Enter a valid email address for the signer.",
 	INVALID_FIELDS: "A field value is too long or not text.",
 	MISSING_FIELD: "A template field has no value.",
+	DOCUMENT_TOO_LARGE: "The document is too long to sign (up to 131,072 characters and 1,500 lines).",
 };
 
 function failure(reply: Reply, fallback = "The change was refused."): string {

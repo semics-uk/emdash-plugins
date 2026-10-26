@@ -166,7 +166,8 @@ export type EnvelopeIssueCode =
 	| "INVALID_SIGNER_NAME"
 	| "INVALID_SIGNER_EMAIL"
 	| "INVALID_FIELDS"
-	| "MISSING_FIELD";
+	| "MISSING_FIELD"
+	| "DOCUMENT_TOO_LARGE";
 
 export interface EnvelopeIssue {
 	path: string;
@@ -185,6 +186,15 @@ export interface DraftFields {
 /** UTF-16 units per snapshot chunk: worst case 64Ki × 6 bytes of JSON escapes = 384 KiB. */
 export const SNAPSHOT_CHUNK_CHARS = 64 * 1024;
 export const MAX_DOCUMENT_BYTES = 512 * 1024;
+/**
+ * The largest snapshot an envelope may freeze (T125), in UTF-16 units and in lines, counted after
+ * rendering and canonicalising. The signed-PDF job renders the whole document in one cron
+ * invocation, and its CPU grows with characters and with lines (each line is a block or a list
+ * item), so both are bounded: the costliest document they allow renders within the 50 ms budget
+ * on a CI runner. A template body is at most 100,000 characters, so this leaves room for values.
+ */
+export const MAX_SNAPSHOT_CHARS = 128 * 1024;
+export const MAX_SNAPSHOT_LINES = 1500;
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_FIELDS = 32;
 export const MAX_FIELD_VALUE_CODE_POINTS = 500;
@@ -388,6 +398,13 @@ export function draftFromIntent(
 	);
 }
 
+/** Newlines in `text`; a canonical snapshot ends with one, so this is its number of lines. */
+function lineCount(text: string): number {
+	let count = 0;
+	for (let at = text.indexOf("\n"); at !== -1; at = text.indexOf("\n", at + 1)) count++;
+	return count;
+}
+
 /** The canonical snapshot text and its `docSha256`. */
 export async function renderSnapshot(
 	envelope: EnvelopeDoc,
@@ -401,6 +418,9 @@ export async function renderSnapshot(
 		throw error;
 	}
 	const text = canonicalSnapshot(rendered);
+	if (text.length > MAX_SNAPSHOT_CHARS || lineCount(text) > MAX_SNAPSHOT_LINES) {
+		return err([{ path: "body", code: "DOCUMENT_TOO_LARGE" }]);
+	}
 	return ok({ text, docSha256: await sha256Hex(text) });
 }
 

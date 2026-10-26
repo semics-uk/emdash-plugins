@@ -269,12 +269,33 @@ export async function renderSignedPdf(input: SignedPdfInput): Promise<{ bytes: U
 
 // --- chunked storage ---
 
+const BASE64 = new TextEncoder().encode("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/");
+const PAD = 61; // "="
+
+/**
+ * Standard base64 through a lookup table into a byte buffer. Building a binary string for `btoa`
+ * cost ~12 ms of the cron's 50 ms CPU budget for the largest PDF (T125); this is ~1 ms.
+ */
 function toBase64(bytes: Uint8Array): string {
-	let binary = "";
-	for (let i = 0; i < bytes.length; i += 0x8000) {
-		binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+	const out = new Uint8Array(Math.ceil(bytes.length / 3) * 4);
+	const whole = bytes.length - (bytes.length % 3);
+	let o = 0;
+	for (let i = 0; i < whole; i += 3) {
+		const n = ((bytes[i] as number) << 16) | ((bytes[i + 1] as number) << 8) | (bytes[i + 2] as number);
+		out[o++] = BASE64[n >> 18] as number;
+		out[o++] = BASE64[(n >> 12) & 63] as number;
+		out[o++] = BASE64[(n >> 6) & 63] as number;
+		out[o++] = BASE64[n & 63] as number;
 	}
-	return btoa(binary);
+	if (whole < bytes.length) {
+		const two = whole + 1 < bytes.length;
+		const n = ((bytes[whole] as number) << 16) | (two ? (bytes[whole + 1] as number) << 8 : 0);
+		out[o++] = BASE64[n >> 18] as number;
+		out[o++] = BASE64[(n >> 12) & 63] as number;
+		out[o++] = two ? (BASE64[(n >> 6) & 63] as number) : PAD;
+		out[o++] = PAD;
+	}
+	return new TextDecoder().decode(out);
 }
 
 function fromBase64(text: string): Uint8Array | null {
