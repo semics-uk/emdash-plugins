@@ -359,9 +359,10 @@ so the list below is what *may* apply and should be adapted to the owner's setup
 | Stripe | Payment | Payment details, handled by Stripe | Events Pro only, for paid tickets; E-sign does not send signature data to Stripe |
 
 The maker of the plugin is not a processor of signature data in the design. The maker does run a licence service for
-the Pro edition (the licence Worker at licences.semics.co.uk). It receives Pro buyers' names and email addresses from
-Paddle and emails them their licence keys, so the maker is a controller of that buyer data. Sites do not contact it, and
-it receives no signing data or other site data. See question 12. [C1][C32]
+the Pro edition (the licence Worker at licences.semics.co.uk). From Paddle it receives each Pro buyer's email address,
+the site hostnames they license, and Paddle's customer and transaction ids (no name), and it emails the buyer their
+licence key. So the maker is a controller of that buyer data, with Cloudflare (hosting and email) and Paddle (reseller)
+as its own vendors. Sites do not contact it, and it receives no signing data or other site data. See question 12. [C1][C32]
 
 ## 11. Security measures relevant to evidence
 
@@ -384,7 +385,7 @@ people; the integration tokens are signed with keys derived per client, never st
 - **`signer.viewed` on GET.** An earlier question (review T034, task T117) was whether a view should be recorded when a
   mail scanner fetches the page. The code now records a view only on the first submit (sign or decline). [C6]
 - The `Free`/`Pro` split is described in the build plan; this brief describes the Free code, and the Pro code for the email
-  one-time code (section 6, [C35]). Other Pro features are described from the protocol and Events notes, not as reviewed
+  one-time code (section 6, [C35]) and for uploaded PDF documents (section 5.6, [C36]). Other Pro features are described from the protocol and Events notes, not as reviewed
   code. [C1][C22]
 
 ## 13. Open questions for the lawyer
