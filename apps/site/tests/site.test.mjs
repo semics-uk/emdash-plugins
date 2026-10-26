@@ -139,7 +139,83 @@ describe("refunds", () => {
 	});
 });
 
+describe("R89: one refund period everywhere", () => {
+	const DAYS = 14;
+	const days = (body) => [...body.matchAll(/(\d+)[- ]days?\b/g)].map((m) => Number(m[1]));
+
+	test.each(["/pricing", "/terms", "/refunds"])("%s gives a 14-day refund and no other period", (path) => {
+		const body = text(path);
+		expect(body).toMatch(new RegExp(`refund within ${DAYS} days`));
+		for (const n of days(body)) expect(n, `${path} mentions ${n} days`).toBe(DAYS);
+	});
+
+	test("BUILD-PLAN D6 and R88 and the editions doc say the same", () => {
+		const plan = readFileSync(join(repoRoot, "BUILD-PLAN.md"), "utf8");
+		const d6 = plan.match(/^\| D6 \|.*$/m)?.[0] ?? "";
+		expect(d6).toMatch(new RegExp(`${DAYS}-day refund`));
+		expect(d6).not.toMatch(/30-day refund/);
+		expect(plan.match(/^\| R88 \|.*$/m)?.[0]).toMatch(new RegExp(`refunds are ${DAYS} days`));
+		expect(plan).toMatch(/^\| R89 \|/m);
+		const editions = readFileSync(join(repoRoot, "apps/docs/pages/editions.md"), "utf8");
+		expect(editions).toMatch(new RegExp(`refund within ${DAYS} days`));
+	});
+});
+
+describe("what happens when a licence ends (the licence Worker's header: keys verify offline)", () => {
+	test.each(["/terms", "/refunds"])("%s says the issued key keeps working and no new keys are issued", (path) => {
+		const body = text(path);
+		expect(body).not.toMatch(/When a licence ends, Pro features stop taking new work/);
+		expect(body).not.toMatch(/Pro features simply stop taking new work/);
+		expect(body).toMatch(/key you already have keeps working/);
+		expect(body).toMatch(/no new keys/);
+		expect(body).toMatch(/released before/);
+	});
+});
+
+describe("prices and tax (DMCCA s.230)", () => {
+	test("the pricing page says the total including tax is shown at checkout before you pay", () => {
+		const body = text("/pricing");
+		expect(body).not.toMatch(/before tax/);
+		expect(body).toMatch(/total price, including any VAT or sales tax, is shown at checkout before you pay/);
+	});
+
+	test("the terms say the same", () => {
+		expect(text("/terms")).toMatch(/total price, including any VAT or sales tax, is shown at checkout before you pay/);
+	});
+});
+
 describe("privacy", () => {
+	const section = (id) => {
+		const page = read("/privacy");
+		const from = page.indexOf(`id="${id}"`);
+		const to = page.indexOf("<h2", from + 1);
+		return page.slice(from, to === -1 ? undefined : to);
+	};
+
+	test("Paddle is an independent controller, not one of our processors", () => {
+		expect(text("/privacy")).toMatch(/Paddle is an independent controller/);
+		expect(section("processors")).not.toMatch(/Paddle/);
+	});
+
+	test("gives the legal basis for website logs and support email", () => {
+		expect(section("site")).toMatch(/legitimate interests/);
+		expect(section("support")).toMatch(/legitimate interests/);
+	});
+
+	test("lists the rights to data portability and to object", () => {
+		const rights = section("rights");
+		expect(rights).toMatch(/portab/);
+		expect(rights).toMatch(/object/);
+	});
+
+	test("R91: retention matches the licence Worker's deletion job", () => {
+		const retention = section("retention");
+		expect(retention).toMatch(/6 years after it ends/);
+		expect(retention).toMatch(/notification[^.]*1 year/);
+		expect(retention).toMatch(/automatically/);
+	});
+
+
 	test("says what the licence Worker stores, who processes it, how long it is kept and who to contact", () => {
 		const body = text("/privacy");
 		expect(body).toMatch(/email address/i);
@@ -178,6 +254,15 @@ describe("legal review and loose ends", () => {
 		const s13 = brief.slice(brief.indexOf("## 13."), brief.indexOf("## 14."));
 		expect(s13).toMatch(/plugins\.semics\.co\.uk/);
 		expect(s13).toMatch(/apps\/site/);
+	});
+
+	test("brief question 17 covers the Pro licence text, the refund decision and the 2027 UK subscription rules", () => {
+		const brief = readFileSync(join(repoRoot, "docs/legal/brief.md"), "utf8");
+		const q17 = brief.slice(brief.indexOf("\n17. "), brief.indexOf("## 14."));
+		expect(q17).toMatch(/packages\/events-pro\/LICENSE/);
+		expect(q17).toMatch(/14 days \(R89\)/);
+		expect(q17).toMatch(/1 January 2027/);
+		expect(q17).not.toMatch(/still a placeholder/);
 	});
 
 	test.each(Object.keys(PAGES))("%s has no TODO except an owner TODO in the report", (path) => {
