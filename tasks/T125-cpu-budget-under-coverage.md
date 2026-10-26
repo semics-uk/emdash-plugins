@@ -7,7 +7,7 @@ edition: free
 status: in-progress
 model: opus-5.5
 size: S
-depends_on: [T123]
+depends_on: [T106]
 spec: [R53, R64]
 ---
 

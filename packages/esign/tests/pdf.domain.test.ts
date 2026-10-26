@@ -220,6 +220,18 @@ describe("ES-FR-08 chunked storage of the signed PDF", () => {
 		expect(back?.length).toBe(bytes.length);
 	});
 
+	it("ES-FR-08 chunk data is standard base64 of the chunk's bytes, at every length (T125)", () => {
+		const reference = (bytes: Uint8Array) => btoa(Array.from(bytes, (b) => String.fromCharCode(b)).join(""));
+		for (const n of [0, 1, 2, 3, 4, 5, 6, 7, 255, 256, 257, 196_607, 196_608, 196_609, 500_001]) {
+			const bytes = big(n);
+			const chunks = pdfChunks(ENV, bytes, "a".repeat(64));
+			const expected = Array.from({ length: chunks.length }, (_, i) =>
+				reference(bytes.subarray(i * 196_608, (i + 1) * 196_608)),
+			);
+			expect(chunks.map((c) => c.data.data)).toEqual(expected);
+		}
+	});
+
 	it("ES-FR-08 an empty or tiny PDF is one chunk", async () => {
 		const chunks = pdfChunks(ENV, new Uint8Array([1, 2, 3]), "a".repeat(64));
 		expect(chunks).toHaveLength(1);
