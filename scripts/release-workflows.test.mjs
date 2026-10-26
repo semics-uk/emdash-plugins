@@ -38,11 +38,36 @@ test("release.yml: Changesets version PR, then npm publish with provenance", () 
 	assert.match(text, /changesets\/action@/);
 	assert.match(text, /id-token: write/);
 	assert.match(text, /NPM_CONFIG_PROVENANCE: "?true"?/);
-	assert.match(text, /publish: pnpm release/);
-	assert.match(text, /version: pnpm version-packages/);
+	assert.match(text, /publish-script: \$\{\{ vars\.NPM_PUBLISH == 'true' && 'pnpm release' \|\| '' \}\}/);
+	assert.match(text, /version-script: pnpm version-packages/);
 	assert.match(text, /pnpm release:dry-run/);
 	assert.match(text, /branches: \[main\]/);
 	assert.match(text, /environment: npm-publish/);
+});
+
+// T123: changesets/action v1 bundles the Changesets 2 readers, which take CLI 3's .changeset/pre/ directory
+// for a changeset (ENOENT .changeset/pre/changes.md). v2 reads the CLI 3 layout and skips pre/.
+test("T123 release.yml pins changesets/action v2 by commit, with its v2 input and output names", () => {
+	const text = read("release.yml");
+	assert.match(text, /uses: changesets\/action@[0-9a-f]{40} # v2\.\d+\.\d+/);
+	for (const v1 of ["publish", "version", "title", "commit"]) {
+		assert.doesNotMatch(text, new RegExp(`^\\s+${v1}: `, "m"), `v1 input ${v1}`);
+	}
+	assert.match(text, /pr-title: /);
+	assert.match(text, /commit-message: /);
+	assert.match(text, /steps\.changesets\.outputs\.published-packages/);
+	assert.doesNotMatch(text, /publishedPackages/);
+});
+
+// T123: in rc pre mode with every changeset consumed, the action would publish straight away. npm publishing
+// waits for the owner's NPM_PUBLISH variable, so until then a push stops at the version PR or the dry run.
+test("T123 release.yml publishes to npm only once the owner sets NPM_PUBLISH=true", () => {
+	const code = read("release.yml")
+		.split("\n")
+		.filter((line) => !line.trim().startsWith("#"))
+		.join("\n");
+	assert.equal([...code.matchAll(/pnpm release(?!:)/g)].length, 1, "pnpm release appears once, behind the gate");
+	assert.match(read("../../CONTRIBUTING.md"), /`NPM_PUBLISH=true`/);
 });
 
 test("release.yml hands published packages to the registry workflow only when explicitly enabled", () => {

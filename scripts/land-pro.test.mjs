@@ -1,8 +1,9 @@
 // land-pro.sh lands a Pro task's commits in the separate Pro repo (R40) after land.sh lands the
-// public side. These tests run it against throwaway git repos only.
+// public side. These tests run it against throwaway git repos only, with bash from a scratch directory and
+// no git identity, as on a clean Linux CI runner where zsh is not installed (T123).
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, test } from "node:test";
@@ -44,7 +45,21 @@ function setup({ worktree = true } = {}) {
 	return { pro, wt, env: { ...process.env, SEMICS_PRO_REPO: pro, SEMICS_PRO_WORKTREES: worktrees } };
 }
 
-const land = (env) => spawnSync("zsh", [script, "x", "T999"], { env, encoding: "utf8" });
+/** A clean runner: no global or system git config, so only the script's own `-c` identity counts. */
+function cleanEnv(env) {
+	const home = mkdtempSync(join(tmpdir(), "land-pro-home-"));
+	scratch.push(home);
+	return { ...env, HOME: home, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null" };
+}
+
+const land = (env) =>
+	spawnSync("bash", [script, "x", "T999"], { env: cleanEnv(env), cwd: tmpdir(), encoding: "utf8" });
+
+test("T123 land-pro.sh is a bash script (ubuntu-latest has no zsh) and land.sh runs it with bash", () => {
+	assert.equal(readFileSync(script, "utf8").split("\n")[0], "#!/usr/bin/env bash");
+	const landSh = readFileSync(fileURLToPath(new URL("./orchestrator/land.sh", import.meta.url)), "utf8");
+	assert.match(landSh, /^bash \S*land-pro\.sh /m);
+});
 
 test("lands the Pro worktree's commits on Pro main and removes the worktree and branch", () => {
 	const { pro, wt, env } = setup();
