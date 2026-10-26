@@ -113,3 +113,10 @@ test("R84: no workflow references a long-lived npm token", () => {
 		assert.doesNotMatch(text, /NODE_AUTH_TOKEN:\s*\$\{\{\s*secrets\./, `${file}: NODE_AUTH_TOKEN from a secret`);
 	}
 });
+
+test("root scripts quote their pnpm --filter globs (an unquoted ./packages/** is expanded by the runner's shell)", () => {
+	const { scripts } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+	for (const [name, command] of Object.entries(scripts)) {
+		assert.doesNotMatch(command, /--filter\s+[^"'\s]*\*/, `script "${name}" has an unquoted --filter glob`);
+	}
+});
