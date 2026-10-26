@@ -161,6 +161,13 @@ test("R86: an npm-only package (no emdash-plugin manifest, nothing for the regis
 	assert.equal(releaseBlockers({ manifest: null, pkg: { private: true } }).length, 1);
 });
 
+test("no published package has a script npm or pnpm runs by itself on publish (it would run in the release job)", () => {
+	const lifecycle = ["publish", "prepublish", "postpublish"];
+	for (const { name, pkg } of publishablePackages()) {
+		for (const script of lifecycle) assert.equal(pkg.scripts?.[script], undefined, `${name} has a "${script}" script`);
+	}
+});
+
 test("R86: every manifest and fixture names the semics publisher DID, semics.co.uk and its security address", () => {
 	const listed = spawnSync("git", ["ls-files", "*emdash-plugin.jsonc"], { cwd: repoRoot, encoding: "utf8" });
 	const manifests = listed.stdout.split("\n").filter(Boolean);
