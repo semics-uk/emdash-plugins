@@ -2628,7 +2628,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [],
@@ -2636,7 +2636,7 @@
 			"unblocks": [
 				"T132"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T132": {
 			"file": "T132-payment-holds-until-approval.md",
@@ -2680,9 +2680,7 @@
 		"ready": [
 			"T132"
 		],
-		"in-progress": [
-			"T131"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2795,6 +2793,7 @@
 			"T127",
 			"T129",
 			"T130",
+			"T131",
 			"T133"
 		],
 		"blocked": [
@@ -2803,8 +2802,7 @@
 		]
 	},
 	"criticalPath": [
-		"T131",
 		"T132"
 	],
-	"criticalWeight": 6
+	"criticalWeight": 3
 }
