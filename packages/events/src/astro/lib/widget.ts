@@ -68,6 +68,12 @@ export interface BookingView {
 	 * receipt-lookup request for each, which the suite's reconciliation sends to e-sign.
 	 */
 	waiver?: { refs: string[]; lookups?: Record<string, string> };
+	/**
+	 * Events Pro (T133): a waiver booking's attendee signing list. Each attendee then also carries
+	 * `seat`, `signing`, `signs`, `email` and `minor` (`SigningAttendee` in `lib/attendees.ts`);
+	 * `editable` says whether names and emails may still be changed, until `editUntil`.
+	 */
+	signingList?: { editable: boolean; editUntil?: string };
 }
 
 /** A custom question's field is `q:<question id>` (T080). */

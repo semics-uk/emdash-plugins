@@ -1,0 +1,157 @@
+---
+// <AttendeeList>: a waiver booking's attendees with Signed / Waiting (T133, R95; Suite Pro). Rendered
+// by the `/booking` page only when Events Pro's `public/booking` carries a signing list. Every button
+// is a plain form POST back to the page (no JavaScript): Sign now opens that attendee's signing on
+// this device, Resend asks e-sign to email an invited adult again, and the edit form corrects names
+// and emails of attendees who have not signed, until the cutoff. Rows come from `signingRows`.
+import { around, pickLocale, translator } from "../i18n/index";
+import type { SigningRow } from "./lib/attendees";
+
+interface Props {
+	rows: SigningRow[];
+	/** Where the forms post (`/booking?ref=…`). */
+	action: string;
+	/** While names may be changed: the deadline (ISO). */
+	editUntil?: string;
+	locale?: string;
+}
+
+const { rows, action, editUntil } = Astro.props;
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+const editable = rows.filter((r) => r.canEdit);
+const [untilBefore, untilAfter] = around(t("booking.attendees.editUntil"), "time");
+const [emailedBefore, emailedAfter] = around(t("booking.attendees.emailed"), "email");
+const at = (iso: string) => {
+	try {
+		const time = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(
+			new Date(iso),
+		);
+		return t("time.utc", { time });
+	} catch {
+		return iso;
+	}
+};
+---
+<section class="semics-events semics-attendee-list" data-testid="attendee-list" lang={lang} dir={dir} aria-labelledby="semics-attendees-title">
+	<h2 id="semics-attendees-title">{t("booking.attendees.title")}</h2>
+	<ul>
+		{
+			rows.map((row) => (
+				<li data-testid="attendee-row" data-seat={row.seat} data-signing={row.signed ? "signed" : "waiting"}>
+					<span class="semics-attendee-name" id={`semics-attendee-${row.seat}`}>{row.name}</span>
+					<span class="semics-status-badge">{row.signed ? t("booking.attendees.signed") : t("booking.attendees.waiting")}</span>
+					{row.minor && <p class="semics-attendee-note">{t("booking.attendees.minor")}</p>}
+					{row.canResend && row.email && (
+						<p class="semics-attendee-note">
+							{emailedBefore}<span>{row.email}</span>{emailedAfter}
+						</p>
+					)}
+					{(row.canSign || row.canResend) && (
+						<div class="semics-attendee-actions">
+							{row.canSign && (
+								<form method="post" action={action}>
+									<input type="hidden" name="intent" value="sign-now" />
+									<input type="hidden" name="seat" value={row.seat} />
+									<button type="submit" aria-describedby={`semics-attendee-${row.seat}`} data-testid="attendee-sign-now">
+										{t("booking.attendees.signNow")}
+									</button>
+								</form>
+							)}
+							{row.canResend && (
+								<form method="post" action={action}>
+									<input type="hidden" name="intent" value="resend" />
+									<input type="hidden" name="seat" value={row.seat} />
+									<button type="submit" aria-describedby={`semics-attendee-${row.seat}`} data-testid="attendee-resend">
+										{t("booking.attendees.resend")}
+									</button>
+								</form>
+							)}
+						</div>
+					)}
+				</li>
+			))
+		}
+	</ul>
+	{
+		editable.length > 0 && (
+			<form method="post" action={action} class="semics-attendee-edit" data-testid="attendee-edit">
+				<input type="hidden" name="intent" value="attendees" />
+				<h3>{t("booking.attendees.edit")}</h3>
+				{editUntil && (
+					<p>
+						{untilBefore}<time datetime={editUntil}>{at(editUntil)}</time>{untilAfter}
+					</p>
+				)}
+				{editable.map((row) => (
+					<fieldset>
+						<legend>{row.name}</legend>
+						<label for={`semics-attendee-name-${row.seat}`}>{t("booking.attendees.name")}</label>
+						<input id={`semics-attendee-name-${row.seat}`} name={`name:${row.seat}`} value={row.name} required maxlength={200} autocomplete="off" />
+						{!row.minor && (
+							<>
+								<label for={`semics-attendee-email-${row.seat}`}>{t("booking.attendees.email")}</label>
+								<input id={`semics-attendee-email-${row.seat}`} name={`email:${row.seat}`} type="email" value={row.email} required maxlength={254} autocomplete="off" />
+							</>
+						)}
+					</fieldset>
+				))}
+				<button type="submit" data-testid="attendee-save">{t("booking.attendees.save")}</button>
+			</form>
+		)
+	}
+</section>
+
+<style>
+	.semics-attendee-list {
+		box-sizing: border-box;
+		max-inline-size: 36rem;
+		color: var(--events-fg, #1a1a1a);
+		overflow-wrap: anywhere;
+	}
+	.semics-attendee-list ul {
+		list-style: none;
+		padding: 0;
+	}
+	.semics-attendee-list li {
+		padding-block: 0.5rem;
+		border-block-end: 1px solid var(--events-border, #6b6b6b);
+	}
+	.semics-attendee-name {
+		font-weight: 600;
+		margin-inline-end: 0.5rem;
+	}
+	.semics-status-badge {
+		display: inline-block;
+		padding: 0.125rem 0.5rem;
+		border: 1px solid currentColor;
+		border-radius: var(--events-radius, 6px);
+	}
+	[data-signing="signed"] .semics-status-badge {
+		color: var(--events-success, #146c2e);
+	}
+	.semics-attendee-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-block-start: 0.5rem;
+	}
+	.semics-attendee-list button,
+	.semics-attendee-list input {
+		font: inherit;
+		min-block-size: 2.75rem;
+	}
+	.semics-attendee-list button {
+		padding: 0.5rem 1rem;
+	}
+	.semics-attendee-edit fieldset {
+		display: grid;
+		gap: 0.25rem;
+		margin-block: 0.5rem;
+	}
+	.semics-attendee-edit input {
+		box-sizing: border-box;
+		inline-size: 100%;
+		padding: 0.25rem 0.5rem;
+	}
+</style>

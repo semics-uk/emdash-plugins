@@ -45,7 +45,14 @@ function booking(over: Partial<BookingView> = {}): BookingView {
 		totals: { totalMinor: 0, currency: "GBP" },
 		canCancel: true,
 		attendees: [
-			{ name: "Ada Lovelace", status: "pending", seat: "1", email: "ada@example.com", signing: "signed", signs: "inline" },
+			{
+				name: "Ada Lovelace",
+				status: "pending",
+				seat: "1",
+				email: "ada@example.com",
+				signing: "signed",
+				signs: "inline",
+			},
 			{ name: "Byron", status: "pending", seat: "2", minor: true, signing: "waiting", signs: "inline" },
 			{
 				name: "Charles Babbage",
@@ -84,7 +91,10 @@ describe("T133 R95 the signing list rows", () => {
 		expect(closed.map((r) => r.canSign)).toEqual([false, true, true]);
 		for (const status of ["cancelled", "expired", "held"]) {
 			const rows = signingRows(booking({ status })) ?? [];
-			expect(rows.some((r) => r.canSign || r.canResend || r.canEdit), status).toBe(false);
+			expect(
+				rows.some((r) => r.canSign || r.canResend || r.canEdit),
+				status,
+			).toBe(false);
 		}
 	});
 });
@@ -195,7 +205,7 @@ describe("T133 R95 the booking page's attendee actions", () => {
 				{ seat: "3", name: "Charles Babbage", email: "c.babbage@example.com" },
 			],
 		});
-		expect((h.seen[2]?.body as { intent: string }).intent).toBe(INTENT2);
+		expect(h.seen[2]?.body).toEqual({ intent: INTENT2 });
 		// No typed value ever goes into the redirect.
 		expect(out?.location).not.toContain("babbage");
 	});

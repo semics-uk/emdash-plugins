@@ -26,6 +26,8 @@ import {
 	redeemBookingLink,
 	resumePayment,
 } from "./lib/checkout-form";
+import AttendeeList from "./AttendeeList.astro";
+import { handleAttendeeAction, signingRows } from "./lib/attendees";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
 import type { BookingView } from "./lib/widget";
@@ -48,8 +50,19 @@ const CODES = [
 	"BAD_REQUEST",
 	LINK_INVALID,
 	OFFER_INVALID,
+	// The attendee signing list (T133, Events Pro).
+	"ATTENDEE_SIGNED",
+	"ATTENDEES_LOCKED",
+	"ATTENDEE_INVALID",
+	"ATTENDEES_UNSENT",
+	"WAIVER_EMAIL_REQUIRED",
+	"WAIVER_TOO_MANY_EMAILS",
+	"RATE_LIMITED",
+	"SIGNING_UNAVAILABLE",
+	"ESIGN_NOT_CONFIGURED",
 ];
 const WAIVER_OUTCOMES = ["signed", "declined", "voided", "expired", "failed"];
+const ATTENDEE_OUTCOMES = ["saved", "resent"];
 const errorText = (code: string, fallback: MessageKey) =>
 	CODES.includes(code) ? t(`booking.error.${code}` as MessageKey) : t(fallback);
 
@@ -59,7 +72,11 @@ const ref = /^[0-9A-HJKMNP-TV-Z]{10}$/.test(rawRef) ? rawRef : "";
 const errorCode = url.searchParams.get("error") ?? "";
 const waiver = url.searchParams.get("waiver") ?? "";
 const waiverNotice = WAIVER_OUTCOMES.includes(waiver) ? t(`booking.waiver.${waiver}` as MessageKey) : "";
-let notice = errorCode ? errorText(errorCode, "booking.error.INTERNAL") : waiverNotice;
+const attendeesOutcome = url.searchParams.get("attendees") ?? "";
+const attendeesNotice = ATTENDEE_OUTCOMES.includes(attendeesOutcome)
+	? t(`booking.attendees.${attendeesOutcome}` as MessageKey)
+	: "";
+let notice = errorCode ? errorText(errorCode, "booking.error.INTERNAL") : waiverNotice || attendeesNotice;
 const code = url.searchParams.get("k") ?? "";
 const ctx = { locals: Astro.locals, url, request: Astro.request };
 // The cancel and redeem forms post here: refuse another site's posts (CSRF) before reading them.
@@ -136,6 +153,12 @@ if (ref && token) {
 } else if (ref && !opening) {
 	missing = true;
 }
+// The attendee signing list's forms (T133): Sign now, Resend and Save, against the fresh answer.
+if (booking && form && ref && token) {
+	const done = await handleAttendeeAction(ctx, form, { ref, token }, { pluginId, esignPluginId }, booking);
+	if (done) return Astro.redirect(done.location, 303);
+}
+const signingList = booking && !cancelled ? signingRows(booking) : null;
 const payment = booking && !cancelled ? paymentView(booking, locale) : null;
 const passes = booking && !cancelled && booking.status === "confirmed" ? booking.attendees.filter((a) => a.code) : [];
 ---
@@ -168,6 +191,14 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 					<>
 						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} locale={locale} />
 						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} locale={locale} />}
+						{signingList && (
+							<AttendeeList
+								rows={signingList}
+								action={`/booking?ref=${ref}`}
+								editUntil={booking.signingList?.editable ? booking.signingList.editUntil : undefined}
+								locale={locale}
+							/>
+						)}
 						{passes.length > 0 && (
 							<section aria-labelledby="semics-passes-title">
 								<h2 id="semics-passes-title">{t("booking.passes")}</h2>

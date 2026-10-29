@@ -571,7 +571,11 @@ describe("T133 R95 R48 resend and replace intents", () => {
 		const renamed = await call(
 			budget,
 			await sign(
-				payload({ ...adult, signer: { name: "Charles B. Babbage", email: "charles@example.com" }, ...extra({ replace: true }) }),
+				payload({
+					...adult,
+					signer: { name: "Charles B. Babbage", email: "charles@example.com" },
+					...extra({ replace: true }),
+				}),
 			),
 			REPLACE_TARGET,
 		);
