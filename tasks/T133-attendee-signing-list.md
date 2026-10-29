@@ -4,7 +4,7 @@ title: "Suite Pro: attendee signing list and editable names before the cutoff"
 phase: 7
 package: suite
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: []
