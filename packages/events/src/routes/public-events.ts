@@ -18,7 +18,7 @@ import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/sc
  *   copy (its entry is missing or has no usable start) is not listed.
  *
  * Bridge calls (R22, target 8): listing = 1. One event = config, ticket types, occurrences (only
- * for a recurring event), settings (the public Turnstile site key) = 4.
+ * for a recurring event; a second page past 100, T130), settings (the public Turnstile site key) = 4 or 5.
  *
  * `public/event` answers in the `PublicEvent` shape of `src/astro/lib/widget.ts` (T055).
  */
@@ -30,7 +30,6 @@ export const EVENTS_LIST_CACHE = "public, max-age=60, stale-while-revalidate=300
 const EVENT_ID_PATTERN = /^[A-Za-z0-9_:.-]{1,200}$/;
 const LISTED_STATUSES = ["on_sale", "paused", "closed", "cancelled"];
 const MAX_EVENTS = 100;
-const MAX_OCCURRENCES = 50;
 
 export interface PublicEventsStorage {
 	event_configs: {
@@ -43,7 +42,8 @@ export interface PublicEventsStorage {
 			where: Record<string, unknown>;
 			orderBy: Record<string, "asc" | "desc">;
 			limit: number;
-		}): Promise<{ items: Item[] }>;
+			cursor?: string;
+		}): Promise<{ items: Item[]; hasMore?: boolean; cursor?: string }>;
 	};
 }
 
@@ -119,18 +119,24 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	if (!config || config.orphaned || config.unpublished || config.status === "draft") return notFound();
 
 	const recurring = !!config.schedule || Object.keys(config.catalog?.occurrences ?? {}).length > 0;
-	const [types, dates, settings] = await Promise.all([
+	// Upcoming open dates only (a slot schedule keeps hundreds of past ones, T129), from the picker's
+	// `from` when later (T130), in up to two pages of 100 (a month of six slots a day), then `more`.
+	const asked = (raw as { from?: unknown }).from;
+	const from = Math.max(deps.now, Date.parse(typeof asked === "string" ? asked : "") || 0);
+	const page = (cursor?: string) =>
+		storage.occurrences.query({
+			where: { eventId, status: "open", startsAt: { gte: iso(from) } },
+			orderBy: { startsAt: "asc" },
+			limit: 100,
+			cursor,
+		});
+	const [types, first, settings] = await Promise.all([
 		storage.ticket_types.query({ where: { eventId }, limit: 100 }),
-		recurring
-			? storage.occurrences.query({
-					// Upcoming only: a slot schedule (T129) keeps hundreds of past dates.
-					where: { eventId, status: "open", startsAt: { gte: iso(deps.now) } },
-					orderBy: { startsAt: "asc" },
-					limit: MAX_OCCURRENCES,
-				})
-			: null,
+		recurring ? page() : null,
 		deps.settings.list(),
 	]);
+	const next = first?.hasMore ? await page(first.cursor) : null;
+	const dates = first && [...first.items, ...(next?.items ?? [])];
 	const eventLeft = left(config.capacity, config.reserved);
 	const ticketTypes = types.items
 		.map((i) => ({ id: i.id, t: i.data as TicketTypeDoc }))
@@ -144,8 +150,8 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 			minPerOrder: t.minPerOrder ?? null,
 			maxPerOrder: t.maxPerOrder ?? null,
 		}));
-	const occurrences = dates?.items
-		.map((i) => ({ id: i.id, o: i.data as OccurrenceDoc }))
+	const occurrences = dates
+		?.map((i) => ({ id: i.id, o: i.data as OccurrenceDoc }))
 		.map(({ id, o }) => ({
 			id,
 			startsAt: o.startsAt,
@@ -165,6 +171,8 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		...(config.waitlistEnabled ? { waitlist: true } : {}),
 		ticketTypes,
 		...(occurrences ? { occurrences } : {}),
+		...(next?.hasMore ? { more: true } : {}),
+		...(config.schedule ? { slots: true } : {}),
 		...(typeof siteKey === "string" && siteKey.trim() !== "" ? { turnstileSiteKey: siteKey.trim() } : {}),
 	};
 }

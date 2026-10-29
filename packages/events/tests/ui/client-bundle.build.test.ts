@@ -30,6 +30,18 @@ describe("events UI client budget and escaping (EU-NFR-02, T055 escaping)", () =
 		expect(gzipped).toBeLessThanOrEqual(BUDGET_BYTES);
 	});
 
+	it("EV-FR-17 the day-then-time picker's script is self-contained, small, and has no HTML sinks (T130)", () => {
+		const source = readFileSync(resolve(root, "src/client/picker.ts"), "utf8");
+		expect(source).not.toMatch(/^\s*import\s/m);
+		expect(source).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
+		const js = ts.transpileModule(source, {
+			compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true },
+		}).outputText;
+		expect(gzipSync(js).length).toBeLessThanOrEqual(3 * 1024);
+		const widget = readFileSync(resolve(root, "src/astro/BookingWidget.astro"), "utf8");
+		expect(widget).toContain("../client/picker.ts");
+	});
+
 	it("EV-FR-11 the check-in screen's script is self-contained, small, and has no HTML sinks (T082)", () => {
 		const source = readFileSync(resolve(root, "src/client/checkin.ts"), "utf8");
 		expect(source).not.toMatch(/^\s*import\s/m);

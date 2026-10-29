@@ -135,7 +135,8 @@ export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<R
 	const info = await loadEventInfo(deps, eventId, undefined, { publicOnly: true });
 	if (!info) return failure("NOT_FOUND");
 	const { items } = await deps.storage.occurrences.query({
-		where: { eventId, status: "open" },
+		// The next 50 (T130): a slot schedule keeps hundreds of past dates.
+		where: { eventId, status: "open", startsAt: { gte: new Date(deps.now).toISOString() } },
 		orderBy: { startsAt: "asc" },
 		limit: MAX_OCCURRENCES,
 	});

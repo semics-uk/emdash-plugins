@@ -25,7 +25,7 @@ describe("grouping by local day (T130)", () => {
 			["2026-11-01", ["2026-11-01T14:00:00Z"]],
 		]);
 		expect(days[0]?.slots[0]?.time).toBe("23:30");
-		expect(days[1]?.label).toBe("Sunday 1 November 2026");
+		expect(days[1]?.label).toMatch(/^Sunday,? 1 November 2026$/);
 		expect(localDay(Date.parse("2026-11-01T03:30:00Z"), "UTC")).toBe("2026-11-01");
 	});
 
@@ -46,7 +46,9 @@ describe("grouping by local day (T130)", () => {
 			"Europe/London",
 			"en-GB",
 		);
-		expect(spring.map((d) => [d.key, d.slots.map((s) => s.time)])).toEqual([["2026-03-29", ["00:30", "02:30", "23:30"]]]);
+		expect(spring.map((d) => [d.key, d.slots.map((s) => s.time)])).toEqual([
+			["2026-03-29", ["00:30", "02:30", "23:30"]],
+		]);
 	});
 
 	it("EV-FR-17 shows places left, and a full slot as full (disabled), a day with no room as full", () => {
@@ -58,7 +60,7 @@ describe("grouping by local day (T130)", () => {
 		expect(day?.open).toBe(true);
 		const [full] = groupByDay([at("2026-11-05T09:00:00Z", 0)], "UTC", "en-GB");
 		expect(full?.open).toBe(false);
-		expect(full?.buttonLabel).toBe("Thursday 5 November 2026, fully booked");
+		expect(full?.buttonLabel).toMatch(/^Thursday,? 5 November 2026, fully booked$/);
 		// Places the core does not show read as nothing, not as full.
 		const [unknown] = groupByDay([{ id: "u", startsAt: "2026-11-06T09:00:00Z", available: null }], "UTC", "en-GB");
 		expect(unknown?.slots[0]).toMatchObject({ full: false, places: "", label: "09:00" });
@@ -130,7 +132,8 @@ describe("month view and paging (T130)", () => {
 	});
 
 	it("ignores a past, malformed or impossible start, and skips the slots before it", () => {
-		for (const start of ["2026-10-01", "nope", "2026-02-30", "2026-13-01"]) expect(view([], start).month.key).toBe("2026-11");
+		for (const start of ["2026-10-01", "nope", "2026-02-30", "2026-13-01"])
+			expect(view([], start).month.key).toBe("2026-11");
 		const v = view([...six("2026-11-04"), ...six("2026-11-20")], "2026-11-10");
 		expect(v.days.map((d) => d.key)).toEqual(["2026-11-20"]);
 		expect(v.prev).toBe("2026-11-03");

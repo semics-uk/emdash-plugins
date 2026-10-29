@@ -246,11 +246,19 @@ describe("drift repair of a slot schedule (T130, R94 follow-up)", () => {
 		await seedEvent({ event: 1000, types: { tt_a: 1000 } });
 		const past = Array.from({ length: 120 }, (_, i) => ({
 			id: `s-e1-past${i}`,
-			data: { eventId: "e1", startsAt: new Date(Date.parse("2026-06-01T09:00:00Z") + i * 36e5).toISOString(), status: "open", ...c(8) },
+			data: {
+				eventId: "e1",
+				startsAt: new Date(Date.parse("2026-06-01T09:00:00Z") + i * 36e5).toISOString(),
+				status: "open",
+				...c(8),
+			},
 		}));
 		await seed("occurrences", past);
 		await seed("occurrences", [
-			{ id: "s-e1-zz-next", data: { eventId: "e1", startsAt: "2026-11-02T09:00:00.000Z", status: "open", ...c(8, 6, 0) } },
+			{
+				id: "s-e1-zz-next",
+				data: { eventId: "e1", startsAt: "2026-11-02T09:00:00.000Z", status: "open", ...c(8, 6, 0) },
+			},
 		]);
 		await seed("bookings", [
 			{

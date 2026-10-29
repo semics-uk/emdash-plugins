@@ -368,6 +368,13 @@ export async function applyDriftRepair(
 	return { repaired: fixes.filter((_, i) => applied[i]), conflicted: fixes.filter((_, i) => !applied[i]) };
 }
 
+/** The dates a repair snapshots: from a week back, earliest first (T130; a slot schedule keeps hundreds of past ones). */
+const recentDates = (eventId: string, now: number) => ({
+	where: { eventId, startsAt: { gte: new Date(now - 7 * 864e5).toISOString() } },
+	orderBy: { startsAt: "asc" },
+	limit: 100,
+});
+
 const snap = (collection: CountedCollection, id: string, data: unknown): CounterSnapshot => {
 	const d = data as { reserved?: number; sold?: number };
 	return { collection, id, reserved: d.reserved ?? 0, sold: d.sold ?? 0 };
@@ -389,7 +396,7 @@ export async function repairEventCounters(
 	const [config, tts, occs] = await Promise.all([
 		storage.event_configs.get(eventId),
 		storage.ticket_types.query({ where, limit: 100 }),
-		storage.occurrences.query({ where, limit: 100 }),
+		storage.occurrences.query(recentDates(where.eventId, now)),
 	]);
 	const none = { repaired: [], conflicted: [], pending: [] };
 	if (!config) return { complete: true, ...none };
@@ -477,7 +484,7 @@ export async function repairStep(
 		const [config, tts, occs] = await Promise.all([
 			storage.event_configs.get(j.eventId),
 			storage.ticket_types.query({ where, limit: 100 }),
-			storage.occurrences.query({ where, limit: 100 }),
+			storage.occurrences.query(recentDates(where.eventId, now)),
 		]);
 		calls += REPAIR_SNAPSHOT_CALLS;
 		if (!config) return result(null);

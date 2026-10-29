@@ -8,6 +8,7 @@ import { pluginId } from "virtual:semics-events/config";
 import { pickLocale, translator } from "../i18n/index";
 import { callPublicRoute } from "./lib/call";
 import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
+import { PICKER_PARAM, pickerFetchFrom, pickerHref, pickerView, usesPicker } from "./lib/picker";
 import { PROMO_PATH, type PromoView, promoCookieName, promoView } from "./lib/promo";
 import { QUESTIONS_MARKER, questionControls } from "./lib/questions";
 import { readWaitlistState, WAITLIST_PATH, waitlistMessage } from "./lib/waitlist";
@@ -43,11 +44,14 @@ const { t, lang, dir } = translator(locale);
 const heading = Astro.props.heading ?? t("widget.heading");
 const fieldText = (field: Parameters<typeof fieldMessage>[0]) => fieldMessage(field, locale);
 let data = Astro.props.data;
+// The day-then-time picker's page (T130): the first local day it shows, from `booking_from`.
+const pickerStart = Astro.url.searchParams.get(PICKER_PARAM);
 if (!data) {
+	const from = pickerFetchFrom(pickerStart);
 	const result = await callPublicRoute<PublicEvent>(Astro, {
 		path: "public/event",
 		pluginId,
-		body: { eventId },
+		body: { eventId, ...(from ? { from } : {}) },
 	});
 	if (result.ok) data = result.data;
 }
@@ -78,13 +82,23 @@ const ticketTypes = [
 	...(takesCodes ? (promo?.hiddenTypes ?? []) : []).filter((t) => !listed.has(t.id)),
 ] as PublicEvent["ticketTypes"];
 const onSale = data?.status === "on_sale" && ticketTypes.length > 0;
+// Many dates a day, or a slot schedule (T130): a month calendar of days, then the day's times. Without
+// JavaScript the same month's dates show as a select grouped by day.
+const zone = data?.timezone ?? "UTC";
+const picker = usesPicker(data, zone)
+	? pickerView(occurrences, { zone, locale, start: pickerStart, now: Date.now(), more: data?.more === true })
+	: null;
+const pickerIds = new Set(picker?.days.flatMap((d) => d.slots.map((s) => s.id)));
+const monthId = `${id}-month`;
 // The waitlist (T081): offered when the core takes one and the tickets, or some dates, are sold out.
-const fullDates = occurrences.filter((o) => o.available === 0);
+const fullDates = occurrences.filter((o) => o.available === 0 && (!picker || pickerIds.has(o.id)));
 const waitlist =
 	onSale &&
 	data?.waitlist === true &&
 	(ticketTypes.every((t) => t.available === 0) || fullDates.length > 0);
-const waitlistDates = ticketTypes.every((t) => t.available === 0) ? occurrences : fullDates;
+const waitlistDates = ticketTypes.every((t) => t.available === 0)
+	? occurrences.filter((o) => !picker || pickerIds.has(o.id))
+	: fullDates;
 const waitlistOutcome = readWaitlistState(Astro.url, eventId);
 // Custom attendee questions are Events Pro's (T080): `public/event` lists them only on a Pro core.
 const questions = questionControls(data?.questions, id, state.fields, locale);
@@ -129,7 +143,105 @@ const when = (iso: string) => {
 				<input type="hidden" name="returnTo" value={returnTo} />
 				<input type="hidden" name="idempotencyKey" value={newIdempotencyKey()} />
 
-				{occurrences.length > 0 && (
+				{picker && (
+					<div class="semics-field semics-picker-field">
+						<input type="hidden" name="needsOccurrence" value="1" />
+						<div class="semics-field" data-picker-fallback>
+							<label for={`${id}-occurrence`}>{t("widget.date")}</label>
+							<select
+								id={`${id}-occurrence`}
+								name="occurrenceId"
+								required
+								aria-invalid={invalid("occurrence")}
+								aria-describedby={[monthId, errId("occurrence")].join(" ")}
+							>
+								<option value="">{t("widget.chooseDate")}</option>
+								{picker.days.map((day) => (
+									<optgroup label={day.label}>
+										{day.slots.map((s) => (
+											<option value={s.id} disabled={s.full}>{s.label}</option>
+										))}
+									</optgroup>
+								))}
+							</select>
+						</div>
+						<nav class="semics-picker-nav" aria-labelledby={monthId}>
+							<p id={monthId} class="semics-picker-month">{picker.month.label}</p>
+							{picker.prev && <a href={pickerHref(Astro.url, picker.prev, id)} rel="nofollow">{t("widget.picker.earlier")}</a>}
+							{picker.next && <a href={pickerHref(Astro.url, picker.next, id)} rel="nofollow">{t("widget.picker.later")}</a>}
+						</nav>
+						{picker.days.length === 0 && <p data-testid="picker-none">{t("widget.picker.none")}</p>}
+						<fieldset
+							class="semics-picker"
+							data-picker
+							data-field="occurrence"
+							data-testid="booking-picker"
+							hidden
+							aria-invalid={invalid("occurrence")}
+							aria-describedby={errId("occurrence")}
+						>
+							<legend>{t("widget.date")}</legend>
+							<table role="grid" class="semics-calendar" aria-labelledby={monthId}>
+								<thead>
+									<tr>
+										{picker.weekdays.map((w) => (
+											<th scope="col" abbr={w.long}>{w.short}</th>
+										))}
+									</tr>
+								</thead>
+								<tbody>
+									{picker.weeks.map((week) => (
+										<tr>
+											{week.map((cell) => (
+												<td>
+													{cell && cell.slots.length > 0 ? (
+														<button
+															type="button"
+															class={cell.open ? undefined : "semics-day-full"}
+															data-day={cell.key}
+															data-n={String(cell.day)}
+															aria-label={cell.buttonLabel}
+															aria-pressed="false"
+															tabindex={cell.key === picker.focusDay ? "0" : "-1"}
+														>
+															{cell.day}
+														</button>
+													) : cell ? (
+														<span class="semics-day-none">{cell.day}</span>
+													) : null}
+												</td>
+											))}
+										</tr>
+									))}
+								</tbody>
+							</table>
+							<p class="semics-hint" data-picker-hint>{t("widget.picker.hint")}</p>
+							{picker.days.map((day) => (
+								<div class="semics-times" role="radiogroup" data-times={day.key} aria-label={t("widget.picker.times", { date: day.label })} hidden>
+									{day.slots.map((s, i) => (
+										<button
+											type="button"
+											role="radio"
+											aria-checked="false"
+											aria-disabled={s.full ? "true" : undefined}
+											aria-label={s.label}
+											data-occurrence={s.id}
+											tabindex={i === day.slots.findIndex((x) => !x.full) ? "0" : "-1"}
+										>
+											<span>{s.time}</span>
+											{s.places && <span class="semics-places">{s.places}</span>}
+										</button>
+									))}
+								</div>
+							))}
+						</fieldset>
+						<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={fieldText("occurrence")}>
+							{bad("occurrence") ? fieldText("occurrence") : ""}
+						</p>
+					</div>
+				)}
+
+				{!picker && occurrences.length > 0 && (
 					<div class="semics-field">
 						<input type="hidden" name="needsOccurrence" value="1" />
 						<label for={`${id}-occurrence`}>{t("widget.date")}</label>
@@ -394,6 +506,7 @@ const when = (iso: string) => {
 
 <script>
 	import "../client/booking.ts";
+	import "../client/picker.ts";
 </script>
 
 <style>
@@ -469,6 +582,87 @@ const when = (iso: string) => {
 	}
 	.semics-hint {
 		color: var(--_muted);
+	}
+	.semics-picker-nav {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: baseline;
+		gap: 0.25rem 1rem;
+	}
+	.semics-picker-month {
+		margin: 0;
+		margin-inline-end: auto;
+		font-weight: 600;
+	}
+	.semics-picker-nav a {
+		color: var(--_accent);
+		min-block-size: 1.5rem;
+	}
+	.semics-picker {
+		display: grid;
+		gap: 0.5rem;
+		margin: 0;
+		padding: 0.5rem 0.75rem 0.75rem;
+		border: 1px solid var(--_border);
+		border-radius: var(--_radius);
+		min-inline-size: 0;
+	}
+	.semics-picker p {
+		margin: 0;
+	}
+	.semics-calendar {
+		inline-size: 100%;
+		border-collapse: collapse;
+		table-layout: fixed;
+		text-align: center;
+	}
+	.semics-calendar th {
+		padding-block: 0.25rem;
+		font-weight: 400;
+		font-size: 0.875rem;
+		color: var(--_muted);
+	}
+	.semics-calendar td {
+		padding: 1px;
+	}
+	.semics-booking-widget .semics-calendar button,
+	.semics-booking-widget .semics-times button {
+		inline-size: 100%;
+		padding: 0.25rem;
+		border: 1px solid var(--_accent);
+		background: var(--_bg);
+		color: var(--_accent);
+	}
+	.semics-booking-widget .semics-calendar button.semics-day-full,
+	.semics-booking-widget .semics-times button[aria-disabled="true"] {
+		border-color: var(--_border);
+		color: var(--_muted);
+		text-decoration: line-through;
+	}
+	.semics-booking-widget .semics-times button[aria-disabled="true"] {
+		cursor: not-allowed;
+	}
+	.semics-booking-widget .semics-calendar button[aria-pressed="true"],
+	.semics-booking-widget .semics-times button[aria-checked="true"] {
+		background: var(--_accent);
+		color: var(--_accent-fg);
+	}
+	.semics-day-none {
+		display: block;
+		padding-block: 0.75rem;
+		color: var(--_muted);
+	}
+	.semics-times {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+		gap: 0.5rem;
+	}
+	.semics-booking-widget .semics-times button {
+		display: grid;
+		justify-items: center;
+	}
+	.semics-places {
+		font-size: 0.875rem;
 	}
 	.semics-ticket {
 		display: flex;

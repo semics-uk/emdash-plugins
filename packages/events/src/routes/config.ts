@@ -248,11 +248,21 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 			const state = await loadEventState(eventId, configStorage(ctx));
 			if (!state.config) return toRouteError("NOT_FOUND").body;
 			const { catalog: _derived, info: _info, ...config } = state.config;
+			// A slot schedule's first 100 are its oldest: list its upcoming slots instead (T130).
+			const dates = scheduleOwned(state.config)
+				? (
+						await configStorage(ctx).occurrences.query({
+							where: { eventId, startsAt: { gte: new Date().toISOString() } },
+							orderBy: { startsAt: "asc" },
+							limit: 100,
+						})
+					).items
+				: state.occurrences;
 			return {
 				ok: true,
 				config,
 				ticketTypes: [...state.ticketTypes].sort(byName).map((i) => ({ id: i.id, ...(i.data as TicketTypeDoc) })),
-				occurrences: state.occurrences.map((i) => ({ id: i.id, ...(i.data as OccurrenceDoc) })),
+				occurrences: dates.map((i) => ({ id: i.id, ...(i.data as OccurrenceDoc) })),
 			};
 		}) as Handler,
 	},

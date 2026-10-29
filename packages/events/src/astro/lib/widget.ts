@@ -26,7 +26,12 @@ export interface PublicEvent {
 		minPerOrder?: number | null;
 		maxPerOrder?: number | null;
 	}>;
+	/** Upcoming open dates, earliest first: up to 200 from the asked `from` (T130). */
 	occurrences?: Array<{ id: string; startsAt: string; endsAt?: string | null; available?: number | null }>;
+	/** More dates follow the ones sent: ask again `from` a later day (T130). */
+	more?: boolean;
+	/** The event sells slots of a schedule (T129): the form uses the day-then-time picker (T130). */
+	slots?: boolean;
 	/** Public Turnstile site key, when the site owner configured one. */
 	turnstileSiteKey?: string;
 	/** True when the event requires a signed waiver (T066): the booking form then asks for attendees. */

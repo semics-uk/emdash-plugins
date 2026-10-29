@@ -49,7 +49,13 @@ async function setup() {
 }
 
 /** Slots every hour from the next whole hour (`count` of them), plus `past` ones before now. */
-async function seedSlots(r: PluginRuntimeTestHost, id: string, count: number, past = 0, over: Record<number, object> = {}) {
+async function seedSlots(
+	r: PluginRuntimeTestHost,
+	id: string,
+	count: number,
+	past = 0,
+	over: Record<number, object> = {},
+) {
 	const base = Math.ceil(Date.now() / 36e5) * 36e5 + 36e5;
 	for (let i = -past; i < count; i++) {
 		// Past ones end at least an hour before now (base - 2 h).

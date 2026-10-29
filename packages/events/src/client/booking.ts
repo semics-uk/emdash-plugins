@@ -104,7 +104,9 @@ function showErrors(form: HTMLFormElement, bad: readonly BookingField[]): void {
 	}
 	const first = bad[0] && form.querySelector<HTMLElement>(`[data-field="${bad[0]}"]`);
 	if (!first) return;
-	const target = first.matches("fieldset") ? first.querySelector<HTMLElement>("input:not([disabled])") : first;
+	// A fieldset: its first live input, or the day picker's focusable day (T130).
+	const live = 'input:not([disabled]), button[tabindex="0"]'; // i18n-ignore
+	const target = first.matches("fieldset") ? first.querySelector<HTMLElement>(live) : first;
 	target?.focus();
 }
 
