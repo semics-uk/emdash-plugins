@@ -120,6 +120,7 @@ describe("retention job (EV-FR-20, R22)", () => {
 		const w = world();
 		w.storage.bookings.set("old", booking("e_old", 1));
 		w.storage.bookings.set("old_cancelled", booking("e_old", 2, { status: "cancelled" }));
+		w.storage.bookings.set("old_declined", booking("e_old", 6, { status: "declined", declineReason: "Ada, see me" }));
 		w.storage.bookings.set("recent", booking("e_new", 3, { createdAt: at(-120) }));
 		w.storage.bookings.set("live", booking("e_future", 4, { createdAt: at(-420) }));
 		w.storage.bookings.set("live_held", booking("e_future", 5, { status: "held", createdAt: at(-420) }));
@@ -148,6 +149,8 @@ describe("retention job (EV-FR-20, R22)", () => {
 		});
 		expect(w.storage.event_configs.docs.get("e_old")).toMatchObject({ reserved: 5, sold: 5 });
 		expect(w.storage.bookings.docs.get("old_cancelled")?.erasedAt).toBeTruthy();
+		// R98: an admin's decline reason may name the buyer; it goes with the rest.
+		expect(w.storage.bookings.docs.get("old_declined")).toMatchObject({ declineReason: null });
 		expect(w.storage.attendees.docs.get("old-1")).toMatchObject({
 			name: "",
 			email: "",

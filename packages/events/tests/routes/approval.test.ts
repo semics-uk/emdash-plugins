@@ -169,6 +169,16 @@ describe("T131 approve", () => {
 		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ sold: 0 });
 	});
 
+	it("R98 Free refuses to approve a request whose payment is held (Pro's capture never ran) and changes nothing", async () => {
+		const w = await world({ status: "awaiting_approval", paid: true });
+		const before = structuredClone(w.booking());
+		const { body } = await metered(() => approveBooking(w.deps(T0 + HOUR), ID));
+		expect(body).toMatchObject({ ok: false, error: { code: "PAYMENT_FAILED" } });
+		expect(w.booking()).toEqual(before);
+		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ sold: 0 });
+		expect(w.storage.outbox.docs.has(`confirm-${ID}`)).toBe(false);
+	});
+
 	it("T131 approving a booking that is not waiting (declined, unknown) is refused", async () => {
 		const w = await world({ status: "declined" });
 		expect((await approveBooking(w.deps(T0), ID)) as Doc).toMatchObject({ ok: false });
