@@ -2592,7 +2592,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [],
@@ -2602,7 +2602,7 @@
 			"unblocks": [
 				"T130"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T130": {
 			"file": "T130-day-and-time-picker.md",
@@ -2683,7 +2683,6 @@
 			"T132"
 		],
 		"in-progress": [
-			"T129",
 			"T133"
 		],
 		"review": [],
@@ -2795,7 +2794,8 @@
 			"T124",
 			"T125",
 			"T126",
-			"T127"
+			"T127",
+			"T129"
 		],
 		"blocked": [
 			"T111",
