@@ -2645,7 +2645,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "pro",
-			"status": "ready",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -2655,7 +2655,7 @@
 				"R49"
 			],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T133": {
 			"file": "T133-attendee-signing-list.md",
@@ -2677,10 +2677,10 @@
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [
+		"ready": [],
+		"in-progress": [
 			"T132"
 		],
-		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
