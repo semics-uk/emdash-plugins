@@ -150,8 +150,7 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 	const noTurnstile: NoticeInput | false = secrets.turnstileSecretKey === "unset" && {
 		severity: "warning",
 		title: "Turnstile is not set up",
-		message:
-			"No Turnstile secret key is saved, so checkout runs without a bot check. Add the Turnstile site key and secret key in the plugin settings.",
+		message: "Checkout runs without a bot check. Add the Turnstile keys in the plugin settings.",
 	};
 
 	return respond([
@@ -241,7 +240,7 @@ const retentionBlocks = (extra: Block[] = []): Block[] => [
 	...extra,
 	header("Delete personal data"),
 	context(
-		"Erases names, emails, answers and IP hashes of one booking (by reference) or of every booking of a buyer (by email), with their attendees and waitlist entries. Seat counts and totals stay. Live bookings are never deleted. Older data is erased automatically after the retention period.",
+		"Erases the names, emails, answers and IP hashes of a booking, or of every booking of an email, with attendees and waitlist entries. Live bookings are kept; seat counts stay.",
 	),
 	form({
 		fields: [textInput("target", "Booking reference or buyer email")],

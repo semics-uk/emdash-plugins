@@ -1,9 +1,8 @@
-import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { pluginResponse } from "emdash/plugin";
-
 import { toCsv } from "../admin/csv";
 import type { AttendeeDoc, BookingDoc } from "../storage/schema";
+import { routeError } from "./reply";
 
 /**
  * Attendee check-in, undo and CSV export (EV-FR-11, EV-US-5, EV-US-7). Attendee documents are
@@ -169,7 +168,7 @@ export const ATTENDEE_ROUTES: Record<string, RouteDef> = {
 				return pluginResponse({
 					status: 400,
 					headers: { "content-type": "text/plain; charset=utf-8" },
-					body: { kind: "text", value: toRouteError("BAD_REQUEST").body.error.message },
+					body: { kind: "text", value: routeError("BAD_REQUEST").body.error.message },
 				});
 			}
 			const out = await exportAttendeesCsv(ctx.storage as unknown as AttendeeStorage, {

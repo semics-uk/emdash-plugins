@@ -4,7 +4,6 @@ import {
 	type IcsEvent,
 	isValidTimeZone,
 	signLink,
-	toRouteError,
 	verifyLink,
 } from "@semics-tech/shared";
 import { type PluginContext, pluginResponse, type RouteHandler } from "emdash/plugin";
@@ -12,6 +11,7 @@ import { type PluginContext, pluginResponse, type RouteHandler } from "emdash/pl
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { type LinkKv, linkSecret } from "../domain/link-secret";
 import type { BookingDoc, OccurrenceDoc } from "../storage/schema";
+import { routeError } from "./reply";
 
 /**
  * `GET public/booking/ics` and `GET public/event/ics` (EV-US-3, EV-FR-08): raw `text/calendar`.
@@ -63,7 +63,7 @@ export interface RawResponse {
 }
 
 const failure = (code: ErrorCode): RawResponse => {
-	const { status, body } = toRouteError(code);
+	const { status, body } = routeError(code);
 	return {
 		status,
 		contentType: "application/json; charset=utf-8",

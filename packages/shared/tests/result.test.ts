@@ -1,6 +1,17 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, expectTypeOf, it } from "vitest";
-import { ERROR_CODES, type ErrorCode, err, isErr, isOk, ok, type Result, toRouteError } from "../src/index";
+import {
+	ERROR_CODES,
+	type ErrorCode,
+	EVENTS_ERROR_CODES,
+	err,
+	isErr,
+	isOk,
+	ok,
+	type Result,
+	routeErrorFrom,
+	toRouteError,
+} from "../src/index";
 
 const specPath = new URL("../../../docs/protocol/esign-intent-v1.md", import.meta.url);
 
@@ -140,5 +151,28 @@ describe("booking token errors (T049)", () => {
 	it("a wrong booking token looks like a missing booking, so it never confirms a booking exists", () => {
 		expect(ERROR_CODES.BOOKING_TOKEN_INVALID.status).toBe(404);
 		expect(ERROR_CODES.BOOKING_TOKEN_INVALID.message).toBe(ERROR_CODES.NOT_FOUND.message);
+	});
+});
+
+describe("Events code table (R95)", () => {
+	it("is a frozen subset of the registry with the same statuses and messages", () => {
+		expect(Object.isFrozen(EVENTS_ERROR_CODES)).toBe(true);
+		for (const [code, def] of Object.entries(EVENTS_ERROR_CODES)) {
+			expect(def, code).toEqual(ERROR_CODES[code as ErrorCode]);
+		}
+		for (const code of ["INTERNAL", "NOT_FOUND", "HOLD_EXPIRED", "PAYMENT_FAILED", "TOKEN_INVALID", "REF_UNKNOWN"]) {
+			expect(EVENTS_ERROR_CODES, code).toHaveProperty(code);
+		}
+	});
+
+	it("leaves the e-sign and other protocol messages out", () => {
+		for (const code of ["ENVELOPE_NOT_FOUND", "SIGNING_OUT_OF_TURN", "TOKEN_MALFORMED", "TEMPLATE_NOT_FOUND"]) {
+			expect(EVENTS_ERROR_CODES, code).not.toHaveProperty(code);
+		}
+	});
+
+	it("routeErrorFrom answers a code outside its table as INTERNAL", () => {
+		expect(routeErrorFrom(EVENTS_ERROR_CODES, "SOLD_OUT")).toEqual(toRouteError("SOLD_OUT"));
+		expect(routeErrorFrom(EVENTS_ERROR_CODES, { code: "TOKEN_MALFORMED" })).toEqual(toRouteError("INTERNAL"));
 	});
 });

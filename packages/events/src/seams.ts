@@ -17,6 +17,9 @@
  *   has none and refuses to cancel a paid confirmed booking.
  * - `adminRoute({ signingLink })`: the Block Kit admin with a signing link for attendees that
  *   check-in refuses because their waiver is pending. Free refuses them without a link.
+ * - `useErrorCodes(ERROR_CODES)`: answer every shared error code, not only Events' own (R95). Call it
+ *   once at load in an edition whose steps answer other codes (receipts: the protocol's); otherwise
+ *   such a code answers `INTERNAL`.
  */
 
 export type { SigningLink } from "./admin/pages";
@@ -37,4 +40,5 @@ export {
 } from "./routes/checkout-continue";
 export { type EditorSteps, editorTicketsRoute } from "./routes/editor";
 export { type ReceiptAttendee, type ReceiptStep, type ReceiptSteps, signaturesReceiptRoute } from "./routes/receipt";
+export { useErrorCodes } from "./routes/reply";
 export type { AttendeeDoc, BookingDoc, BookingWaiver, SignatureMode } from "./storage/schema";

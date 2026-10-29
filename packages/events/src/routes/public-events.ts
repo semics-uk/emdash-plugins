@@ -1,7 +1,7 @@
-import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { iso } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
+import { routeError } from "./reply";
 
 /**
  * `GET public/events` (the listing, cached 60 s) and `GET public/event?eventId=` (one event with
@@ -54,7 +54,7 @@ export interface PublicEventsDeps {
 }
 
 const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
-const notFound = () => toRouteError("NOT_FOUND").body;
+const notFound = () => routeError("NOT_FOUND").body;
 
 /** `closed` once the sales end has passed, else the stored status. */
 const statusOf = (c: EventConfigDoc, now: number): EventConfigDoc["status"] => {

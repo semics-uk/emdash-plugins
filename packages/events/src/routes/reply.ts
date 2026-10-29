@@ -1,10 +1,12 @@
 /** Reply helpers the public routes share (one copy in the bundle, R42). */
 import {
 	type ErrorCode,
+	type ErrorTable,
+	EVENTS_ERROR_CODES,
 	generateToken,
 	ok,
+	routeErrorFrom,
 	type TurnstileFetch,
-	toRouteError,
 	verifyTurnstile,
 } from "@semics-tech/shared";
 import type { PluginContext } from "emdash/plugin";
@@ -12,8 +14,22 @@ import type { PluginContext } from "emdash/plugin";
 import type { InputIssue } from "../domain/checkout";
 import { settingsObject } from "../domain/settings";
 
+let errorCodes: ErrorTable = EVENTS_ERROR_CODES;
+
+/**
+ * The codes the core answers with: Events' own (R95), so the e-sign and protocol messages stay out
+ * of the Free bundle. An edition whose steps answer other codes (Pro receipts: the protocol's) passes
+ * `ERROR_CODES` once at load (`src/seams.ts`); a code missing from the table answers `INTERNAL`.
+ */
+export const useErrorCodes = (table: ErrorTable) => {
+	errorCodes = table;
+};
+
+/** The route error (status and body) for `code`. */
+export const routeError = (code: ErrorCode) => routeErrorFrom(errorCodes, code);
+
 /** The error body for `code`. */
-export const fail = (code: ErrorCode) => toRouteError(code).body;
+export const fail = (code: ErrorCode) => routeError(code).body;
 
 /** `BAD_REQUEST` with the input issues. */
 export const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });

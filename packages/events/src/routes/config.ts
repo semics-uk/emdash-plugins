@@ -1,11 +1,10 @@
-import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
-
 import { type ConfigIssue, catalogOf as catalogFrom, type ExistingState, validateConfigInput } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
 import { scheduleOwned } from "../domain/schedule";
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
+import { routeError } from "./reply";
 
 /**
  * Private (admin) config routes: `config/get` and `config/save` (EV-FR-02, EV-FR-03). Thin adapters
@@ -40,7 +39,7 @@ export interface ConfigStorage {
 	occurrences: Collection;
 }
 
-const badRequest = (issues?: unknown) => ({ ...toRouteError("BAD_REQUEST").body, ...(issues ? { issues } : {}) });
+const badRequest = (issues?: unknown) => ({ ...routeError("BAD_REQUEST").body, ...(issues ? { issues } : {}) });
 
 function eventIdOf(input: unknown): string | null {
 	const id = (input as { eventId?: unknown } | null | undefined)?.eventId;
@@ -246,7 +245,7 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 			const eventId = eventIdOf(routeCtx.input);
 			if (!eventId) return badRequest();
 			const state = await loadEventState(eventId, configStorage(ctx));
-			if (!state.config) return toRouteError("NOT_FOUND").body;
+			if (!state.config) return routeError("NOT_FOUND").body;
 			const { catalog: _derived, info: _info, ...config } = state.config;
 			// A slot schedule's first 100 are its oldest: list its upcoming slots instead (T130).
 			const dates = scheduleOwned(state.config)

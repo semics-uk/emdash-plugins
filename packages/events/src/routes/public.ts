@@ -1,12 +1,11 @@
-import { toRouteError } from "@semics-tech/shared";
 import { pluginResponse, type RouteHandler, type SandboxedPlugin } from "emdash/plugin";
-
 import { BOOKING_CANCEL_ROUTE, BOOKING_ROUTE } from "./booking";
 import { CHECKOUT_CONTINUE_ROUTE } from "./checkout-continue";
 import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
 import { bookingIcsHandler, eventIcsHandler } from "./ics";
 import { EVENT_ROUTE, EVENTS_LIST_ROUTE } from "./public-events";
 import { BOOKING_REDEEM_ROUTE } from "./redeem";
+import { routeError } from "./reply";
 import { WAITLIST_ROUTES } from "./waitlist";
 
 /**
@@ -17,7 +16,7 @@ import { WAITLIST_ROUTES } from "./waitlist";
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 
-const notImplemented = async () => toRouteError("NOT_FOUND").body;
+const notImplemented = async () => routeError("NOT_FOUND").body;
 
 function route(def: Omit<RouteDef, "handler" | "public">): RouteDef {
 	return { ...def, public: true, handler: notImplemented };
