@@ -169,6 +169,23 @@ describe("EV-FR-08 public/event/ics", () => {
 		expect(raw.body.match(/BEGIN:VEVENT/g)).toHaveLength(2);
 	});
 
+	it("EV-FR-17 lists the upcoming dates, not a slot schedule's oldest 50 (T130, R94 follow-up)", async () => {
+		const w = await world({ occurrence: true });
+		for (let i = 1; i <= 60; i++) {
+			w.storage.occurrences.set(`past${i}`, {
+				eventId: "ev1",
+				startsAt: new Date(NOW - i * 86_400_000).toISOString(),
+				capacity: 10,
+				reserved: 0,
+				sold: 0,
+				status: "open",
+			});
+		}
+		const raw = await eventIcs(icsDeps(w), new URLSearchParams({ eventId: "ev1" }));
+		expect(raw.body.match(/BEGIN:VEVENT/g)).toHaveLength(1);
+		expect(raw.body).not.toContain("-past");
+	});
+
 	it("EV-FR-08 an unknown event or a malformed id is NOT_FOUND or BAD_REQUEST", async () => {
 		const w = await world();
 		expect((await eventIcs(icsDeps(w), new URLSearchParams({ eventId: "nope" }))).status).toBe(404);

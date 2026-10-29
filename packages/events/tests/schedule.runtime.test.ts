@@ -94,7 +94,7 @@ describe("slot schedules in the shipped core (EV-FR-17)", () => {
 		const event = (await r.transport.invokeRoute("public/event", { eventId: id })) as {
 			occurrences: Array<{ id: string; startsAt: string; available: number }>;
 		};
-		expect(event.occurrences).toHaveLength(50);
+		expect(event.occurrences).toHaveLength(200); // two pages of 100 (T130)
 		expect(event.occurrences[0]?.id).toBe(made.find((s) => Date.parse(String(s.data.startsAt)) >= Date.now())?.id);
 	});
 

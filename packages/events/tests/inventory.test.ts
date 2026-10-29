@@ -241,6 +241,38 @@ describe("inventory on D1 (EV-FR-04, EV-NFR-03, R3)", () => {
 	});
 });
 
+describe("drift repair of a slot schedule (T130, R94 follow-up)", () => {
+	it("R3 EV-FR-17 repairs the upcoming slots even when more than 100 past ones exist", async () => {
+		await seedEvent({ event: 1000, types: { tt_a: 1000 } });
+		const past = Array.from({ length: 120 }, (_, i) => ({
+			id: `s-e1-past${i}`,
+			data: { eventId: "e1", startsAt: new Date(Date.parse("2026-06-01T09:00:00Z") + i * 36e5).toISOString(), status: "open", ...c(8) },
+		}));
+		await seed("occurrences", past);
+		await seed("occurrences", [
+			{ id: "s-e1-zz-next", data: { eventId: "e1", startsAt: "2026-11-02T09:00:00.000Z", status: "open", ...c(8, 6, 0) } },
+		]);
+		await seed("bookings", [
+			{
+				id: "B1",
+				data: {
+					ref: "B1",
+					eventId: "e1",
+					occurrenceId: "s-e1-zz-next",
+					status: "confirmed",
+					email: "a@example.com",
+					createdAt: "2026-11-01T10:00:00.000Z",
+					lines: [{ ticketTypeId: "tt_a", qty: 2, unitPriceMinor: 0 }],
+				},
+			},
+		]);
+		const budget = withBudget(host);
+		const r = await budget.invokeRoute("probe/repair", { eventId: "e1", now: "2026-11-01T12:00:00.000Z" });
+		expectWithinBudget(r, TARGET);
+		expect(await read("occurrences", "s-e1-zz-next")).toMatchObject({ reserved: 2, sold: 2 });
+	});
+});
+
 describe("config/save leaves counters to the inventory module (EV-FR-03, R3)", () => {
 	const config = { status: "on_sale", capacity: 100, currency: "GBP" };
 
