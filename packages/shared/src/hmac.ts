@@ -82,6 +82,16 @@ export interface IntentPayload extends PayloadBase<"intent"> {
 	readonly delivery?: "inline" | "email";
 	readonly prefill: Readonly<Record<string, string>>;
 	readonly returnUrl: string;
+	/**
+	 * T133 (R95), optional: `true` asks e-sign to email the open envelope's invitation again (same
+	 * signer, `delivery: "email"`). An older e-sign ignores it (unknown fields are ignored).
+	 */
+	readonly resend?: boolean;
+	/**
+	 * T133 (R95), optional: `true` voids the `(cid, ref)` envelope still open unless it names exactly
+	 * this signer, and never creates one. An older e-sign ignores it.
+	 */
+	readonly replace?: boolean;
 }
 
 export type ReceiptStatus = "completed" | "declined" | "voided" | "expired";

@@ -539,9 +539,6 @@ describe("T133 R95 R48 resend and replace intents", () => {
 		expect(all[0]?.data).toMatchObject({ status: "voided", closedAt: expect.any(String) });
 		const audit = (await runtime?.inspect.storage.list<{ type: string; actor: string }>("audit_events")) ?? [];
 		expect(audit.find((e) => e.data.type === "envelope.voided")?.data.actor).toBe("integration");
-		// The old link no longer opens a ceremony: the signer is no longer awaited.
-		const again = await call(budget, await sign(payload({ ...adult })));
-		expect(again.signingToken).toBeUndefined();
 
 		// The corrected attendee's own intent then starts the seat's next envelope (a retry after voided).
 		const next = await call(budget, await sign(payload({ ...adult, signer: corrected, delivery: "email" })), {

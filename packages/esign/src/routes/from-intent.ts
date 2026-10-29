@@ -11,7 +11,14 @@
  * create-only document `nonces/<cid>.<nonce>` with ISO `expiresAt` = `exp` + 60 s; the hourly
  * `nonce-sweep` (cron/nonce-sweep.ts) deletes it after that.
  */
-import { generateToken, hashToken, type RandomBytes, toIso, verifyIntentToken } from "@semics-tech/shared";
+import {
+	generateToken,
+	hashToken,
+	type IntentPayload,
+	type RandomBytes,
+	toIso,
+	verifyIntentToken,
+} from "@semics-tech/shared";
 import type { PluginContext, RouteHandler } from "emdash/plugin";
 import { scheduleIntentFinish } from "../cron/intent-finish";
 import { initialAuditEvents, newPiiSalt } from "../domain/audit";
@@ -26,9 +33,11 @@ import {
 	sendEnvelope,
 	sentAuditEvent,
 } from "../domain/envelopes";
+import { transitionEnvelope } from "../domain/state";
 import { availableToIntegrations, versionDocId } from "../domain/templates";
 import { queueInvitation } from "../emails/outbox";
 import {
+	appendAudit,
 	badRequest,
 	type Collection,
 	expiryDays,
@@ -92,6 +101,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	if (!verified.ok) return fail(verified.error);
 	const intent = verified.value;
 	const settings = clients.settings();
+	if (intent.replace === true) return replaceOpen(ctx, intent, now);
 
 	const versionId = intent.tplVersion === undefined ? undefined : versionDocId(intent.tpl, intent.tplVersion);
 	const docs = await templates.getMany(versionId === undefined ? [intent.tpl] : [intent.tpl, versionId]);
@@ -109,6 +119,12 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 	const draft = draftFromIntent(intent, template.value, { now, piiSalt });
 	if (!draft.ok) return badRequest(draft.error);
 	const asked = { delivery: draft.value.delivery, signer: draft.value.signer };
+	// T133 (R95): an email intent with `resend: true` queues the open envelope's invitation again.
+	const resend =
+		intent.resend === true
+			? (signerId: string, envelope: EnvelopeDoc, token: string) =>
+					queueInvitation(ctx, { signerId, envelope, token, senderSetting: settings.senderName, now: nowMs })
+			: undefined;
 	const token = generateToken(deps.random);
 	const tokenHash = await hashToken(token);
 	const build = async (attempt: number) => {
@@ -135,7 +151,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		if (current) {
 			// A draft here is an email intent whose finishing task may never have been scheduled.
 			if (current.data.status === "draft") await scheduleIntentFinish(ctx.cron, current.id, nowMs);
-			return reuse(signers, current.id, current.data, asked, deps.random);
+			return reuse(signers, current.id, current.data, asked, deps.random, resend);
 		}
 		// Every earlier envelope for the pair was declined, voided or expired: start the next one.
 		const next = Math.max(previous.items.length, 1) + 1;
@@ -220,15 +236,55 @@ async function reuse(
 	envelope: EnvelopeDoc,
 	intent: { delivery: string; signer: IntentSigner },
 	random?: RandomBytes,
+	resend?: (signerId: string, envelope: EnvelopeDoc, token: string) => Promise<string | null>,
 ) {
 	const signerId = envelope.signerIds[0];
 	const awaiting = envelope.status === "sent" || envelope.status === "in_progress";
-	const handOver = intent.delivery === "inline" && awaiting && awaitsSigner(envelope, intent.signer);
-	if (!handOver || signerId === undefined) return response(id, envelope, undefined);
+	const ours = awaiting && awaitsSigner(envelope, intent.signer);
+	const handOver = intent.delivery === "inline" && ours;
+	// Resend (T133, R95): the same person's email intent for an emailed envelope, its link rotated.
+	const again = resend !== undefined && intent.delivery === "email" && envelope.delivery === "email" && ours;
+	if ((!handOver && !again) || signerId === undefined) return response(id, envelope, undefined);
 	const rotated = await withUniqueToken(generateToken(random), random, (tokenHash) =>
 		signers.updateIf(signerId, { where: { status: "pending" }, set: { tokenHash } }),
 	);
-	return response(id, envelope, rotated.value.applied ? rotated.token : undefined, true);
+	if (!rotated.value.applied) return response(id, envelope, undefined);
+	if (handOver || !resend) return response(id, envelope, rotated.token, true);
+	// Without a site URL nothing is queued (null): the answer then says nothing was resent.
+	const queued = await resend(signerId, envelope, rotated.token);
+	return { ...response(id, envelope, undefined), ...(queued ? { resent: true } : {}) };
+}
+
+/**
+ * `replace: true` (T133, R95): the buyer corrected a seat's attendee, so the envelope still open for
+ * `(cid, ref)` is voided (status machine, `envelope.voided` by the integration) unless it names
+ * exactly this signer, name included (the document names them). It never creates an envelope: the
+ * issuer's next, ordinary intent starts the seat's next one, like any retry after a voided envelope.
+ * A completed envelope is never touched, and no signing token is ever handed out. 7 bridge calls:
+ * settings + client, nonce, the pair's envelopes, the transition and the audit append (2).
+ */
+async function replaceOpen(ctx: PluginContext, intent: IntentPayload, now: string) {
+	const { envelopes } = stores(ctx);
+	const previous = await envelopes.query({
+		where: { clientId: intent.cid, externalRef: intent.ref },
+		limit: REF_LIMIT,
+	});
+	const current = existingForRef(previous.items);
+	if (!current) return { ok: true, status: "none" };
+	const stored = current.data.signer;
+	const same =
+		stored.name === intent.signer.name.trim() &&
+		stored.email === intent.signer.email.trim().toLowerCase() &&
+		stored.as === (intent.as ?? "self") &&
+		(stored.participant?.name ?? null) === (intent.participant?.name.trim() ?? null);
+	if (same || current.data.status === "completed") return response(current.id, current.data, undefined);
+	const moved = await transitionEnvelope(envelopes, current.id, current.data.status, "voided", {
+		closedAt: now,
+		updatedAt: now,
+	});
+	if (!moved.ok) return fail("ENVELOPE_CLOSED");
+	await appendAudit(ctx, current.id, moved.value, { type: "envelope.voided", at: now, actor: "integration" });
+	return response(current.id, moved.value, undefined);
 }
 
 export const fromIntentHandler: RouteHandler = (routeCtx, ctx) => fromIntent(routeCtx.input, ctx);
