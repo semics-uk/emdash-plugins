@@ -4,7 +4,7 @@ title: "Suite Pro: attendee signing list and editable names before the cutoff"
 phase: 7
 package: suite
 edition: pro
-status: in-progress
+status: review
 model: opus-5.5
 size: M
 depends_on: []
@@ -26,11 +26,27 @@ Staff check-in and the door-signing link stay as the backstop.
 
 ## Acceptance criteria
 
-- [ ] Tests first: list states; Sign now access (booking access token only, per attendee); Resend rate limit; edits before/after cutoff, signed attendee refused, void and reissue, caps
-- [ ] Booking page UI (no-JS works), i18n; call budgets
-- [ ] Decision recorded (next R); CONTEXT.md files and README updated; changesets
-- [ ] Meets the Definition of Done (Pro repo `pnpm verify` too)
+- [x] Tests first: list states; Sign now access (booking access token only, per attendee); Resend rate limit; edits before/after cutoff, signed attendee refused, void and reissue, caps
+- [x] Booking page UI (no-JS works), i18n; call budgets
+- [x] Decision recorded (next R); CONTEXT.md files and README updated; changesets
+- [x] Meets the Definition of Done (Pro repo `pnpm verify` too)
 
 ## Notes
 
 - Runs alongside T129 in `packages/events`: stay out of schedules/cron/occurrences and the panel's schedule section.
+- Decision is **R95** (R94 left for T129, which runs in parallel; renumber on landing if T129 took another).
+- Public side (MIT): e-sign `from-intent` honours optional intent fields `resend` and `replace` (protocol §5.1/§8.1,
+  shared `IntentPayload` type); Events UI `<AttendeeList>` + `src/astro/lib/attendees.ts` on `/booking`, en + ar strings.
+  The Events Free backend is unchanged (115.97 KiB); E-sign Free backend 107.1 KiB of 112.
+- Pro side (`pro-agent-a32ecb7d74c66acd9`): `packages/events-pro/src/attendees` (rules + three public routes +
+  `withSigningList` over `public/booking`), Pro setting `attendeeEditCutoffHours`, `trust-contract.json` gains the three
+  public routes (deliberate, before 1.0), Pro backend 215.3 KiB of 256. The Pro worktree's `node_modules` links point at
+  this public worktree; run `pnpm install` in the Pro repo after landing.
+- The Pro repo had no `.changeset/`; this task adds `config.json`, `pre.json` (rc) and its changeset, with no tooling.
+- Pro main failed its own Biome gate on two files it had not formatted (`esign-pro/src/pdf/read.ts`,
+  `scripts/pro-release-workflow.test.mjs`); formatted in a separate `chore` commit.
+- Not covered: waiver mode `buyer` (one receipt for the booking) gets no list; edits change name and email only (not
+  "under 18" or the ticket type). The void runs just after the store, not before (see R95); a two-phase save was
+  judged not worth the extra round trip.
+- No playground e2e (T129 may hold the playground): the no-JS page logic is covered by `tests/ui/attendees.test.ts`
+  and the routes end to end with the real e-sign bundle in Pro's `tests/attendees.editions.test.ts`.

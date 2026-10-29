@@ -229,7 +229,7 @@ intent whose `(cid, ref)` envelope is open, emailed and awaits that signer rotat
 (`invite-<signerId>` overwritten; answer adds `resent: true`; 8 calls); `replace: true` (handled right after verification, before the
 template read: 7 calls) voids the open envelope unless it names exactly that signer (name too) or is completed, audits
 `envelope.voided` with actor `integration`, answers `status: "voided"` (or `"none"` without an envelope) and never creates one or
-hands out a token. Events Pro sends them from the booking page's attendee list.
+hands out a token. Events Pro sends them from the booking page's attendee list. Backend 107.1 KiB of 112 after T133.
 
 Security review (T100, R61, R62, `tasks/reviews/security.md`): the retention pass starts with phase `rl`, sweeping ended
 rate-limit counters (the ceremony and verify limiters' hashed IPs; 3 a tick). `from-intent` stays without a rate limit
