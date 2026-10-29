@@ -2,7 +2,7 @@ import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Booking approval in the real sandbox (T131, R95): Approve and Decline on the Bookings page (the
+// Booking approval in the real sandbox (T131, R96): Approve and Decline on the Bookings page (the
 // private admin route's actions), validated by the host and within the bridge-call budget.
 
 let runtime: PluginRuntimeTestHost | undefined;

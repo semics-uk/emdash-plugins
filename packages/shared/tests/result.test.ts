@@ -154,7 +154,7 @@ describe("booking token errors (T049)", () => {
 	});
 });
 
-describe("Events code table (R95)", () => {
+describe("Events code table (R96)", () => {
 	it("is a frozen subset of the registry with the same statuses and messages", () => {
 		expect(Object.isFrozen(EVENTS_ERROR_CODES)).toBe(true);
 		for (const [code, def] of Object.entries(EVENTS_ERROR_CODES)) {

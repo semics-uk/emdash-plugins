@@ -17,6 +17,7 @@ import {
 } from "@semics-tech/shared";
 
 import { eraseBookings, type RetentionStorage } from "../cron/retention";
+import { BOOKING_TRANSITIONS } from "../domain/booking-state";
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, LABELS, validateMapping } from "../domain/mapping";
@@ -27,6 +28,7 @@ import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "..
 import type { RefundStep } from "../routes/booking";
 import type { ConfigStorage } from "../routes/config";
 import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
+import { handlePanel, type PanelDeps, type PanelInteraction } from "./panel";
 import { optionsOf, respond, soldMeter, str } from "./ui";
 
 /**
@@ -103,19 +105,8 @@ export interface AdminResponse {
 const BOOKINGS_PAGE = 50;
 const NAME_SEARCH_PAGES = 4;
 const NAME_SEARCH_MATCHES = 25;
-const BOOKING_STATUSES = [
-	"draft",
-	"held",
-	"awaiting_signature",
-	"awaiting_payment",
-	"awaiting_approval",
-	"confirmed",
-	"expired",
-	"cancelled",
-	"refunded",
-	"refunded_unavailable",
-	"declined",
-];
+/** Every booking status, for the status filter. */
+const BOOKING_STATUSES = Object.keys(BOOKING_TRANSITIONS);
 
 // --- setup ------------------------------------------------------------------------------------
 
@@ -344,12 +335,11 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
  * mapped collection), matched by entry id. An event outside that listing, or a read that fails,
  * falls back to the title copied onto its config, then to its id.
  */
-async function eventTitles(deps: AdminDeps): Promise<{ titles: Map<string, string>; collection: string }> {
+async function eventTitles(deps: AdminDeps): Promise<Map<string, string>> {
 	const titles = new Map<string, string>();
-	let collection = "events";
-	if (!deps.content) return { titles, collection };
+	if (!deps.content) return titles;
 	try {
-		collection = mappingOf(await deps.settings.list()).collection;
+		const { collection } = mappingOf(await deps.settings.list());
 		const found = await deps.content.list(collection, { limit: 100 });
 		for (const entry of found.items) {
 			const t = entry.data?.title;
@@ -358,16 +348,12 @@ async function eventTitles(deps: AdminDeps): Promise<{ titles: Map<string, strin
 	} catch {
 		// Titles are a convenience: the list still works with ids.
 	}
-	return { titles, collection };
+	return titles;
 }
 
-/**
- * One page of events with a button (`actionId`) or, without one, a link to the event's entry, whose
- * "Tickets & booking" panel edits it (R95: the separate editor page was folded into the panel).
- */
 async function eventsList(deps: AdminDeps, title: string, actionId: string, label: string, lead?: string) {
 	const page = await deps.storage.event_configs.query({ limit: 50 });
-	const { titles, collection } = await eventTitles(deps);
+	const titles = await eventTitles(deps);
 	return respond([
 		header(title),
 		...(lead ? [context(lead)] : []),
@@ -388,7 +374,7 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 					status: c.status,
 					sold: c.sold,
 					capacity: c.capacity,
-					open: actionId ? button(actionId, label, { value: id }) : link(label, { kind: "content", collection, id }),
+					open: button(actionId, label, { value: id }),
 				};
 			}),
 			pageActionId: "events.page",
@@ -536,6 +522,18 @@ async function doCheckIn(
 	return attendeesPage(deps, eventId, { extra: [...notices([banner]), ...links] });
 }
 
+// --- event editor ---------------------------------------------------------------------------
+
+/**
+ * The "Tickets & booking" panel on the Event editor page, so events of any collection can be edited
+ * (the manifest shows the panel only on `events` entries). Every block id names the event, so the
+ * panel's own actions come back here with it (R96: this replaced the page's smaller editor).
+ */
+async function panelPage(deps: AdminDeps, id: string, interaction: PanelInteraction): Promise<AdminResponse> {
+	const out = await handlePanel(deps as unknown as PanelDeps, interaction, id);
+	return respond(out.blocks.map((b, n) => ({ ...b, block_id: `event:${id}:${n}` })));
+}
+
 // --- dashboard widget -------------------------------------------------------------------------
 
 async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
@@ -568,7 +566,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 					"Choose an event to see its attendees and check people in.",
 				);
 			case "/events":
-				return eventsList(deps, "Events", "", "Edit", "Edit an event in its Tickets & booking panel.");
+				return eventsList(deps, "Events", "events.edit", "Edit");
 			case "widget:sales":
 				return salesWidget(deps);
 			default:
@@ -577,6 +575,9 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 	}
 
 	const [action = "", suffix = ""] = interaction.action_id.split(/:(.*)/s);
+	// The event editor page is the Tickets & booking panel (R96): its blocks carry `event:<id>:<n>`.
+	const panelOf = interaction.block_id?.startsWith("event:") && action.startsWith("panel.");
+	if (panelOf) return panelPage(deps, interaction.block_id?.split(":")[1] ?? "", interaction as PanelInteraction);
 	if (interaction.type === "form_submit") {
 		const v = interaction.values;
 		switch (action) {
@@ -607,7 +608,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "bookings.decline_ask":
 				return bookingsPage(deps, { status: "awaiting_approval" }, [
 					form({
-						fields: [textInput("reason", "Reason for the buyer (optional)")],
+						fields: [textInput("reason", "Reason (optional, sent to the buyer)")],
 						submit: { label: `Decline ${str(value)}`, actionId: `bookings.decline:${str(value)}` },
 					}),
 				]);
@@ -630,7 +631,9 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "retention.erase":
 				return retentionErase(deps, str(value));
 			case "events.page":
-				return eventsList(deps, "Events", "", "Edit");
+				return eventsList(deps, "Events", "events.edit", "Edit");
+			case "events.edit":
+				return panelPage(deps, eventIdOf(value), { type: "panel_load" });
 		}
 	}
 	return respond(notices([{ severity: "error", title: "Unknown action" }]));

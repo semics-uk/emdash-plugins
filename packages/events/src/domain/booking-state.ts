@@ -8,7 +8,7 @@
  *             └───────────────┴──── (steps skipped when not required) ──┘          └──► declined / expired / cancelled
  * ```
  * `refunded_unavailable` is a payment that arrived after its hold had lapsed and was refunded.
- * `awaiting_approval` (T131, R95) comes after every checkout step when the event requires approval:
+ * `awaiting_approval` (T131, R96) comes after every checkout step when the event requires approval:
  * a hold state whose `holdExpiresAt` is the approval deadline, so the sweeper expires it like a hold.
  */
 import { err, ok, type Result } from "@semics-tech/shared";
@@ -210,7 +210,7 @@ export function approvalOf(
 /** The admin addresses in `adminNotifyEmails` (comma, semicolon, space or line separated): at most 5. */
 export const adminRecipients = (raw: unknown): string[] =>
 	(typeof raw === "string" ? raw.toLowerCase().split(/[\s,;]+/) : [])
-		.filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))
+		.filter((e) => /^[^@]+@[^@]+\.[^@]+$/.test(e))
 		.slice(0, 5);
 
 export interface Settled {
@@ -222,7 +222,7 @@ export interface Settled {
 }
 
 /**
- * Where a booking goes once its checkout steps (signatures, payment) are done (T131, R95): with a
+ * Where a booking goes once its checkout steps (signatures, payment) are done (T131, R96): with a
  * copied `approval` it waits in `awaiting_approval` until the deadline (places stay reserved; the
  * buyer is told the request arrived, and an expiry notice is queued for the deadline, which the drain
  * sends only if the request lapsed), else it is `confirmed` (the caller counts the sale). Admins in

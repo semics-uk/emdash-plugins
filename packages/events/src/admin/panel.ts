@@ -253,7 +253,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
 		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
-		numberInput("approval", "Approve each booking within (hours, 0 = no approval)", {
+		numberInput("approval", "Approval hours (0: no approval)", {
 			initialValue: config.approval?.required ? config.approval.deadlineHours : 0,
 			min: 0,
 			max: 720,

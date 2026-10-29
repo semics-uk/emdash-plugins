@@ -8,7 +8,7 @@ import { BOOKING_MAX_CALLS, type BookingRouteStorage, cancelBooking, type Refund
 import { CONTINUE_MAX_CALLS, type ContinueStorage, continueCheckout } from "../../src/routes/checkout-continue";
 import { makeStore, meter } from "../domain/fake-storage";
 
-// Booking approval (T131, R95) with injected time and storage: continue hands a booking that needs
+// Booking approval (T131, R96) with injected time and storage: continue hands a booking that needs
 // approval to `awaiting_approval` (places stay reserved), the admin approves or declines it, the
 // sweeper expires it at the deadline, the buyer may withdraw it, and the outbox tells everyone.
 

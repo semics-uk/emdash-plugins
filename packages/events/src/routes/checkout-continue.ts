@@ -41,7 +41,7 @@ import { badRequest, fail } from "./reply";
  * 4. `attendees.putMany` (1), then `outbox.putMany` of the confirmation and admin notices (1).
  * Step 2 is preceded by `settings.list` (1, T131: admin notices). A one-ticket-type order is 6 calls;
  * the largest is 10. A replay is 2 (query, `outbox.get`).
- * Approval (T131, R95): a booking whose event required approval settles into `awaiting_approval`
+ * Approval (T131, R96): a booking whose event required approval settles into `awaiting_approval`
  * instead (`settle`): no sale is counted, its places stay reserved until the deadline, and the queued
  * rows are the buyer's "request received", the deadline's expiry notice and the admin notices
  * (`next: { type: "approval" }`). Approval or decline is the admin's (`src/routes/approval.ts`).

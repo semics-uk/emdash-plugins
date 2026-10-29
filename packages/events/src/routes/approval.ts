@@ -7,10 +7,10 @@ import { type BookingDeps, type BookingRouteStorage, closeBooking } from "./book
 import { fail } from "./reply";
 
 /**
- * Booking approval (T131, R95): an admin approves or declines a booking `awaiting_approval` on the
+ * Booking approval (T131, R96): an admin approves or declines a booking `awaiting_approval` on the
  * Bookings page: the private `admin` route's actions `bookings.approve` (value: booking id) and
  * `bookings.decline:<id>` (form value `reason`), so only signed-in staff act. The admin email links
- * into the admin; no token is mailed. (No separate routes: the bundle budget, R95.)
+ * into the admin; no token is mailed. (No separate routes: the bundle budget, R96.)
  *
  * - **approve**: guarded on the hold read (`heldGuard`: status, deadline, `releaseClaimedAt: null`),
  *   so it loses to an expirer or a decline; then counts the sale and queues the confirmation (with its

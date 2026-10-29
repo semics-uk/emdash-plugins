@@ -17,7 +17,7 @@ import { settingsObject } from "../domain/settings";
 let errorCodes: ErrorTable = EVENTS_ERROR_CODES;
 
 /**
- * The codes the core answers with: Events' own (R95), so the e-sign and protocol messages stay out
+ * The codes the core answers with: Events' own (R96), so the e-sign and protocol messages stay out
  * of the Free bundle. An edition whose steps answer other codes (Pro receipts: the protocol's) passes
  * `ERROR_CODES` once at load (`src/seams.ts`); a code missing from the table answers `INTERNAL`.
  */

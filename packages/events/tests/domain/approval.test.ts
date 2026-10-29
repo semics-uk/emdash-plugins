@@ -13,7 +13,7 @@ import { validateConfigInput } from "../../src/domain/config";
 import { expiryAction } from "../../src/domain/holds";
 import type { BookingDoc, BookingStatus, EventConfigDoc } from "../../src/storage/schema";
 
-// Booking approval (T131, R95): the state graph, the deadline, and what a booking settles into once
+// Booking approval (T131, R96): the state graph, the deadline, and what a booking settles into once
 // its checkout steps are done. Pure: time is passed in.
 
 const HOUR = 3_600_000;

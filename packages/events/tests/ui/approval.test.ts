@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { STATUS_LABELS, statusLabel } from "../../src/astro/lib/widget";
 import { t } from "../../src/i18n/index";
 
-// The booking page for a request that waits for the organiser (T131, R95).
+// The booking page for a request that waits for the organiser (T131, R96).
 
 describe("T131 booking page status", () => {
 	it("T131 shows 'Awaiting approval' and 'Declined', translated", () => {

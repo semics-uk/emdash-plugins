@@ -21,7 +21,7 @@
  *   paid booking declined while awaiting approval. Free has none and refuses to decline a paid one.
  *   Pro's payment confirm settles a paid booking with `settle` (`src/domain/booking-state.ts`) so an
  *   event requiring approval waits for it after payment.
- * - `useErrorCodes(ERROR_CODES)`: answer every shared error code, not only Events' own (R95). Call it
+ * - `useErrorCodes(ERROR_CODES)`: answer every shared error code, not only Events' own (R96). Call it
  *   once at load in an edition whose steps answer other codes (receipts: the protocol's); otherwise
  *   such a code answers `INTERNAL`.
  */
