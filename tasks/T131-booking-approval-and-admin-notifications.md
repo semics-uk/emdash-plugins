@@ -4,7 +4,7 @@ title: "Events: optional booking approval and admin notifications"
 phase: 7
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: L
 depends_on: []
