@@ -38,7 +38,7 @@ export interface MappingResult {
 	banner: MappingBanner | null;
 }
 
-const LABELS: Record<MappingSetting, string> = {
+export const LABELS: Record<MappingSetting, string> = {
 	eventsCollection: "Events collection",
 	fieldStartsAt: "Start field",
 	fieldEndsAt: "End field",

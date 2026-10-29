@@ -82,8 +82,13 @@ export function holdSettings(raw: {
 	};
 }
 
-/** Booking statuses that hold seats with a running hold. */
-export const HOLD_STATUSES: readonly BookingStatus[] = ["held", "awaiting_signature", "awaiting_payment"];
+/** Booking statuses that hold seats with a running hold (awaiting approval: until its deadline, T131). */
+export const HOLD_STATUSES: readonly BookingStatus[] = [
+	"held",
+	"awaiting_signature",
+	"awaiting_payment",
+	"awaiting_approval",
+];
 
 /** Statuses the sweeper expires: the hold states, plus a `draft` whose checkout never finished. */
 export const EXPIRABLE_STATUSES: readonly BookingStatus[] = ["draft", ...HOLD_STATUSES];

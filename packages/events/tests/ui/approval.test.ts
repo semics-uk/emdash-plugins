@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-
-import { t } from "../../src/i18n/index";
 import { STATUS_LABELS, statusLabel } from "../../src/astro/lib/widget";
+import { t } from "../../src/i18n/index";
 
 // The booking page for a request that waits for the organiser (T131, R95).
 

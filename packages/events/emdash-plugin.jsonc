@@ -196,6 +196,22 @@
 				"default": 365,
 				"min": 30
 			},
+			// Admin notifications (T131): sent through the outbox; the email links into the admin.
+			"adminNotifyEmails": {
+				"type": "string",
+				"label": "Admin notification emails",
+				"description": "Up to 5 addresses, separated by commas, told about booking requests (and bookings, if chosen below)."
+			},
+			"notifyAdminOn": {
+				"type": "select",
+				"label": "Notify admins about",
+				"options": [
+					{ "value": "requests", "label": "Booking requests that need approval" },
+					{ "value": "all", "label": "All bookings" },
+					{ "value": "off", "label": "Nothing" }
+				],
+				"default": "requests"
+			},
 			"emailSenderName": {
 				"type": "string",
 				"label": "Email sender name",

@@ -1,12 +1,11 @@
 import type { ErrorCode, Result } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
-import { checkoutState, confirmationMessage, confirmationOutboxId } from "../domain/booking-state";
+import { checkoutState, confirmationMessage, confirmationOutboxId, settle } from "../domain/booking-state";
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
 import { mergeSignature, parseReceiptRef, receiptAttendeeIds, seatIds, type VerifiedReceipt } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
-import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, BookingStatus } from "../storage/schema";
 import { badRequest, fail } from "./reply";
 
@@ -59,7 +58,11 @@ export interface ReceiptStorage extends CounterStorage {
 		getMany(ids: string[]): Promise<Map<string, unknown>>;
 		putMany(items: Item[]): Promise<void>;
 	};
-	outbox: { get(id: string): Promise<unknown>; put(id: string, data: unknown): Promise<void> };
+	outbox: {
+		get(id: string): Promise<unknown>;
+		put(id: string, data: unknown): Promise<void>;
+		putMany(items: Item[]): Promise<void>;
+	};
 }
 
 export type ReceiptAttendee = { id: string; data: AttendeeDoc };
@@ -121,19 +124,20 @@ async function advance(
 		if (!extended.ok) return { code: "HOLD_EXPIRED" };
 		return { status: done ? "awaiting_payment" : booking.status };
 	}
-	const { applied } = await storage.bookings.updateIf(id, {
-		where: heldGuard(booking),
-		set: { status: "confirmed", confirmedAt: iso(now) },
-	});
+	// Confirm, or wait for the admin's approval (T131): `settle` says which and what to queue.
+	const s = settle(id, booking, settings, now);
+	const { applied } = await storage.bookings.updateIf(id, { where: heldGuard(booking), set: s.set });
 	if (!applied) {
-		// Claimed by an expirer, or confirmed by a concurrent receipt (which queues the confirmation).
+		// Claimed by an expirer, or settled by a concurrent receipt (which queues the rows).
 		const fresh = (await storage.bookings.get(id)) as BookingDoc | null;
-		return fresh?.status === "confirmed" ? { status: "confirmed" } : { code: "HOLD_EXPIRED" };
+		return fresh?.status === s.status ? { status: s.status } : { code: "HOLD_EXPIRED" };
 	}
-	const room = RECEIPT_MAX_CALLS - used - 1 - AFTER_SOLD_CALLS;
-	await confirmSold(storage, countersForBooking(booking).slice(0, Math.max(room, 0))).catch(() => undefined);
-	await storage.outbox.put(confirmationOutboxId(id), confirmationMessage(id, booking, now));
-	return { status: "confirmed" };
+	if (s.status === "confirmed") {
+		const room = RECEIPT_MAX_CALLS - used - 1 - AFTER_SOLD_CALLS;
+		await confirmSold(storage, countersForBooking(booking).slice(0, Math.max(room, 0))).catch(() => undefined);
+	}
+	await storage.outbox.putMany(s.outbox);
+	return { status: s.status };
 }
 
 export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<unknown> {

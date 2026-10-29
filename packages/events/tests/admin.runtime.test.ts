@@ -66,16 +66,10 @@ describe("admin pages in the host (EV-FR-11)", () => {
 			sort: 0,
 		});
 		expect((await r.admin.act("/attendees", "attendees.open", { value: "ev1" })).blocks?.length).toBeGreaterThan(0);
-		expect((await r.admin.act("/events", "events.edit", { value: "ev1" })).blocks?.length).toBeGreaterThan(0);
 		const search = await r.admin.submit("/bookings", "bookings.search", { q: "REF1", status: "" });
 		expect(JSON.stringify(search.blocks)).toContain("Ada Lovelace");
-		const saved = await r.admin.submit("/events", "event.save", {
-			eventId: "ev1",
-			status: "on_sale",
-			"capacity:tt_a": 90,
-			"price:tt_a": "15.00",
-		});
-		expect(JSON.stringify(saved.blocks)).toContain("Saved");
+		const events = await r.admin.loadPage("/events");
+		expect(JSON.stringify(events.blocks)).toContain('"kind":"content"');
 	});
 
 	it("EV-FR-11 admin actions stay within the bridge-call budget in the sandbox", async () => {

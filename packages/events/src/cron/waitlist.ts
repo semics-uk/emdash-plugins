@@ -23,6 +23,7 @@
  */
 import { generateToken, hashToken } from "@semics-tech/shared";
 
+import { approvalOf } from "../domain/booking-state";
 import { bookingKeys, type CheckoutPlan } from "../domain/checkout";
 import { DEFAULT_HOLD_SETTINGS, startHold } from "../domain/holds";
 import { type Counter, type CounterStorage, reserve } from "../domain/inventory";
@@ -86,6 +87,7 @@ async function offer(
 		totals: plan.totals,
 		answers: {},
 		...waiverOf(c),
+		...approvalOf(c, e.occurrenceId, now),
 		// Nobody holds a token yet: the claim swaps the emailed code for one.
 		accessTokenHash: await hashToken(generateToken()),
 		waitlistId: entryId,

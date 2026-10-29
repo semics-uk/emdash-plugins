@@ -1,7 +1,7 @@
 import { verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
-import { canTransition } from "../domain/booking-state";
+import { canTransition, outboxRow } from "../domain/booking-state";
 import { type CancelDecision, cancelCutoffHours, cancelDecision } from "../domain/cancel-policy";
 import { parseBookingAccessInput } from "../domain/checkout";
 import { CLAIM_STALE_MS, HOLD_STATUSES } from "../domain/holds";
@@ -9,7 +9,7 @@ import { type CounterStorage, countersForBooking, release } from "../domain/inve
 import type { LinkKv } from "../domain/link-secret";
 import { readSettings } from "../domain/settings";
 import { iso } from "../domain/time";
-import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
+import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
 import { badRequest, fail } from "./reply";
 
@@ -191,30 +191,31 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	};
 }
 
-function cancellationMessage(
-	id: string,
-	b: BookingDoc,
-	now: number,
-	mail?: { kind: string; payload?: Record<string, unknown> },
-): OutboxDoc {
-	return {
-		kind: mail?.kind ?? "booking_cancelled",
-		to: b.email,
-		payload: { bookingId: id, bookingRef: b.ref, ...mail?.payload },
-		attempts: 0,
-		nextAttemptAt: iso(now),
-		status: "pending",
-	};
-}
-
 export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<unknown> {
 	const auth = await authenticate(deps, raw);
 	if ("error" in auth) return auth.error;
-	const { id, booking: b } = auth;
-	const { storage, now } = deps;
-	const cancelled = { ok: true, bookingRef: b.ref, status: "cancelled" };
+	return closeBooking(deps, auth.id, auth.booking);
+}
 
-	if (b.status === "cancelled") return cancelled;
+/**
+ * Cancel `b` (the buyer), or decline it (an admin, T131: only while `awaiting_approval`; `reason` is
+ * stored on it for the email). Both claim, refund a paid booking through the edition's step, release
+ * the places and queue the notice (`cancel-<id>`, or `decline-<id>` of kind `booking_declined`).
+ * `used`: bridge calls the caller already made beyond the booking read.
+ */
+export async function closeBooking(
+	deps: BookingDeps,
+	id: string,
+	b: BookingDoc,
+	decline?: { reason: string },
+	used = 0,
+): Promise<unknown> {
+	const { storage, now } = deps;
+	const to = decline ? "declined" : "cancelled";
+	const cancelled = { ok: true, bookingRef: b.ref, status: to };
+
+	if (b.status === to) return cancelled;
+	if (decline && b.status !== "awaiting_approval") return fail("CANCEL_NOT_ALLOWED");
 	const held = HOLD_STATUSES.includes(b.status);
 	const claimedAt = Date.parse(b.releaseClaimedAt ?? "");
 	const claimLive = b.releaseClaimedAt != null && !(now - claimedAt >= CLAIM_STALE_MS);
@@ -222,11 +223,12 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 	// booking is another cancel in flight.
 	if (held && b.releaseClaimedAt != null) return fail("HOLD_EXPIRED");
 	if (claimLive) return fail("INTERNAL");
-	if (!canTransition(b.status, "cancelled")) return fail("CANCEL_NOT_ALLOWED");
+	if (!canTransition(b.status, to)) return fail("CANCEL_NOT_ALLOWED");
 	if (held && !(Date.parse(b.holdExpiresAt ?? "") > now)) return fail("HOLD_EXPIRED");
 
 	const decision = await decide(deps, b);
-	const paid = b.status === "confirmed" && b.payment != null;
+	// Paid: confirmed by the payment provider, or awaiting approval after it (Pro, T131/T132).
+	const paid = b.payment != null;
 	if (!decision.allowed || (paid && !deps.refund)) return fail("CANCEL_NOT_ALLOWED");
 
 	const claim = iso(now);
@@ -254,17 +256,21 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 	// is a cancel that died after claiming, maybe after releasing: releasing again could under-count
 	// (oversell), so like the sweeper's `close` it releases nothing and drift repair, which does not
 	// count cancelled bookings, settles the counters (an over-count meanwhile is the safe direction).
-	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS) - (step?.calls(b) ?? 0);
+	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS) - (step?.calls(b) ?? 0) - used;
 	const stale = b.releaseClaimedAt != null;
 	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, Math.max(room, 0));
 	await release(storage, refs, { sold: b.status === "confirmed" }).catch(() => undefined);
 
 	const moved = await storage.bookings.updateIf(id, {
 		where: { status: b.status, releaseClaimedAt: claim },
-		set: { status: "cancelled", cancelledAt: claim },
+		set: { status: to, cancelledAt: claim, ...(decline ? { declineReason: decline.reason } : {}) },
 	});
 	if (!moved.applied) return fail("INTERNAL");
-	await storage.outbox.put(`cancel-${id}`, cancellationMessage(id, b, now, mail));
+	// A declined buyer is told it was declined (a refund's own notice kind is for cancels, T075).
+	const kind = decline ? "booking_declined" : (mail?.kind ?? "booking_cancelled");
+	const notice = outboxRow(kind, id, b, claim);
+	Object.assign(notice.payload, mail?.payload);
+	await storage.outbox.put(`${decline ? "decline" : "cancel"}-${id}`, notice);
 	return cancelled;
 }
 

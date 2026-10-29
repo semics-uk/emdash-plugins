@@ -4,27 +4,39 @@
  *
  * ```
  *             ┌────────────► expired (hold lapsed; the expirer releases the seats)
- *  draft ──► held ──► awaiting_signature ──► awaiting_payment ──► confirmed ──► cancelled / refunded
- *             └───────────────┴──── (steps skipped when not required) ──┘
+ *  draft ──► held ──► awaiting_signature ──► awaiting_payment ──► [awaiting_approval] ──► confirmed ──► cancelled / refunded
+ *             └───────────────┴──── (steps skipped when not required) ──┘          └──► declined / expired / cancelled
  * ```
  * `refunded_unavailable` is a payment that arrived after its hold had lapsed and was refunded.
+ * `awaiting_approval` (T131, R95) comes after every checkout step when the event requires approval:
+ * a hold state whose `holdExpiresAt` is the approval deadline, so the sweeper expires it like a hold.
  */
 import { err, ok, type Result } from "@semics-tech/shared";
 
-import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus, OutboxDoc } from "../storage/schema";
+import type {
+	AttendeeDoc,
+	AttendeeStatus,
+	BookingDoc,
+	BookingStatus,
+	EventConfigDoc,
+	OutboxDoc,
+} from "../storage/schema";
 import type { InputIssue } from "./checkout";
 import { HOLD_STATUSES } from "./holds";
+import { iso } from "./time";
 
 export const BOOKING_TRANSITIONS: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = {
 	draft: ["held", "expired"],
-	held: ["awaiting_signature", "awaiting_payment", "confirmed", "expired", "cancelled"],
-	awaiting_signature: ["awaiting_payment", "confirmed", "expired", "cancelled"],
-	awaiting_payment: ["confirmed", "expired", "cancelled", "refunded_unavailable"],
+	held: ["awaiting_signature", "awaiting_payment", "awaiting_approval", "confirmed", "expired", "cancelled"],
+	awaiting_signature: ["awaiting_payment", "awaiting_approval", "confirmed", "expired", "cancelled"],
+	awaiting_payment: ["awaiting_approval", "confirmed", "expired", "cancelled", "refunded_unavailable"],
+	awaiting_approval: ["confirmed", "declined", "expired", "cancelled"],
 	confirmed: ["cancelled", "refunded"],
 	expired: ["refunded_unavailable"],
 	cancelled: ["refunded"],
 	refunded: [],
 	refunded_unavailable: [],
+	declined: [],
 };
 
 export function canTransition(from: BookingStatus, to: BookingStatus): boolean {
@@ -60,13 +72,14 @@ export type CheckoutState = "open" | "lapsed" | "pending" | "confirmed" | "close
 /**
  * Where a booking stands for checkout at `now`: `open` (a running, unclaimed hold), `lapsed` (in a
  * hold state but expired or claimed by an expirer: it cannot be revived), `pending` (a draft whose
- * reserve is still running), `confirmed`, or `closed` (expired, cancelled, refunded).
+ * reserve is still running), `confirmed` (also `awaiting_approval`: checkout is done, T131), or
+ * `closed` (expired, cancelled, refunded, declined).
  */
 export function checkoutState(
 	booking: Pick<BookingDoc, "status" | "holdExpiresAt" | "releaseClaimedAt">,
 	now: number,
 ): CheckoutState {
-	if (booking.status === "confirmed") return "confirmed";
+	if (booking.status === "confirmed" || booking.status === "awaiting_approval") return "confirmed";
 	if (booking.status === "draft") return "pending";
 	if (!HOLD_STATUSES.includes(booking.status)) return "closed";
 	const expires = Date.parse(booking.holdExpiresAt ?? "");
@@ -145,6 +158,22 @@ export function planAttendees(
 	return ok(docs);
 }
 
+/** An outbox row for `b`'s buyer (or `to`), due at `at` (ISO). Rows hold ids only (T050). */
+export const outboxRow = (
+	kind: string,
+	id: string,
+	b: Pick<BookingDoc, "ref" | "email">,
+	at: string,
+	to = b.email,
+) => ({
+	kind,
+	to,
+	payload: { bookingId: id, bookingRef: b.ref } as Record<string, unknown>,
+	attempts: 0,
+	nextAttemptAt: at,
+	status: "pending" as OutboxDoc["status"],
+});
+
 /**
  * The queued confirmation email. It carries references only: the sender (T050) renders the
  * message and reads the attendees at send time, so the queue never holds a token or a ticket code.
@@ -154,12 +183,66 @@ export function confirmationMessage(
 	booking: Pick<BookingDoc, "ref" | "email">,
 	now: number,
 ): OutboxDoc {
-	return {
-		kind: "booking_confirmed",
-		to: booking.email,
-		payload: { bookingId, bookingRef: booking.ref },
-		attempts: 0,
-		nextAttemptAt: new Date(now).toISOString(),
-		status: "pending",
-	};
+	return outboxRow("booking_confirmed", bookingId, booking, iso(now));
+}
+
+/** Default `approval.deadlineHours` (T131). */
+export const APPROVAL_HOURS = 48;
+
+/**
+ * The approval a new booking needs (T131), copied onto it at reserve (and by a waitlist offer) like
+ * the waiver, so a later change to the event does not change it: decided by `until`, the earlier of
+ * `deadlineHours` from now and the start of the booked date (or of the event).
+ */
+export function approvalOf(
+	config: Pick<EventConfigDoc, "approval" | "catalog" | "info">,
+	occurrenceId: string | undefined,
+	now: number,
+): Pick<BookingDoc, "approval"> {
+	if (!config.approval?.required) return {};
+	const until = now + (config.approval.deadlineHours || APPROVAL_HOURS) * 3_600_000;
+	const start = Date.parse(
+		(occurrenceId ? config.catalog?.occurrences[occurrenceId]?.startsAt : config.info?.startsAt) ?? "",
+	);
+	return { approval: { until: iso(start < until ? start : until) } };
+}
+
+/** The admin addresses in `adminNotifyEmails` (comma, semicolon, space or line separated): at most 5. */
+export const adminRecipients = (raw: unknown): string[] =>
+	(typeof raw === "string" ? raw.toLowerCase().split(/[\s,;]+/) : [])
+		.filter((e) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e))
+		.slice(0, 5);
+
+export interface Settled {
+	status: "confirmed" | "awaiting_approval";
+	/** The booking fields to write, guarded on the hold read (`heldGuard`). */
+	set: Record<string, unknown>;
+	/** The outbox rows to queue with it (one `putMany`); `confirm-<id>` or `request-<id>` marks them done. */
+	outbox: Array<{ id: string; data: OutboxDoc }>;
+}
+
+/**
+ * Where a booking goes once its checkout steps (signatures, payment) are done (T131, R95): with a
+ * copied `approval` it waits in `awaiting_approval` until the deadline (places stay reserved; the
+ * buyer is told the request arrived, and an expiry notice is queued for the deadline, which the drain
+ * sends only if the request lapsed), else it is `confirmed` (the caller counts the sale). Admins in
+ * `adminNotifyEmails` are told per `notifyAdminOn`: `requests` (default), `all` bookings, or `off`.
+ * Free checkout and signature receipts settle through here; Pro's payment confirm should too (T132).
+ */
+export function settle(id: string, b: BookingDoc, settings: Record<string, unknown>, now: number): Settled {
+	const at = iso(now);
+	const notify = settings.notifyAdminOn ?? "requests";
+	const until = b.approval?.until;
+	const outbox = (
+		notify === "all" || (until && notify === "requests") ? adminRecipients(settings.adminNotifyEmails) : []
+	).map((to, n) => ({ id: `admin-${id}-${n}`, data: outboxRow("admin_booking", id, b, at, to) }));
+	if (until) {
+		outbox.push(
+			{ id: `request-${id}`, data: outboxRow("approval_requested", id, b, at) },
+			{ id: `lapse-${id}`, data: outboxRow("approval_expired", id, b, until) },
+		);
+		return { status: "awaiting_approval", set: { status: "awaiting_approval", holdExpiresAt: until }, outbox };
+	}
+	outbox.push({ id: confirmationOutboxId(id), data: confirmationMessage(id, b, now) });
+	return { status: "confirmed", set: { status: "confirmed", confirmedAt: at }, outbox };
 }

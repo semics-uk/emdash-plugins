@@ -86,6 +86,8 @@ export interface EventConfigDoc {
 	questions: EventQuestion[];
 	signature: { required: boolean; templateId?: string; mode: SignatureMode };
 	waitlistEnabled: boolean;
+	/** Bookings wait for an admin's approval, at most `deadlineHours` (and never past the start, T131). */
+	approval?: { required: boolean; deadlineHours: number } | null;
 	recurrence?: string | null;
 	/** Slot schedule (T129, `src/domain/schedule.ts`); never beside `recurrence`. */
 	schedule?: ScheduleDoc | null;
@@ -180,11 +182,15 @@ export type BookingStatus =
 	| "held"
 	| "awaiting_signature"
 	| "awaiting_payment"
+	/** Checkout done; places stay reserved until an admin approves or declines, or the deadline passes (T131). */
+	| "awaiting_approval"
 	| "confirmed"
 	| "expired"
 	| "cancelled"
 	| "refunded"
-	| "refunded_unavailable";
+	| "refunded_unavailable"
+	/** An admin declined the request (T131); its places were released. */
+	| "declined";
 
 export interface BookingLine {
 	ticketTypeId: string;
@@ -222,6 +228,10 @@ export interface BookingDoc {
 	 * is a Pro step; the Free edition ignores it (EV-FR-12, R5).
 	 */
 	waiver?: BookingWaiver;
+	/** The event required approval when the booking was made (T131): decided by `until`, else it expires. */
+	approval?: { until: string };
+	/** Why an admin declined the booking (T131), shown in the email to the buyer. */
+	declineReason?: string;
 	/** SHA-256 of the access token; the token itself is never stored. */
 	accessTokenHash: string;
 	/**

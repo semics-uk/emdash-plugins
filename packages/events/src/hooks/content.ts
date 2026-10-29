@@ -1,6 +1,7 @@
 import type { ContentDeleteEvent, ContentHookEvent, ContentStateChangeEvent, PluginContext } from "emdash/plugin";
 
 import { infoOfEntry, mappingOf } from "../domain/event-info";
+import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
 
 /**
  * `content:afterSave`: keep the copy of the entry's public info (title, times, zone, venue) on the
@@ -47,7 +48,7 @@ export const contentAfterSave = async (event: ContentHookEvent, ctx: PluginConte
  * - `content:afterDelete` marks the config `orphaned`, the backstop for a permanent delete, which
  *   skips `beforeDelete`. Orphaned events are hidden like unpublished ones.
  */
-export const LIVE_BOOKING_STATUSES = ["held", "awaiting_signature", "awaiting_payment", "confirmed"];
+export { LIVE_BOOKING_STATUSES };
 
 export interface StateHookDeps extends InfoHookDeps {
 	storage: InfoHookDeps["storage"] & {
@@ -81,7 +82,7 @@ export async function markUnpublished(
 export async function vetoDelete(deps: StateHookDeps, event: ContentDeleteEvent): Promise<false | undefined> {
 	if (!(await isEvents(deps, event.collection))) return undefined;
 	const { items } = await deps.storage.bookings.query({
-		where: { eventId: event.id, status: { in: LIVE_BOOKING_STATUSES } },
+		where: { eventId: event.id, status: { in: [...LIVE_BOOKING_STATUSES] } },
 		limit: 1,
 	});
 	if (items.length === 0) return undefined;

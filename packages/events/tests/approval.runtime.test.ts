@@ -2,8 +2,8 @@ import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Booking approval in the real sandbox (T131, R95): the private approve/decline routes and the
-// Bookings page buttons, validated by the host and within the bridge-call budget.
+// Booking approval in the real sandbox (T131, R95): Approve and Decline on the Bookings page (the
+// private admin route's actions), validated by the host and within the bridge-call budget.
 
 let runtime: PluginRuntimeTestHost | undefined;
 afterEach(async () => {
@@ -55,29 +55,42 @@ async function setup() {
 	return { r, budget: withBudget(r) };
 }
 
-describe("T131 approval admin routes", () => {
-	it("T131 bookings/approve and bookings/decline act within budget", async () => {
+describe("T131 approve and decline on the private admin route", () => {
+	it("T131 bookings.approve and bookings.decline act within budget and queue the emails", async () => {
 		const { r, budget } = await setup();
-		const approved = await budget.invokeRoute("bookings/approve", { bookingId: "bk_1" });
-		expectWithinBudget(approved, { calls: 8 });
-		expect(approved.value).toMatchObject({ ok: true, status: "confirmed" });
-		const declined = await budget.invokeRoute("bookings/decline", { bookingId: "bk_2", reason: "Full" });
-		expectWithinBudget(declined, { calls: 8 });
-		expect(declined.value).toMatchObject({ ok: true, status: "declined" });
-		const outbox = await r.inspect.storage.list("outbox");
-		expect(JSON.stringify(outbox)).toContain("booking_declined");
+		const approved = await budget.invokeRoute("admin", {
+			type: "block_action",
+			action_id: "bookings.approve",
+			value: "bk_1",
+		});
+		expectWithinBudget(approved, { calls: 9 });
+		expect(JSON.stringify(approved.value)).toContain("REFONE: confirmed");
+		const declined = await budget.invokeRoute("admin", {
+			type: "form_submit",
+			action_id: "bookings.decline:bk_2",
+			values: { reason: "Full" },
+		});
+		expectWithinBudget(declined, { calls: 9 });
+		expect(JSON.stringify(declined.value)).toContain("REFTWO: declined");
+		const outbox = JSON.stringify(await r.inspect.storage.list("outbox"));
+		expect(outbox).toContain("booking_confirmed");
+		expect(outbox).toContain("booking_declined");
 	});
 
-	it("T131 the routes refuse bad input", async () => {
-		const { budget } = await setup();
-		const res = await budget.invokeRoute("bookings/approve", { bookingId: 7 });
-		expect(res.value).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" } });
+	it("T131 a second approve (double click) answers ok; approving a declined booking is refused", async () => {
+		const { r } = await setup();
+		await r.admin.act("/bookings", "bookings.approve", { value: "bk_1" });
+		const again = await r.admin.act("/bookings", "bookings.approve", { value: "bk_1" });
+		expect(JSON.stringify(again.blocks)).toContain("REFONE: confirmed");
+		await r.admin.submit("/bookings", "bookings.decline:bk_2", { reason: "" });
+		const late = await r.admin.act("/bookings", "bookings.approve", { value: "bk_2" });
+		expect(JSON.stringify(late.blocks)).toContain("Not changed");
 	});
 });
 
 describe("T131 Bookings page", () => {
-	it("T131 a booking awaiting approval has Approve and Decline; both validate and stay within budget", async () => {
-		const { r, budget } = await setup();
+	it("T131 a booking awaiting approval has Approve and Decline (with an optional reason); the pages validate", async () => {
+		const { r } = await setup();
 		const page = await r.admin.loadPage("/bookings");
 		const text = JSON.stringify(page.blocks);
 		expect(text).toContain("bookings.approve");
@@ -86,14 +99,7 @@ describe("T131 Bookings page", () => {
 		const ask = await r.admin.act("/bookings", "bookings.decline_ask", { value: "bk_2" });
 		expect(JSON.stringify(ask.blocks)).toContain("bookings.decline:bk_2");
 
-		const interactions = [
-			{ type: "block_action", action_id: "bookings.approve", value: "bk_1" },
-			{ type: "form_submit", action_id: "bookings.decline:bk_2", values: { reason: "Full" } },
-		];
-		for (const i of interactions) {
-			const res = await budget.invokeRoute("admin", i);
-			expectWithinBudget(res, { calls: 9 });
-		}
+		await r.admin.submit("/bookings", "bookings.decline:bk_2", { reason: "Full" });
 		const after = await r.admin.submit("/bookings", "bookings.search", { q: "REFTWO", status: "" });
 		expect(JSON.stringify(after.blocks)).toContain("declined");
 	});

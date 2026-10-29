@@ -328,94 +328,16 @@ describe("attendees page and check-in (EV-US-5)", () => {
 	});
 });
 
-describe("event editor (T044)", () => {
-	const save = (deps: AdminDeps, values: Record<string, unknown>) =>
-		handleAdmin(deps, {
-			type: "form_submit",
-			action_id: "event.save",
-			page: "/events",
-			values: { eventId: "ev1", ...values },
-		});
-
-	it("opens an event with a field for each ticket type", async () => {
+describe("events page (T044, R95)", () => {
+	it("R95 lists the events and links each to its entry, whose Tickets & booking panel edits it", async () => {
 		const { deps } = world();
-		const out = await handleAdmin(deps, {
-			type: "block_action",
-			action_id: "events.edit",
-			page: "/events",
-			value: "ev1",
-		});
+		const out = await handleAdmin(deps, { type: "page_load", page: "/events" });
 		const text = json(out.blocks);
-		expect(text).toContain("capacity:tt_a");
-		expect(text).toContain("price:tt_b");
+		expect(text).toContain('"kind":"content"');
+		expect(text).toContain('"collection":"events"');
+		expect(text).toContain('"id":"ev1"');
+		expect(text).not.toContain("events.edit");
 		expect(meter.calls).toBeLessThanOrEqual(3);
-	});
-
-	it("writes only the changed ticket type", async () => {
-		const { deps, s } = world();
-		const writes: string[] = [];
-		for (const name of ["ticket_types", "event_configs"] as const) {
-			const orig = s[name].updateIf.bind(s[name]);
-			s[name].updateIf = (id, args) => {
-				writes.push(`${name}:${id}`);
-				return orig(id, args);
-			};
-		}
-		meter.calls = 0;
-		const out = await save(deps, {
-			status: "on_sale",
-			"capacity:tt_a": 90,
-			"price:tt_a": "15.00",
-			"capacity:tt_b": 20,
-			"price:tt_b": "40.00",
-		});
-		expect(banners(out.blocks)[0]).toMatchObject({ variant: "default", title: "Saved" });
-		expect(writes.filter((w) => w.startsWith("ticket_types"))).toEqual(["ticket_types:tt_a"]);
-		expect((s.ticket_types.docs.get("tt_a") as Doc).capacity).toBe(90);
-		expect(meter.calls).toBeLessThanOrEqual(8);
-	});
-
-	it("saying nothing changed writes nothing", async () => {
-		const { deps } = world();
-		const out = await save(deps, {
-			status: "on_sale",
-			"capacity:tt_a": 80,
-			"price:tt_a": "15.00",
-			"capacity:tt_b": 20,
-			"price:tt_b": "40.00",
-		});
-		expect(banners(out.blocks)[0]).toMatchObject({ title: "Nothing to save" });
-		expect(meter.calls).toBeLessThanOrEqual(3);
-	});
-
-	it("shows TOO_MANY_CHANGES as a plain message when a bulk edit is too big", async () => {
-		const { deps, s } = world();
-		const values: Record<string, unknown> = { status: "on_sale" };
-		for (let i = 0; i < 8; i++) {
-			s.ticket_types.set(`tt_${i}`, { ...(s.ticket_types.docs.get("tt_a") as Doc), name: `T${i}`, sort: i + 2 });
-		}
-		for (const id of s.ticket_types.docs.keys()) {
-			values[`capacity:${id}`] = 95;
-			values[`price:${id}`] = "9.99";
-		}
-		meter.calls = 0;
-		const out = await save(deps, values);
-		const b = banners(out.blocks)[0];
-		expect(b).toMatchObject({ variant: "error", title: "Too many changes at once" });
-		expect(meter.calls).toBeLessThanOrEqual(10);
-	});
-
-	it("shows a refusal below what is reserved", async () => {
-		const { deps } = world();
-		const out = await save(deps, {
-			status: "on_sale",
-			"capacity:tt_a": 1,
-			"price:tt_a": "15.00",
-			"capacity:tt_b": 20,
-			"price:tt_b": "40.00",
-		});
-		expect(banners(out.blocks)[0]).toMatchObject({ variant: "error" });
-		expect(banners(out.blocks)[0]?.description).toMatch(/reserved|sold/i);
 	});
 });
 

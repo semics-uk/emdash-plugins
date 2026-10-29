@@ -295,6 +295,7 @@ export const LIVE_BOOKING_STATUSES: readonly BookingStatus[] = [
 	"held",
 	"awaiting_signature",
 	"awaiting_payment",
+	"awaiting_approval",
 	"confirmed",
 ];
 

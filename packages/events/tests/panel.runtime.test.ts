@@ -172,10 +172,10 @@ describe("EV-US-1 editor panel", () => {
 		});
 		const save = (values: Record<string, unknown>) =>
 			r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", values);
-		expect(text((await save({ [`tt_capacity:${adult}`]: 10 })).blocks)).toContain("Capacity cannot be lower");
-		expect(text((await save({ [`oc_capacity:${occ}`]: 5 })).blocks)).toContain("Capacity cannot be lower");
-		expect(text((await save({ [`tt_remove:${adult}`]: true })).blocks)).toContain("already has bookings");
-		expect(text((await save({ [`oc_remove:${occ}`]: true })).blocks)).toContain("already has bookings");
+		expect(text((await save({ [`tt_capacity:${adult}`]: 10 })).blocks)).toContain("Capacity is below the seats");
+		expect(text((await save({ [`oc_capacity:${occ}`]: 5 })).blocks)).toContain("Capacity is below the seats");
+		expect(text((await save({ [`tt_remove:${adult}`]: true })).blocks)).toContain("has bookings and cannot be removed");
+		expect(text((await save({ [`oc_remove:${occ}`]: true })).blocks)).toContain("has bookings and cannot be removed");
 		expect(await r.inspect.storage.get<Doc>("ticket_types", adult)).toMatchObject({ capacity: 60, reserved: 30 });
 	});
 

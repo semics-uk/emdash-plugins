@@ -9,13 +9,13 @@ import {
 	confirmationOutboxId,
 	nextStep,
 	planAttendees,
+	settle,
 } from "../domain/booking-state";
 import { type InputIssue, parseContinueInput } from "../domain/checkout";
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
 import { seatIds } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
-import { iso } from "../domain/time";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
 import { badRequest, fail } from "./reply";
 
@@ -38,8 +38,13 @@ import { badRequest, fail } from "./reply";
  * 3. `confirmSold`: one write per counter (ticket types, occurrence, event; ≤ 5 for any order
  *    reserve accepts). Not retried: if it misses or the invocation dies, `sold` stays low and the
  *    sweeper's drift repair recomputes it from confirmed bookings, so a replay never counts twice.
- * 4. `attendees.putMany` (1), then `outbox.put` of the confirmation (1).
- * A one-ticket-type order is 5 calls; the largest is 9. A replay is 2 (query, `outbox.get`).
+ * 4. `attendees.putMany` (1), then `outbox.putMany` of the confirmation and admin notices (1).
+ * Step 2 is preceded by `settings.list` (1, T131: admin notices). A one-ticket-type order is 6 calls;
+ * the largest is 10. A replay is 2 (query, `outbox.get`).
+ * Approval (T131, R95): a booking whose event required approval settles into `awaiting_approval`
+ * instead (`settle`): no sale is counted, its places stay reserved until the deadline, and the queued
+ * rows are the buyer's "request received", the deadline's expiry notice and the admin notices
+ * (`next: { type: "approval" }`). Approval or decline is the admin's (`src/routes/approval.ts`).
  * The paid step: query, `settings.list` (shared with the step's `prepare`, which reads the licence
  * and provider key from it and may refuse before any write), `extendHold` (status + hold in one
  * write), attendees, the `hold-<ref>` re-arm: 5 calls (6 for a waiver booking awaiting payment,
@@ -73,7 +78,7 @@ export interface ContinueStorage extends CounterStorage {
 		updateIf(id: string, args: { where: Where; set?: Where }): Promise<{ applied: boolean }>;
 	};
 	attendees: { getMany(ids: string[]): Promise<Map<string, unknown>>; putMany(items: Item[]): Promise<void> };
-	outbox: { get(id: string): Promise<unknown>; put(id: string, data: unknown): Promise<void> };
+	outbox: { get(id: string): Promise<unknown>; putMany(items: Item[]): Promise<void> };
 }
 
 /** Starts the provider's checkout once the booking awaits payment until `holdExpiresAt`. */
@@ -136,8 +141,8 @@ export interface ContinueDeps {
 	newCode?: () => string;
 }
 
-/** Calls `confirm` keeps for the attendee and outbox writes after counting the sale. */
-const AFTER_SOLD_CALLS = 2;
+/** Calls `confirm` keeps for the settings read and the attendee and outbox writes after counting the sale. */
+const AFTER_SOLD_CALLS = 3;
 
 interface Checkout {
 	deps: ContinueDeps;
@@ -149,51 +154,59 @@ interface Checkout {
 	reads: number;
 }
 
-const done = (b: Pick<BookingDoc, "ref">) => ({
+/** The answer for a booking whose checkout is over: `confirmed`, or `awaiting_approval` (T131). */
+const done = (b: Pick<BookingDoc, "ref">, status: BookingStatus = "confirmed") => ({
 	ok: true as const,
 	bookingRef: b.ref,
-	status: "confirmed" as const,
-	next: { type: "done" as const, bookingRef: b.ref },
+	status,
+	next: { type: status === "confirmed" ? "done" : "approval", bookingRef: b.ref },
 });
 
 function attendeesFor(c: Checkout, b: BookingDoc, status: AttendeeStatus, attendees: Checkout["attendees"]) {
 	return planAttendees(c.id, b, attendees, { status, newCode: c.deps.newCode ?? (() => generateToken()) });
 }
 
-/** Write the attendees, then queue the confirmation (two calls). */
-async function fulfil(c: Checkout, b: BookingDoc, docs: Item[]): Promise<void> {
+/** Write the attendees, then queue the rows (two calls; the marker row goes last). */
+async function fulfil(c: Checkout, docs: Item[], rows: Item[]): Promise<void> {
 	await c.deps.storage.attendees.putMany(docs);
-	await c.deps.storage.outbox.put(confirmationOutboxId(c.id), confirmationMessage(c.id, b, c.deps.now));
+	await c.deps.storage.outbox.putMany(rows);
 }
 
 /**
- * A confirmed booking: done once its confirmation is queued. Otherwise the confirming invocation
- * died before its side effects, so write them now (with the given attendees when they still fit,
- * else the buyer's name), without counting the sale again.
+ * A booking whose checkout is over (confirmed, or awaiting approval): done once its marker row
+ * (`confirm-<id>`, `request-<id>`) is queued. Otherwise the settling invocation died before its side
+ * effects, so write them now (with the given attendees when they still fit, else the buyer's name),
+ * without counting the sale again. An approved booking only needs its confirmation.
  */
 async function finishConfirmed(c: Checkout, b: BookingDoc): Promise<unknown> {
-	if (await c.deps.storage.outbox.get(confirmationOutboxId(c.id))) return done(b);
+	const waiting = b.status === "awaiting_approval";
+	if (await c.deps.storage.outbox.get(waiting ? `request-${c.id}` : confirmationOutboxId(c.id))) {
+		return done(b, b.status);
+	}
 	let planned = attendeesFor(c, b, "valid", c.attendees);
 	if (!planned.ok) planned = attendeesFor(c, b, "valid", undefined);
-	await fulfil(c, b, planned.ok ? planned.value : []);
-	return done(b);
+	const rows = waiting
+		? settle(c.id, b, await settingsOf(c.deps), c.deps.now).outbox
+		: [{ id: confirmationOutboxId(c.id), data: confirmationMessage(c.id, b, c.deps.now) }];
+	await fulfil(c, planned.ok ? planned.value : [], rows);
+	return done(b, b.status);
 }
 
 async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknown> {
 	const { storage, now } = c.deps;
-	const { applied } = await storage.bookings.updateIf(c.id, {
-		where: heldGuard(b),
-		set: { status: "confirmed", confirmedAt: iso(now) },
-	});
+	const s = settle(c.id, b, await settingsOf(c.deps), now);
+	const { applied } = await storage.bookings.updateIf(c.id, { where: heldGuard(b), set: s.set });
 	if (!applied) {
-		// Claimed by an expirer (the hold lapsed), or confirmed by a concurrent continue.
+		// Claimed by an expirer (the hold lapsed), or settled by a concurrent continue.
 		const fresh = (await storage.bookings.get(c.id)) as BookingDoc | null;
-		return fresh?.status === "confirmed" ? finishConfirmed(c, fresh) : fail("HOLD_EXPIRED");
+		return fresh && checkoutState(fresh, now) === "confirmed" ? finishConfirmed(c, fresh) : fail("HOLD_EXPIRED");
 	}
-	const room = CONTINUE_MAX_CALLS - 2 - c.reads - AFTER_SOLD_CALLS;
-	await confirmSold(storage, countersForBooking(b).slice(0, room)).catch(() => undefined);
-	await fulfil(c, b, docs);
-	return done(b);
+	if (s.status === "confirmed") {
+		const room = CONTINUE_MAX_CALLS - 2 - c.reads - AFTER_SOLD_CALLS;
+		await confirmSold(storage, countersForBooking(b).slice(0, room)).catch(() => undefined);
+	}
+	await fulfil(c, docs, s.outbox);
+	return done(b, s.status);
 }
 
 const settingsOf = readSettings;

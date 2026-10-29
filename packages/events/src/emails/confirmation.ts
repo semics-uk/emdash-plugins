@@ -1,6 +1,7 @@
 import { isValidTimeZone, type OutboxMessage, utcOffsetMinutes, utcToZoned } from "@semics-tech/shared";
 
 import type { EventInfo } from "../domain/event-info";
+import type { BookingDoc, OutboxDoc } from "../storage/schema";
 
 /**
  * Booking emails (EV-FR-08, EV-FR-09). Bodies are built with a plain `fill`, not `renderTemplate`,
@@ -109,6 +110,38 @@ export function confirmationEmail(i: BookingEmailInput): OutboxMessage {
 
 export function cancellationEmail(i: Omit<BookingEmailInput, "bookingUrl"> & { bookingUrl?: string }): OutboxMessage {
 	return compose(i, "Booking cancelled", ["Your booking for ", " has been cancelled."], { closing: NOT_YOU });
+}
+
+/**
+ * The approval notices (T131): to the buyer (request received, declined with the admin's reason,
+ * expired) and to an admin (a new request or booking, with a link to the Bookings page: acting
+ * needs an admin session, so the mail carries no token).
+ */
+export function approvalEmail(
+	{ kind, to }: Pick<OutboxDoc, "kind" | "to">,
+	b: BookingDoc,
+	event: EventInfo,
+	siteName: string,
+	adminUrl: string,
+): OutboxMessage | null {
+	const i = { to, buyerName: b.buyer.name, bookingRef: b.ref, event, siteName };
+	if (kind === "admin_booking") {
+		const waiting = b.status === "awaiting_approval";
+		const seats = b.lines.reduce((n, l) => n + l.qty, 0);
+		return compose(
+			{ ...i, buyerName: "organiser" },
+			waiting ? "Booking request" : "New booking",
+			[`${b.buyer.name} (${b.email}) booked ${seats} for `, waiting ? ". It needs your approval." : "."],
+			{ links: [["Open Bookings", adminUrl]], closing: "" },
+		);
+	}
+	const notice: Record<string, readonly [string, string]> = {
+		approval_requested: ["Booking request received", " is waiting for approval. We will email you when it is decided."],
+		booking_declined: ["Booking declined", ` was declined${b.declineReason ? `: ${b.declineReason}` : "."}`],
+		approval_expired: ["Booking request expired", " was not approved in time, so its places were released."],
+	};
+	const n = notice[kind];
+	return n ? compose(i, n[0], ["Your booking request for ", n[1]], { closing: NOT_YOU }) : null;
 }
 
 /** A waitlist offer (T081): the claim link holds a one-time code, valid until `expiresAt` (ISO). */

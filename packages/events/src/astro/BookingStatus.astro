@@ -18,7 +18,11 @@ interface Props {
 const { booking, cancelled = false, cancelAction, ticketNames = {} } = Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, plural, lang, dir } = translator(locale);
-const [heldBefore, heldAfter] = around(t("booking.heldUntil"), "time");
+// A request awaiting approval (T131) holds its places until the organiser's deadline.
+const [heldBefore, heldAfter] = around(
+	t(booking.status === "awaiting_approval" ? "booking.decideBy" : "booking.heldUntil"),
+	"time",
+);
 const [cancelBefore, cancelAfter] = around(t("booking.cancelUntil"), "time");
 const tickets = booking.lines.reduce((n, line) => n + line.qty, 0);
 const status = cancelled ? "cancelled" : booking.status;

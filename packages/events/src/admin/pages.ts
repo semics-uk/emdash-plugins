@@ -7,12 +7,10 @@ import {
 	fieldsBlock,
 	form,
 	formatMoney,
-	fromMinor,
 	header,
 	link,
 	type NoticeInput,
 	notices,
-	numberInput,
 	select,
 	table,
 	textInput,
@@ -21,20 +19,15 @@ import {
 import { eraseBookings, type RetentionStorage } from "../cron/retention";
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
-import { type CollectionSchemas, type EventsMapping, validateMapping } from "../domain/mapping";
+import { type CollectionSchemas, type EventsMapping, LABELS, validateMapping } from "../domain/mapping";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
+import { type ApprovalDeps, approveBooking, declineBooking } from "../routes/approval";
 import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "../routes/attendees";
-import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
-import {
-	type AttendeeDoc,
-	type BookingDoc,
-	type EventConfigDoc,
-	SECRET_SETTING_KEYS,
-	type TicketTypeDoc,
-} from "../storage/schema";
-import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { EVENT_STATUS_OPTIONS, held, optionsOf, priceEdit, respond, soldMeter, str } from "./ui";
+import type { RefundStep } from "../routes/booking";
+import type { ConfigStorage } from "../routes/config";
+import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
+import { optionsOf, respond, soldMeter, str } from "./ui";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -86,6 +79,8 @@ export interface AdminDeps {
 	 * `null` when no link can be made (no pairing).
 	 */
 	signingLink?: SigningLink;
+	/** The edition's refund step, for declining a paid booking awaiting approval (Pro, T131/T132). */
+	refund?: RefundStep;
 }
 
 /** Makes the signing link for an attendee whose waiver is pending (Pro seam, `adminRoute`). */
@@ -113,11 +108,13 @@ const BOOKING_STATUSES = [
 	"held",
 	"awaiting_signature",
 	"awaiting_payment",
+	"awaiting_approval",
 	"confirmed",
 	"expired",
 	"cancelled",
 	"refunded",
 	"refunded_unavailable",
+	"declined",
 ];
 
 // --- setup ------------------------------------------------------------------------------------
@@ -157,11 +154,10 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 		header("Events setup"),
 		...notices([mapped.banner, encryption.banner, noTurnstile]),
 		fieldsBlock([
-			{ label: "Events collection", value: mapping.eventsCollection || "(not set)" },
-			{ label: "Start field", value: mapping.fieldStartsAt || "(not set)" },
-			{ label: "End field", value: mapping.fieldEndsAt || "(not set)" },
-			{ label: "Timezone field", value: mapping.fieldTimezone || "(not set)" },
-			{ label: "Venue field", value: mapping.fieldVenue || "(not set)" },
+			...(Object.keys(LABELS) as Array<keyof EventsMapping>).map((k) => ({
+				label: LABELS[k],
+				value: mapping[k] || "(not set)",
+			})),
 			{ label: "Turnstile", value: secrets.turnstileSecretKey === "unset" ? "Not set up" : "Secret key saved" },
 		]),
 		actions([link("Open plugin settings", { kind: "plugin-settings" }, { appearance: "primary" })]),
@@ -173,7 +169,12 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 function bookingRows(items: Page["items"]) {
 	return items.map(({ id, data }) => {
 		const b = data as BookingDoc;
+		const waiting = b.status === "awaiting_approval";
 		return {
+			...(waiting && {
+				approve: button("bookings.approve", "Approve", { style: "primary", value: id }),
+				decline: button("bookings.decline_ask", "Decline", { style: "danger", value: id }),
+			}),
 			ref: b.ref,
 			buyer: b.buyer?.name ?? "",
 			email: b.email,
@@ -224,6 +225,8 @@ async function bookingsPage(
 				column("total", "Total"),
 				column("event", "Event", "code"),
 				column("created", "Booked", "relative_time"),
+				column("approve", "", "element"),
+				column("decline", "", "element"),
 			],
 			rows: bookingRows(page.items),
 			pageActionId: `bookings.page:${status}`,
@@ -234,14 +237,32 @@ async function bookingsPage(
 	]);
 }
 
+// --- approval (T131) -------------------------------------------------------------------------
+
+const approvalDeps = (deps: AdminDeps) => deps as unknown as ApprovalDeps;
+
+/** Approve or decline, then the waiting bookings with the outcome (the list is one more call). */
+async function decide(deps: AdminDeps, id: string, reason?: string): Promise<AdminResponse> {
+	const out = (await (reason === undefined
+		? approveBooking(approvalDeps(deps), id)
+		: declineBooking(approvalDeps(deps), id, reason, 1))) as {
+		ok: boolean;
+		bookingRef?: string;
+		status?: string;
+		error?: { message: string };
+	};
+	const banner: NoticeInput = out.ok
+		? { severity: "info", title: `${out.bookingRef}: ${out.status}` }
+		: { severity: "error", title: "Not changed", message: out.error?.message ?? "" };
+	return bookingsPage(deps, { status: "awaiting_approval" }, notices([banner]));
+}
+
 // --- deletion on request (EV-FR-20) -----------------------------------------------------------
 
 const retentionBlocks = (extra: Block[] = []): Block[] => [
 	...extra,
 	header("Delete personal data"),
-	context(
-		"Erases the names, emails, answers and IP hashes of a booking, or of every booking of an email, with attendees and waitlist entries. Live bookings are kept; seat counts stay.",
-	),
+	context("Erases a booking's (or an email's) personal data, attendees and waitlist entries. Live bookings are kept."),
 	form({
 		fields: [textInput("target", "Booking reference or buyer email")],
 		submit: { label: "Find", actionId: "retention.preview" },
@@ -281,7 +302,7 @@ async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminR
 							value: target,
 							confirm: {
 								title: "Delete personal data?",
-								text: "Names, emails, answers and IP hashes are removed for good. Seat counts and totals stay.",
+								text: "This cannot be undone.",
 								confirm: "Delete",
 								deny: "Keep",
 								style: "danger",
@@ -305,12 +326,12 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
 		out.kept > 0 && {
 			severity: "warning",
 			title: `${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,
-			description: "A held, awaiting or confirmed booking for an event that has not happened cannot be deleted.",
+			description: "Live bookings of upcoming events are kept.",
 		},
 		!out.complete && {
 			severity: "error",
 			title: "Too many attendees to delete in one go",
-			description: "Their names and emails were erased; the bookings were not. Run the deletion again.",
+			description: "Run the deletion again to finish.",
 		},
 	].filter((b): b is NoticeInput => !!b);
 	return respond([header("Bookings"), ...notices(banners), ...retentionBlocks()]);
@@ -323,11 +344,12 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
  * mapped collection), matched by entry id. An event outside that listing, or a read that fails,
  * falls back to the title copied onto its config, then to its id.
  */
-async function eventTitles(deps: AdminDeps): Promise<Map<string, string>> {
+async function eventTitles(deps: AdminDeps): Promise<{ titles: Map<string, string>; collection: string }> {
 	const titles = new Map<string, string>();
-	if (!deps.content) return titles;
+	let collection = "events";
+	if (!deps.content) return { titles, collection };
 	try {
-		const { collection } = mappingOf(await deps.settings.list());
+		collection = mappingOf(await deps.settings.list()).collection;
 		const found = await deps.content.list(collection, { limit: 100 });
 		for (const entry of found.items) {
 			const t = entry.data?.title;
@@ -336,12 +358,16 @@ async function eventTitles(deps: AdminDeps): Promise<Map<string, string>> {
 	} catch {
 		// Titles are a convenience: the list still works with ids.
 	}
-	return titles;
+	return { titles, collection };
 }
 
+/**
+ * One page of events with a button (`actionId`) or, without one, a link to the event's entry, whose
+ * "Tickets & booking" panel edits it (R95: the separate editor page was folded into the panel).
+ */
 async function eventsList(deps: AdminDeps, title: string, actionId: string, label: string, lead?: string) {
 	const page = await deps.storage.event_configs.query({ limit: 50 });
-	const titles = await eventTitles(deps);
+	const { titles, collection } = await eventTitles(deps);
 	return respond([
 		header(title),
 		...(lead ? [context(lead)] : []),
@@ -362,7 +388,7 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 					status: c.status,
 					sold: c.sold,
 					capacity: c.capacity,
-					open: button(actionId, label, { value: id }),
+					open: actionId ? button(actionId, label, { value: id }) : link(label, { kind: "content", collection, id }),
 				};
 			}),
 			pageActionId: "events.page",
@@ -472,11 +498,9 @@ async function attendeesPage(
 
 const REFUSALS: Record<string, (r: { bookingStatus?: string; name?: string }) => string> = {
 	NOT_FOUND: () => "No attendee has that code for this event.",
-	BOOKING_NOT_CONFIRMED: (r) =>
-		`The booking is not confirmed (it is ${r.bookingStatus ?? "unknown"}), so this ticket is not valid.`,
-	WAIVER_PENDING: (r) =>
-		`${r.name ?? "This attendee"} has not signed the waiver yet. Check them in once they have signed.`,
-	ATTENDEE_NOT_VALID: () => "This ticket is not valid yet: a waiver may still be pending, or it was cancelled.",
+	BOOKING_NOT_CONFIRMED: (r) => `The booking is not confirmed (${r.bookingStatus ?? "unknown"}).`,
+	WAIVER_PENDING: (r) => `${r.name ?? "This attendee"} has not signed the waiver yet.`,
+	ATTENDEE_NOT_VALID: () => "This ticket is not valid (waiver pending, or cancelled).",
 };
 
 async function doCheckIn(
@@ -512,110 +536,6 @@ async function doCheckIn(
 	return attendeesPage(deps, eventId, { extra: [...notices([banner]), ...links] });
 }
 
-// --- event editor -----------------------------------------------------------------------------
-
-function editorForm(eventId: string, state: EventState, extra: Block[] = []): AdminResponse {
-	const config = state.config as EventConfigDoc;
-	const fields = [
-		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
-		...state.ticketTypes.flatMap(({ id, data }) => {
-			const t = data as TicketTypeDoc;
-			return [
-				numberInput(`capacity:${id}`, `${t.name}: capacity`, { initialValue: t.capacity, min: 1 }),
-				textInput(`price:${id}`, `${t.name}: price (${config.currency})`, {
-					initialValue: fromMinor(t.priceMinor, config.currency),
-				}),
-			];
-		}),
-	];
-	return respond([
-		header(`Edit event: ${eventId}`),
-		...extra,
-		context(
-			`Sold ${config.sold}, held ${held(config)}, capacity ${config.capacity}. Only the ticket types you change are written.`,
-		),
-		form({ fields, submit: { label: "Save changes", actionId: "event.save" }, blockId: `event:${eventId}` }),
-	]);
-}
-
-async function openEditor(deps: AdminDeps, eventId: string): Promise<AdminResponse> {
-	const state = await loadEventState(eventId, deps.storage);
-	if (!state.config) {
-		return respond([
-			header("Edit event"),
-			...notices([{ severity: "error", title: "Event not found", message: "This event has no booking settings yet." }]),
-		]);
-	}
-	return editorForm(eventId, state);
-}
-
-async function saveEditor(
-	deps: AdminDeps,
-	eventId: string,
-	blockId: string | undefined,
-	values: Record<string, unknown>,
-) {
-	const id = eventId || (blockId?.startsWith("event:") ? blockId.slice(6) : "");
-	if (!id) return respond(notices([{ severity: "error", title: "Choose an event first" }]));
-	const state = await loadEventState(id, deps.storage);
-	const stored = state.config;
-	if (!stored) return openEditor(deps, id);
-	const { catalog: _derived, info: _info, ...config } = stored;
-
-	// Send every ticket type (an omitted one would be deleted), but only the changed ones differ
-	// from what is stored, so `config/save` writes only those.
-	let changed = 0;
-	const status = str(values.status) || stored.status;
-	if (status !== stored.status) changed++;
-	const applied: Array<{ id: string; data: unknown }> = [];
-	const ticketTypes = state.ticketTypes.map(({ id: ttId, data }) => {
-		const t = data as TicketTypeDoc;
-		const item: Record<string, unknown> = { ...t, id: ttId };
-		const after: TicketTypeDoc = { ...t };
-		applied.push({ id: ttId, data: after });
-		const capacity = values[`capacity:${ttId}`];
-		if (capacity !== undefined && capacity !== "" && Number(capacity) !== t.capacity) {
-			item.capacity = Number(capacity);
-			after.capacity = Number(capacity);
-			changed++;
-		}
-		const edit = priceEdit(values[`price:${ttId}`], t.priceMinor, stored.currency);
-		if (edit) {
-			delete item.priceMinor;
-			item.price = edit.price;
-			if (edit.minor !== null) after.priceMinor = edit.minor;
-			changed++;
-		}
-		return item;
-	});
-	if (changed === 0) {
-		return editorForm(id, state, NOTHING_TO_SAVE());
-	}
-
-	const out = (await saveConfig(
-		deps.storage,
-		{
-			eventId: id,
-			config: { ...config, status },
-			ticketTypes,
-			occurrences: state.occurrences.map(({ id: oid, data }) => ({ ...(data as object), id: oid })),
-		},
-		deps.newId,
-		state,
-	)) as { ok: boolean; issues?: Array<{ path: string; code: string }> };
-
-	if (out.ok) {
-		// Show what was written without reading it back (a read would go over the call budget).
-		const fresh: EventState = {
-			...state,
-			config: { ...stored, status: status as EventConfigDoc["status"] },
-			ticketTypes: applied,
-		};
-		return editorForm(id, fresh, SAVED());
-	}
-	return editorForm(id, state, saveRefused(out.issues ?? []));
-}
-
 // --- dashboard widget -------------------------------------------------------------------------
 
 async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
@@ -648,7 +568,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 					"Choose an event to see its attendees and check people in.",
 				);
 			case "/events":
-				return eventsList(deps, "Events", "events.edit", "Edit", "Change capacity, prices and sales status.");
+				return eventsList(deps, "Events", "", "Edit", "Edit an event in its Tickets & booking panel.");
 			case "widget:sales":
 				return salesWidget(deps);
 			default:
@@ -674,14 +594,23 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			}
 			case "retention.preview":
 				return retentionPreview(deps, str(v.target));
-			case "event.save":
-				return saveEditor(deps, eventIdOf(v.eventId), interaction.block_id, v);
+			case "bookings.decline":
+				return decide(deps, suffix, str(v.reason, 300));
 		}
 	} else {
 		const value = interaction.value;
 		switch (action) {
 			case "bookings.page":
 				return bookingsPage(deps, { status: suffix, cursor: str(value, 500) });
+			case "bookings.approve":
+				return decide(deps, str(value));
+			case "bookings.decline_ask":
+				return bookingsPage(deps, { status: "awaiting_approval" }, [
+					form({
+						fields: [textInput("reason", "Reason for the buyer (optional)")],
+						submit: { label: `Decline ${str(value)}`, actionId: `bookings.decline:${str(value)}` },
+					}),
+				]);
 			case "attendees.open":
 				return attendeesPage(deps, eventIdOf(value));
 			case "attendees.page":
@@ -700,10 +629,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			}
 			case "retention.erase":
 				return retentionErase(deps, str(value));
-			case "events.edit":
-				return openEditor(deps, eventIdOf(value));
 			case "events.page":
-				return eventsList(deps, "Events", "events.edit", "Edit");
+				return eventsList(deps, "Events", "", "Edit");
 		}
 	}
 	return respond(notices([{ severity: "error", title: "Unknown action" }]));

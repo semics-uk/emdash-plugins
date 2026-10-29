@@ -28,7 +28,11 @@ async function world({
 	status = "held",
 	paid = false,
 	settings = [{ key: "adminNotifyEmails", value: "boss@example.com" }] as Array<{ key: string; value: unknown }>,
-}: { status?: string; paid?: boolean; settings?: Array<{ key: string; value: unknown }> } = {}) {
+}: {
+	status?: string;
+	paid?: boolean;
+	settings?: Array<{ key: string; value: unknown }>;
+} = {}) {
 	const storage = makeStore();
 	const token = generateToken();
 	const counted = { capacity: 100, reserved: 2, sold: 0 };
@@ -115,9 +119,7 @@ describe("T131 continue hands a booking that needs approval to awaiting_approval
 		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ reserved: 2, sold: 0 });
 		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 2, sold: 0 });
 		expect(w.storage.attendees.docs.size).toBe(2);
-		expect([...w.storage.outbox.docs.keys()].sort()).toEqual(
-			[`admin-${ID}-0`, `lapse-${ID}`, `request-${ID}`].sort(),
-		);
+		expect([...w.storage.outbox.docs.keys()].sort()).toEqual([`admin-${ID}-0`, `lapse-${ID}`, `request-${ID}`].sort());
 		expect(w.storage.outbox.docs.has(`confirm-${ID}`)).toBe(false);
 	});
 

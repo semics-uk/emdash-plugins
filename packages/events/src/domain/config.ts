@@ -21,6 +21,7 @@ import type {
 	SignatureMode,
 	TicketTypeDoc,
 } from "../storage/schema";
+import { APPROVAL_HOURS } from "./booking-state";
 import { parseSchedule } from "./schedule";
 
 export type ConfigIssueCode =
@@ -33,6 +34,7 @@ export type ConfigIssueCode =
 	| "INVALID_WINDOW"
 	| "INVALID_RECURRENCE"
 	| "INVALID_SCHEDULE"
+	| "INVALID_APPROVAL"
 	| "INVALID_NAME"
 	| "INVALID_QUANTITY_LIMITS"
 	| "TOO_MANY"
@@ -178,6 +180,13 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 		const schedule = parseSchedule(base.schedule);
 		if (!schedule || config.recurrence) issues.add("config.schedule", "INVALID_SCHEDULE");
 		else config.schedule = schedule;
+	}
+	// Approval (T131): { required, deadlineHours } in whole hours, 1 to 720 (default 48).
+	const ap = base.approval;
+	if (ap != null) {
+		const hours = isObj(ap) ? (ap.deadlineHours ?? APPROVAL_HOURS) : 0;
+		if (!isPositiveInt(hours) || hours > 720) issues.add("config.approval", "INVALID_APPROVAL");
+		else config.approval = { required: (ap as Obj).required === true, deadlineHours: hours };
 	}
 	if (stored?.orphaned !== undefined) config.orphaned = stored.orphaned;
 	if (stored?.unpublished !== undefined) config.unpublished = stored.unpublished;

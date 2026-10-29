@@ -40,7 +40,7 @@ import type { CronEvent, PluginContext } from "emdash/plugin";
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
-import { cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
+import { approvalEmail, cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
 
 export const OUTBOX_TASK = "outbox-drain";
 /** Every minute; a tick with nothing due costs one storage call. */
@@ -333,12 +333,36 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 	});
 }
 
+const APPROVAL_KINDS = ["approval_requested", "approval_expired", "booking_declined", "admin_booking"];
+
+/**
+ * Approval notices (T131), rendered from the booking as it is now. The expiry notice is queued for the
+ * deadline: while the request is still waiting (the sweeper has not run yet) it fails and is retried;
+ * a request decided in time sends nothing.
+ */
+async function renderApproval(d: DrainDeps, tick: Tick, doc: OutboxDoc, bookingId: string) {
+	const b = await loadBooking(d, tick, bookingId);
+	const waiting = b?.status === "awaiting_approval";
+	if (!b || (doc.kind === "approval_expired" && b.status !== "expired")) {
+		if (waiting) throw new Error("not expired yet");
+		return null;
+	}
+	return approvalEmail(
+		doc,
+		b,
+		await eventOf(d, tick, b),
+		d.siteName,
+		`${d.origin}/_emdash/admin/plugins/${encodeURIComponent(d.pluginId)}/bookings`,
+	);
+}
+
 async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxMessage | null> {
 	const bookingId = doc.payload.bookingId;
 	if (typeof bookingId !== "string") throw new Error(`no bookingId (${doc.kind})`);
 	if (doc.kind === "booking_confirmed") return renderConfirmation(d, tick, bookingId);
 	if (doc.kind === "booking_cancelled") return renderCancellation(d, tick, bookingId);
 	if (doc.kind === "waitlist_offer") return renderOffer(d, tick, bookingId);
+	if (APPROVAL_KINDS.includes(doc.kind)) return renderApproval(d, tick, doc, bookingId);
 	const custom = d.render?.[doc.kind];
 	if (custom) {
 		const booking = await loadBooking(d, tick, bookingId);

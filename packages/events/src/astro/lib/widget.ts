@@ -274,11 +274,13 @@ const STATUSES = [
 	"held",
 	"awaiting_signature",
 	"awaiting_payment",
+	"awaiting_approval",
 	"confirmed",
 	"expired",
 	"cancelled",
 	"refunded",
 	"refunded_unavailable",
+	"declined",
 ] as const;
 
 /** A booking status for people, in the locale's language; an unknown status is shown as it is. */

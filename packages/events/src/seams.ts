@@ -17,6 +17,10 @@
  *   has none and refuses to cancel a paid confirmed booking.
  * - `adminRoute({ signingLink })`: the Block Kit admin with a signing link for attendees that
  *   check-in refuses because their waiver is pending. Free refuses them without a link.
+ * - `adminRoute({ refund })` (T131): approve/decline on the Bookings page with a refund step for a
+ *   paid booking declined while awaiting approval. Free has none and refuses to decline a paid one.
+ *   Pro's payment confirm settles a paid booking with `settle` (`src/domain/booking-state.ts`) so an
+ *   event requiring approval waits for it after payment.
  * - `useErrorCodes(ERROR_CODES)`: answer every shared error code, not only Events' own (R95). Call it
  *   once at load in an edition whose steps answer other codes (receipts: the protocol's); otherwise
  *   such a code answers `INTERNAL`.
@@ -27,6 +31,7 @@ export type { WaiverAvailability, WaiverCheck } from "./admin/panel";
 export type { InputIssue } from "./domain/checkout";
 export type { ReceiptStatus, VerifiedReceipt } from "./domain/receipts";
 export { type AdminSteps, adminRoute } from "./routes/admin";
+export { approveBooking, declineBooking } from "./routes/approval";
 export { bookingCancelRoute, bookingStatusRoute, type LookupStep, type RefundStep } from "./routes/booking";
 export {
 	type ContinueSteps,

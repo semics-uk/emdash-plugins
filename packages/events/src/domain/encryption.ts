@@ -43,7 +43,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 			banner: {
 				severity: "error",
 				title: "Encryption key missing",
-				message: `Secret settings (such as the Turnstile secret key and the e-sign pairing string) cannot be saved until ${KEY} is set on the site. Set it, restart the site, then save the settings again.`,
+				message: `Secret settings cannot be saved until ${KEY} is set on the site and it is restarted.`,
 			},
 		};
 	}

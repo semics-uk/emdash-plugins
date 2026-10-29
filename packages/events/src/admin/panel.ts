@@ -22,6 +22,7 @@ import {
 	zonedToUtc,
 } from "@semics-tech/shared";
 
+import { APPROVAL_HOURS } from "../domain/booking-state";
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { scheduleOwned } from "../domain/schedule";
@@ -87,8 +88,8 @@ async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> 
 
 const WAIVER_UNAVAILABLE: Record<"edition" | "pairing" | "licence", string> = {
 	edition: "Required waivers need Events Pro and the E-sign plugin.",
-	pairing: "Paste the pairing string from the E-sign plugin into the Events settings to require waivers.",
-	licence: "Your Events Pro licence is not valid for this site, so waivers cannot be changed.",
+	pairing: "Paste the E-sign pairing string into the Events settings to require waivers.",
+	licence: "Your Events Pro licence is not valid for this site.",
 };
 
 const MODE_OPTIONS = [
@@ -252,6 +253,11 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
 		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
+		numberInput("approval", "Approve each booking within (hours, 0 = no approval)", {
+			initialValue: config.approval?.required ? config.approval.deadlineHours : 0,
+			min: 0,
+			max: 720,
+		}),
 		...(owned
 			? []
 			: [
@@ -318,9 +324,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 			: []),
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
-		context(
-			`Dates are in ${zone}; a rule adds dates from the event start, 60 days ahead, a schedule its slots (days MO to SU). Only the items you change are written. Capacity cannot go below the seats already held or sold.`,
-		),
+		context(`Dates are in ${zone}. Only the items you change are written.`),
 		form({ fields, submit: { label: "Save changes", actionId: "panel.save" }, blockId: "tickets" }),
 		...(owned ? [dayPicker()] : []),
 	]);
@@ -331,9 +335,7 @@ async function enableForm(deps: PanelDeps, extra: Block[] = []): Promise<PanelRe
 	return respond([
 		header("Tickets & booking"),
 		...extra,
-		context(
-			"This event has no booking settings yet. Enable them to sell tickets; sales stay in draft until you open them.",
-		),
+		context("Enable booking to sell tickets; sales start in draft."),
 		form({
 			fields: [
 				numberInput("capacity", "Event capacity", { initialValue: 100, min: 1 }),
@@ -389,6 +391,15 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	const recurrence = values.recurrence === undefined ? (stored.recurrence ?? "") : str(values.recurrence, 500);
 	if (recurrence !== (stored.recurrence ?? "")) changed++;
 	if (waitlistEnabled !== stored.waitlistEnabled) changed++;
+	// One field (T131): hours to decide, 0 = no approval.
+	const hours = given(values.approval)
+		? num(values.approval)
+		: stored.approval?.required
+			? stored.approval.deadlineHours
+			: 0;
+	const approval =
+		hours > 0 ? { required: true, deadlineHours: hours } : { required: false, deadlineHours: APPROVAL_HOURS };
+	if (hours !== (stored.approval?.required ? stored.approval.deadlineHours : 0)) changed++;
 	const schedule = scheduleInput(values, stored.schedule, capacity);
 	if (JSON.stringify(schedule) !== JSON.stringify(stored.schedule ?? null)) changed++;
 	const storedSignature = stored.signature ?? { required: false, mode: "each_attendee" };
@@ -490,7 +501,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		deps,
 		eventId,
 		{
-			config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule },
+			config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule, approval },
 			ticketTypes,
 			occurrences,
 		},

@@ -2,6 +2,7 @@ import { isPageLoad, withScheduleCheck } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type AdminDeps, type AdminInteraction, handleAdmin, type SigningLink } from "../admin/pages";
+import type { RefundStep } from "./booking";
 
 /**
  * The private `admin` route: every Block Kit page, widget and action of the plugin (T052). The
@@ -16,6 +17,8 @@ type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<un
 export interface AdminSteps {
 	/** The signing link shown when check-in refuses an attendee whose waiver is pending (EV-FR-12). */
 	signingLink?: (ctx: PluginContext) => SigningLink;
+	/** Refunds a paid booking declined while awaiting approval (T131/T132); pass the same to `approvalRoutes`. */
+	refund?: (ctx: PluginContext) => RefundStep;
 }
 
 /** The `admin` route with the given steps (none: the Free route). */
@@ -38,6 +41,7 @@ export function adminRoute(steps: AdminSteps = {}): RouteDef {
 				pluginId: ctx.plugin.id,
 				newId: () => crypto.randomUUID(),
 				...(steps.signingLink ? { signingLink: steps.signingLink(ctx) } : {}),
+				...(steps.refund ? { refund: steps.refund(ctx) } : {}),
 			};
 			return handleAdmin(deps, routeCtx.input as AdminInteraction);
 		}) as Handler,

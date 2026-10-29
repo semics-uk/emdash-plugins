@@ -2,6 +2,7 @@ import { generateToken, hashIp, hashToken, type TurnstileFetch } from "@semics-t
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
+import { approvalOf } from "../domain/booking-state";
 import {
 	bookingKeys,
 	parseReserveInput,
@@ -172,6 +173,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		totals: plan.value.totals,
 		answers: {},
 		...waiverOf(config),
+		...approvalOf(config, input.occurrenceId, now),
 		accessTokenHash: attempt.tokenHash,
 		ipHash,
 		createdAt: iso(now),
