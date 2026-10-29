@@ -82,6 +82,7 @@ const PAGES = [
 	"/_events/templates",
 	"/_events/check-in",
 	"/e2e/widgets",
+	"/e2e/picker",
 	"/e2e/lists?view=live",
 	"/e2e/lists?view=empty",
 	"/e2e/lists?view=card&theme=dark",

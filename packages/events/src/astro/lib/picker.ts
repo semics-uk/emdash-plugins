@@ -223,12 +223,13 @@ export function pickerView(occurrences: readonly PickerOccurrence[], opts: Picke
 		return { short: short.format(ms), long: long.format(ms) };
 	});
 
+	const focus = days.find((d) => d.open) ?? days[0];
 	return {
 		month: { key: month, label: formatter(opts.locale, "UTC", { month: "long", year: "numeric" }).format(first) },
 		weekdays,
 		weeks,
 		days,
-		...((days.find((d) => d.open) ?? days[0]) ? { focusDay: (days.find((d) => d.open) ?? days[0])?.key } : {}),
+		...(focus ? { focusDay: focus.key } : {}),
 		...(prev ? { prev } : {}),
 		...(next ? { next } : {}),
 	};

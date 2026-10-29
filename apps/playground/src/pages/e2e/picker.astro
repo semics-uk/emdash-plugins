@@ -1,0 +1,41 @@
+---
+// e2e-only page (T130): the booking widget's day-then-time picker with fixed slot-schedule data, three
+// sessions a day from tomorrow for nine days in Europe/London. Day 2's 13:00 is full, day 3 is fully booked.
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
+
+export const prerender = false;
+
+const day = new Date();
+day.setUTCHours(0, 0, 0, 0);
+const occurrences = Array.from({ length: 9 }, (_, d) =>
+	[9, 13, 18].map((hour, i) => {
+		const start = new Date(day.getTime() + (d + 1) * 864e5 + hour * 36e5);
+		const full = (d === 1 && i === 1) || d === 2;
+		return { id: `s-e2e-${d}-${i}`, startsAt: start.toISOString(), available: full ? 0 : 6 - i };
+	}),
+).flat();
+const data = {
+	eventId: "e2e-picker",
+	status: "on_sale" as const,
+	currency: "GBP",
+	timezone: "UTC",
+	slots: true,
+	ticketTypes: [{ id: "tt_e2e_lane", name: "Lane", priceMinor: 0, available: 50, maxPerOrder: 4 }],
+	occurrences,
+};
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Day and time picker</title>
+	</head>
+	<body>
+		<main>
+			<h1>Day and time picker</h1>
+			<BookingWidget event="e2e-picker" data={data} />
+		</main>
+	</body>
+</html>
