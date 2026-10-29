@@ -11,8 +11,8 @@ const ISSUE_MESSAGES: Record<string, string> = {
 	INVALID_RECURRENCE: "Use a rule such as FREQ=WEEKLY;BYDAY=MO;COUNT=10.",
 	INVALID_SCHEDULE:
 		"A schedule needs days (MO-SU), times (09:00), minutes, places, 1-90 days ahead, no RRULE or dates.",
-	INVALID_NAME: "A ticket type needs a name of up to 100 characters.",
-	INVALID_CURRENCY: "Use a three-letter currency code such as GBP.",
+	INVALID_NAME: "A ticket type needs a name (max 100).",
+	INVALID_CURRENCY: "Use a currency code such as GBP.",
 	ITEM_IN_USE: "That item has bookings and cannot be removed.",
 	UNKNOWN_ID: "An item changed meanwhile. Reload and try again.",
 	TOO_MANY: "Too many items for one event.",

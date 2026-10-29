@@ -24,8 +24,9 @@ only on the collections its manifest names, and the manifest is fixed when the p
 another collection in the settings, the panel does not appear on its entries; it appears only on entries of
 a collection called `events`.
 
-The **Event editor** admin page works for any mapping. It lists the events of the mapped collection and edits
-the same ticket types, dates and settings as the panel. Use it when your events live elsewhere.
+The **Event editor** admin page works for any mapping. It lists the events with booking settings and its
+**Edit** button opens the same Tickets & booking panel there (waivers are set on the entry's panel). Use it
+when your events live elsewhere.
 
 We checked whether the panel could follow the setting: EmDash 1.2 cannot scope a panel's collections at run
 time. The list is a static field of the manifest. Leaving it out would show the panel on every collection,
@@ -66,6 +67,20 @@ Buyers cancel from `/booking`. A confirmed booking can be cancelled until **Self
 before the start (default 24). After that the page says "This booking can no longer be cancelled online".
 Seats go back on sale and a cancellation email is sent. In Free, a paid booking cannot be cancelled online;
 Events Pro refunds it in full first.
+
+### Approving bookings
+
+Set **Approval hours** in the panel (0 turns approval off) to check each booking by hand. After any waiver
+and payment step the booking is **Awaiting approval**: its places stay reserved, the buyer gets a "request
+received" email and the booking page says by when you decide. The deadline is the approval hours after the
+booking, but never later than the start of the booked date. On the **Bookings** page, **Approve** confirms
+it and sends the usual confirmation with its calendar link; **Decline** asks for an optional reason, which
+goes in the email to the buyer, and puts the places back on sale. A request nobody decides in time expires,
+its places are released and the buyer is told. The buyer may cancel a request at any time.
+
+Admins named in **Admin notification emails** (up to 5) are emailed about requests, or about every booking
+if **Notify admins about** says so; the email links to the Bookings page, so only signed-in staff can act.
+Admin notifications work without approval too. With Events Pro, a paid booking that is declined is refunded.
 
 ## Waitlist
 

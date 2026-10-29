@@ -43,7 +43,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 			banner: {
 				severity: "error",
 				title: "Encryption key missing",
-				message: `Secret settings cannot be saved until ${KEY} is set on the site and it is restarted.`,
+				message: `Set ${KEY} on the site and restart it to save secret settings.`,
 			},
 		};
 	}

@@ -138,7 +138,7 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 	const noTurnstile: NoticeInput | false = secrets.turnstileSecretKey === "unset" && {
 		severity: "warning",
 		title: "Turnstile is not set up",
-		message: "Checkout runs without a bot check. Add the Turnstile keys in the plugin settings.",
+		message: "Checkout runs without a bot check; add the Turnstile keys.",
 	};
 
 	return respond([
@@ -149,7 +149,6 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 				label: LABELS[k],
 				value: mapping[k] || "(not set)",
 			})),
-			{ label: "Turnstile", value: secrets.turnstileSecretKey === "unset" ? "Not set up" : "Secret key saved" },
 		]),
 		actions([link("Open plugin settings", { kind: "plugin-settings" }, { appearance: "primary" })]),
 	]);
@@ -253,7 +252,7 @@ async function decide(deps: AdminDeps, id: string, reason?: string): Promise<Adm
 const retentionBlocks = (extra: Block[] = []): Block[] => [
 	...extra,
 	header("Delete personal data"),
-	context("Erases a booking's (or an email's) personal data, attendees and waitlist entries. Live bookings are kept."),
+	context("Erases a booking's or an email's personal data. Live bookings are kept."),
 	form({
 		fields: [textInput("target", "Booking reference or buyer email")],
 		submit: { label: "Find", actionId: "retention.preview" },
@@ -281,7 +280,7 @@ async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminR
 	const found = [n && `${n} booking${n === 1 ? "" : "s"}`, waitlist.length && entries(waitlist.length)].filter(Boolean);
 	const banner: NoticeInput = found.length
 		? { severity: "warning", title: `${found.join(" and ")} found for ${target}` }
-		: { severity: "info", title: "No personal data to delete for that reference or email" };
+		: { severity: "info", title: "Nothing to delete for that reference or email" };
 	return respond([
 		header("Bookings"),
 		...notices([banner]),
@@ -486,7 +485,7 @@ const REFUSALS: Record<string, (r: { bookingStatus?: string; name?: string }) =>
 	NOT_FOUND: () => "No attendee has that code for this event.",
 	BOOKING_NOT_CONFIRMED: (r) => `The booking is not confirmed (${r.bookingStatus ?? "unknown"}).`,
 	WAIVER_PENDING: (r) => `${r.name ?? "This attendee"} has not signed the waiver yet.`,
-	ATTENDEE_NOT_VALID: () => "This ticket is not valid (waiver pending, or cancelled).",
+	ATTENDEE_NOT_VALID: () => "This ticket is not valid.",
 };
 
 async function doCheckIn(
@@ -527,7 +526,7 @@ async function doCheckIn(
 /**
  * The "Tickets & booking" panel on the Event editor page, so events of any collection can be edited
  * (the manifest shows the panel only on `events` entries). Every block id names the event, so the
- * panel's own actions come back here with it (R96: this replaced the page's smaller editor).
+ * panel's own actions come back here with it (R97: this replaced the page's smaller editor).
  */
 async function panelPage(deps: AdminDeps, id: string, interaction: PanelInteraction): Promise<AdminResponse> {
 	const out = await handlePanel(deps as unknown as PanelDeps, interaction, id);
@@ -558,13 +557,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "/bookings":
 				return bookingsPage(deps, {});
 			case "/attendees":
-				return eventsList(
-					deps,
-					"Attendees",
-					"attendees.open",
-					"Open",
-					"Choose an event to see its attendees and check people in.",
-				);
+				return eventsList(deps, "Attendees", "attendees.open", "Open", "Choose an event.");
 			case "/events":
 				return eventsList(deps, "Events", "events.edit", "Edit");
 			case "widget:sales":
@@ -575,7 +568,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 	}
 
 	const [action = "", suffix = ""] = interaction.action_id.split(/:(.*)/s);
-	// The event editor page is the Tickets & booking panel (R96): its blocks carry `event:<id>:<n>`.
+	// The event editor page is the Tickets & booking panel (R97): its blocks carry `event:<id>:<n>`.
 	const panelOf = interaction.block_id?.startsWith("event:") && action.startsWith("panel.");
 	if (panelOf) return panelPage(deps, interaction.block_id?.split(":")[1] ?? "", interaction as PanelInteraction);
 	if (interaction.type === "form_submit") {
@@ -609,7 +602,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return bookingsPage(deps, { status: "awaiting_approval" }, [
 					form({
 						fields: [textInput("reason", "Reason (optional, sent to the buyer)")],
-						submit: { label: `Decline ${str(value)}`, actionId: `bookings.decline:${str(value)}` },
+						submit: { label: "Decline", actionId: `bookings.decline:${str(value)}` },
 					}),
 				]);
 			case "attendees.open":

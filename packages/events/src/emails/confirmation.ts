@@ -125,7 +125,7 @@ export function approvalEmail(
 	adminUrl: string,
 ): OutboxMessage | null {
 	const i = { to, buyerName: b.buyer.name, bookingRef: b.ref, event, siteName };
-	if (kind === "admin_booking") {
+	if (kind === "approval_admin") {
 		const waiting = b.status === "awaiting_approval";
 		const seats = b.lines.reduce((n, l) => n + l.qty, 0);
 		return compose(
@@ -136,9 +136,9 @@ export function approvalEmail(
 		);
 	}
 	const notice: Record<string, readonly [string, string]> = {
-		approval_requested: ["Booking request received", " is waiting for approval. We will email you when it is decided."],
-		booking_declined: ["Booking declined", ` was declined${b.declineReason ? `: ${b.declineReason}` : "."}`],
-		approval_expired: ["Booking request expired", " was not approved in time, so its places were released."],
+		approval_requested: ["Booking request received", " is waiting for approval; we will email you the decision."],
+		approval_declined: ["Booking declined", ` was declined${b.declineReason ? `: ${b.declineReason}` : "."}`],
+		approval_expired: ["Booking request expired", " was not approved in time."],
 	};
 	const n = notice[kind];
 	return n ? compose(i, n[0], ["Your booking request for ", n[1]], { closing: NOT_YOU }) : null;

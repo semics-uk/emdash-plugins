@@ -333,8 +333,6 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 	});
 }
 
-const APPROVAL_KINDS = ["approval_requested", "approval_expired", "booking_declined", "admin_booking"];
-
 /**
  * Approval notices (T131), rendered from the booking as it is now. The expiry notice is queued for the
  * deadline: while the request is still waiting (the sweeper has not run yet) it fails and is retried;
@@ -362,7 +360,7 @@ async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxM
 	if (doc.kind === "booking_confirmed") return renderConfirmation(d, tick, bookingId);
 	if (doc.kind === "booking_cancelled") return renderCancellation(d, tick, bookingId);
 	if (doc.kind === "waitlist_offer") return renderOffer(d, tick, bookingId);
-	if (APPROVAL_KINDS.includes(doc.kind)) return renderApproval(d, tick, doc, bookingId);
+	if (doc.kind.startsWith("approval_")) return renderApproval(d, tick, doc, bookingId);
 	const custom = d.render?.[doc.kind];
 	if (custom) {
 		const booking = await loadBooking(d, tick, bookingId);

@@ -328,14 +328,19 @@ describe("attendees page and check-in (EV-US-5)", () => {
 	});
 });
 
-describe("event editor page = the Tickets & booking panel (T044, R96)", () => {
+describe("event editor page = the Tickets & booking panel (T044, R97)", () => {
 	const blockIdOf = (blocks: unknown[], actionId: string) =>
 		(blocks as Array<{ block_id?: string }>).find((b) => JSON.stringify(b).includes(`"${actionId}"`))?.block_id ?? "";
 
-	it("R96 Edit opens the panel for that event, every block naming it, within the panel's 3 calls", async () => {
+	it("R97 Edit opens the panel for that event, every block naming it, within the panel's 3 calls", async () => {
 		const { deps } = world();
 		meter.calls = 0;
-		const out = await handleAdmin(deps, { type: "block_action", action_id: "events.edit", page: "/events", value: "ev1" });
+		const out = await handleAdmin(deps, {
+			type: "block_action",
+			action_id: "events.edit",
+			page: "/events",
+			value: "ev1",
+		});
 		const text = json(out.blocks);
 		expect(text).toContain("tt_capacity:tt_a");
 		expect(text).toContain("panel.save");
@@ -343,9 +348,14 @@ describe("event editor page = the Tickets & booking panel (T044, R96)", () => {
 		expect(meter.calls).toBeLessThanOrEqual(3);
 	});
 
-	it("R96 the panel's save comes back with the event id and writes only the change", async () => {
+	it("R97 the panel's save comes back with the event id and writes only the change", async () => {
 		const { deps, s } = world();
-		const opened = await handleAdmin(deps, { type: "block_action", action_id: "events.edit", page: "/events", value: "ev1" });
+		const opened = await handleAdmin(deps, {
+			type: "block_action",
+			action_id: "events.edit",
+			page: "/events",
+			value: "ev1",
+		});
 		const out = await handleAdmin(deps, {
 			type: "form_submit",
 			action_id: "panel.save",

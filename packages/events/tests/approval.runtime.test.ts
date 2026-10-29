@@ -2,7 +2,7 @@ import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash
 import { expectWithinBudget, withBudget } from "@semics-tech/shared/testing";
 import { afterEach, describe, expect, it } from "vitest";
 
-// Booking approval in the real sandbox (T131, R96): Approve and Decline on the Bookings page (the
+// Booking approval in the real sandbox (T131, R97): Approve and Decline on the Bookings page (the
 // private admin route's actions), validated by the host and within the bridge-call budget.
 
 let runtime: PluginRuntimeTestHost | undefined;
@@ -74,7 +74,7 @@ describe("T131 approve and decline on the private admin route", () => {
 		expect(JSON.stringify(declined.value)).toContain("REFTWO: declined");
 		const outbox = JSON.stringify(await r.inspect.storage.list("outbox"));
 		expect(outbox).toContain("booking_confirmed");
-		expect(outbox).toContain("booking_declined");
+		expect(outbox).toContain("approval_declined");
 	});
 
 	it("T131 a second approve (double click) answers ok; approving a declined booking is refused", async () => {

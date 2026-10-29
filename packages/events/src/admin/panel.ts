@@ -88,7 +88,7 @@ async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> 
 
 const WAIVER_UNAVAILABLE: Record<"edition" | "pairing" | "licence", string> = {
 	edition: "Required waivers need Events Pro and the E-sign plugin.",
-	pairing: "Paste the E-sign pairing string into the Events settings to require waivers.",
+	pairing: "Add the E-sign pairing string in the settings to require waivers.",
 	licence: "Your Events Pro licence is not valid for this site.",
 };
 
@@ -127,7 +127,7 @@ function waiverFields(config: EventConfigDoc, waivers: WaiverAvailability): Form
 	return [
 		toggle("waiver_required", "Require a signed waiver", {
 			initialValue: sig?.required === true,
-			description: "Attendees sign through the E-sign plugin before the booking is confirmed.",
+			description: "Attendees sign with E-sign before the booking is confirmed.",
 		}),
 		templates.length > 0
 			? select("waiver_template", "Waiver template (E-sign)", options, {
@@ -324,7 +324,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 			: []),
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
-		context(`Dates are in ${zone}. Only the items you change are written.`),
+		context(`Dates are in ${zone}.`),
 		form({ fields, submit: { label: "Save changes", actionId: "panel.save" }, blockId: "tickets" }),
 		...(owned ? [dayPicker()] : []),
 	]);
@@ -552,13 +552,13 @@ export async function handlePanel(
 		extra = url
 			? [
 					actions([link("Fetch the templates from E-sign", { kind: "external", url }, { appearance: "primary" })]),
-					context("The link works for five minutes. Reload this panel afterwards to pick a template."),
+					context("Reload this panel after fetching to pick a template."),
 				]
 			: notices([
 					{
 						severity: "warning",
 						title: "Could not prepare the refresh",
-						message: "Check the E-sign pairing string in the Events settings.",
+						message: "Check the E-sign pairing string.",
 					},
 				]);
 	}

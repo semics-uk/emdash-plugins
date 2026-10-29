@@ -115,6 +115,8 @@ Both plugins list `challenges.cloudflare.com` as their only outside host.
 | Licence key, Stripe secret key, Stripe webhook signing secret (Pro) | none | Used only by Events Pro; Free ignores them |
 | Keep booking data (days) | 365 (at least 30) | Personal data of past events is erased after this ([Data and retention](privacy.md)) |
 | Email sender name | site name | Name on booking emails |
+| Admin notification emails | none | Up to 5 addresses told about bookings ([Approving bookings](events.md#approving-bookings)) |
+| Notify admins about | booking requests | Requests that need approval, all bookings, or nothing |
 
 ## E-sign settings
 

@@ -200,7 +200,7 @@ export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<un
 /**
  * Cancel `b` (the buyer), or decline it (an admin, T131: only while `awaiting_approval`; `reason` is
  * stored on it for the email). Both claim, refund a paid booking through the edition's step, release
- * the places and queue the notice (`cancel-<id>`, or `decline-<id>` of kind `booking_declined`).
+ * the places and queue the notice (`cancel-<id>`, or `decline-<id>` of kind `approval_declined`).
  * `used`: bridge calls the caller already made beyond the booking read.
  */
 export async function closeBooking(
@@ -267,7 +267,7 @@ export async function closeBooking(
 	});
 	if (!moved.applied) return fail("INTERNAL");
 	// A declined buyer is told it was declined (a refund's own notice kind is for cancels, T075).
-	const kind = decline ? "booking_declined" : (mail?.kind ?? "booking_cancelled");
+	const kind = decline ? "approval_declined" : (mail?.kind ?? "booking_cancelled");
 	const notice = outboxRow(kind, id, b, claim);
 	Object.assign(notice.payload, mail?.payload);
 	await storage.outbox.put(`${decline ? "decline" : "cancel"}-${id}`, notice);

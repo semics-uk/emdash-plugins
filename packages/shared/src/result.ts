@@ -49,7 +49,7 @@ function table<
 	return Object.freeze(out) as never;
 }
 
-// The registry is built from groups so a core bundles only the groups it answers with (R96).
+// The registry is built from groups so a core bundles only the groups it answers with (R97).
 const COMMON_ERRORS = {
 	// --- common ---
 	BAD_REQUEST: [400, "The request was not valid."],
@@ -134,7 +134,7 @@ export const ERROR_CODES = /* @__PURE__ */ table(
 export type ErrorCode = keyof typeof ERROR_CODES;
 
 /**
- * The codes an Events core answers with itself (R96): common, events, payments and licence (Pro steps
+ * The codes an Events core answers with itself (R97): common, events, payments and licence (Pro steps
  * refuse through Free routes), plus the protocol's `TOKEN_INVALID`/`TOKEN_EXPIRED` (calendar links)
  * and `REF_UNKNOWN` (receipts). The e-sign and other protocol messages stay out of its bundle; an edition that answers them too passes
  * `ERROR_CODES` to the core's `useErrorCodes`.
@@ -168,7 +168,7 @@ export type ErrorTable = Readonly<Partial<Record<ErrorCode, ErrorDef>>>;
 
 /**
  * `toRouteError` over `table`: a code the table lacks is `INTERNAL` (which every table has). A core
- * that bundles a subset calls this instead of `toRouteError`, so the full registry stays out (R96).
+ * that bundles a subset calls this instead of `toRouteError`, so the full registry stays out (R97).
  */
 export function routeErrorFrom(table: ErrorTable, error: unknown): RouteError {
 	const raw = extractCode(error);

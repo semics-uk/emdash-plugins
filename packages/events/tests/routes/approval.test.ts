@@ -8,7 +8,7 @@ import { BOOKING_MAX_CALLS, type BookingRouteStorage, cancelBooking, type Refund
 import { CONTINUE_MAX_CALLS, type ContinueStorage, continueCheckout } from "../../src/routes/checkout-continue";
 import { makeStore, meter } from "../domain/fake-storage";
 
-// Booking approval (T131, R96) with injected time and storage: continue hands a booking that needs
+// Booking approval (T131, R97) with injected time and storage: continue hands a booking that needs
 // approval to `awaiting_approval` (places stay reserved), the admin approves or declines it, the
 // sweeper expires it at the deadline, the buyer may withdraw it, and the outbox tells everyone.
 
@@ -189,7 +189,7 @@ describe("T131 decline", () => {
 		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ reserved: 0, sold: 0 });
 		expect(w.counter("event_configs", "ev1")).toMatchObject({ reserved: 0 });
 		expect(w.storage.outbox.docs.get(`decline-${ID}`)).toMatchObject({
-			kind: "booking_declined",
+			kind: "approval_declined",
 			to: "ada@example.com",
 			payload: { bookingId: ID, bookingRef: REF },
 		});
@@ -229,7 +229,7 @@ describe("T131 decline", () => {
 		expect(seen).toEqual(["awaiting_approval"]);
 		// The buyer is told it was declined (and refunded), not that they cancelled.
 		expect(w.storage.outbox.docs.get(`decline-${ID}`)).toMatchObject({
-			kind: "booking_declined",
+			kind: "approval_declined",
 			payload: { refundedMinor: 500 },
 		});
 	});

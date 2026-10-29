@@ -13,7 +13,7 @@ import { validateConfigInput } from "../../src/domain/config";
 import { expiryAction } from "../../src/domain/holds";
 import type { BookingDoc, BookingStatus, EventConfigDoc } from "../../src/storage/schema";
 
-// Booking approval (T131, R96): the state graph, the deadline, and what a booking settles into once
+// Booking approval (T131, R97): the state graph, the deadline, and what a booking settles into once
 // its checkout steps are done. Pure: time is passed in.
 
 const HOUR = 3_600_000;
@@ -154,8 +154,8 @@ describe("T131 settle: where a booking goes once its steps are done", () => {
 		expect(s.outbox.map((r) => r.id)).toEqual([`confirm-${ID}`]);
 		const all = settle(ID, booking(), settings("all"), T0);
 		expect(all.outbox.map((r) => [r.id, r.data.kind, r.data.to])).toEqual([
-			[`admin-${ID}-0`, "admin_booking", "boss@example.com"],
-			[`admin-${ID}-1`, "admin_booking", "desk@example.com"],
+			[`admin-${ID}-0`, "approval_admin", "boss@example.com"],
+			[`admin-${ID}-1`, "approval_admin", "desk@example.com"],
 			[`confirm-${ID}`, "booking_confirmed", "ada@example.com"],
 		]);
 	});
@@ -167,8 +167,8 @@ describe("T131 settle: where a booking goes once its steps are done", () => {
 			set: { status: "awaiting_approval", holdExpiresAt: at(48) },
 		});
 		expect(s.outbox.map((r) => [r.id, r.data.kind, r.data.to, r.data.nextAttemptAt])).toEqual([
-			[`admin-${ID}-0`, "admin_booking", "boss@example.com", at(0)],
-			[`admin-${ID}-1`, "admin_booking", "desk@example.com", at(0)],
+			[`admin-${ID}-0`, "approval_admin", "boss@example.com", at(0)],
+			[`admin-${ID}-1`, "approval_admin", "desk@example.com", at(0)],
 			[`request-${ID}`, "approval_requested", "ada@example.com", at(0)],
 			// The expiry notice is due at the deadline and is sent only if the request lapsed.
 			[`lapse-${ID}`, "approval_expired", "ada@example.com", at(48)],

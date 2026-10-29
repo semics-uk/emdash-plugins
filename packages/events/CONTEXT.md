@@ -194,6 +194,21 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   (`sc_*`) and, for a schedule-owned event, **Show day** (`panel.day`, `panel.day.save`, `src/admin/schedule.ts`): overrides per
   slot (`sl_open:<id>`, `sl_places:<id>`) or `day_all`, <= 5 a save, <= 8 calls. Slots past a week leave the catalog.
   `public/event` asks for `startsAt >= now`. T131 (approval) builds in other files; keep schedule code in these modules.
+- Booking approval (T131, R97): `config.approval: { required, deadlineHours }` (1-720, default 48; panel field "Approval hours",
+  0 = off). Reserve and waitlist offers copy `approval: { until }` onto the booking (`approvalOf`: earlier of now + hours and the
+  date's start). When the checkout steps are done, `settle` (`src/domain/booking-state.ts`) decides: `awaiting_approval` (a hold
+  state; `holdExpiresAt` = `until`, no sale counted, sweeper expires it like any hold, buyer may cancel it) or `confirmed`, and
+  returns the outbox rows (`request-<id>`, `lapse-<id>` due at the deadline and sent only if `expired`, `admin-<id>-<n>` per
+  `adminNotifyEmails` per `notifyAdminOn`; kinds `approval_*`). Continue costs +1 call (settings) and answers
+  `next: { type: "approval" }`; `checkoutState` treats `awaiting_approval` as `confirmed` (checkout over). Approve/Decline are the
+  admin route's `bookings.approve` / `bookings.decline:<id>` (`src/routes/approval.ts`): approve guarded on `heldGuard`, then
+  `confirmSold` + the usual confirmation; decline = `closeBooking` (cancel protocol, `declined`, `declineReason`, paid only with
+  `AdminSteps.refund`). Pro's payment confirm must call `settle` (T132). New statuses `awaiting_approval`, `declined` are in the UI
+  status lists and i18n; the booking page shows "decide by".
+- Error codes (R97): routes answer through `fail`/`routeError` (`src/routes/reply.ts`) over `EVENTS_ERROR_CODES`; never import
+  `toRouteError` in the core (it pulls the whole registry). An edition needing the e-sign/protocol messages calls `useErrorCodes`.
+- Event editor admin page (R97): "Edit" renders the Tickets & booking panel (`panelPage` in `src/admin/pages.ts`); every block id
+  is `event:<id>:<n>` and `panel.*` actions with such a block id are forwarded to `handlePanel`. No waiver step there (Pro: entry panel).
 - Day-then-time picker (T130, R96): `public/event` takes `from` (ISO; only a later string than now counts) and answers up to
   200 upcoming open dates (two cursor pages of 100: 5 calls past 100), `more: true` past that, `slots: true` for a schedule.
   `<BookingWidget>` uses the picker when `slots` or two starts share a local day (`usesPicker`); all logic is UI-side
@@ -261,7 +276,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 125 KiB (`EVENTS_BUNDLE_BUDGET`, R94: 124.1 after T129's slot
-  schedules, 124.6 after T130's picker paging; R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
+  schedules, 124.6 after T130's picker paging, 124.8 after T131's approval (R97: own error table, editor page = panel); R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
   registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,

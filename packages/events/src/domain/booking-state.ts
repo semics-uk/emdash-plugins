@@ -8,7 +8,7 @@
  *             └───────────────┴──── (steps skipped when not required) ──┘          └──► declined / expired / cancelled
  * ```
  * `refunded_unavailable` is a payment that arrived after its hold had lapsed and was refunded.
- * `awaiting_approval` (T131, R96) comes after every checkout step when the event requires approval:
+ * `awaiting_approval` (T131, R97) comes after every checkout step when the event requires approval:
  * a hold state whose `holdExpiresAt` is the approval deadline, so the sweeper expires it like a hold.
  */
 import { err, ok, type Result } from "@semics-tech/shared";
@@ -222,7 +222,7 @@ export interface Settled {
 }
 
 /**
- * Where a booking goes once its checkout steps (signatures, payment) are done (T131, R96): with a
+ * Where a booking goes once its checkout steps (signatures, payment) are done (T131, R97): with a
  * copied `approval` it waits in `awaiting_approval` until the deadline (places stay reserved; the
  * buyer is told the request arrived, and an expiry notice is queued for the deadline, which the drain
  * sends only if the request lapsed), else it is `confirmed` (the caller counts the sale). Admins in
@@ -235,7 +235,7 @@ export function settle(id: string, b: BookingDoc, settings: Record<string, unkno
 	const until = b.approval?.until;
 	const outbox = (
 		notify === "all" || (until && notify === "requests") ? adminRecipients(settings.adminNotifyEmails) : []
-	).map((to, n) => ({ id: `admin-${id}-${n}`, data: outboxRow("admin_booking", id, b, at, to) }));
+	).map((to, n) => ({ id: `admin-${id}-${n}`, data: outboxRow("approval_admin", id, b, at, to) }));
 	if (until) {
 		outbox.push(
 			{ id: `request-${id}`, data: outboxRow("approval_requested", id, b, at) },
