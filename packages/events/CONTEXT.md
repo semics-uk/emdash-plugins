@@ -183,6 +183,17 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   of room) or the missing dates are created (ids `r-<eventId>-<start base36>`, entry length, event capacity). Booked
   dates are never moved or deleted. <= 8 calls. The panel has a "Repeats (RRULE)" text field; clearing the rule keeps
   the dates already made.
+- Slot schedules (T129, EV-FR-17, R94): `config.schedule` (`days` MO..SU, `times` HH:MM, `durationMinutes`, `capacity`,
+  `bookAheadDays` <= 90, `closedDates`; `src/domain/schedule.ts`: `parseSchedule`, `slotStarts`, `planSlots`), never with a
+  `recurrence` or dates of its own (`INVALID_SCHEDULE`). Slots are occurrences `s-<eventId>-<start base36>`. A schedule-owned
+  event (`scheduleOwned`: a schedule, or `s-` slots) keeps its occurrences out of `saveConfig`: the save carries the stored
+  catalog entries over and bumps `slotsRev`. The `occurrences` tick runs `scheduleStep` (`src/cron/schedule.ts`) for one
+  event: `getMany` of the named slots, `putMany` of up to 50 new ones (existing documents are relisted, never rewritten),
+  `deleteMany` of `unlisted` slots past the grace period, catalog write guarded on `slotsRev` (<= 6 calls). Booked slots the
+  schedule dropped go to `kept`. `slotsRev`, `unlisted`, `kept` are managed fields (`MANAGED_FIELDS`). Panel: Schedule fields
+  (`sc_*`) and, for a schedule-owned event, **Show day** (`panel.day`, `panel.day.save`, `src/admin/schedule.ts`): overrides per
+  slot (`sl_open:<id>`, `sl_places:<id>`) or `day_all`, <= 5 a save, <= 8 calls. Slots past a week leave the catalog.
+  `public/event` asks for `startsAt >= now`. T131 (approval) builds in other files; keep schedule code in these modules.
 - Payment return (T077, EU-FR-09): Pro's Stripe step sets success and cancel URL to the same `/booking?ref=`, with no `session_id`, so
   the page never reads any query parameter for state. `src/astro/lib/payment.ts` (`paymentView`, `isPayUrl`) maps the core's status
   to a `<PaymentReturn>` section (`pending` = `awaiting_payment`: held, webhook maybe late; `confirmed`, `expired`, `cancelled`,
@@ -239,7 +250,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   routes are unchanged and the Free backend gained nothing; a Free route a tool reuses is part of the tool's contract.
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
-- Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 116 KiB (R51; 115.9 after T084's recurring events, 110.9 before them) (`tests/bundle-size.build.test.ts`; the
+- Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 125 KiB (`EVENTS_BUNDLE_BUDGET`, R94: 124.1 after T129's slot
+  schedules; R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
   registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,

@@ -94,6 +94,27 @@ entry's start, in the entry's time zone, and keeps that local time across clock 
 
 You can also add single dates by hand in the panel.
 
+## Slot schedules
+
+For sessions sold in fixed slots (a class, a studio, a range lane), fill in the panel's **Schedule** fields
+instead of a rule: the days (`MO` to `SU`), the start times (`09:00, 10:30`), the minutes per slot, the places
+per slot, how many days ahead people can book (1 to 90, default 56) and any closed dates (`2026-12-25`).
+Times are local to the entry's time zone. A slot time that does not exist on a clock-change day is skipped;
+one that happens twice takes the first.
+
+- A job every 10 minutes keeps every slot inside the book-ahead window, 50 slots a run (a new schedule of
+  six slots a day for 90 days is complete in under two hours), at most 600 slots ahead.
+- An event has a schedule or a rule, never both, and no dates of its own: remove its dates before adding a
+  schedule. Clearing the schedule keeps the slots already made.
+- Changing the schedule never moves or deletes a booked slot. Unbooked slots that no longer fit (other days or
+  times, a closed date, fewer days ahead) leave sale at once and are deleted about ten minutes later. New places
+  and lengths apply to slots made afterwards; change an existing slot in the day view.
+- **Show day** opens one day's slots: switch a slot off to close it, switch it on to reopen it, change its places,
+  or close or reopen the whole day. The schedule keeps these changes. A slot with seats held or sold cannot be
+  closed: the panel lists its bookings instead. One save changes up to five slots; save again for the rest.
+- Slots show on the booking page like dates (the next 50). Ticket types, the event capacity and the waitlist work
+  as for any dated event.
+
 ## Emails
 
 Events sends confirmation, cancellation and waitlist-offer emails (Pro adds reminders, updates and refund

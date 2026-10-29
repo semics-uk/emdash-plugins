@@ -2,7 +2,8 @@
 
 Event bookings and ticketing for [EmDash CMS](https://emdashcms.com): events from your own collection,
 ticket types, capacity, holds, a booking page, confirmation emails, calendar files, a waitlist, recurring
-events and check-in. MIT licensed.
+events, slot schedules (several bookable time slots a day from one schedule, with a day view to close, reopen
+or re-size slots) and check-in. MIT licensed.
 
 The package holds the sandboxed core `semics-events` (its default export) and the UI kit (`/ui`,
 `/integration`, and the Astro components under `/astro/*.astro`).
