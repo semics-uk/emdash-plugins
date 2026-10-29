@@ -269,6 +269,13 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   page renders theirs into `data-messages` (check-in: `checkin.` + `status.`), `data-free`, `data-message`. New UI text goes in
   `en.ts` and every other table (`scripts/i18n-strings.test.mjs` fails on text in a component, helper or script, and on CSS
   `left`/`right`). The core never gets message tables (R51). How to add a language: `docs/i18n.md`.
+- Attendee signing list (T133, R95; the routes are Events Pro's): when `public/booking` carries `signingList` (Pro adds it, and
+  per attendee `seat`, `signing`, `signs`, `email`/`minor`), `BookingPage` renders `<AttendeeList>` (rows from `signingRows` in
+  `src/astro/lib/attendees.ts`). Its forms post back to `/booking` (`intent=sign-now|resend|attendees`, fields `seat`, `name:<seat>`,
+  `email:<seat>`); `handleAttendeeAction` calls Pro's `public/booking/attendees/sign|resend` or `public/booking/attendees` with the
+  cookie's token and redeems the minted intents with e-sign (`esignPluginId`): Sign now through `startDoorSigning` (→ `/sign/<token>`),
+  the rest in order (`replace` before the new invitation). Outcomes are `?attendees=saved|resent` or `?error=<CODE>`, never typed
+  values. Free sends no list. The Free backend gained nothing.
 ## Where things live
 
 `src/domain` pure logic (90% line coverage) · `src/routes` thin adapters · `src/storage/schema.ts`

@@ -57,6 +57,22 @@ ran, opening `/booking` again catches up with the signatures E-sign already hold
 
 If E-sign cannot start a signature, the waiver page shows a **Try again** button; the seats stay held.
 
+## The attendee list on the booking page
+
+With Events Pro, `/booking` lists every attendee of a waiver booking as **Signed** or **Waiting**:
+
+- **Sign now on this device** opens that attendee's signing right there, for a shared phone or a front-desk
+  tablet. An adult signs for themselves; an attendee under 18 is signed by the buyer as guardian.
+- **Resend invitation** (adults invited by email) emails their signing link again, with a fresh link. Each
+  attendee can be sent it again up to 3 times, at most once every 10 minutes.
+- **Change attendee details** corrects the names and emails of attendees who have not signed, until
+  `attendeeEditCutoffHours` (Events Pro setting, default 24) before the event or date starts. The number of
+  seats cannot change, a signed attendee cannot be changed, and each attendee can be changed up to 3 times.
+  When an invited adult's details change, their old signing request is withdrawn and the corrected person
+  gets a new one.
+
+Every button works without JavaScript. Staff check-in and the door signing link stay as the backstop.
+
 ## Security
 
 - Signing tokens never appear in a URL. They are kept in an HttpOnly, SameSite=Strict cookie limited to the
@@ -64,8 +80,9 @@ If E-sign cannot start a signature, the waiver page shows a **Try again** button
 - `/_events/waiver` sends E-sign's ceremony Content-Security-Policy, `Referrer-Policy: no-referrer` and
   `Cache-Control: no-store`.
 - Names and emails with control characters are refused before anything is booked.
-- Once invitations are out, the attendees of a booking cannot be changed. A resent invitation goes to the
-  same person.
+- Once invitations are out, the attendees of a booking can only be changed from the booking page's
+  attendee list, before the cutoff, and never once they have signed. A resent invitation goes to the same
+  person; a changed one first withdraws the old request. Still at most 10 adults per booking are emailed.
 
 ## Limits
 

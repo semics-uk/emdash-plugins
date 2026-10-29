@@ -80,4 +80,9 @@ scoped to that page.
 Paid waiver events: when continue answers with a payment step, the browser goes to the
 provider's checkout.
 
+After booking (Events Pro), `/booking` lists every attendee as Signed or Waiting, with **Sign now**
+(that attendee signs on this device), **Resend invitation** for emailed adults, and a form to correct the
+names and emails of attendees who have not signed until `attendeeEditCutoffHours` before the start. It
+needs the integration's `esignPluginId`, which `eventsSuite()` sets.
+
 The suite's own pages are English only for now.

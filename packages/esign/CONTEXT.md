@@ -224,6 +224,13 @@ adds `pagesLabel`. The inlined scripts hold no text: `ceremony.js` reads the roo
 slot's (`pad.`, plurals by `Intl.PluralRules`), `verify.js` the file input's (`verify.`). The CSP hashes follow the files, so
 nothing else changes when a script does. Consent wording is the site's setting, not a message. See `docs/i18n.md`.
 
+Resend and replace intents (T133, R95; protocol §5.1, §8.1). `from-intent` reads two optional fields: `resend: true` on an email
+intent whose `(cid, ref)` envelope is open, emailed and awaits that signer rotates the signer's token and queues the invitation again
+(`invite-<signerId>` overwritten; answer adds `resent: true`; 8 calls); `replace: true` (handled right after verification, before the
+template read: 7 calls) voids the open envelope unless it names exactly that signer (name too) or is completed, audits
+`envelope.voided` with actor `integration`, answers `status: "voided"` (or `"none"` without an envelope) and never creates one or
+hands out a token. Events Pro sends them from the booking page's attendee list.
+
 Security review (T100, R61, R62, `tasks/reviews/security.md`): the retention pass starts with phase `rl`, sweeping ended
 rate-limit counters (the ceremony and verify limiters' hashed IPs; 3 a tick). `from-intent` stays without a rate limit
 (malformed 0 calls, unknown `cid` 2, tested). `src/astro/lib/markdown.ts` must import nothing (the core imports it for the

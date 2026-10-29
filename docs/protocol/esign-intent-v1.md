@@ -142,6 +142,12 @@ Issued by Events for one signature, redeemed by e-sign at `public/envelopes/from
 | `delivery` | no | string | `"inline"` (default): the signer is present and signs now. `"email"`: e-sign emails the signer a signing link |
 | `prefill` | yes | object | ≤ 32 members; keys `^[A-Za-z0-9_]{1,64}$`; values strings of ≤ 500 code points. May be `{}` |
 | `returnUrl` | yes | string | ≤ 2048 characters (else `PAYLOAD_INVALID`); then the rules in §7 |
+| `resend` | no | boolean | `true`: email the open envelope's invitation again (§8.1). Other values mean absent |
+| `replace` | no | boolean | `true`: void the open envelope unless it names this signer; never create one (§8.1). Other values mean absent |
+
+`resend` and `replace` were added after the first release of this version (T133). They are unknown fields to
+an older e-sign, which ignores them (§5): a `resend` intent then reuses the envelope without an invitation and a
+`replace` intent is handled as an ordinary one. Neither is in the vectors, which cover verification only.
 
 **Issuer rules (Events, R5).** These are Events obligations; e-sign cannot check them.
 
@@ -158,7 +164,10 @@ Issued by Events for one signature, redeemed by e-sign at `public/envelopes/from
 - E-sign emails every `delivery: "email"` signer from the site, so an issuer bounds them (R48): Events
   sends email intents only to the address the buyer entered for that seat, at most 10 per booking,
   and never changes a seat's signer once its intents are out (a re-issued intent names the same
-  person, so it reuses the open envelope and sends no second invitation).
+  person, so it reuses the open envelope and sends no second invitation). The one exception (T133, R95):
+  the buyer may correct an unsigned seat's attendee from the booking page until a cutoff before the start;
+  Events then sends a `replace` intent for the seat before the corrected person's intent, still to at most
+  10 emailed adults, and bounds both corrections and `resend` intents per seat.
 
 `exp` bounds only when the intent can be redeemed. The envelope it creates has its own expiry
 (e-sign setting), which for `delivery: "email"` is usually days.
@@ -307,6 +316,20 @@ must name its signer (same `signer.email`, compared lowercased, the same `as` an
 the same `participant.name`). Then the token is rotated, so an earlier one, including an emailed
 signing link, stops working; any other intent gets the envelope without a token. The caller renders
 the ceremony in-process with it (`<SigningCeremony token>`). For `delivery: "email"`, e-sign emails the signer.
+
+**Resend** (`resend: true`, T133). For `delivery: "email"` while the existing envelope is `sent` or
+`in_progress`, was delivered by email and awaits the signer the intent names (as above), e-sign rotates the
+signer's token (the earlier link stops working) and queues the invitation again with the new link; the
+response adds `"resent": true`. Otherwise the intent is handled as without the field. Issuers bound how often
+they send it.
+
+**Replace** (`replace: true`, T133). e-sign looks up the `(cid, ref)` envelope that is not declined, voided or
+expired. If there is none, the response is `{ "ok": true, "status": "none" }`. If it is `completed`, or names
+exactly this signer (same `signer.name` after trimming, `signer.email` lowercased, `as` and
+`participant.name`), it is returned unchanged. Otherwise it is voided (an `envelope.voided` audit event by the
+integration) and returned with `status: "voided"`. A `replace` intent never creates an envelope and never
+carries a `signingToken`; the issuer's next ordinary intent for the ref starts the next envelope, as after any
+voided one.
 
 `status` is usually `"sent"`. For `delivery: "email"` it MAY be `"draft"`: e-sign has accepted the
 intent and the invitation is on its way (a retry after a terminal envelope is finished by a one-shot

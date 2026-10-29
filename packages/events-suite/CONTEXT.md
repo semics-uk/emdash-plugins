@@ -48,6 +48,11 @@ bundles nothing new into the cores; it calls them through their public routes in
    attendee rows then; otherwise a ticket select and quantity (`plain=1`, `readWaiverForm` → `attendees: []`,
    continue is sent without `attendees`).
 
+5. After booking (T133, R95): the attendee signing list (Signed / Waiting, Sign now, Resend, edits until the cutoff) lives on
+   Events' `/booking` page (`src/astro/lib/attendees.ts` in the Events package), not here: it needs only `esignPluginId`, which
+   `eventsSuite()` passes to `eventsIntegration`. Sign now goes through Events' `startDoorSigning` to e-sign's `/sign/<token>`, not
+   through `/_events/waiver`; its receipt comes back on `/booking` like the door link's.
+
 ## Reconciliation and catalogue (T066)
 
 - `lib/reconcile.ts` `reconcileBooking`: run by Events' `/booking` page (through the virtual module's `reconcile`,
