@@ -4,7 +4,7 @@ title: "Events: day-then-time picker on the booking form"
 phase: 7
 package: events
 edition: free
-status: ready
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T129]

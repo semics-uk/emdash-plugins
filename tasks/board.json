@@ -2611,7 +2611,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "ready",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2619,7 +2619,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T131": {
 			"file": "T131-booking-approval-and-admin-notifications.md",
@@ -2678,10 +2678,10 @@
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T130",
 			"T132"
 		],
 		"in-progress": [
+			"T130",
 			"T131"
 		],
 		"review": [],
