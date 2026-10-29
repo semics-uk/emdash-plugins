@@ -2664,7 +2664,7 @@
 			"phase": 7,
 			"package": "suite",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [],
@@ -2672,7 +2672,7 @@
 				"R48"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -2682,8 +2682,7 @@
 			"T132"
 		],
 		"in-progress": [
-			"T131",
-			"T133"
+			"T131"
 		],
 		"review": [],
 		"done": [
@@ -2795,7 +2794,8 @@
 			"T125",
 			"T126",
 			"T127",
-			"T129"
+			"T129",
+			"T133"
 		],
 		"blocked": [
 			"T111",
