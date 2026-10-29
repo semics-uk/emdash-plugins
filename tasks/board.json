@@ -2113,7 +2113,8 @@
 				"Management plan: Marketing"
 			],
 			"unblocks": [
-				"T106"
+				"T106",
+				"T124"
 			],
 			"column": "done"
 		},
@@ -2181,7 +2182,12 @@
 			"spec": [
 				"Phase 7 exit"
 			],
-			"unblocks": [],
+			"unblocks": [
+				"T121",
+				"T123",
+				"T125",
+				"T128"
+			],
 			"column": "done"
 		},
 		"T110": {
@@ -2400,12 +2406,286 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T121": {
+			"file": "T121-pro-ships-public-with-licence-key.md",
+			"id": "T121",
+			"title": "Pro ships as public npm packages, unlocked by the licence key",
+			"phase": 6,
+			"package": "suite",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T106"
+			],
+			"spec": [
+				"R67",
+				"R84",
+				"R85"
+			],
+			"unblocks": [
+				"T122",
+				"T123",
+				"T124"
+			],
+			"column": "done"
+		},
+		"T122": {
+			"file": "T122-real-publisher-did-and-cloudflare-licence-mail.md",
+			"id": "T122",
+			"title": "Real publisher DID and domain; licence email through Cloudflare Email Service",
+			"phase": 6,
+			"package": "suite",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T121"
+			],
+			"spec": [
+				"R21",
+				"R86",
+				"R87"
+			],
+			"unblocks": [
+				"T123"
+			],
+			"column": "done"
+		},
+		"T123": {
+			"file": "T123-ci-green-on-semics-uk.md",
+			"id": "T123",
+			"title": "CI and Release green on the semics-uk repos",
+			"phase": 6,
+			"package": "suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T106",
+				"T121",
+				"T122"
+			],
+			"spec": [
+				"R64",
+				"R84"
+			],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T124": {
+			"file": "T124-product-site-plugins-semics-co-uk.md",
+			"id": "T124",
+			"title": "Product site at plugins.semics.co.uk (pricing, terms, privacy, refunds)",
+			"phase": 6,
+			"package": "suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T103",
+				"T121"
+			],
+			"spec": [
+				"R88"
+			],
+			"unblocks": [
+				"T126"
+			],
+			"column": "done"
+		},
+		"T125": {
+			"file": "T125-cpu-budget-under-coverage.md",
+			"id": "T125",
+			"title": "CI: CPU budget checks and coverage",
+			"phase": 6,
+			"package": "esign",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T106"
+			],
+			"spec": [
+				"R53",
+				"R64"
+			],
+			"unblocks": [
+				"T127"
+			],
+			"column": "done"
+		},
+		"T126": {
+			"file": "T126-site-and-licence-fixes-from-the-legal-research.md",
+			"id": "T126",
+			"title": "Site and Pro licence fixes from the legal research (question 17)",
+			"phase": 6,
+			"package": "suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T124"
+			],
+			"spec": [
+				"R88",
+				"R89",
+				"R90",
+				"R91"
+			],
+			"unblocks": [
+				"T128"
+			],
+			"column": "done"
+		},
+		"T127": {
+			"file": "T127-pro-uploaded-pdf-cpu-on-ci.md",
+			"id": "T127",
+			"title": "E-sign Pro: near-limit uploaded PDF inside the CPU budget on CI",
+			"phase": 6,
+			"package": "esign",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T125"
+			],
+			"spec": [
+				"R53",
+				"R92"
+			],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T128": {
+			"file": "T128-issue-a-licence-key-without-a-sale.md",
+			"id": "T128",
+			"title": "Licence Worker: owner issues a key without a sale",
+			"phase": 6,
+			"package": "suite",
+			"edition": "pro",
+			"status": "blocked",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T106",
+				"T126"
+			],
+			"spec": [
+				"R93"
+			],
+			"unblocks": [],
+			"column": "blocked"
+		},
+		"T129": {
+			"file": "T129-slot-schedules.md",
+			"id": "T129",
+			"title": "Events: slot schedules (several bookable time slots a day)",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [],
+			"spec": [
+				"EV-FR-17"
+			],
+			"unblocks": [
+				"T130"
+			],
+			"column": "in-progress"
+		},
+		"T130": {
+			"file": "T130-day-and-time-picker.md",
+			"id": "T130",
+			"title": "Events: day-then-time picker on the booking form",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "ready",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T129"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
+		},
+		"T131": {
+			"file": "T131-booking-approval-and-admin-notifications.md",
+			"id": "T131",
+			"title": "Events: optional booking approval and admin notifications",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "ready",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [
+				"T132"
+			],
+			"column": "ready"
+		},
+		"T132": {
+			"file": "T132-payment-holds-until-approval.md",
+			"id": "T132",
+			"title": "Events Pro: hold the payment until a booking is approved",
+			"phase": 7,
+			"package": "events",
+			"edition": "pro",
+			"status": "ready",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T131"
+			],
+			"spec": [
+				"R49"
+			],
+			"unblocks": [],
+			"column": "ready"
+		},
+		"T133": {
+			"file": "T133-attendee-signing-list.md",
+			"id": "T133",
+			"title": "Suite Pro: attendee signing list and editable names before the cutoff",
+			"phase": 7,
+			"package": "suite",
+			"edition": "pro",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [],
+			"spec": [
+				"R48"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [],
-		"in-progress": [],
+		"ready": [
+			"T130",
+			"T131",
+			"T132"
+		],
+		"in-progress": [
+			"T129",
+			"T133"
+		],
 		"review": [],
 		"done": [
 			"T000",
@@ -2508,14 +2788,23 @@
 			"T117",
 			"T118",
 			"T119",
-			"T120"
+			"T120",
+			"T121",
+			"T122",
+			"T123",
+			"T124",
+			"T125",
+			"T126",
+			"T127"
 		],
 		"blocked": [
-			"T111"
+			"T111",
+			"T128"
 		]
 	},
 	"criticalPath": [
-		"T111"
+		"T131",
+		"T132"
 	],
-	"criticalWeight": 2
+	"criticalWeight": 6
 }
