@@ -450,3 +450,145 @@ describe("T067 SX-NFR-03 idempotent return hands a signing token only to the awa
 		expect(same.signingToken).toBeTypeOf("string");
 	});
 });
+
+// T133 (R95; protocol §5.1, §8.1): the booking page's attendee list. Events asks again for an emailed
+// adult's invitation (`resend: true`) and withdraws a seat's open envelope before the buyer's
+// corrected attendee is invited (`replace: true`). Both are optional intent fields an older e-sign
+// ignores, and neither ever hands a signing token or takes over another person's session.
+describe("T133 R95 R48 resend and replace intents", () => {
+	const adult = { signer: { name: "Charles Babbage", email: "charles@example.com" }, ref: "BK7Q2M:3" };
+	const grace = { name: "Grace Hopper", email: "grace@example.com" };
+	const RESEND_TARGET = { calls: 8, cpuMs: 50 };
+	const REPLACE_TARGET = { calls: 7, cpuMs: 50 };
+	type Envelope = { status: string; closedAt?: string; signer: { name: string; email: string } };
+	type Outbox = { status: string; message: { to: string } };
+	const extra = (over: Record<string, unknown>) => over as Partial<IntentPayload>;
+
+	const envelopes = async () => (await runtime?.inspect.storage.list<Envelope>("envelopes")) ?? [];
+	const tokenHashes = async () =>
+		((await runtime?.inspect.storage.list<{ tokenHash: string }>("signers")) ?? []).map((s) => s.data.tokenHash);
+
+	it("R95 R48 resend: an open emailed envelope for the same person gets a fresh link queued again, no new envelope", async () => {
+		const budget = await integration();
+		const first = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
+		const before = await tokenHashes();
+		// The first invitation went out.
+		await runtime?.fixtures.plugin.storage("outbox", `invite-${first.envelopeId}:s1`, {
+			message: { to: "charles@example.com", subject: "sent", text: "old" },
+			status: "sent",
+			attempts: 1,
+			nextAttemptAt: 0,
+			createdAt: 0,
+		});
+		const again = await call(
+			budget,
+			await sign(payload({ ...adult, ...extra({ delivery: "email", resend: true }) })),
+			RESEND_TARGET,
+		);
+		expect(again).toMatchObject({ ok: true, envelopeId: first.envelopeId, status: "sent", resent: true });
+		expect(again.signingToken).toBeUndefined();
+		expect(await envelopes()).toHaveLength(1);
+		const after = await tokenHashes();
+		expect(after).toHaveLength(1);
+		expect(after[0]).not.toBe(before[0]);
+		const outbox = (await runtime?.inspect.storage.list<Outbox>("outbox")) ?? [];
+		expect(outbox).toHaveLength(1);
+		expect(outbox[0]?.data).toMatchObject({ status: "pending", message: { to: "charles@example.com" } });
+	});
+
+	it("R95 resend for another person, or for a signed envelope, sends nothing", async () => {
+		const budget = await integration();
+		const first = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
+		const outboxBefore = await runtime?.inspect.storage.list("outbox");
+		const hashes = await tokenHashes();
+		const other = await call(
+			budget,
+			await sign(payload({ ...adult, signer: grace, ...extra({ delivery: "email", resend: true }) })),
+			RESEND_TARGET,
+		);
+		expect(other).toMatchObject({ ok: true, envelopeId: first.envelopeId });
+		expect(other.resent).toBeUndefined();
+		expect(await tokenHashes()).toEqual(hashes);
+		expect(await runtime?.inspect.storage.list("outbox")).toEqual(outboxBefore);
+
+		const id = first.envelopeId as string;
+		const stored = (await envelopes())[0]?.data as Envelope;
+		await runtime?.fixtures.plugin.storage("envelopes", id, { ...stored, status: "completed" });
+		const done = await call(
+			budget,
+			await sign(payload({ ...adult, ...extra({ delivery: "email", resend: true }) })),
+			RESEND_TARGET,
+		);
+		expect(done).toMatchObject({ ok: true, envelopeId: id, status: "completed" });
+		expect(done.resent).toBeUndefined();
+		expect(await runtime?.inspect.storage.list("outbox")).toEqual(outboxBefore);
+	});
+
+	it("R95 replace: the open envelope of a seat whose attendee changed is voided and audited, nothing is created", async () => {
+		const budget = await integration();
+		const first = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
+		const corrected = { name: "Charles Babbage", email: "c.babbage@example.com" };
+		const replaced = await call(
+			budget,
+			await sign(payload({ ...adult, signer: corrected, ...extra({ delivery: "email", replace: true }) })),
+			REPLACE_TARGET,
+		);
+		expect(replaced).toEqual({ ok: true, envelopeId: first.envelopeId, status: "voided" });
+		const all = await envelopes();
+		expect(all).toHaveLength(1);
+		expect(all[0]?.data).toMatchObject({ status: "voided", closedAt: expect.any(String) });
+		const audit = (await runtime?.inspect.storage.list<{ type: string; actor: string }>("audit_events")) ?? [];
+		expect(audit.find((e) => e.data.type === "envelope.voided")?.data.actor).toBe("integration");
+		// The old link no longer opens a ceremony: the signer is no longer awaited.
+		const again = await call(budget, await sign(payload({ ...adult })));
+		expect(again.signingToken).toBeUndefined();
+
+		// The corrected attendee's own intent then starts the seat's next envelope (a retry after voided).
+		const next = await call(budget, await sign(payload({ ...adult, signer: corrected, delivery: "email" })), {
+			calls: 10,
+			cpuMs: 50,
+		});
+		expect(next).toMatchObject({ ok: true });
+		expect(next.envelopeId).not.toBe(first.envelopeId);
+	});
+
+	it("R95 replace changes nothing when the open envelope already names that signer, is signed, or does not exist", async () => {
+		const budget = await integration();
+		const none = await call(
+			budget,
+			await sign(payload({ ...adult, ...extra({ delivery: "email", replace: true }) })),
+			REPLACE_TARGET,
+		);
+		expect(none).toEqual({ ok: true, status: "none" });
+		expect(await envelopes()).toHaveLength(0);
+
+		const first = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
+		const same = await call(
+			budget,
+			await sign(payload({ ...adult, ...extra({ delivery: "email", replace: true }) })),
+			REPLACE_TARGET,
+		);
+		expect(same).toEqual({ ok: true, envelopeId: first.envelopeId, status: "sent" });
+
+		// A name correction alone is a change: the document names the signer.
+		const renamed = await call(
+			budget,
+			await sign(
+				payload({ ...adult, signer: { name: "Charles B. Babbage", email: "charles@example.com" }, ...extra({ replace: true }) }),
+			),
+			REPLACE_TARGET,
+		);
+		expect(renamed).toMatchObject({ status: "voided" });
+
+		const signed = await call(budget, await sign(payload({ ref: "BK7Q2M:1" })));
+		const id = signed.envelopeId as string;
+		const stored = (await envelopes()).find((e) => e.id === id)?.data as Envelope;
+		await runtime?.fixtures.plugin.storage("envelopes", id, { ...stored, status: "completed" });
+		const kept = await call(
+			budget,
+			await sign(payload({ ref: "BK7Q2M:1", signer: grace, ...extra({ replace: true }) })),
+			REPLACE_TARGET,
+		);
+		expect(kept).toEqual({ ok: true, envelopeId: id, status: "completed" });
+	});
+});
