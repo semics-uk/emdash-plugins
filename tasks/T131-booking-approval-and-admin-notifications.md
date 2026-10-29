@@ -4,7 +4,7 @@ title: "Events: optional booking approval and admin notifications"
 phase: 7
 package: events
 edition: free
-status: ready
+status: in-progress
 model: opus-5.5
 size: L
 depends_on: []
@@ -35,6 +35,7 @@ Free sites without payments get the same flow.
 - [ ] Admin approve/decline routes and Bookings page buttons; admin and customer emails via the outbox; call budgets
 - [ ] Settings and panel fields; booking page status; i18n strings
 - [ ] Interplay with waivers, waitlist offers and Pro Stripe confirm covered (paid + approval: refund on decline until T132)
+- [ ] Free Events backend is at 124.1 of its 125 KiB budget (R94): trim first (R94 names candidates: E-sign/protocol messages pulled in by `ERROR_CODES` ~1.5 KiB, admin help texts); never past 125
 - [ ] Free bundle within budget; decision recorded (next R); CONTEXT.md, README updated; changeset (minor)
 - [ ] Meets the Definition of Done
 

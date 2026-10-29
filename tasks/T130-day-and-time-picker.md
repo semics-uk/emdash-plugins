@@ -29,4 +29,5 @@ and screen-reader accessible; uses the existing i18n tables.
 - [ ] Picker in the booking form and the `events-booking` block; no-JS fallback; a11y (roving focus, labels)
 - [ ] Single-date events keep today's form unchanged
 - [ ] Free bundle within budget; CONTEXT.md and README updated; changeset (minor)
+- [ ] T129 follow-up: drift repair, `public/event/ics` and the admin date lists read an event's first 100/50 occurrences (the oldest for a schedule event); make them read upcoming ones
 - [ ] Meets the Definition of Done
