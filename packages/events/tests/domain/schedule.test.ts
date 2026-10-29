@@ -6,8 +6,8 @@ import {
 	MAX_SLOTS,
 	parseSchedule,
 	planSlots,
-	SLOT_BATCH,
 	type ScheduleDoc,
+	SLOT_BATCH,
 	scheduleOwned,
 	slotId,
 	slotStarts,
@@ -72,7 +72,8 @@ describe("parseSchedule (EV-FR-17)", () => {
 
 describe("schedule in config validation (EV-FR-17)", () => {
 	const config = { status: "on_sale", capacity: 100, currency: "GBP" };
-	const run = (input: unknown) => validateConfigInput("e1", input, { config: null, ticketTypes: new Map(), occurrences: new Map() }, () => "n1");
+	const run = (input: unknown) =>
+		validateConfigInput("e1", input, { config: null, ticketTypes: new Map(), occurrences: new Map() }, () => "n1");
 
 	it("EV-FR-17 stores a valid schedule on the config", () => {
 		const r = run({ config: { ...config, schedule: base } });
@@ -108,10 +109,7 @@ describe("slot generation (EV-FR-17)", () => {
 		const starts = slotStarts(base, "UTC", MON);
 		// Mondays 2, 9, 16 and Wednesdays 4, 11, 18 November (23 Nov 09:00 is past the 21 days).
 		expect(starts.map(iso)).toEqual(
-			["02", "04", "09", "11", "16", "18"].flatMap((d) => [
-				`2026-11-${d}T09:00:00.000Z`,
-				`2026-11-${d}T18:30:00.000Z`,
-			]),
+			["02", "04", "09", "11", "16", "18"].flatMap((d) => [`2026-11-${d}T09:00:00.000Z`, `2026-11-${d}T18:30:00.000Z`]),
 		);
 	});
 
@@ -209,12 +207,17 @@ describe("slot plan (EV-FR-17, R22)", () => {
 		const s = { ...base, days: ["MO", "TU", "WE", "TH", "FR", "SA", "SU"], times: ["09:00", "10:00", "11:00"] };
 		const plan = planSlots("ev", config(s), MON);
 		expect(plan?.add).toHaveLength(SLOT_BATCH);
-		expect(plan?.add[0]).toEqual({ id: slotId("ev", Date.parse("2026-11-02T09:00:00.000Z")), t: Date.parse("2026-11-02T09:00:00.000Z") });
+		expect(plan?.add[0]).toEqual({
+			id: slotId("ev", Date.parse("2026-11-02T09:00:00.000Z")),
+			t: Date.parse("2026-11-02T09:00:00.000Z"),
+		});
 	});
 
 	it("EV-FR-17 slots already in the catalog are kept as they are (overrides survive)", () => {
 		const starts = slotStarts(base, "UTC", MON);
-		const have = Object.fromEntries(starts.map((t, i) => [slotId("ev", t), entry(t, i === 0 ? { status: "closed", capacity: 3 } : {})]));
+		const have = Object.fromEntries(
+			starts.map((t, i) => [slotId("ev", t), entry(t, i === 0 ? { status: "closed", capacity: 3 } : {})]),
+		);
 		expect(planSlots("ev", config(base, have), MON)).toBeNull();
 	});
 
@@ -246,6 +249,12 @@ describe("slot plan (EV-FR-17, R22)", () => {
 			stale: [],
 			ready: true,
 		});
+	});
+
+	it("EV-FR-17 an unknown zone plans in UTC", () => {
+		const c = config(base);
+		c.info = { title: "Range", startsAt: iso(MON), endsAt: null, timezone: "Nowhere/Zone", venue: null };
+		expect(planSlots("ev", c, MON)?.add[0]?.t).toBe(Date.parse("2026-11-02T09:00:00.000Z"));
 	});
 
 	it("EV-FR-17 no schedule, no plan", () => {

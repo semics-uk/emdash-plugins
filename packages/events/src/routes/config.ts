@@ -104,7 +104,12 @@ export async function saveConfig(
 		if (slots) c.occurrences = slots;
 		return c;
 	};
-	const result = validateConfigInput(eventId, slots ? { ...(input as object), occurrences: [] } : input, existing, newId);
+	const result = validateConfigInput(
+		eventId,
+		slots ? { ...(input as object), occurrences: [] } : input,
+		existing,
+		newId,
+	);
 	if (!result.ok) return badRequest(result.error);
 	const v = result.value;
 

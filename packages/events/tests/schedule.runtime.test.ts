@@ -99,7 +99,13 @@ describe("slot schedules in the shipped core (EV-FR-17)", () => {
 	});
 
 	it("EV-FR-17 public/event skips past slots", async () => {
-		const { r, id } = await setup({ days: EVERY_DAY, times: ["09:00"], durationMinutes: 60, capacity: 8, bookAheadDays: 3 });
+		const { r, id } = await setup({
+			days: EVERY_DAY,
+			times: ["09:00"],
+			durationMinutes: 60,
+			capacity: 8,
+			bookAheadDays: 3,
+		});
 		for (let i = 0; i < 60; i++) {
 			const t = Date.now() - (i + 1) * 864e5;
 			await r.fixtures.plugin.storage("occurrences", `s-${id}-${t.toString(36)}`, {
@@ -185,7 +191,9 @@ describe("slot schedules in the shipped core (EV-FR-17)", () => {
 		expect(text(edit.value)).toContain("Saved");
 		expect((await r.inspect.storage.get("occurrences", morning.id)) as Doc).toMatchObject({ status: "closed" });
 		expect((await r.inspect.storage.get("occurrences", evening.id)) as Doc).toMatchObject({ capacity: 4, reserved: 2 });
-		const after = (await r.inspect.storage.get("event_configs", id)) as { catalog: { occurrences: Record<string, Doc> } };
+		const after = (await r.inspect.storage.get("event_configs", id)) as {
+			catalog: { occurrences: Record<string, Doc> };
+		};
 		expect(after.catalog.occurrences[morning.id]).toMatchObject({ status: "closed" });
 		expect(after.catalog.occurrences[evening.id]).toMatchObject({ capacity: 4 });
 
@@ -224,7 +232,10 @@ describe("slot schedules in the shipped core (EV-FR-17)", () => {
 		// A panel save of other fields keeps every slot in the checkout catalog.
 		const before = Object.keys(after.catalog.occurrences).length;
 		await r.admin.submitEditorPanel("tickets", "events", id, "panel.save", { capacity: 4000 });
-		const kept = (await r.inspect.storage.get("event_configs", id)) as { capacity: number; catalog: { occurrences: Doc } };
+		const kept = (await r.inspect.storage.get("event_configs", id)) as {
+			capacity: number;
+			catalog: { occurrences: Doc };
+		};
 		expect(kept.capacity).toBe(4000);
 		expect(Object.keys(kept.catalog.occurrences)).toHaveLength(before);
 	});

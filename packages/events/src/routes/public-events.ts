@@ -118,7 +118,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	const config = (await storage.event_configs.get(eventId)) as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished || config.status === "draft") return notFound();
 
-	const recurring = Object.keys(config.catalog?.occurrences ?? {}).length > 0;
+	const recurring = !!config.schedule || Object.keys(config.catalog?.occurrences ?? {}).length > 0;
 	const [types, dates, settings] = await Promise.all([
 		storage.ticket_types.query({ where: { eventId }, limit: 100 }),
 		recurring

@@ -23,13 +23,13 @@ import {
 } from "@semics-tech/shared";
 
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
-import { scheduleOwned } from "../domain/schedule";
 import { readEntryInfo } from "../domain/event-info";
+import { scheduleOwned } from "../domain/schedule";
 import { readSettings } from "../domain/settings";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { dayPanel, dayPicker, scheduleFields, scheduleInput, zoneOf } from "./schedule";
+import { dayPanel, dayPicker, localText, scheduleFields, scheduleInput, zoneOf } from "./schedule";
 import { EVENT_STATUS_OPTIONS, held, OCCURRENCE_STATUS_OPTIONS, priceEdit, respond, soldMeter, str } from "./ui";
 
 /**
@@ -153,14 +153,6 @@ type Item<T> = { id: string; data: T };
 const num = (v: unknown): number =>
 	typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : Number.NaN;
 const given = (v: unknown) => v !== undefined && v !== null && v !== "";
-
-const pad = (n: number) => String(n).padStart(2, "0");
-
-/** `2026-12-01 19:30` in the zone. */
-function localText(iso: string, zone: string): string {
-	const p = utcToZoned(Date.parse(iso), zone);
-	return `${p.year}-${pad(p.month)}-${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}`;
-}
 
 const LOCAL = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/;
 
@@ -497,7 +489,11 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	const result = await runSave(
 		deps,
 		eventId,
-		{ config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule }, ticketTypes, occurrences },
+		{
+			config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule },
+			ticketTypes,
+			occurrences,
+		},
 		state,
 		waiverCalls(deps),
 	);

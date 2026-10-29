@@ -27,7 +27,8 @@ const PRUNE = 7 * DAY;
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const int = (v: unknown, min: number, max: number) => Number.isSafeInteger(v) && (v as number) >= min && (v as number) <= max;
+const int = (v: unknown, min: number, max: number) =>
+	Number.isSafeInteger(v) && (v as number) >= min && (v as number) <= max;
 const list = (v: unknown, max: number, ok: (s: string) => boolean) =>
 	Array.isArray(v) && v.length <= max && new Set(v).size === v.length && v.every((s) => typeof s === "string" && ok(s));
 
@@ -81,7 +82,8 @@ export function slotStarts(s: ScheduleDoc, zone: string, now: number): number[] 
 		offs.push(off(i + 1));
 		const day = first + i * DAY;
 		const stamp = new Date(day).toISOString().slice(0, 10);
-		if (!s.days.includes(DAYS[(new Date(day).getUTCDay() + 6) % 7] as string) || s.closedDates.includes(stamp)) continue;
+		if (!s.days.includes(DAYS[(new Date(day).getUTCDay() + 6) % 7] as string) || s.closedDates.includes(stamp))
+			continue;
 		const [a, b] = [offs[i] as number, offs[i + 2] as number];
 		for (const time of s.times) {
 			const w = day + (+time.slice(0, 2) * 60 + +time.slice(3)) * 60_000;
@@ -103,7 +105,10 @@ export function dayBounds(day: string, zone: string): [number, number] | null {
 	if (!(t >= 0)) return null;
 	const at = (ms: number) => {
 		const d = new Date(ms);
-		return zonedToUtc({ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: 0, minute: 0 }, zone);
+		return zonedToUtc(
+			{ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: 0, minute: 0 },
+			zone,
+		);
 	};
 	return [at(t), at(t + DAY)];
 }

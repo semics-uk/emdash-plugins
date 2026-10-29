@@ -166,6 +166,19 @@ describe("planCheckout (EV-FR-05)", () => {
 			ok: false,
 			error: { code: "SALES_CLOSED" },
 		});
+		// EV-FR-17 (T129): a slot schedule whose slots are not made yet still needs a date.
+		const schedule = {
+			days: ["MO"],
+			times: ["09:00"],
+			durationMinutes: 60,
+			capacity: 4,
+			bookAheadDays: 7,
+			closedDates: [],
+		};
+		expect(planCheckout("e1", config({ schedule }), input(), NOW, { maxSteps: 4 })).toMatchObject({
+			ok: false,
+			error: { code: "BAD_REQUEST", reason: "OCCURRENCE_REQUIRED" },
+		});
 		const closed = config({}, { tt_a: tt() }, { occ_1: occ({ status: "closed" }) });
 		expect(planCheckout("e1", closed, input({ occurrenceId: "occ_1" }), NOW, { maxSteps: 4 })).toMatchObject({
 			ok: false,

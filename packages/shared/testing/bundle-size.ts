@@ -20,6 +20,11 @@ export const REGISTRY_FILE_LIMIT = 128 * 1024;
 export const BUNDLE_HEADROOM = 12 * 1024; // R51 (was 16 KiB R47, 24 KiB R42)
 /** Largest `backend.js` a build may produce. */
 export const BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - BUNDLE_HEADROOM;
+/**
+ * The Free Events backend's own budget (R94, T129: slot schedules could not be offset by trimming):
+ * 125 KiB, 3 KiB under the registry cap. Every later Free Events backend feature trims first.
+ */
+export const EVENTS_BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - 3 * 1024;
 
 /** Byte size of each regular file in a ustar archive, by name. */
 function tarSizes(tar: Buffer): Map<string, number> {

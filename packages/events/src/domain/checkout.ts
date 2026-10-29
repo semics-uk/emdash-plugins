@@ -326,7 +326,7 @@ export function planCheckout(
 		if (!occ) return bad("UNKNOWN_OCCURRENCE");
 		if (occ.status !== "open" || !(now < Date.parse(occ.startsAt))) return closed;
 		occurrence = { capacity: occ.capacity, reserved: 0 };
-	} else if (Object.keys(occurrences).length > 0) {
+	} else if (config.schedule || Object.keys(occurrences).length > 0) {
 		return bad("OCCURRENCE_REQUIRED");
 	}
 

@@ -15,6 +15,9 @@
  * (the rule or the start changed), or, when the event is out of room, a past one. Events with work
  * take turns (by the ten-minute slot), so one that cannot progress never starves the rest; a page
  * without work moves the cursor on (KV write, no load), wrapping after the last page.
+ *
+ * Slot schedules (T129) share the task: a config with `schedule` is planned by `planSlots` and run by
+ * `scheduleStep` (`src/cron/schedule.ts`) instead.
  */
 import { isValidTimeZone, occurrencesBetween, parseRrule } from "@semics-tech/shared";
 

@@ -16,9 +16,9 @@ import {
 	utcToZoned,
 } from "@semics-tech/shared";
 
+import { entryOf } from "../cron/schedule";
 import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
 import { dayBounds, parseSchedule } from "../domain/schedule";
-import { entryOf } from "../cron/schedule";
 import type { BookingDoc, EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { SAVED, saveRefused } from "./messages";
 import { held, respond, str } from "./ui";
@@ -37,18 +37,25 @@ import { held, respond, str } from "./ui";
 type Obj = Record<string, unknown>;
 interface DayDeps {
 	storage: {
-		event_configs: { get(id: string): Promise<unknown>; updateIf(id: string, a: object): Promise<{ applied: boolean }> };
+		event_configs: {
+			get(id: string): Promise<unknown>;
+			updateIf(id: string, a: object): Promise<{ applied: boolean }>;
+		};
 		occurrences: {
 			getMany(ids: string[]): Promise<Map<string, unknown>>;
 			updateIf(id: string, a: object): Promise<{ applied: boolean; data?: unknown }>;
 		};
-		bookings?: { query(o: object): Promise<{ items: Array<{ data: unknown }> }> };
+		bookings: { query(o: object): Promise<{ items: Array<{ data: unknown }> }> };
 	};
 }
 
 const MAX_DAY_CHANGES = 5;
-const split = (v: unknown) => str(v, 4000).split(/[\s,]+/).filter(Boolean);
+const split = (v: unknown) =>
+	str(v, 4000)
+		.split(/[\s,]+/)
+		.filter(Boolean);
 const num = (v: unknown) => (v === undefined || v === "" ? undefined : Number(v));
+const pad = (n: number) => String(n).padStart(2, "0");
 
 /** The event's zone, from the copy of its entry's info; UTC when it has none. */
 export const zoneOf = (config: EventConfigDoc): string => {
@@ -56,19 +63,21 @@ export const zoneOf = (config: EventConfigDoc): string => {
 	return zone && isValidTimeZone(zone) ? zone : "UTC";
 };
 
-const hhmm = (iso: string, zone: string) => {
+/** `2026-12-01 19:30` in the zone. */
+export function localText(iso: string, zone: string): string {
 	const p = utcToZoned(Date.parse(iso), zone);
-	return `${String(p.hour).padStart(2, "0")}:${String(p.minute).padStart(2, "0")}`;
-};
+	return `${p.year}-${pad(p.month)}-${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}`;
+}
 
 export function scheduleFields(s: EventConfigDoc["schedule"]): FormField[] {
+	const list = (v?: string[]) => ({ initialValue: v?.join(", ") ?? "" });
 	return [
-		textInput("sc_days", "Schedule: days", { initialValue: s?.days.join(", ") ?? "", placeholder: "MO, WE, SA" }),
-		textInput("sc_times", "Schedule: start times", { initialValue: s?.times.join(", ") ?? "", placeholder: "09:00, 10:30" }),
+		textInput("sc_days", "Schedule: days (MO to SU)", list(s?.days)),
+		textInput("sc_times", "Schedule: start times (09:00, 10:30)", list(s?.times)),
 		numberInput("sc_length", "Schedule: minutes per slot", { initialValue: s?.durationMinutes ?? 60, min: 1 }),
 		numberInput("sc_places", "Schedule: places per slot", { ...(s ? { initialValue: s.capacity } : {}), min: 1 }),
 		numberInput("sc_ahead", "Schedule: days bookable ahead", { initialValue: s?.bookAheadDays ?? 56, min: 1 }),
-		textInput("sc_closed", "Schedule: closed dates", { initialValue: s?.closedDates.join(", ") ?? "" }),
+		textInput("sc_closed", "Schedule: closed dates (YYYY-MM-DD)", list(s?.closedDates)),
 	];
 }
 
@@ -89,12 +98,10 @@ export function scheduleInput(values: Obj, stored: EventConfigDoc["schedule"], c
 	return parseSchedule(s) ?? s;
 }
 
+const dayField = (day: string) => textInput("day", "Day (YYYY-MM-DD)", { initialValue: day });
+
 export const dayPicker = (day = ""): Block =>
-	form({
-		fields: [textInput("day", "Day (YYYY-MM-DD)", { initialValue: day })],
-		submit: { label: "Show day", actionId: "panel.day" },
-		blockId: "day",
-	});
+	form({ fields: [dayField(day)], submit: { label: "Show day", actionId: "panel.day" }, blockId: "day" });
 
 /** `panel.day` (show) and `panel.day.save` (apply the form's changes). */
 export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save: boolean) {
@@ -103,10 +110,11 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	const day = str(values.day, 10);
 	const zone = config ? zoneOf(config) : "UTC";
 	const bounds = dayBounds(day, zone);
-	const top = [header("Tickets & booking")];
 	const back = actions([button("panel.back", "Back to the event", { style: "secondary" })]);
+	let extra: Block[] = [];
 	if (!config || !bounds) {
-		return respond([...top, ...notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]), dayPicker(day), back]);
+		extra = notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]);
+		return respond([header("Tickets & booking"), ...extra, dayPicker(day), back]);
 	}
 	const slots = { ...config.catalog?.occurrences };
 	const at = (id: string) => Date.parse(slots[id]?.startsAt ?? "");
@@ -114,7 +122,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 		.filter((id) => at(id) >= bounds[0] && at(id) < bounds[1])
 		.sort((a, b) => at(a) - at(b));
 	const docs = (ids.length > 0 ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
-	let extra: Block[] = [];
+	const time = (d: OccurrenceDoc) => localText(d.startsAt, zone).slice(11);
 	if (save) {
 		const all = values.day_all;
 		const changes = ids.flatMap((id) => {
@@ -127,28 +135,26 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			return status === d.status && places === d.capacity ? [] : [{ id, d, status, places }];
 		});
 		const closing = changes.filter((c) => c.status !== "open" && c.d.status === "open" && c.d.reserved + c.d.sold > 0);
-		const issue =
-			changes.find((c) => !Number.isSafeInteger(c.places) || c.places < 1)?.id ?? "";
-		const below = changes.find((c) => c.places < c.d.reserved);
+		const bad = changes.find((c) => !Number.isSafeInteger(c.places) || c.places < Math.max(c.d.reserved, 1));
 		if (closing.length > 0) {
 			const refused = new Set(closing.map((c) => c.id));
-			const { items } = (await storage.bookings?.query({
+			const { items } = await storage.bookings.query({
 				where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES] } },
 				limit: 100,
-			})) ?? { items: [] };
+			});
 			const refs = items
 				.map((i) => i.data as BookingDoc)
 				.filter((b) => refused.has(b.occurrenceId ?? ""))
-				.map((b) => `${b.ref} (${b.buyer?.name ?? ""}, ${b.status})`);
+				.map((b) => `${b.ref} (${b.buyer?.name}, ${b.status})`);
 			extra = notices([
 				{
 					severity: "error",
 					title: "Not saved: booked slots cannot be closed",
-					message: `${closing.map((c) => hhmm(c.d.startsAt, zone)).join(", ")} ${refs.length > 0 ? `has bookings: ${refs.join("; ")}` : "has seats held or sold"}.`,
+					message: `${closing.map((c) => time(c.d)).join(", ")}: ${refs.join("; ") || "seats held or sold"}.`,
 				},
 			]);
-		} else if (issue || below) {
-			extra = saveRefused([{ path: "", code: issue ? "INVALID_CAPACITY" : "CAPACITY_BELOW_RESERVED" }]);
+		} else if (bad) {
+			extra = saveRefused([{ path: "", code: bad.places >= 1 ? "CAPACITY_BELOW_RESERVED" : "INVALID_CAPACITY" }]);
 		} else if (changes.length > 0) {
 			const now = changes.slice(0, MAX_DAY_CHANGES);
 			const done = await Promise.all(
@@ -159,9 +165,13 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 					}),
 				),
 			);
+			let missed = 0;
 			now.forEach((c, i) => {
-				const data = done[i]?.applied ? (done[i]?.data as OccurrenceDoc | undefined) : undefined;
-				if (!data) return;
+				const data = done[i]?.data as OccurrenceDoc | undefined;
+				if (!data) {
+					missed++;
+					return;
+				}
 				docs.set(c.id, data);
 				slots[c.id] = entryOf(data);
 			});
@@ -170,7 +180,6 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 				set: { catalog: { ticketTypes: config.catalog?.ticketTypes ?? {}, occurrences: slots } },
 				delta: { slotsRev: { inc: 1 } },
 			});
-			const missed = done.filter((d) => !d.applied).length;
 			const left = changes.length - now.length;
 			extra = missed
 				? saveRefused([{ path: "", code: "UNKNOWN_ID" }])
@@ -179,10 +188,10 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	}
 	const rows = ids.flatMap((id) => {
 		const d = docs.get(id);
-		return d ? [{ id, d, time: hhmm(d.startsAt, zone) }] : [];
+		return d ? [{ id, d }] : [];
 	});
 	const fields: FormField[] = [
-		textInput("day", "Day (YYYY-MM-DD)", { initialValue: day }),
+		dayField(day),
 		select(
 			"day_all",
 			"Whole day",
@@ -193,13 +202,13 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			],
 			{ initialValue: "" },
 		),
-		...rows.flatMap(({ id, d, time }) => [
-			toggle(`sl_open:${id}`, `${time} open`, { initialValue: d.status === "open" }),
-			numberInput(`sl_places:${id}`, `${time} places`, { initialValue: d.capacity, min: 1 }),
+		...rows.flatMap(({ id, d }) => [
+			toggle(`sl_open:${id}`, `${time(d)} open`, { initialValue: d.status === "open" }),
+			numberInput(`sl_places:${id}`, `${time(d)} places`, { initialValue: d.capacity, min: 1 }),
 		]),
 	];
 	return respond([
-		...top,
+		header("Tickets & booking"),
 		...extra,
 		table({
 			columns: [
@@ -209,7 +218,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 				column("held", "Held", "number"),
 				column("places", "Places", "number"),
 			],
-			rows: rows.map(({ d, time }) => ({ time, status: d.status, sold: d.sold, held: held(d), places: d.capacity })),
+			rows: rows.map(({ d }) => ({ time: time(d), status: d.status, sold: d.sold, held: held(d), places: d.capacity })),
 			pageActionId: "panel.day.page",
 			emptyText: "No slots on this day.",
 		}),

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import { type OccurrencesDeps, occurrencesTick } from "../../src/cron/occurrences";
-import { SLOT_BATCH, type ScheduleDoc, slotId, slotStarts } from "../../src/domain/schedule";
+import { type ScheduleDoc, SLOT_BATCH, slotId, slotStarts } from "../../src/domain/schedule";
 import { FakeKv, makeStore, meter } from "../domain/fake-storage";
 
 // Slot schedules in the `occurrences` cron (EV-FR-17, T129, R22): every slot inside the book-ahead
@@ -48,7 +48,13 @@ function world(s: ScheduleDoc, id = "ev1") {
 		waitlistEnabled: false,
 		schedule: s,
 		catalog: { ticketTypes: { tt: { capacity: 500, priceMinor: 0, hidden: false } }, occurrences: {} },
-		info: { title: "Range", startsAt: "2026-11-02T09:00:00.000Z", endsAt: null, timezone: "Europe/London", venue: null },
+		info: {
+			title: "Range",
+			startsAt: "2026-11-02T09:00:00.000Z",
+			endsAt: null,
+			timezone: "Europe/London",
+			venue: null,
+		},
 	});
 	return { store, deps };
 }
