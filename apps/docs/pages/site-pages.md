@@ -52,7 +52,9 @@ if (!entry) return new Response(null, { status: 404 });
 <BookingWidget event={entry.data.id} heading="Book tickets" />
 ```
 
-`event` is the entry's id (`entry.data.id`), not its slug. A list of events:
+`event` is the entry's id (`entry.data.id`), not its slug. For a slot schedule (or several dates a day) the
+form picks a day, then a time; it pages by month with the `booking_from` query parameter (`YYYY-MM-DD`), so keep
+the page's query string when you link to it. A list of events:
 
 ```astro
 ---

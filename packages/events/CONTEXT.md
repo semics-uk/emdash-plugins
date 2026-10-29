@@ -194,6 +194,16 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   (`sc_*`) and, for a schedule-owned event, **Show day** (`panel.day`, `panel.day.save`, `src/admin/schedule.ts`): overrides per
   slot (`sl_open:<id>`, `sl_places:<id>`) or `day_all`, <= 5 a save, <= 8 calls. Slots past a week leave the catalog.
   `public/event` asks for `startsAt >= now`. T131 (approval) builds in other files; keep schedule code in these modules.
+- Day-then-time picker (T130, R96): `public/event` takes `from` (ISO; only a later string than now counts) and answers up to
+  200 upcoming open dates (two cursor pages of 100: 5 calls past 100), `more: true` past that, `slots: true` for a schedule.
+  `<BookingWidget>` uses the picker when `slots` or two starts share a local day (`usesPicker`); all logic is UI-side
+  (`src/astro/lib/picker.ts`: `groupByDay`, `pickerView`, `pickerFetchFrom`, `pickerHref`; `src/client/picker.ts`, no imports,
+  no text). One month a page from the `booking_from` query parameter (local `YYYY-MM-DD`; asked from UTC+14 midnight, earlier
+  slots dropped; a truncated answer's last day moves to the next page). No JS: a select with an `<optgroup>` per day and
+  Earlier/Later links; JS: `role=grid` calendar (roving tabindex) then a radio group of times that sets the hidden select.
+  The picker fieldset carries `data-field="occurrence"`; `booking.ts` focuses its `tabindex=0` day on an error. Drift repair
+  snapshots dates from 7 days back, `public/event/ics` the next 50, `config/get` a schedule's upcoming slots (R94 follow-ups).
+  Playground: `/e2e/picker`, `e2e/t130-day-picker.spec.ts`.
 - Payment return (T077, EU-FR-09): Pro's Stripe step sets success and cancel URL to the same `/booking?ref=`, with no `session_id`, so
   the page never reads any query parameter for state. `src/astro/lib/payment.ts` (`paymentView`, `isPayUrl`) maps the core's status
   to a `<PaymentReturn>` section (`pending` = `awaiting_payment`: held, webhook maybe late; `confirmed`, `expired`, `cancelled`,
@@ -251,7 +261,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 125 KiB (`EVENTS_BUNDLE_BUDGET`, R94: 124.1 after T129's slot
-  schedules; R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
+  schedules, 124.6 after T130's picker paging; R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
   registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,

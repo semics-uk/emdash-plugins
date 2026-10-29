@@ -112,8 +112,11 @@ one that happens twice takes the first.
 - **Show day** opens one day's slots: switch a slot off to close it, switch it on to reopen it, change its places,
   or close or reopen the whole day. The schedule keeps these changes. A slot with seats held or sold cannot be
   closed: the panel lists its bookings instead. One save changes up to five slots; save again for the rest.
-- Slots show on the booking page like dates (the next 50). Ticket types, the event capacity and the waitlist work
-  as for any dated event.
+- The booking form shows a month calendar of the days that have slots; choosing a day lists its times with the
+  places left (full slots are shown as full and cannot be chosen, closed ones are not shown). **Earlier dates** and
+  **Later dates** page through the months. Without JavaScript the same month's times are a list grouped by day.
+  Any event with two or more dates on one day gets the same picker. Ticket types, the event capacity and the
+  waitlist work as for any dated event.
 
 ## Emails
 
