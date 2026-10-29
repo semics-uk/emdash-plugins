@@ -165,6 +165,7 @@ export async function eraseBookings(
 				buyer: { name: "", email: "" },
 				email: "",
 				answers: {},
+				declineReason: null,
 				ipHash: null,
 				redeemHash: null,
 				redeemExpiresAt: null,

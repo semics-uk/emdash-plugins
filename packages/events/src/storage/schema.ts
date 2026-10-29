@@ -231,7 +231,7 @@ export interface BookingDoc {
 	/** The event required approval when the booking was made (T131): decided by `until`, else it expires. */
 	approval?: { until: string };
 	/** Why an admin declined the booking (T131), shown in the email to the buyer. */
-	declineReason?: string;
+	declineReason?: string | null;
 	/** SHA-256 of the access token; the token itself is never stored. */
 	accessTokenHash: string;
 	/**
