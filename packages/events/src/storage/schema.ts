@@ -87,6 +87,14 @@ export interface EventConfigDoc {
 	signature: { required: boolean; templateId?: string; mode: SignatureMode };
 	waitlistEnabled: boolean;
 	recurrence?: string | null;
+	/** Slot schedule (T129, `src/domain/schedule.ts`); never beside `recurrence`. */
+	schedule?: ScheduleDoc | null;
+	/** Bumped by every write of a schedule-owned catalog; the cron's write is guarded on it (T129). */
+	slotsRev?: number;
+	/** Slots the cron took out of the catalog, deleted after a grace period unless booked (T129). */
+	unlisted?: { ids: string[]; at: number } | null;
+	/** Booked slots the schedule no longer gives: kept as they are, and not planned again (T129). */
+	kept?: string[] | null;
 	/** Set when the entry was permanently deleted while it still had bookings. */
 	orphaned?: boolean;
 	/** Set while the entry is unpublished: sales stop and the event leaves the public routes (T051). */
@@ -95,6 +103,17 @@ export interface EventConfigDoc {
 	catalog?: EventCatalog | null;
 	/** The event's public info, copied from its content entry (see `src/domain/event-info.ts`). */
 	info?: EventInfoDoc | null;
+}
+
+/** Weekdays (`MO`..`SU`) x local `HH:MM` times, kept `bookAheadDays` ahead (T129). */
+export interface ScheduleDoc {
+	days: string[];
+	times: string[];
+	durationMinutes: number;
+	capacity: number;
+	bookAheadDays: number;
+	/** Local `YYYY-MM-DD` dates with no slots. */
+	closedDates: string[];
 }
 
 /** Title, times, zone and venue of an event as ISO strings; written by the content hook and `config/save`. */

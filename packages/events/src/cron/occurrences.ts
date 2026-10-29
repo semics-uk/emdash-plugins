@@ -19,9 +19,11 @@
 import { isValidTimeZone, occurrencesBetween, parseRrule } from "@semics-tech/shared";
 
 import { MAX_OCCURRENCES } from "../domain/config";
+import { planSlots } from "../domain/schedule";
 import { iso } from "../domain/time";
 import { type ConfigStorage, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc } from "../storage/schema";
+import { scheduleStep } from "./schedule";
 
 export const OCCURRENCES_TASK = "occurrences";
 export const OCCURRENCES_SCHEDULE = "*/10 * * * *";
@@ -64,9 +66,11 @@ export async function occurrencesTick({ storage, kv }: OccurrencesDeps, now: num
 		limit: PAGE,
 		...(state.cursor ? { cursor: state.cursor } : {}),
 	})) as { items: Array<{ id: string; data: unknown }>; hasMore?: boolean; cursor?: string };
+	// Slot schedules (T129) plan and run in `src/cron/schedule.ts`, taking turns with series.
 	const work = page.items.flatMap(({ id, data }) => {
-		const p = plan(id, data as EventConfigDoc, now);
-		return p ? [{ eventId: id, ...p }] : [];
+		const c = data as EventConfigDoc;
+		const p = c.schedule ? planSlots(id, c, now) : plan(id, c, now);
+		return p ? [{ eventId: id, c, p }] : [];
 	});
 	const pick = work[Math.floor(now / SLOT) % work.length];
 	if (!pick) {
@@ -74,7 +78,9 @@ export async function occurrencesTick({ storage, kv }: OccurrencesDeps, now: num
 		if (cursor !== state.cursor) await kv.set(STATE_KEY, cursor ? { cursor } : {});
 		return;
 	}
-	const { eventId, add, stale, id, info } = pick;
+	const { eventId, c, p } = pick;
+	if ("drop" in p) return scheduleStep(storage, eventId, c, p, now);
+	const { add, stale, id, info } = p;
 	const loaded = await loadEventState(eventId, storage);
 	if (!loaded.config) return;
 	const { catalog: _catalog, info: _info, ...config } = loaded.config;

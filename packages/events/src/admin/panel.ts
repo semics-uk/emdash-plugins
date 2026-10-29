@@ -9,7 +9,6 @@ import {
 	form,
 	fromMinor,
 	header,
-	isValidTimeZone,
 	link,
 	notices,
 	numberInput,
@@ -24,11 +23,13 @@ import {
 } from "@semics-tech/shared";
 
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
+import { scheduleOwned } from "../domain/schedule";
 import { readEntryInfo } from "../domain/event-info";
 import { readSettings } from "../domain/settings";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
+import { dayPanel, dayPicker, scheduleFields, scheduleInput, zoneOf } from "./schedule";
 import { EVENT_STATUS_OPTIONS, held, OCCURRENCE_STATUS_OPTIONS, priceEdit, respond, soldMeter, str } from "./ui";
 
 /**
@@ -155,12 +156,6 @@ const given = (v: unknown) => v !== undefined && v !== null && v !== "";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
-/** The event's zone, from the copy of its entry's info; UTC when it has none. */
-const zoneOf = (config: EventConfigDoc): string => {
-	const zone = config.info?.timezone;
-	return zone && isValidTimeZone(zone) ? zone : "UTC";
-};
-
 /** `2026-12-01 19:30` in the zone. */
 function localText(iso: string, zone: string): string {
 	const p = utcToZoned(Date.parse(iso), zone);
@@ -257,16 +252,23 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 	const config = state.config as EventConfigDoc;
 	const zone = zoneOf(config);
 	const tickets = (state.ticketTypes as Item<TicketTypeDoc>[]).slice().sort(byTicketOrder);
-	const dates = state.occurrences as Item<OccurrenceDoc>[];
+	// A slot schedule's dates are managed by the schedule and the day view (T129).
+	const owned = scheduleOwned(config);
+	const dates = owned ? [] : (state.occurrences as Item<OccurrenceDoc>[]);
 
 	const fields = [
 		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
 		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
-		textInput("recurrence", "Repeats (RRULE)", {
-			initialValue: config.recurrence ?? "",
-			placeholder: "FREQ=WEEKLY;BYDAY=MO;COUNT=10;EXDATE=20261228",
-		}),
+		...(owned
+			? []
+			: [
+					textInput("recurrence", "Repeats (RRULE)", {
+						initialValue: config.recurrence ?? "",
+						placeholder: "FREQ=WEEKLY;BYDAY=MO;COUNT=10;EXDATE=20261228",
+					}),
+				]),
+		...scheduleFields(config.schedule),
 		...waiverFields(config, waivers),
 		...tickets.flatMap(({ id, data: t }) => [
 			textInput(`tt_name:${id}`, `${t.name}: name`, { initialValue: t.name }),
@@ -299,7 +301,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 				toggle(`oc_remove:${id}`, `Remove ${when}`, { description: "Not possible once seats are held or sold." }),
 			];
 		}),
-		...(dates.length < MAX_OCCURRENCES
+		...(!owned && dates.length < MAX_OCCURRENCES
 			? [
 					repeater(
 						"newDates",
@@ -325,9 +327,10 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
 		context(
-			`Dates are in ${zone}; a rule adds dates from the event start, 60 days ahead. Only the items you change are written. Capacity cannot go below the seats already held or sold.`,
+			`Dates are in ${zone}; a rule adds dates from the event start, 60 days ahead, a schedule its slots (days MO to SU). Only the items you change are written. Capacity cannot go below the seats already held or sold.`,
 		),
 		form({ fields, submit: { label: "Save changes", actionId: "panel.save" }, blockId: "tickets" }),
+		...(owned ? [dayPicker()] : []),
 	]);
 }
 
@@ -394,6 +397,8 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	const recurrence = values.recurrence === undefined ? (stored.recurrence ?? "") : str(values.recurrence, 500);
 	if (recurrence !== (stored.recurrence ?? "")) changed++;
 	if (waitlistEnabled !== stored.waitlistEnabled) changed++;
+	const schedule = scheduleInput(values, stored.schedule, capacity);
+	if (JSON.stringify(schedule) !== JSON.stringify(stored.schedule ?? null)) changed++;
 	const storedSignature = stored.signature ?? { required: false, mode: "each_attendee" };
 	let signature = storedSignature;
 	if (waivers.available) {
@@ -492,7 +497,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 	const result = await runSave(
 		deps,
 		eventId,
-		{ config: { ...base, status, capacity, waitlistEnabled, signature, recurrence }, ticketTypes, occurrences },
+		{ config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule }, ticketTypes, occurrences },
 		state,
 		waiverCalls(deps),
 	);
@@ -526,6 +531,9 @@ export async function handlePanel(
 	if (interaction.type === "form_submit") {
 		if (interaction.action_id === "panel.save") return savePanel(deps, eventId, interaction.values);
 		if (interaction.action_id === "panel.enable") return enablePanel(deps, eventId, interaction.values);
+		if (interaction.action_id.startsWith("panel.day")) {
+			return dayPanel(deps as never, eventId, interaction.values, interaction.action_id === "panel.day.save");
+		}
 	}
 	const state = await loadEventState(eventId, deps.storage);
 	if (!state.config) return enableForm(deps);

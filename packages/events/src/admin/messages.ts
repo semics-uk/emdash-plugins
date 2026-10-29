@@ -9,6 +9,8 @@ const ISSUE_MESSAGES: Record<string, string> = {
 	INVALID_DATE: "Enter a date such as 2026-12-01 19:30.",
 	INVALID_WINDOW: "A date must end after it starts.",
 	INVALID_RECURRENCE: "Use a rule such as FREQ=WEEKLY;BYDAY=MO;COUNT=10.",
+	INVALID_SCHEDULE:
+		"A schedule needs days (MO to SU), times such as 09:00, minutes, places and 1 to 90 days ahead; an event with one has no RRULE and no dates of its own.",
 	INVALID_NAME: "A ticket type needs a name of up to 100 characters.",
 	INVALID_CURRENCY: "Use a three-letter currency code such as GBP.",
 	ITEM_IN_USE: "That item already has bookings and cannot be removed.",

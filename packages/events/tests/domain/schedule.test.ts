@@ -120,7 +120,8 @@ describe("slot generation (EV-FR-17)", () => {
 		expect(starts.map(iso)).not.toContain("2026-11-02T09:00:00.000Z");
 		expect(starts.map(iso)).toContain("2026-11-02T18:30:00.000Z");
 		expect(starts.some((t) => iso(t).startsWith("2026-11-11"))).toBe(false);
-		expect(starts).toHaveLength(9);
+		// 2 Nov 18:30, 4, 9, 16, 18 Nov (two each) and 23 Nov 09:00 (inside 21 days of 10:00).
+		expect(starts).toHaveLength(10);
 	});
 
 	it("EV-FR-17 times are local to the event's zone", () => {

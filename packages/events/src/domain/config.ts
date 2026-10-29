@@ -21,6 +21,7 @@ import type {
 	SignatureMode,
 	TicketTypeDoc,
 } from "../storage/schema";
+import { parseSchedule } from "./schedule";
 
 export type ConfigIssueCode =
 	| "INVALID_INPUT"
@@ -31,6 +32,7 @@ export type ConfigIssueCode =
 	| "INVALID_DATE"
 	| "INVALID_WINDOW"
 	| "INVALID_RECURRENCE"
+	| "INVALID_SCHEDULE"
 	| "INVALID_NAME"
 	| "INVALID_QUANTITY_LIMITS"
 	| "TOO_MANY"
@@ -171,6 +173,11 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 	if (typeof base.recurrence === "string" && base.recurrence !== "") {
 		if (!parseRrule(base.recurrence)) issues.add("config.recurrence", "INVALID_RECURRENCE");
 		config.recurrence = base.recurrence;
+	}
+	if (base.schedule != null) {
+		const schedule = parseSchedule(base.schedule);
+		if (!schedule || config.recurrence) issues.add("config.schedule", "INVALID_SCHEDULE");
+		else config.schedule = schedule;
 	}
 	if (stored?.orphaned !== undefined) config.orphaned = stored.orphaned;
 	if (stored?.unpublished !== undefined) config.unpublished = stored.unpublished;
@@ -354,6 +361,8 @@ export function validateConfigInput(
 		(item, path, prior) => buildOccurrence(eventId, item, path, prior, issues),
 	);
 
+	// A schedule's slots are its own (T129): the event has no other dates.
+	if (config.schedule && occurrences.items.length > 0) issues.add("config.schedule", "INVALID_SCHEDULE");
 	if (issues.list.length > 0) return err(issues.list);
 	return ok({
 		config,

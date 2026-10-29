@@ -1,9 +1,10 @@
 import { toRouteError } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
-import { type ConfigIssue, catalogOf, type ExistingState, validateConfigInput } from "../domain/config";
+import { type ConfigIssue, catalogOf as catalogFrom, type ExistingState, validateConfigInput } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
+import { scheduleOwned } from "../domain/schedule";
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
@@ -88,13 +89,22 @@ export async function saveConfig(
 ): Promise<unknown> {
 	const eventId = eventIdOf(input);
 	if (!eventId) return badRequest();
-	const state = preloaded ?? (await loadEventState(eventId, storage));
+	const loaded = preloaded ?? (await loadEventState(eventId, storage));
+	// A schedule-owned event's slots belong to `src/domain/schedule.ts` (T129): the save leaves them
+	// as stored (documents and catalog entries) and bumps `slotsRev` so the cron redoes a racing write.
+	const slots = scheduleOwned(loaded.config) ? (loaded.config?.catalog?.occurrences ?? {}) : null;
+	const state = slots ? { ...loaded, occurrences: [] } : loaded;
 	const existing: ExistingState = {
 		config: state.config,
 		ticketTypes: new Map(state.ticketTypes.map((i) => [i.id, i.data as TicketTypeDoc])),
 		occurrences: new Map(state.occurrences.map((i) => [i.id, i.data as OccurrenceDoc])),
 	};
-	const result = validateConfigInput(eventId, input, existing, newId);
+	const catalogOf = (...a: Parameters<typeof catalogFrom>) => {
+		const c = catalogFrom(...a);
+		if (slots) c.occurrences = slots;
+		return c;
+	};
+	const result = validateConfigInput(eventId, slots ? { ...(input as object), occurrences: [] } : input, existing, newId);
 	if (!result.ok) return badRequest(result.error);
 	const v = result.value;
 
@@ -154,7 +164,11 @@ export async function saveConfig(
 		const entries = <T>(m: Map<string, T>) => [...m].map(([id, data]) => ({ id, data }));
 		const catalog = catalogOf(entries(effective.ticketTypes), entries(effective.occurrences));
 		if (sameJson(storedCatalog, catalog) && !info) return;
-		await storage.event_configs.updateIf(eventId, { where: {}, set: { catalog, ...(info ? { info } : {}) } });
+		await storage.event_configs.updateIf(eventId, {
+			where: {},
+			set: { catalog, ...(info ? { info } : {}) },
+			...(slots ? { delta: { slotsRev: { inc: 1 } } } : {}),
+		});
 	};
 
 	// 1. Edits, guarded on what is reserved at write time (EV-FR-03).

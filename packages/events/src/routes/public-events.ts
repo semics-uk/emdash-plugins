@@ -123,7 +123,8 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		storage.ticket_types.query({ where: { eventId }, limit: 100 }),
 		recurring
 			? storage.occurrences.query({
-					where: { eventId, status: "open" },
+					// Upcoming only: a slot schedule (T129) keeps hundreds of past dates.
+					where: { eventId, status: "open", startsAt: { gte: iso(deps.now) } },
 					orderBy: { startsAt: "asc" },
 					limit: MAX_OCCURRENCES,
 				})
@@ -145,7 +146,6 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		}));
 	const occurrences = dates?.items
 		.map((i) => ({ id: i.id, o: i.data as OccurrenceDoc }))
-		.filter(({ o }) => Date.parse(o.startsAt) >= deps.now)
 		.map(({ id, o }) => ({
 			id,
 			startsAt: o.startsAt,
