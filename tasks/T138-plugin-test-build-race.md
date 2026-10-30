@@ -4,7 +4,7 @@ title: "CI: plugin-test workers share one plugin build"
 phase: 6
 package: esign
 edition: free
-status: in-progress
+status: done
 model: opus-5.5
 size: S
 depends_on: [T125]
@@ -30,8 +30,8 @@ coverage (2026-10-30). Budgets stay as T125 left them.
 
 - [x] Test first: `packages/esign/tests/plugin-test-build.build.test.ts`, six concurrent pool starts share one build
 - [x] Fix: a pnpm patch of `@emdash-cms/plugin-test@0.2.8` shares the in-flight build per plugin folder (R99)
-- [ ] E-sign suite green locally (613/613, 2026-10-30); CI green on main in semics-uk/emdash-plugins (run id recorded)
-- [ ] Meets the Definition of Done
+- [x] E-sign suite green locally (613/613, 2026-10-30); CI green on main in semics-uk/emdash-plugins: run 41021537889 (1e1d69c)
+- [x] Meets the Definition of Done
 
 ## Notes
 
