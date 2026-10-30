@@ -52,7 +52,10 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   booking as read (`held` = new, `awaiting_payment` = in-flight) and the settings, may refuse before any write; then
   `start(holdExpiresAt)` (Pro Stripe, T073: 5 Free calls + fetch + payment record = 7). A waiver booking already
   `awaiting_payment` writes back its stored seats, unsigned ones too (T119; T078 proves an emailed adult keeps their
-  own name through "Pay now"), +1 = 8. The
+  own name through "Pay now"), +1 = 8. So does any booking `awaiting_payment` continued without `attendees` (a "Pay now"
+  resume, R98's approved booking whose card was refused, R101, T134) when every seat is stored: names, emails, minors,
+  statuses and codes stay, only the payment step re-runs (+1 = 8); with no seats stored yet it still plans the buyer's
+  name (T077), and a continue that names attendees still writes them. The
   status graph and next-step rule live in `src/domain/booking-state.ts`.
 - Free's `webhooks/stripe` is a raw route answering 503 `WEBHOOK_NOT_HANDLED` (T078), never a 200 refusal: a site
   switched back from Pro must make Stripe keep (and redeliver) payments for Pro's sessions. Pro's confirm leaves a
@@ -216,18 +219,22 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   200 upcoming open dates (two cursor pages of 100: 5 calls past 100), `more: true` past that, `slots: true` for a schedule.
   `<BookingWidget>` uses the picker when `slots` or two starts share a local day (`usesPicker`); all logic is UI-side
   (`src/astro/lib/picker.ts`: `groupByDay`, `pickerView`, `pickerFetchFrom`, `pickerHref`; `src/client/picker.ts`, no imports,
-  no text). One month a page from the `booking_from` query parameter (local `YYYY-MM-DD`; asked from UTC+14 midnight, earlier
+  no text). One month a page from the widget's own `booking_from.<eventId>` query parameter (`pickerParam`, T134: two pickers
+  on a page page independently; local `YYYY-MM-DD`; asked from UTC+14 midnight, earlier
   slots dropped; a truncated answer's last day moves to the next page). No JS: a select with an `<optgroup>` per day and
   Earlier/Later links; JS: `role=grid` calendar (roving tabindex) then a radio group of times that sets the hidden select.
   The picker fieldset carries `data-field="occurrence"`; `booking.ts` focuses its `tabindex=0` day on an error. Drift repair
   snapshots dates from 7 days back, `public/event/ics` the next 50, `config/get` a schedule's upcoming slots (R94 follow-ups).
-  Playground: `/e2e/picker`, `e2e/t130-day-picker.spec.ts`.
+  Playground: `/e2e/picker` (next month's first nine days, date-independent), `/e2e/pickers` (two widgets),
+  `e2e/t130-day-picker.spec.ts`.
 - Payment return (T077, EU-FR-09): Pro's Stripe step sets success and cancel URL to the same `/booking?ref=`, with no `session_id`, so
   the page never reads any query parameter for state. `src/astro/lib/payment.ts` (`paymentView`, `isPayUrl`) maps the core's status
   to a `<PaymentReturn>` section (`pending` = `awaiting_payment`: held, webhook maybe late; `confirmed`, `expired`, `cancelled`,
   `refunded`, `refunded_unavailable`). `src/client/payment.ts` re-reads the page (cookie goes along) at 3, 5, 8, 13, 21, 30 s, then
   un-hides "we will email you"; no-JS has "Check again" and "Pay now" (`intent=resume` -> `resumePayment`: continue with the cookie
   token, follow `pay`). Only `https:` pay URLs are followed (`handleCheckoutForm`, `resumePayment`, the suite).
+  `BookingPage` also asks `public/event` for the booking's event (`ticketNames`, T134) so `<BookingStatus>` lines read
+  `3 × Class place`, never a ticket type id; a type the answer does not list (hidden, event gone) reads `3 tickets`.
 - Promo codes in the widget (T078, EV-FR-14; codes are Pro's): `<BookingWidget>` shows a "Promo code" field only when
   `public/event` answers `promoCodes: true` (Pro adds it). The field and "Apply code" belong to a separate hidden form
   (`form=` attributes, so Enter in the order's fields still books) posted to the injected `POST /_events/promo`

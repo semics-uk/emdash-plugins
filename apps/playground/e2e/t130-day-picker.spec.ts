@@ -46,7 +46,8 @@ test("EV-FR-17 with JS: pick a day, then a time; full ones are disabled; keyboar
 	await widget.getByLabel(/Lane/).fill("1");
 	await widget.getByLabel("Your name").fill("Ada Lovelace");
 	await widget.getByLabel("Email").fill("ada@example.com");
-	await widget.getByRole("button", { name: "Book" }).click();
+	// Exact: a fully booked day's button is named "…, fully booked".
+	await widget.getByRole("button", { name: "Book", exact: true }).click();
 	await expect(picker).toHaveAttribute("aria-invalid", "true");
 	await expect(widget.locator("[data-error-for=occurrence]")).toHaveText("Choose a date.");
 	const days = picker.locator("button[data-day]");

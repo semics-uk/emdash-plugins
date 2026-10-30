@@ -35,7 +35,8 @@ import {
 //    Decline declines it, and the sweeper expires one whose deadline passed.
 //  - A paid approval event authorises the card (deadline within 6 days): Approve captures it, Decline
 //    gives it back, nothing is captured. A later deadline saves the card: a refused off-session charge
-//    approves it unpaid, the buyer gets "Pay now", pays, and the booking is confirmed.
+//    approves it unpaid, the buyer gets "Pay now", pays, and the booking is confirmed with the attendees
+//    typed at checkout (T134: booked through the public routes, one attendee under 18).
 // Skipped on the Free build.
 
 test.describe.configure({ mode: "serial" });

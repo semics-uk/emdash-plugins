@@ -54,8 +54,9 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   320 px reflow and axe in Arabic.
 - `e2e/events.spec.ts`: journey, 3-zone email/ICS, and `load/checkout.mjs` (100 buyers, 16 in flight, last 5 volunteer seats).
 - Specs: `e2e/events`, `e2e/smoke`, `e2e/harness`, `e2e/s2-public-route`, `e2e/s6-pt-block`, `e2e/t053-booking-page`,
-  `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/`, one per theme, shared by every OS: regenerate
-  with `--update-snapshots` if the CI font differs), `e2e/t055-booking-widget`.
+  `e2e/t054-events-list` (card snapshots in `e2e/__snapshots__/t054-events-list.spec.ts/<platform>/`, one per theme and
+  OS, T134: the card's system font is DejaVu Sans on Linux CI and San Francisco on macOS, so one image cannot match both;
+  a new OS writes its own with `--update-snapshots=missing`), `e2e/t055-booking-widget`.
 - `e2e/t103-screenshots.spec.ts` (T103): the registry listing images of both cores (icon, banner, screenshots). Every run
   takes and size-checks them; `T103_WRITE=1` writes them to `packages/<core>/listing/` (commit the result).
   `E2E_PORT` overrides the server port (default 4401) so a second checkout can run its own server.
@@ -72,7 +73,7 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   that env, then `npx playwright test e2e/t135-*`); remove `node_modules/@semics-tech/emdash-events-pro` afterwards (a Free run
   ignores the link, but the Free specs fail against Pro: promo field, webhook 503). `e2e/harness/pro.ts`: events made through the
   content API + `config/save`, settings via `PUT /_emdash/api/admin/plugins/semics-events/settings`, e-sign pairing, `data.db`
-  reads and a deadline moved into the past, `runCron` (reads `public/events` first on a fresh server). Stripe is faked: serve.mjs
+  reads (`bookingByRef`, `attendeesOf`, `paymentRecord`) and a deadline moved into the past, `runCron` (reads `public/events` first on a fresh server). Stripe is faked: serve.mjs
   starts the server with `--import e2e/harness/stripe-preload.mjs`, which sends `https://api.stripe.com/*` to `E2E_STRIPE_URL`
   (port `E2E_PORT + 1`, set by playwright.config.ts) and answers the SSRF check's DoH lookup; `e2e/harness/fake-stripe.ts` runs
   there in the spec (sessions, capture, cancel, off-session charges with `refuseCharges`, setup intents, refunds) and signs the
