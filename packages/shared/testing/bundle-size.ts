@@ -25,6 +25,11 @@ export const BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - BUNDLE_HEADROOM;
  * 125 KiB, 3 KiB under the registry cap. Every later Free Events backend feature trims first.
  */
 export const EVENTS_BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - 3 * 1024;
+/**
+ * Room the Free Events backend keeps free under `EVENTS_BUNDLE_BUDGET` for a hotfix (R99, T136):
+ * a feature that would eat into it trims first.
+ */
+export const EVENTS_HOTFIX_ROOM = 4 * 1024;
 
 /** Byte size of each regular file in a ustar archive, by name. */
 function tarSizes(tar: Buffer): Map<string, number> {
