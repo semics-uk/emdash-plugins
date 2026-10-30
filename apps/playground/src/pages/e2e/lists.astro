@@ -33,6 +33,9 @@ const card = {
 		<title>Events list</title>
 		<style is:global>
 			body { margin: 0; padding: 1rem; font-family: system-ui, sans-serif; }
+			/* The snapshot's box is fixed (T134): system fonts differ by a few pixels in line height between
+			   machines, which changed the screenshot's size (a size change always fails). */
+			body[data-view="card"] .semics-event-card { height: 128px; overflow: hidden; }
 			body[data-theme="dark"] {
 				background: #14161a;
 				--events-fg: #f1f1f1;
@@ -43,7 +46,7 @@ const card = {
 			}
 		</style>
 	</head>
-	<body data-theme={theme}>
+	<body data-theme={theme} data-view={view}>
 		<main>
 			{view === "card" && <EventCard event={card} />}
 			{view === "empty" && <EventList events={[]} />}

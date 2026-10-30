@@ -12,10 +12,12 @@ import {
 import {
 	address,
 	admin,
+	attendeesOf,
 	BOOKING_URL,
 	bookingByRef,
 	createEvent,
 	EVENTS,
+	eventsRoute,
 	isPro,
 	mailTo,
 	patchBooking,
@@ -120,6 +122,45 @@ async function finishCheckout(request: APIRequestContext, page: Page, session: S
 	expect(res.status(), await res.text()).toBe(200);
 	const back = new URL(session.form.get("success_url") as string);
 	await page.goto(`${back.pathname}${back.search}`);
+}
+
+/**
+ * Books through the public routes the way a site's own checkout does, with each attendee typed at checkout
+ * (the widget names every seat after the buyer), and hands the browser the booking cookie the widget
+ * would set. Returns the ref and the Checkout Session the site created.
+ */
+async function bookWithAttendees(
+	request: APIRequestContext,
+	page: Page,
+	eventId: string,
+	buyer: { name: string; email: string },
+	attendees: Array<{ name: string; email: string; minor?: boolean }>,
+) {
+	const ip = { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}` };
+	const event = await eventsRoute<{ ticketTypes: Array<{ id: string }> }>(request, "public/event", { eventId }, false);
+	const ticketTypeId = event.ticketTypes[0]?.id as string;
+	const post = async <T>(path: string, data: unknown) => {
+		const res = await request.post(`${EVENTS}/${path}`, { data, headers: { "x-emdash-request": "1", ...ip } });
+		expect(res.ok(), await res.text()).toBe(true);
+		return ((await res.json()) as { data: T }).data;
+	};
+	const held = await post<{ bookingRef: string; accessToken: string }>("public/checkout/reserve", {
+		eventId,
+		lines: [{ ticketTypeId, qty: attendees.length }],
+		buyer,
+		idempotencyKey: `t134-${Date.now().toString(36)}-${"k".repeat(24)}`,
+	});
+	const next = await post<{ next: { type: string; url: string } }>("public/checkout/continue", {
+		bookingRef: held.bookingRef,
+		accessToken: held.accessToken,
+		attendees: attendees.map((a) => ({ ticketTypeId, ...a })),
+	});
+	expect(next.next.type).toBe("pay");
+	const session = stripe?.sessions.get(new URL(next.next.url).pathname.split("/").at(-1) as string) as Session;
+	expect(session, "the session the site created").toBeTruthy();
+	const url = test.info().project.use.baseURL as string;
+	await page.context().addCookies([{ name: `semics_booking_${held.bookingRef}`, value: held.accessToken, url }]);
+	return { ref: held.bookingRef, session };
 }
 
 async function decide(request: APIRequestContext, ref: string, how: "approve" | "decline") {
@@ -243,7 +284,16 @@ test("R98 a later deadline saves the card; a refused charge asks the buyer to Pa
 	const s = stripe as FakeStripe;
 	const email = address("paynow");
 	const { context, page } = await visitor(browser);
-	const { ref, session } = await book(page, "t135-paid-later", email, { paid: true });
+	// T134: the attendees typed at checkout (one under 18) must survive "Pay now".
+	const typed = [
+		{ name: "Grace Hopper", email },
+		{ name: "Alan Turing", email: address("alan") },
+		{ name: "Ada Junior", email, minor: true },
+	];
+	const { ref, session } = await bookWithAttendees(request, page, events.save, { name: "Grace Hopper", email }, typed);
+	const seats = () => attendeesOf(bookingByRef(ref).id).map((a) => ({ name: a.name, email: a.email, minor: a.minor === true }));
+	const expected = typed.map((a) => ({ ...a, minor: a.minor === true }));
+	expect(seats()).toEqual(expected);
 	expect(session.mode).toBe("setup");
 	expect(session.hold).toBe("setup");
 	await finishCheckout(request, page, session);
@@ -261,8 +311,12 @@ test("R98 a later deadline saves the card; a refused charge asks the buyer to Pa
 	const mail = await mailTo(request, email, /pay/i);
 	expect(mail.text).toContain("/booking?ref=");
 
-	await page.reload();
+	expect(seats()).toEqual(expected);
+
+	await page.goto(`/booking?ref=${ref}`);
 	await expect(status(page)).toHaveAttribute("data-status", "awaiting_payment");
+	// The booking page names the ticket type, never its id (T135 follow-up).
+	await expect(page.getByTestId("booking-details")).toContainText("3 × Class place");
 	await page.setViewportSize({ width: 320, height: 640 });
 	expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
 	expect(await axe(page)).toEqual([]);
@@ -270,9 +324,14 @@ test("R98 a later deadline saves the card; a refused charge asks the buyer to Pa
 	expect(payNow.id).not.toBe(session.id);
 	expect(payNow.mode).toBe("payment");
 	expect(payNow.hold).toBeNull();
-	expect(payNow.amount).toBe(4000);
+	expect(payNow.amount).toBe(12000);
+	// Pay now only re-ran the payment step: every seat is still the person typed at checkout.
+	expect(seats()).toEqual(expected);
 	await finishCheckout(request, page, payNow);
 	await expect(status(page)).toHaveAttribute("data-status", "confirmed");
 	expect(paymentRecord(payNow.id)?.status).toBe("paid");
+	expect(seats()).toEqual(expected);
+	await expect(page.getByTestId("ticket-pass")).toHaveCount(3);
+	for (const a of typed) await expect(page.getByTestId("booking-page")).toContainText(a.name);
 	await context.close();
 });

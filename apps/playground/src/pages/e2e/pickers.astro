@@ -1,0 +1,45 @@
+---
+// e2e-only page (T134): two booking widgets with day-then-time pickers on one page. Each event has two
+// sessions a day on the first three days of next month and of the month after (UTC), so each picker
+// opens on next month and has a "Later dates" link; each pages on its own `booking_from.<eventId>`.
+import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
+
+export const prerender = false;
+
+const now = new Date();
+const months = [1, 2].map((m) => Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + m, 1));
+const data = (eventId: string, name: string) => ({
+	eventId,
+	title: name,
+	status: "on_sale" as const,
+	currency: "GBP",
+	timezone: "UTC",
+	slots: true,
+	ticketTypes: [{ id: `tt_${eventId}`, name, priceMinor: 0, available: 50, maxPerOrder: 4 }],
+	occurrences: months.flatMap((first, m) =>
+		[0, 1, 2].flatMap((d) =>
+			[10, 15].map((hour, i) => ({
+				id: `${eventId}-${m}-${d}-${i}`,
+				startsAt: new Date(first + d * 864e5 + hour * 36e5).toISOString(),
+				available: 5,
+			})),
+		),
+	),
+});
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Two pickers</title>
+	</head>
+	<body>
+		<main>
+			<h1>Two pickers</h1>
+			<BookingWidget event="e2e-picker-a" data={data("e2e-picker-a", "Pottery")} heading="Book pottery" />
+			<BookingWidget event="e2e-picker-b" data={data("e2e-picker-b", "Climbing")} heading="Book climbing" />
+		</main>
+	</body>
+</html>

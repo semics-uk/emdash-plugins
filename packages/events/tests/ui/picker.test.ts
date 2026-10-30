@@ -6,6 +6,7 @@ import {
 	PICKER_PARAM,
 	pickerFetchFrom,
 	pickerHref,
+	pickerParam,
 	pickerView,
 	usesPicker,
 } from "../../src/astro/lib/picker";
@@ -157,8 +158,18 @@ describe("month view and paging (T130)", () => {
 
 	it("builds page links that keep the page's query, drop old widget errors and go to the widget", () => {
 		const url = new URL("https://site.test/events/range?x=1&booking_error=SOLD_OUT&booking_event=e1");
-		expect(pickerHref(url, "2026-12-01", "semics-booking-e1")).toBe(
-			`/events/range?x=1&${PICKER_PARAM}=2026-12-01#semics-booking-e1`,
+		expect(pickerHref(url, "2026-12-01", "e1")).toBe(
+			`/events/range?x=1&${PICKER_PARAM}.e1=2026-12-01#semics-booking-e1`,
+		);
+	});
+
+	it("T134 keys the page parameter per widget, so two pickers on a page page independently", () => {
+		expect(pickerParam("e1")).toBe("booking_from.e1");
+		expect(pickerParam("ev 2/x")).toBe("booking_from.ev_2_x");
+		const url = new URL("https://site.test/events?booking_from.e2=2027-01-01");
+		// Paging the first widget keeps the second one's month.
+		expect(pickerHref(url, "2026-12-01", "e1")).toBe(
+			"/events?booking_from.e2=2027-01-01&booking_from.e1=2026-12-01#semics-booking-e1",
 		);
 	});
 });

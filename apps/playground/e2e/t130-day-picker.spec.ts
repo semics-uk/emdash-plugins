@@ -2,8 +2,9 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 // T130 (EV-FR-17): the booking widget's day-then-time picker on `/e2e/picker` (a slot schedule's data:
-// three sessions a day from tomorrow; day 2's 13:00 full, day 3 fully booked). Without JavaScript the
-// dates are a select grouped by day; with it, a month calendar of days, then the day's times.
+// three sessions a day on next month's first nine days, so they never straddle a month end (T134); day 2's
+// 13:00 full, day 3 fully booked). Without JavaScript the dates are a select grouped by day; with it, a
+// month calendar of days, then the day's times. `/e2e/pickers` has two pickers that page independently (T134).
 
 const PAGE = "/e2e/picker";
 
@@ -21,12 +22,13 @@ test("EV-FR-17 no JS: a select of the month's dates grouped by day, full times d
 	const select = widget.getByLabel("Date", { exact: true });
 	await expect(select).toBeVisible();
 	const groups = select.locator("optgroup");
-	expect(await groups.count()).toBeGreaterThan(0);
+	// All nine days are on the one month the page opens on, whatever today's date (T134).
+	await expect(groups).toHaveCount(9);
 	await expect(groups.first()).toHaveAttribute("label", /\d{4}/);
-	// Day 2's 13:00 and all of day 3 are full (either may be on next month's page).
-	for (const option of await select.locator('option[value="s-e2e-1-1"], option[value^="s-e2e-2-"]').all()) {
-		await expect(option).toBeDisabled();
-	}
+	// Day 2's 13:00 and all of day 3 are full.
+	const full = select.locator('option[value="s-e2e-1-1"], option[value^="s-e2e-2-"]');
+	await expect(full).toHaveCount(4);
+	for (const option of await full.all()) await expect(option).toBeDisabled();
 	await expect(select.locator("option:not([disabled])").nth(1)).toHaveText(/^\d\d:\d\d, \d places? left$/);
 	// The month's paging links work without JS (axe needs scripts: the JS tests run it).
 	await context.close();
@@ -94,3 +96,47 @@ test("EV-FR-17 fits a 320 px screen without sideways scroll", async ({ browser }
 	expect(await violations(page)).toEqual([]);
 	await context.close();
 });
+
+/** The month each picker on `/e2e/pickers` shows: [pottery, climbing]. */
+async function months(page: import("@playwright/test").Page) {
+	return Promise.all(
+		["Book pottery", "Book climbing"].map(async (name) => {
+			const widget = page.getByTestId("booking-widget").filter({ has: page.getByRole("heading", { name }) });
+			return (await widget.locator(".semics-picker-month").textContent())?.trim() ?? "";
+		}),
+	);
+}
+
+for (const javaScriptEnabled of [false, true]) {
+	test(`T134 EV-FR-17 two pickers on one page page independently (${javaScriptEnabled ? "with" : "no"} JS)`, async ({
+		browser,
+	}) => {
+		const context = await browser.newContext({ javaScriptEnabled });
+		const page = await context.newPage();
+		await page.goto("/e2e/pickers");
+		const widget = (name: string) =>
+			page.getByTestId("booking-widget").filter({ has: page.getByRole("heading", { name }) });
+		const pottery = widget("Book pottery");
+		const climbing = widget("Book climbing");
+		if (javaScriptEnabled) {
+			await expect(pottery.getByTestId("booking-picker")).toBeVisible();
+			await expect(climbing.getByTestId("booking-picker")).toBeVisible();
+		}
+		const [next, same] = await months(page);
+		expect(same).toBe(next);
+
+		// Paging one widget leaves the other on its month.
+		await pottery.getByRole("link", { name: "Later dates" }).click();
+		await expect(page).toHaveURL(/[?&]booking_from\.e2e-picker-a=\d{4}-\d{2}-01#semics-booking-e2e-picker-a$/);
+		const [later, kept] = await months(page);
+		expect(later).not.toBe(next);
+		expect(kept).toBe(next);
+		await climbing.getByRole("link", { name: "Later dates" }).click();
+		await expect(page).toHaveURL(/booking_from\.e2e-picker-a=.+&booking_from\.e2e-picker-b=/);
+		await expect.poll(() => months(page)).toEqual([later, later]);
+		await pottery.getByRole("link", { name: "Earlier dates" }).click();
+		await expect.poll(() => months(page)).toEqual([next, later]);
+		if (javaScriptEnabled) await expect(climbing.getByTestId("booking-picker")).toBeVisible();
+		await context.close();
+	});
+}

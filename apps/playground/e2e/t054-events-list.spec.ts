@@ -67,6 +67,9 @@ test("EU-FR-03 the card looks right in two themes", async ({ page }) => {
 		// Human-readable assertion beside the snapshot.
 		await expect(card.getByRole("heading")).toHaveText("London Community Meetup");
 		await expect(card.getByTestId("event-when")).toContainText("Thu, 14 Mar 2030");
+		// The e2e page fixes the card's box (T134), so a machine whose system font is a few pixels shorter
+		// compares the same size of image; the pixel tolerance covers the glyphs.
+		expect(await card.evaluate((e) => e.getBoundingClientRect().height)).toBe(128);
 		await expect(card).toHaveScreenshot(`event-card-${theme}.png`, { maxDiffPixelRatio: 0.03 });
 	}
 });

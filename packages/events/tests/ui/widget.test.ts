@@ -9,6 +9,7 @@ import {
 	newIdempotencyKey,
 	readWidgetState,
 	safeReturnTo,
+	ticketNames,
 	validateCheckoutFields,
 	widgetErrorLocation,
 } from "../../src/astro/lib/widget";
@@ -136,5 +137,18 @@ describe("calendar links (EU-FR-08)", () => {
 
 	it("EU-FR-08 links the public event calendar file by event id", () => {
 		expect(eventCalendarHref("r_abc", "ev/1")).toBe("/_emdash/api/plugins/r_abc/public/event/ics?eventId=ev%2F1");
+	});
+});
+
+describe("ticket names on the booking page (T134, T135 follow-up)", () => {
+	it("EU-FR-09 names each ticket type from the public/event answer, so lines never show a raw id", () => {
+		const event = {
+			ticketTypes: [
+				{ id: "0b4f6d3e-9c1a-4c8e-8a51-2f3c9d7e6a10", name: "Class place", priceMinor: 0 },
+				{ id: "tt_b", name: "Balcony", priceMinor: 500 },
+			],
+		};
+		expect(ticketNames(event)).toEqual({ "0b4f6d3e-9c1a-4c8e-8a51-2f3c9d7e6a10": "Class place", tt_b: "Balcony" });
+		expect(ticketNames(undefined)).toEqual({});
 	});
 });

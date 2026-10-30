@@ -312,6 +312,85 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
 	});
 
+	it("R98 T134 'Pay now' of an approved booking keeps the attendees typed at checkout (names, emails, minors) and only re-runs payment", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], status: "awaiting_payment" });
+		w.booking().approval = { until: at(60 * 24), approvedAt: at(-5) };
+		w.storage.attendees.set(`${ID}-1`, {
+			bookingId: ID,
+			eventId: "ev1",
+			ticketTypeId: "tt_a",
+			name: "Grace Hopper",
+			email: "grace@example.com",
+			status: "valid",
+			code: "code-1",
+		});
+		w.storage.attendees.set(`${ID}-2`, {
+			bookingId: ID,
+			eventId: "ev1",
+			ticketTypeId: "tt_b",
+			name: "Ada Junior",
+			email: "ada@example.com",
+			minor: true,
+			status: "valid",
+			code: "code-2",
+		});
+		const before = structuredClone([...w.storage.attendees.docs.entries()]);
+		for (let i = 0; i < 2; i++) {
+			const { body, calls } = await run(w.deps(T0 + MIN + i, { payment: payment([]) }), w.input);
+			expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+			expect(calls).toBe(6);
+		}
+		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
+	});
+
+	it("R98 T134 'Pay now' of an approved waiver booking keeps each seat's signature state", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], status: "awaiting_payment" });
+		w.booking().waiver = { templateId: "tpl_waiver", mode: "each_attendee" };
+		w.booking().approval = { until: at(60 * 24), approvedAt: at(-5) };
+		const signature = { envelopeId: "env_1", status: "completed", docSha256: "a".repeat(64) };
+		w.storage.attendees.set(`${ID}-1`, {
+			bookingId: ID,
+			ticketTypeId: "tt_a",
+			name: "Grace Hopper",
+			email: "grace@example.com",
+			status: "valid",
+			code: "code-1",
+			signature,
+		});
+		w.storage.attendees.set(`${ID}-2`, {
+			bookingId: ID,
+			ticketTypeId: "tt_b",
+			name: "Alan Turing",
+			email: "alan@example.com",
+			status: "pending",
+			code: "code-2",
+		});
+		const before = structuredClone([...w.storage.attendees.docs.entries()]);
+		const { body } = await run(w.deps(T0 + MIN, { payment: payment([]) }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+		expect([...w.storage.attendees.docs.entries()]).toEqual(before);
+	});
+
+	it("EV-FR-05 T077 T134 resuming a booking awaiting payment with no attendees stored yet still plans them in the buyer's name", async () => {
+		const w = await world({ priceMinor: 1500, types: ["tt_a", "tt_b"], status: "awaiting_payment" });
+		const { body, calls } = await run(w.deps(T0 + MIN, { payment: payment([]) }), w.input);
+		expect(body).toMatchObject({ ok: true, status: "awaiting_payment", next: { type: "pay" } });
+		expect(calls).toBe(6);
+		expect([...w.storage.attendees.docs.values()]).toMatchObject([
+			{ name: "Ada Lovelace", email: "ada@example.com", status: "pending" },
+			{ name: "Ada Lovelace", email: "ada@example.com", status: "pending" },
+		]);
+	});
+
+	it("EV-FR-05 T134 a continue that names attendees while awaiting payment (no waiver) still writes them", async () => {
+		const w = await world({ priceMinor: 1500, status: "awaiting_payment" });
+		w.storage.attendees.set(`${ID}-1`, { bookingId: ID, ticketTypeId: "tt_a", name: "Old", email: "o@example.com", status: "pending", code: "c" });
+		const attendees = [{ ticketTypeId: "tt_a", name: "Grace Hopper", email: "grace@example.com" }];
+		const { body } = await run(w.deps(T0 + MIN, { payment: payment([]) }), { ...w.input, attendees });
+		expect(body).toMatchObject({ ok: true, next: { type: "pay" } });
+		expect(w.storage.attendees.docs.get(`${ID}-1`)).toMatchObject({ name: "Grace Hopper", status: "pending" });
+	});
+
 	it("EV-FR-05 extends the hold, moves to awaiting_payment, writes pending attendees and re-arms hold-<ref>", async () => {
 		const w = await world({ priceMinor: 1500 });
 		const seen: string[] = [];

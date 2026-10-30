@@ -1,15 +1,16 @@
 ---
 // e2e-only page (T130): the booking widget's day-then-time picker with fixed slot-schedule data, three
-// sessions a day from tomorrow for nine days in Europe/London. Day 2's 13:00 is full, day 3 is fully booked.
+// sessions a day on the first nine days of next month (UTC), so the days never straddle a month end
+// whatever today is (T134) and the picker opens on that month. Day 2's 13:00 is full, day 3 is fully booked.
 import BookingWidget from "@semics-tech/emdash-events/astro/BookingWidget.astro";
 
 export const prerender = false;
 
-const day = new Date();
-day.setUTCHours(0, 0, 0, 0);
+const now = new Date();
+const first = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
 const occurrences = Array.from({ length: 9 }, (_, d) =>
 	[9, 13, 18].map((hour, i) => {
-		const start = new Date(day.getTime() + (d + 1) * 864e5 + hour * 36e5);
+		const start = new Date(first + d * 864e5 + hour * 36e5);
 		const full = (d === 1 && i === 1) || d === 2;
 		return { id: `s-e2e-${d}-${i}`, startsAt: start.toISOString(), available: full ? 0 : 6 - i };
 	}),

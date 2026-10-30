@@ -155,6 +155,18 @@ export function patchBooking(id: string, patch: Record<string, unknown>) {
 	});
 }
 
+/** A booking's stored attendees (`<bookingId>-<seat>`), seat order. */
+export function attendeesOf(bookingId: string): Array<Record<string, unknown>> {
+	const rows = db((d) =>
+		d
+			.prepare(
+				`SELECT id, data FROM _plugin_storage WHERE plugin_id = 'semics-events' AND collection = 'attendees' AND id LIKE ? ORDER BY id`,
+			)
+			.all(`${bookingId}-%`),
+	) as Array<{ id: string; data: string }>;
+	return rows.map((r) => JSON.parse(r.data));
+}
+
 /** A stored payment record (`stripe:<session>`). */
 export function paymentRecord(sessionId: string): Record<string, unknown> | null {
 	const row = db((d) =>
