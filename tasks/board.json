@@ -2645,17 +2645,19 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
 				"T131"
 			],
 			"spec": [
-				"R49"
+				"R49",
+				"R97",
+				"R98"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T133": {
 			"file": "T133-attendee-signing-list.md",
@@ -2678,9 +2680,7 @@
 	"columns": {
 		"backlog": [],
 		"ready": [],
-		"in-progress": [
-			"T132"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2794,6 +2794,7 @@
 			"T129",
 			"T130",
 			"T131",
+			"T132",
 			"T133"
 		],
 		"blocked": [
@@ -2802,7 +2803,7 @@
 		]
 	},
 	"criticalPath": [
-		"T132"
+		"T111"
 	],
-	"criticalWeight": 3
+	"criticalWeight": 2
 }
