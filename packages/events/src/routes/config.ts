@@ -2,7 +2,9 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { type ConfigIssue, catalogOf as catalogFrom, type ExistingState, validateConfigInput } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
+import { cmp, ticketOrder } from "../domain/order";
 import { scheduleOwned } from "../domain/schedule";
+import { iso } from "../domain/time";
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { routeError } from "./reply";
 
@@ -60,11 +62,7 @@ export async function loadEventState(eventId: string, storage: ConfigStorage) {
 	};
 }
 
-const byName = (a: { data: unknown }, b: { data: unknown }) => {
-	const x = a.data as TicketTypeDoc;
-	const y = b.data as TicketTypeDoc;
-	return x.sort - y.sort || (x.name < y.name ? -1 : x.name > y.name ? 1 : 0);
-};
+const byName = (a: { data: unknown }, b: { data: unknown }) => ticketOrder(a.data as TicketTypeDoc, b.data as TicketTypeDoc);
 
 export type EventState = Awaited<ReturnType<typeof loadEventState>>;
 
@@ -230,7 +228,7 @@ export async function saveConfig(
 		ticketTypes: [...effective.ticketTypes].map(([id, data]) => ({ id, data })),
 		occurrences: [...effective.occurrences]
 			.map(([id, data]) => ({ id, data }))
-			.sort((a, b) => (a.data.startsAt < b.data.startsAt ? -1 : a.data.startsAt > b.data.startsAt ? 1 : 0)),
+			.sort((a, b) => cmp(a.data.startsAt, b.data.startsAt)),
 	});
 	return { ok: true, eventId };
 }
@@ -251,7 +249,7 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 			const dates = scheduleOwned(state.config)
 				? (
 						await configStorage(ctx).occurrences.query({
-							where: { eventId, startsAt: { gte: new Date().toISOString() } },
+							where: { eventId, startsAt: { gte: iso(Date.now()) } },
 							orderBy: { startsAt: "asc" },
 							limit: 100,
 						})

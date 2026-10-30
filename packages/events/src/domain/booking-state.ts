@@ -23,21 +23,28 @@ import type {
 } from "../storage/schema";
 import type { InputIssue } from "./checkout";
 import { HOLD_STATUSES } from "./holds";
+import { STATUSES, seatsByType } from "./inventory";
+import { cmp } from "./order";
 import { iso } from "./time";
 
-export const BOOKING_TRANSITIONS: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = {
-	draft: ["held", "expired"],
-	held: ["awaiting_signature", "awaiting_payment", "awaiting_approval", "confirmed", "expired", "cancelled"],
-	awaiting_signature: ["awaiting_payment", "awaiting_approval", "confirmed", "expired", "cancelled"],
-	awaiting_payment: ["awaiting_approval", "confirmed", "expired", "cancelled", "refunded_unavailable"],
-	awaiting_approval: ["confirmed", "declined", "expired", "cancelled"],
-	confirmed: ["cancelled", "refunded"],
-	expired: ["refunded_unavailable"],
-	cancelled: ["refunded"],
-	refunded: [],
-	refunded_unavailable: [],
-	declined: [],
-};
+/**
+ * Every status (in `STATUSES` order: a draft, b held, c awaiting_signature, d awaiting_payment,
+ * e awaiting_approval, f confirmed, g expired, h cancelled, i refunded, j refunded_unavailable, k declined) and the statuses it may move to:
+ *
+ * draft → held, expired; held → awaiting_signature, awaiting_payment, awaiting_approval, confirmed,
+ * expired, cancelled; awaiting_signature → awaiting_payment, awaiting_approval, confirmed, expired,
+ * cancelled; awaiting_payment → awaiting_approval, confirmed, expired, cancelled, refunded_unavailable;
+ * awaiting_approval → confirmed, declined, expired, cancelled; confirmed → cancelled, refunded;
+ * expired → refunded_unavailable; cancelled → refunded; refunded, refunded_unavailable, declined: none.
+ *
+ * Built from letters (`a` = `STATUSES[0]`) so the sandbox bundle carries each name once (R99).
+ */
+export const BOOKING_TRANSITIONS: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = Object.fromEntries(
+	STATUSES.map((s, i) => [
+		s,
+		[..."bg cdefgh defgh efghj fkgh hi j i".split(" ")[i] ?? ""].map((c) => STATUSES[c.charCodeAt(0) - 97]),
+	]),
+) as Record<BookingStatus, BookingStatus[]>;
 
 export function canTransition(from: BookingStatus, to: BookingStatus): boolean {
 	return BOOKING_TRANSITIONS[from].includes(to);
@@ -99,8 +106,6 @@ export const attendeeId = (bookingId: string, n: number) => `${bookingId}-${n}`;
 /** One confirmation message per booking: its id makes queueing it again a replacement. */
 export const confirmationOutboxId = (bookingId: string) => `confirm-${bookingId}`;
 
-const byId = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
-
 /**
  * The attendee documents for a booking: one per seat, in ticket-type id order. Without `attendees`
  * every seat is in the buyer's name; otherwise the list must name exactly the booked seats per
@@ -113,8 +118,7 @@ export function planAttendees(
 	attendees: readonly AttendeeInput[] | undefined,
 	{ status, newCode }: { status: AttendeeStatus; newCode: () => string },
 ): Result<Array<{ id: string; data: AttendeeDoc }>, InputIssue[]> {
-	const seats = new Map<string, number>();
-	for (const line of booking.lines) seats.set(line.ticketTypeId, (seats.get(line.ticketTypeId) ?? 0) + line.qty);
+	const seats = seatsByType(booking.lines);
 	const buyer = { name: booking.buyer.name, email: booking.buyer.email };
 	const people = new Map<string, Array<{ name: string; email: string; minor?: boolean }>>();
 	if (attendees === undefined) {
@@ -137,7 +141,7 @@ export function planAttendees(
 		if (!matches) return err([{ path: "attendees", code: "ATTENDEES_MISMATCH" }]);
 	}
 	const docs: Array<{ id: string; data: AttendeeDoc }> = [];
-	for (const type of [...seats.keys()].sort(byId)) {
+	for (const type of [...seats.keys()].sort(cmp)) {
 		for (const person of people.get(type) ?? []) {
 			docs.push({
 				id: attendeeId(bookingId, docs.length + 1),

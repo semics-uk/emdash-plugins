@@ -33,7 +33,9 @@ import {
 	mergeRefs,
 	release,
 	restore,
+	STATUSES,
 } from "./inventory";
+import { clampSetting } from "./settings";
 import { iso } from "./time";
 
 /**
@@ -70,11 +72,8 @@ export function holdSettings(raw: {
 	holdMinutesPaid?: unknown;
 	holdCeilingMinutes?: unknown;
 }): HoldSettings {
-	const pick = (value: unknown, key: keyof HoldSettings) => {
-		if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_HOLD_SETTINGS[key];
-		const [min, max] = RANGES[key];
-		return Math.min(max, Math.max(min, Math.round(value)));
-	};
+	const pick = (value: unknown, key: keyof HoldSettings) =>
+		clampSetting(value, DEFAULT_HOLD_SETTINGS[key], RANGES[key][0], RANGES[key][1]);
 	return {
 		freeMinutes: pick(raw.holdMinutesFree, "freeMinutes"),
 		paidMinutes: pick(raw.holdMinutesPaid, "paidMinutes"),
@@ -83,15 +82,11 @@ export function holdSettings(raw: {
 }
 
 /** Booking statuses that hold seats with a running hold (awaiting approval: until its deadline, T131). */
-export const HOLD_STATUSES: readonly BookingStatus[] = [
-	"held",
-	"awaiting_signature",
-	"awaiting_payment",
-	"awaiting_approval",
-];
+// held, awaiting_signature, awaiting_payment, awaiting_approval
+export const HOLD_STATUSES: readonly BookingStatus[] = STATUSES.slice(1, 5);
 
 /** Statuses the sweeper expires: the hold states, plus a `draft` whose checkout never finished. */
-export const EXPIRABLE_STATUSES: readonly BookingStatus[] = ["draft", ...HOLD_STATUSES];
+export const EXPIRABLE_STATUSES: readonly BookingStatus[] = STATUSES.slice(0, 5);
 
 /** A claim older than this belongs to an invocation that died (the host stops one after 30 s). */
 export const CLAIM_STALE_MS = 2 * MINUTE;

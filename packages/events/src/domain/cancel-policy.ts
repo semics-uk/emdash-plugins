@@ -8,15 +8,15 @@
  */
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { HOLD_STATUSES } from "./holds";
+import { clampSetting } from "./settings";
+import { iso } from "./time";
 
 export const DEFAULT_CANCEL_CUTOFF_HOURS = 24;
 const HOUR = 3_600_000;
 
 /** Hours before the start after which self-service cancel closes (0 to 720; default 24). */
 export function cancelCutoffHours(raw: { cancelCutoffHours?: unknown }): number {
-	const v = raw.cancelCutoffHours;
-	if (typeof v !== "number" || !Number.isFinite(v)) return DEFAULT_CANCEL_CUTOFF_HOURS;
-	return Math.min(720, Math.max(0, Math.round(v)));
+	return clampSetting(raw.cancelCutoffHours, DEFAULT_CANCEL_CUTOFF_HOURS, 0, 720);
 }
 
 type PolicyConfig = Pick<EventConfigDoc, "catalog" | "salesEnd">;
@@ -51,7 +51,7 @@ export function cancelDecision(
 	const start = referenceStart(booking, config);
 	if (start === null) return { allowed: true, kind: "confirmed", cancelBy: null };
 	const deadline = start - cutoffHours * HOUR;
-	const cancelBy = new Date(deadline).toISOString();
+	const cancelBy = iso(deadline);
 	return now <= deadline
 		? { allowed: true, kind: "confirmed", cancelBy }
 		: { allowed: false, reason: "TOO_LATE", cancelBy };

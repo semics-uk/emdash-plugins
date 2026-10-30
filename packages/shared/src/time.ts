@@ -62,6 +62,19 @@ export function utcToZoned(utcMs: number, timeZone: string): Required<LocalParts
 	};
 }
 
+/** Calendar parts of a UTC instant in UTC (no `Intl`; one copy for ICS, RRULE and schedules, R99). */
+export function utcParts(utcMs: number): Required<LocalParts> {
+	const d = new Date(utcMs);
+	return {
+		year: d.getUTCFullYear(),
+		month: d.getUTCMonth() + 1,
+		day: d.getUTCDate(),
+		hour: d.getUTCHours(),
+		minute: d.getUTCMinutes(),
+		second: d.getUTCSeconds(),
+	};
+}
+
 /** UTC offset of a zone at an instant, in minutes east of UTC (London summer is 60). */
 export function utcOffsetMinutes(utcMs: number, timeZone: string): number {
 	const p = utcToZoned(utcMs, timeZone);

@@ -38,6 +38,7 @@ import {
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
+import { heldGuard } from "../domain/holds";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { approvalEmail, cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
@@ -269,26 +270,43 @@ async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): 
 			d.storage.attendees.query({ where: { bookingId }, limit: ATTENDEE_PAGE }).then((r) => r.items),
 		eventOf(d, tick, booking),
 	]);
-	const code = generateToken();
-	const minted = await d.storage.bookings.updateIf(bookingId, {
-		where: { status: "confirmed" },
-		set: { redeemHash: await hashToken(code), redeemExpiresAt: iso(d.now + REDEEM_TTL_MS) },
-	});
-	if (!minted.applied) return null;
+	const bookingUrl = await mintLink(d, bookingId, booking, { status: "confirmed" }, iso(d.now + REDEEM_TTL_MS));
+	if (!bookingUrl) return null;
 	const names = attendees
 		.map((i) => i.data as AttendeeDoc)
 		.filter((a) => a.status !== "cancelled")
 		.map((a) => a.name);
 	return confirmationEmail({
-		to: booking.email,
-		buyerName: booking.buyer.name,
-		bookingRef: booking.ref,
+		...addressee(booking),
 		attendees: names,
 		event,
-		bookingUrl: `${d.origin}/booking?${new URLSearchParams({ ref: booking.ref, k: code })}`,
+		bookingUrl,
 		calendarUrl: calendarUrl(d, booking.eventId),
 		siteName: d.siteName,
 	});
+}
+
+/** The buyer fields every booking email starts from. */
+const addressee = (b: BookingDoc) => ({ to: b.email, buyerName: b.buyer.name, bookingRef: b.ref });
+
+/**
+ * Mints the one-time booking link code (its hash on the booking, guarded on `where`; one call) and
+ * returns the `/booking` link, or null when the guard missed (nothing to send).
+ */
+async function mintLink(
+	d: DrainDeps,
+	id: string,
+	b: BookingDoc,
+	where: Record<string, unknown>,
+	redeemExpiresAt: string,
+	extra: Record<string, string> = {},
+): Promise<string | null> {
+	const k = generateToken();
+	const { applied } = await d.storage.bookings.updateIf(id, {
+		where,
+		set: { redeemHash: await hashToken(k), redeemExpiresAt },
+	});
+	return applied ? `${d.origin}/booking?${new URLSearchParams({ ref: b.ref, k, ...extra })}` : null;
 }
 
 async function renderCancellation(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
@@ -296,9 +314,7 @@ async function renderCancellation(d: DrainDeps, tick: Tick, bookingId: string): 
 	if (!booking) return null;
 	const event = await eventOf(d, tick, booking);
 	return cancellationEmail({
-		to: booking.email,
-		buyerName: booking.buyer.name,
-		bookingRef: booking.ref,
+		...addressee(booking),
 		attendees: [],
 		event,
 		calendarUrl: calendarUrl(d, booking.eventId),
@@ -315,18 +331,12 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 	const until = booking?.holdExpiresAt;
 	if (booking?.status !== "held" || booking.releaseClaimedAt || !until) return null;
 	const event = await eventOf(d, tick, booking);
-	const code = generateToken();
-	const minted = await d.storage.bookings.updateIf(bookingId, {
-		where: { status: "held", releaseClaimedAt: null, holdExpiresAt: until },
-		set: { redeemHash: await hashToken(code), redeemExpiresAt: until },
-	});
-	if (!minted.applied) return null;
+	const bookingUrl = await mintLink(d, bookingId, booking, heldGuard(booking), until, { offer: "1" });
+	if (!bookingUrl) return null;
 	return offerEmail({
-		to: booking.email,
-		buyerName: booking.buyer.name,
-		bookingRef: booking.ref,
+		...addressee(booking),
 		event,
-		bookingUrl: `${d.origin}/booking?${new URLSearchParams({ ref: booking.ref, k: code, offer: "1" })}`,
+		bookingUrl,
 		seats: booking.lines.reduce((n, l) => n + l.qty, 0),
 		expiresAt: until,
 		siteName: d.siteName,

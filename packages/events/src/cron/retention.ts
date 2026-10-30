@@ -19,8 +19,8 @@
  * never erased. The clock is passed in.
  */
 import { sweepRateLimits } from "@semics-tech/shared";
-import { EXPIRABLE_STATUSES } from "../domain/holds";
-import { settingsObject } from "../domain/settings";
+import { STATUSES } from "../domain/inventory";
+import { clampSetting, settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
 
@@ -38,7 +38,8 @@ const ATTENDEES_PAGE = 100;
 const OUTBOX_PAGE = 50;
 /** A full pass (phases 2 and 3) is started at most this often. */
 const FULL_EVERY = 20 * 3_600_000;
-const LIVE_STATUSES: readonly string[] = [...EXPIRABLE_STATUSES, "confirmed"];
+/** The expirable statuses (draft and the hold states) and `confirmed`. */
+const LIVE_STATUSES: readonly string[] = STATUSES.slice(0, 6);
 
 type Page = { items: Array<{ id: string; data: unknown }>; hasMore?: boolean; cursor?: string };
 type Query = (o: {
@@ -78,8 +79,7 @@ export interface RetentionDeps {
 
 /** Days to keep booking data after the event (setting `retentionDays`: default 365, minimum 30). */
 export function retentionDays(raw: { retentionDays?: unknown }): number {
-	const v = raw.retentionDays;
-	return typeof v === "number" && Number.isFinite(v) ? Math.max(30, Math.round(v)) : 365;
+	return clampSetting(raw.retentionDays, 365, 30);
 }
 
 /** When the booked event ends (or starts), in ms, from its config; `null` when the config does not say. */
@@ -221,6 +221,15 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 	let erased = 0;
 	let idle = false;
 	const cutoff = now - (s.days ?? 365) * DAY;
+	// The next page of bookings created in [from, before), oldest first.
+	const created = (from: string | undefined, before: number, limit: number) =>
+		storage.bookings.query({
+			where: { createdAt: { gte: from ?? "0", lt: iso(before) } },
+			orderBy: { createdAt: "asc" },
+			limit,
+			...(s.cursor ? { cursor: s.cursor } : {}),
+		});
+	const lastCreated = (page: Page) => (page.items.at(-1)?.data as BookingDoc | undefined)?.createdAt;
 
 	if (!phase) {
 		// Up to 3 ended counters a tick; the pass waits here until none is left.
@@ -232,12 +241,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 			s.phase = "ips";
 		}
 	} else if (phase === "ips") {
-		const page = await storage.bookings.query({
-			where: { createdAt: { gte: s.ipFrom ?? "0", lt: iso(now - IP_WINDOW) } },
-			orderBy: { createdAt: "asc" },
-			limit: IP_PAGE,
-			...(s.cursor ? { cursor: s.cursor } : {}),
-		});
+		const page = await created(s.ipFrom, now - IP_WINDOW, IP_PAGE);
 		calls++;
 		for (const { id, data } of page.items) {
 			const b = data as BookingDoc;
@@ -248,19 +252,14 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 		if (page.hasMore && page.cursor) s.cursor = page.cursor;
 		else {
 			delete s.cursor;
-			s.ipFrom = (page.items.at(-1)?.data as BookingDoc | undefined)?.createdAt ?? s.ipFrom;
+			s.ipFrom = lastCreated(page) ?? s.ipFrom;
 			if (!s.fullAt || now - Date.parse(s.fullAt) >= FULL_EVERY) {
 				s.phase = "bookings";
 				s.fullAt = iso(now);
 			} else idle = true;
 		}
 	} else if (phase === "bookings") {
-		const page = await storage.bookings.query({
-			where: { createdAt: { gte: s.floor ?? "0", lt: iso(cutoff) } },
-			orderBy: { createdAt: "asc" },
-			limit: BOOKINGS_PAGE,
-			...(s.cursor ? { cursor: s.cursor } : {}),
-		});
+		const page = await created(s.floor, cutoff, BOOKINGS_PAGE);
 		calls++;
 		const out = await eraseBookings(storage, page.items, now, { cutoff, ...(s.acursor ? { acursor: s.acursor } : {}) });
 		calls += out.calls;
@@ -271,7 +270,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 			s.keep ??= out.held;
 			if (page.hasMore && page.cursor) s.cursor = page.cursor;
 			else {
-				s.floor = s.keep ?? (page.items.at(-1)?.data as BookingDoc | undefined)?.createdAt ?? s.floor;
+				s.floor = s.keep ?? lastCreated(page) ?? s.floor;
 				delete s.cursor;
 				delete s.keep;
 				s.phase = "outbox";

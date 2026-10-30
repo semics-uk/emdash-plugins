@@ -17,7 +17,7 @@
  * makes each an instant (a skipped local time moves forward by the gap, a repeated one takes the
  * first instant).
  */
-import { utcToZoned, zonedToUtc } from "./time";
+import { utcParts, utcToZoned, zonedToUtc } from "./time";
 
 export interface Rrule {
 	freq: "DAILY" | "WEEKLY" | "MONTHLY";
@@ -33,7 +33,8 @@ export interface Rrule {
 }
 
 const DAY = 864e5;
-const WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+/** RRULE weekday codes, Monday first (also the slot schedules' `days`). */
+export const WEEKDAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
 /** Periods (days, weeks or months) one expansion looks at, whatever the rule: a CPU bound. */
 const MAX_PERIODS = 4000;
 
@@ -155,17 +156,7 @@ export function expandLocal(rule: Rrule, start: number, from: number, to: number
 }
 
 /** Wall-clock parts of naive milliseconds. */
-const parts = (t: number) => {
-	const d = new Date(t);
-	return {
-		year: d.getUTCFullYear(),
-		month: d.getUTCMonth() + 1,
-		day: d.getUTCDate(),
-		hour: d.getUTCHours(),
-		minute: d.getUTCMinutes(),
-		second: d.getUTCSeconds(),
-	};
-};
+const parts = utcParts;
 
 /**
  * The instants (UTC ms) of the series that starts at `startUtc` in `zone`, between `fromUtc` and

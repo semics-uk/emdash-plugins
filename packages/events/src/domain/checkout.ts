@@ -7,10 +7,12 @@
  * three. The catalog carries capacities but no counters, so only the event-level counter can answer
  * `SOLD_OUT` before a write; the reservation guards (which pin the planned capacity) decide the rest.
  */
-import { err, ok, type Result } from "@semics-tech/shared";
+import { err, ok, type Result, toHex } from "@semics-tech/shared";
 
 import type { BookingDoc, BookingLine, EventConfigDoc } from "../storage/schema";
-import { type Counter, planReservation, type ReserveStep } from "./inventory";
+import { type Counter, planReservation, type ReserveStep, seatsByType } from "./inventory";
+import { cmp } from "./order";
+import { iso } from "./time";
 
 /** Most lines and seats per line one order may carry. */
 export const MAX_LINES = 10;
@@ -252,7 +254,7 @@ export async function bookingKeys(idempotencyKey: string): Promise<{ id: string;
 	const digest = new Uint8Array(
 		await crypto.subtle.digest("SHA-256", new TextEncoder().encode(`semics-events/booking/1:${idempotencyKey}`)),
 	);
-	const id = `bk_${Array.from(digest.subarray(0, 16), (b) => b.toString(16).padStart(2, "0")).join("")}`;
+	const id = `bk_${toHex(digest.subarray(0, 16))}`;
 	let ref = "";
 	let acc = 0;
 	let held = 0;
@@ -283,9 +285,7 @@ const inWindow = (now: number, start?: string | null, end?: string | null) =>
 	!(start && now < Date.parse(start)) && !(end && now >= Date.parse(end));
 
 function mergeLines(lines: ReserveInput["lines"]): Map<string, number> {
-	const merged = new Map<string, number>();
-	for (const line of lines) merged.set(line.ticketTypeId, (merged.get(line.ticketTypeId) ?? 0) + line.qty);
-	return new Map([...merged].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+	return new Map([...seatsByType(lines)].sort(([a], [b]) => cmp(a, b)));
 }
 
 /**
@@ -366,5 +366,5 @@ export function sameOrder(
 
 /** Start of the rate-limit window ending at `now`. */
 export function rateWindowStart(now: number): string {
-	return new Date(now - RESERVE_RATE_LIMIT.windowMs).toISOString();
+	return iso(now - RESERVE_RATE_LIMIT.windowMs);
 }

@@ -116,16 +116,25 @@ interface Found {
 	booking: BookingDoc;
 }
 
+/**
+ * The booking `bookingRef` names, if `accessToken` is its token (one `bookings.query`); else null.
+ * An unknown ref pays for a check like a wrong token (verifyToken's decoy, T100).
+ */
+export async function findByToken(
+	storage: { bookings: { query(o: { where: Where; limit: number }): Promise<{ items: Item[] }> } },
+	{ bookingRef, accessToken }: { bookingRef: string; accessToken: string },
+): Promise<Found | null> {
+	const { items } = await storage.bookings.query({ where: { ref: bookingRef }, limit: 1 });
+	const found = items[0];
+	const booking = found?.data as BookingDoc | undefined;
+	const valid = await verifyToken(accessToken, booking?.accessTokenHash);
+	return found && booking && valid ? { id: found.id, booking } : null;
+}
+
 async function authenticate(deps: BookingDeps, raw: unknown): Promise<Found | { error: unknown }> {
 	const parsed = parseBookingAccessInput(raw);
 	if (!parsed.ok) return { error: badRequest(parsed.error) };
-	const { items } = await deps.storage.bookings.query({ where: { ref: parsed.value.bookingRef }, limit: 1 });
-	const found = items[0];
-	const booking = found?.data as BookingDoc | undefined;
-	// An unknown ref pays for a check like a wrong token (verifyToken's decoy).
-	const valid = await verifyToken(parsed.value.accessToken, booking?.accessTokenHash);
-	if (!found || !booking || !valid) return { error: fail("NOT_FOUND") };
-	return { id: found.id, booking };
+	return (await findByToken(deps.storage, parsed.value)) ?? { error: fail("NOT_FOUND") };
 }
 
 /** The policy decision for a booking; a hold state is always cancellable and needs no reads. */

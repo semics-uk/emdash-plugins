@@ -19,19 +19,10 @@ export interface InfoHookDeps {
 	};
 }
 
-export async function refreshEventInfo(
+export const refreshEventInfo = (
 	deps: InfoHookDeps,
 	event: Pick<ContentHookEvent, "collection" | "content">,
-): Promise<void> {
-	const id = event.content.id;
-	if (typeof id !== "string" || id === "") return;
-	const mapping = mappingOf(await deps.settings.list());
-	if (event.collection !== mapping.collection) return;
-	const info = infoOfEntry(event.content, mapping);
-	if (!info) return;
-	// `where: {}` matches any stored config; an entry that has none (a plain page) is left alone.
-	await deps.storage.event_configs.updateIf(id, { where: {}, set: { info } });
-}
+): Promise<void> => markUnpublished(deps, event);
 
 export const contentAfterSave = async (event: ContentHookEvent, ctx: PluginContext): Promise<void> =>
 	refreshEventInfo({ settings: ctx.settings, storage: ctx.storage as unknown as InfoHookDeps["storage"] }, event);
@@ -66,17 +57,26 @@ const depsOf = (ctx: PluginContext): StateHookDeps => ({
 const isEvents = async (deps: InfoHookDeps, collection: string) =>
 	collection === mappingOf(await deps.settings.list()).collection;
 
+/**
+ * Sets `unpublished` and, unless unpublishing, refreshes `info`. Without `unpublished` (a save) it
+ * only refreshes `info`, and writes nothing when the entry has no usable start. `where: {}` matches
+ * any stored config; an entry that has none (a plain page) is left alone.
+ */
 export async function markUnpublished(
 	deps: InfoHookDeps,
 	event: Pick<ContentStateChangeEvent, "collection" | "content">,
-	unpublished: boolean,
+	unpublished?: boolean,
 ): Promise<void> {
 	const id = event.content.id;
 	if (typeof id !== "string" || id === "") return;
 	const mapping = mappingOf(await deps.settings.list());
 	if (event.collection !== mapping.collection) return;
 	const info = unpublished ? null : infoOfEntry(event.content, mapping);
-	await deps.storage.event_configs.updateIf(id, { where: {}, set: { unpublished, ...(info ? { info } : {}) } });
+	if (unpublished === undefined && !info) return;
+	await deps.storage.event_configs.updateIf(id, {
+		where: {},
+		set: { ...(unpublished === undefined ? {} : { unpublished }), ...(info ? { info } : {}) },
+	});
 }
 
 export async function vetoDelete(deps: StateHookDeps, event: ContentDeleteEvent): Promise<false | undefined> {

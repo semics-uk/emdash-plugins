@@ -1,4 +1,4 @@
-import { type ErrorCode, generateToken, type Result, verifyToken } from "@semics-tech/shared";
+import { type ErrorCode, generateToken, type Result } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
@@ -17,6 +17,7 @@ import { type CounterStorage, confirmSold, countersForBooking } from "../domain/
 import { seatIds } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
+import { findByToken } from "./booking";
 import { badRequest, fail } from "./reply";
 
 /**
@@ -342,12 +343,9 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	if (!parsed.ok) return badRequest(parsed.error);
 	const input = parsed.value;
 
-	const { items } = await deps.storage.bookings.query({ where: { ref: input.bookingRef }, limit: 1 });
-	const found = items[0];
-	const booking = found?.data as BookingDoc | undefined;
-	// An unknown ref pays for a check like a wrong token (T100).
-	const valid = await verifyToken(input.accessToken, booking?.accessTokenHash);
-	if (!found || !booking || !valid) return fail("NOT_FOUND");
+	const found = await findByToken(deps.storage, input);
+	if (!found) return fail("NOT_FOUND");
+	const { booking } = found;
 	const c: Checkout = { deps, id: found.id, attendees: input.attendees, reads: 0 };
 
 	switch (checkoutState(booking, deps.now)) {

@@ -5,7 +5,6 @@ import {
 	column,
 	type FormField,
 	form,
-	header,
 	isValidTimeZone,
 	notices,
 	numberInput,
@@ -21,7 +20,7 @@ import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
 import { dayBounds, parseSchedule } from "../domain/schedule";
 import type { BookingDoc, EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { SAVED, saveRefused } from "./messages";
-import { held, respond, str } from "./ui";
+import { held, panelView, str } from "./ui";
 
 /**
  * The editor panel's Schedule section and day view (EV-FR-17, T129). The section edits
@@ -113,8 +112,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	const back = actions([button("panel.back", "Back to the event", { style: "secondary" })]);
 	let extra: Block[] = [];
 	if (!config || !bounds) {
-		extra = notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]);
-		return respond([header("Tickets & booking"), ...extra, dayPicker(day), back]);
+		return panelView([...notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]), dayPicker(day), back]);
 	}
 	const slots = { ...config.catalog?.occurrences };
 	const at = (id: string) => Date.parse(slots[id]?.startsAt ?? "");
@@ -207,8 +205,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			numberInput(`sl_places:${id}`, `${time(d)} places`, { initialValue: d.capacity, min: 1 }),
 		]),
 	];
-	return respond([
-		header("Tickets & booking"),
+	return panelView([
 		...extra,
 		table({
 			columns: [

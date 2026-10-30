@@ -21,6 +21,7 @@
 import { err, ok, type Result } from "@semics-tech/shared";
 
 import type { BookingDoc, BookingStatus } from "../storage/schema";
+import { iso } from "./time";
 
 export type CountedCollection = "ticket_types" | "occurrences" | "event_configs";
 
@@ -137,28 +138,21 @@ export function planReservation(
 	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) =>
 		err({ code: "BAD_REQUEST" as const, reason });
 	if (!Array.isArray(req.lines) || req.lines.length === 0) return bad("NO_LINES");
-	const perType = new Map<string, number>();
 	for (const line of req.lines) {
 		if (!isQty(line.qty)) return bad("INVALID_QUANTITY");
 		if (typeof line.ticketTypeId !== "string" || !req.ticketTypes.has(line.ticketTypeId)) {
 			return bad("UNKNOWN_TICKET_TYPE");
 		}
-		perType.set(line.ticketTypeId, (perType.get(line.ticketTypeId) ?? 0) + line.qty);
 	}
 	if (req.occurrenceId !== undefined && !req.occurrence) return bad("UNKNOWN_OCCURRENCE");
 
-	const total = [...perType.values()].reduce((a, b) => a + b, 0);
-	const read: Array<[ReserveStep, Counter]> = [...perType.keys()].sort().map((id) => {
-		const doc = req.ticketTypes.get(id) as Counter;
-		return [{ collection: "ticket_types", id, qty: perType.get(id) as number, capacity: doc.capacity }, doc];
+	// The same refs a booking of these lines holds, each with the document read for it (R99: one walk).
+	const read = countersForBooking({ ...req, lines: req.lines as BookingDoc["lines"] }).map((ref): [ReserveStep, Counter] => {
+		const doc = (
+			ref.collection === "ticket_types" ? req.ticketTypes.get(ref.id) : req[ref.collection === "occurrences" ? "occurrence" : "event"]
+		) as Counter;
+		return [{ ...ref, capacity: doc.capacity }, doc];
 	});
-	if (req.occurrenceId !== undefined && req.occurrence) {
-		read.push([
-			{ collection: "occurrences", id: req.occurrenceId, qty: total, capacity: req.occurrence.capacity },
-			req.occurrence,
-		]);
-	}
-	read.push([{ collection: "event_configs", id: req.eventId, qty: total, capacity: req.event.capacity }, req.event]);
 
 	const worst = compensation === "full" ? worstCaseCalls(read.length) : read.length;
 	if (worst > maxCalls) return bad("TOO_MANY_LINES");
@@ -275,10 +269,16 @@ export function confirmSold(storage: CounterStorage, refs: CounterRef[]): Promis
 	);
 }
 
+/** Seats per ticket type of order lines, in first-seen order (repeated types summed). */
+export function seatsByType(lines: Iterable<{ ticketTypeId: string; qty: number }>): Map<string, number> {
+	const seats = new Map<string, number>();
+	for (const { ticketTypeId: id, qty } of lines) seats.set(id, (seats.get(id) ?? 0) + qty);
+	return seats;
+}
+
 /** The counters a booking holds, in reservation order. */
 export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurrenceId" | "lines">): CounterRef[] {
-	const perType = new Map<string, number>();
-	for (const line of booking.lines) perType.set(line.ticketTypeId, (perType.get(line.ticketTypeId) ?? 0) + line.qty);
+	const perType = seatsByType(booking.lines);
 	const total = [...perType.values()].reduce((a, b) => a + b, 0);
 	const refs: CounterRef[] = [...perType.keys()]
 		.sort()
@@ -290,14 +290,26 @@ export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurr
 
 // --- drift repair ----------------------------------------------------------------------------------
 
-/** Bookings whose seats count as reserved. `draft` counts only while it may be mid-reservation. */
-export const LIVE_BOOKING_STATUSES: readonly BookingStatus[] = [
+/**
+ * Every booking status, in lifecycle order: the hold states are `[1, 5)`, the live ones `[1, 6)`.
+ * One list so the sandbox bundle carries each name once (R99); `BOOKING_TRANSITIONS` indexes it.
+ */
+export const STATUSES: readonly BookingStatus[] = [
+	"draft",
 	"held",
 	"awaiting_signature",
 	"awaiting_payment",
 	"awaiting_approval",
 	"confirmed",
+	"expired",
+	"cancelled",
+	"refunded",
+	"refunded_unavailable",
+	"declined",
 ];
+
+/** Bookings whose seats count as reserved. `draft` counts only while it may be mid-reservation. */
+export const LIVE_BOOKING_STATUSES: readonly BookingStatus[] = STATUSES.slice(1, 6);
 
 /** How long a `draft` booking counts as live: longer than any reserve route can run. */
 export const DRAFT_GRACE_MS = 5 * 60_000;
@@ -371,7 +383,7 @@ export async function applyDriftRepair(
 
 /** The dates a repair snapshots: from a week back, earliest first (T130; a slot schedule keeps hundreds of past ones). */
 const recentDates = (eventId: string, now: number) => ({
-	where: { eventId, startsAt: { gte: new Date(now - 7 * 864e5).toISOString() } },
+	where: { eventId, startsAt: { gte: iso(now - 7 * 864e5) } },
 	orderBy: { startsAt: "asc" },
 	limit: 100,
 });

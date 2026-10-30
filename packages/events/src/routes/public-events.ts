@@ -1,4 +1,5 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
+import { cmp, ticketOrder } from "../domain/order";
 import { iso } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { routeError } from "./reply";
@@ -107,7 +108,7 @@ export async function listEvents(deps: PublicEventsDeps): Promise<unknown> {
 			},
 		];
 	});
-	events.sort((a, b) => (a.startsAt < b.startsAt ? -1 : a.startsAt > b.startsAt ? 1 : 0));
+	events.sort((a, b) => cmp(a.startsAt, b.startsAt));
 	return { ok: true, events };
 }
 
@@ -141,7 +142,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	const ticketTypes = types.items
 		.map((i) => ({ id: i.id, t: i.data as TicketTypeDoc }))
 		.filter(({ t }) => !t.hidden)
-		.sort((a, b) => a.t.sort - b.t.sort || (a.t.name < b.t.name ? -1 : a.t.name > b.t.name ? 1 : 0))
+		.sort((a, b) => ticketOrder(a.t, b.t))
 		.map(({ id, t }) => ({
 			id,
 			name: t.name,

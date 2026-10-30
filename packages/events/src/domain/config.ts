@@ -22,6 +22,7 @@ import type {
 	TicketTypeDoc,
 } from "../storage/schema";
 import { APPROVAL_HOURS } from "./booking-state";
+import { cmp } from "./order";
 import { parseSchedule } from "./schedule";
 
 export type ConfigIssueCode =
@@ -393,7 +394,7 @@ export function catalogOf(
 	occurrences: Iterable<{ id: string; data: OccurrenceDoc }>,
 ): EventCatalog {
 	const byId = <T>(items: Iterable<{ id: string; data: T }>) =>
-		[...items].sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+		[...items].sort((a, b) => cmp(a.id, b.id));
 	const catalog: EventCatalog = { ticketTypes: {}, occurrences: {} };
 	for (const { id, data: t } of byId(ticketTypes)) {
 		catalog.ticketTypes[id] = {

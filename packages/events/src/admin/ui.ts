@@ -1,9 +1,12 @@
 /** Small helpers the admin pages and the editor panel share (one copy in the bundle, R42). */
-import { type Block, meter, toMinor } from "@semics-tech/shared";
+import { type Block, header, meter, toMinor } from "@semics-tech/shared";
 
 import { EVENT_STATUSES, OCCURRENCE_STATUSES } from "../domain/config";
 
 export const respond = (blocks: Block[]): { blocks: Block[] } => ({ blocks });
+
+/** A view of the "Tickets & booking" panel: its header, then `blocks`. */
+export const panelView = (blocks: Block[]) => respond([header("Tickets & booking"), ...blocks]);
 
 /** A trimmed string of at most `max` characters; "" for anything else. */
 export const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");

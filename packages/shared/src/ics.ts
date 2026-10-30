@@ -6,7 +6,7 @@
  *   the year before to the year after the event, from `Intl`).
  * - An event without `timeZone` is written in UTC (`...Z`); `allDay` writes `VALUE=DATE` using UTC dates.
  */
-import { isValidTimeZone, utcOffsetMinutes, utcToZoned } from "./time";
+import { isValidTimeZone, utcOffsetMinutes, utcParts, utcToZoned } from "./time";
 
 export interface IcsEvent {
 	/** Stable globally unique id; reuse it (with a higher `sequence`) to update or cancel. */
@@ -79,15 +79,7 @@ function localStamp(p: { year: number; month: number; day: number; hour: number;
 }
 
 function utcStamp(ms: number): string {
-	const d = new Date(ms);
-	return `${localStamp({
-		year: d.getUTCFullYear(),
-		month: d.getUTCMonth() + 1,
-		day: d.getUTCDate(),
-		hour: d.getUTCHours(),
-		minute: d.getUTCMinutes(),
-		second: d.getUTCSeconds(),
-	})}Z`;
+	return `${localStamp(utcParts(ms))}Z`;
 }
 
 function dateStamp(ms: number): string {
@@ -137,15 +129,7 @@ function vtimezone(timeZone: string, eventStart: number): string[] {
 	for (const tr of list) {
 		const kind = tr.after > tr.before ? "DAYLIGHT" : "STANDARD";
 		// DTSTART is the transition's wall-clock time in the offset that was in force before it.
-		const d = new Date(tr.at + tr.before * 60_000);
-		const wall = localStamp({
-			year: d.getUTCFullYear(),
-			month: d.getUTCMonth() + 1,
-			day: d.getUTCDate(),
-			hour: d.getUTCHours(),
-			minute: d.getUTCMinutes(),
-			second: d.getUTCSeconds(),
-		});
+		const wall = localStamp(utcParts(tr.at + tr.before * 60_000));
 		lines.push(
 			`BEGIN:${kind}`,
 			`DTSTART:${wall}`,

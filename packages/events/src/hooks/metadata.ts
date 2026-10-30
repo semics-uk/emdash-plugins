@@ -1,7 +1,9 @@
-import { fromMinor } from "@semics-tech/shared";
+import { fromMinor, isValidTimeZone, utcOffsetMinutes } from "@semics-tech/shared";
 import type { PageMetadataEvent, PluginContext } from "emdash/plugin";
 
 import { mappingOf } from "../domain/event-info";
+import { ticketOrder } from "../domain/order";
+import { iso } from "../domain/time";
 import type { EventConfigDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
@@ -35,31 +37,20 @@ const safe = (value: string) => value.replaceAll("<", "＜");
 
 const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
 
-/** The offset of `timeZone` at `ms` as `+01:00`, or `Z` when the zone is unknown or UTC. */
-export function offsetOf(ms: number, timeZone: string | null | undefined): string {
-	if (!timeZone) return "Z";
-	try {
-		const part = new Intl.DateTimeFormat("en-US", { timeZone, timeZoneName: "longOffset" })
-			.formatToParts(new Date(ms))
-			.find((p) => p.type === "timeZoneName")?.value;
-		if (part === "GMT") return "+00:00";
-		const match = /^GMT([+-]\d{2}:\d{2})$/.exec(part ?? "");
-		return match ? (match[1] as string) : "Z";
-	} catch {
-		return "Z";
-	}
-}
+const p2 = (n: number) => String(n).padStart(2, "0");
 
-/** ISO local date-time with the zone's offset: `2099-07-14T20:00:00+01:00`. */
-export function withOffset(iso: string, timeZone: string | null | undefined): string | null {
-	const ms = Date.parse(iso);
+/**
+ * ISO local date-time with the zone's offset (`2099-07-14T20:00:00+01:00`, `+00:00` in a zone at
+ * UTC), or UTC with `Z` when the zone is unset or unknown. The offset is the shared minute offset
+ * (R99: it replaced an `Intl` `longOffset` lookup of the same value).
+ */
+export function withOffset(text: string, timeZone: string | null | undefined): string | null {
+	const ms = Date.parse(text);
 	if (!Number.isFinite(ms)) return null;
-	const offset = offsetOf(ms, timeZone);
-	if (offset === "Z") return new Date(ms).toISOString().replace(/\.\d{3}Z$/, "Z");
-	const sign = offset.startsWith("-") ? -1 : 1;
-	const [h, m] = offset.slice(1).split(":").map(Number) as [number, number];
-	const local = new Date(ms + sign * (h * 60 + m) * 60_000).toISOString();
-	return `${local.slice(0, 19)}${offset}`;
+	if (!timeZone || !isValidTimeZone(timeZone)) return iso(ms).replace(/\.\d{3}Z$/, "Z");
+	const o = utcOffsetMinutes(ms, timeZone);
+	const a = Math.abs(o);
+	return `${iso(ms + o * 60_000).slice(0, 19)}${o < 0 ? "-" : "+"}${p2(Math.floor(a / 60))}:${p2(a % 60)}`;
 }
 
 function availability(c: EventConfigDoc, t: TicketTypeDoc, now: number): string {
@@ -92,7 +83,7 @@ export async function eventJsonLd(
 	const offers = items
 		.map((i) => i.data as TicketTypeDoc)
 		.filter((t) => !t.hidden)
-		.sort((a, b) => a.sort - b.sort || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))
+		.sort(ticketOrder)
 		.map((t) => ({
 			"@type": "Offer",
 			name: safe(t.name),

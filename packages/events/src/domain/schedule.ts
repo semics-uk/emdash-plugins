@@ -8,14 +8,14 @@
  * or with slots made by one, is schedule-owned: `config/save` leaves its occurrences to this module.
  * DST: a slot time that does not exist that day is skipped; a repeated one takes the first instant.
  */
-import { utcOffsetMinutes, utcToZoned, zonedToUtc } from "@semics-tech/shared";
+import { utcOffsetMinutes, utcParts, utcToZoned, WEEKDAYS, zonedToUtc } from "@semics-tech/shared";
 
 import type { EventConfigDoc, ScheduleDoc } from "../storage/schema";
 
 export type { ScheduleDoc };
 
 const DAY = 864e5;
-export const DAYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"];
+export const DAYS = WEEKDAYS;
 /** Slots a schedule keeps ahead (6 a day for 13 weeks fit): bounds the catalog (R24) and the cron's CPU. */
 export const MAX_SLOTS = 600;
 /** Slots one cron tick creates (one `putMany`). */
@@ -103,13 +103,7 @@ export function slotStarts(s: ScheduleDoc, zone: string, now: number): number[] 
 export function dayBounds(day: string, zone: string): [number, number] | null {
 	const t = dayMs(day);
 	if (!(t >= 0)) return null;
-	const at = (ms: number) => {
-		const d = new Date(ms);
-		return zonedToUtc(
-			{ year: d.getUTCFullYear(), month: d.getUTCMonth() + 1, day: d.getUTCDate(), hour: 0, minute: 0 },
-			zone,
-		);
-	};
+	const at = (ms: number) => zonedToUtc({ ...utcParts(ms), hour: 0, minute: 0, second: 0 }, zone);
 	return [at(t), at(t + DAY)];
 }
 
