@@ -27,4 +27,5 @@ widget/event id) with the no-JS links still working.
 - [ ] Tests first: Pay now resume keeps attendee names, emails, minors and signature state; the original T077 resume (no attendees yet) is unchanged; Pro holds editions test covers Pay now end to end
 - [ ] Two pickers on one page page independently, with and without JavaScript
 - [ ] Free bundle within budget (after T136's headroom); CONTEXT.md; changeset (patch)
+- [ ] T135 follow-ups: the booking page shows `3 × <ticket type id>` for UUID ticket ids (give `BookingStatus` the ticket names); `t130-day-picker` "keyboard roves" fails when the fixture's days straddle a month end (make the fixture date-independent); `t054` card snapshot is 3 px shorter on this machine (make it font-robust or tolerance)
 - [ ] Meets the Definition of Done
