@@ -4,7 +4,7 @@ title: "Playground e2e: attendee signing list, approval and payment holds"
 phase: 7
 package: playground
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: []
