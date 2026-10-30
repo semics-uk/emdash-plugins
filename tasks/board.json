@@ -2723,18 +2723,19 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [],
 			"spec": [
 				"R51",
-				"R94"
+				"R94",
+				"R100"
 			],
 			"unblocks": [
 				"T134"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T137": {
 			"file": "T137-esign-cpu-tests-flaky-under-load.md",
@@ -2779,7 +2780,6 @@
 			"T134"
 		],
 		"in-progress": [
-			"T136",
 			"T137"
 		],
 		"review": [],
@@ -2899,6 +2899,7 @@
 			"T132",
 			"T133",
 			"T135",
+			"T136",
 			"T138"
 		],
 		"blocked": [
@@ -2906,8 +2907,7 @@
 		]
 	},
 	"criticalPath": [
-		"T136",
-		"T134"
+		"T111"
 	],
-	"criticalWeight": 3
+	"criticalWeight": 2
 }
