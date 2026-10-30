@@ -27,8 +27,9 @@ import {
 	planExpiries,
 } from "../domain/holds";
 import { type InventoryStorage, type RepairJob, repairStep } from "../domain/inventory";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
+import { jobState, type StateKv } from "./state";
 
 export const SWEEP_TASK = "sweep-holds";
 export const SWEEP_MORE_TASK = "sweep-holds-more";
@@ -63,10 +64,7 @@ export type SweepStorage = Omit<InventoryStorage, "bookings" | "event_configs"> 
 	event_configs: InventoryStorage["event_configs"] & { query(options: unknown): Promise<Page> };
 };
 
-export interface SweepKv {
-	getVersioned<T>(key: string): Promise<{ value: T; revision: string } | null>;
-	compareAndSet(key: string, expectedRevision: string | null, value: unknown): Promise<{ applied: boolean }>;
-}
+export type SweepKv = StateKv;
 
 export interface SweepCron {
 	schedule(name: string, opts: { schedule: string; data?: Record<string, unknown> }): Promise<void>;
@@ -120,8 +118,8 @@ export async function sweepHolds({
 		}),
 	]);
 	let calls = 2;
-	const before = JSON.stringify(stored?.value ?? {});
-	const state: SweepState = stored?.value ? structuredClone(stored.value) : {};
+	const job = jobState<SweepState>(kv, SWEEP_STATE_KEY, stored);
+	const state = job.value;
 
 	// Expiries first, keeping one call for the state write and, with a backlog, one for the continuation.
 	const budget = maxCalls - calls - 1;
@@ -180,10 +178,7 @@ export async function sweepHolds({
 
 	if (!state.repair) delete state.repair;
 	if (state.dirty?.length === 0) delete state.dirty;
-	if (JSON.stringify(state) !== before) {
-		await kv.compareAndSet(SWEEP_STATE_KEY, stored?.revision ?? null, state).catch(() => undefined);
-		calls++;
-	}
+	calls += await job.save();
 	const counted = (o: ExpiryOutcome["outcome"]) => outcomes.filter((x) => x.outcome === o).length;
 	return {
 		calls,
@@ -199,10 +194,9 @@ export async function sweepHolds({
 /** Add events to the sweeper's priority repair list (two calls). */
 async function markDirty(kv: SweepKv, eventIds: string[]): Promise<void> {
 	if (eventIds.length === 0) return;
-	const stored = await kv.getVersioned<SweepState>(SWEEP_STATE_KEY);
-	const state: SweepState = structuredClone(stored?.value ?? {});
-	state.dirty = addDirty(state.dirty ?? [], eventIds);
-	await kv.compareAndSet(SWEEP_STATE_KEY, stored?.revision ?? null, state).catch(() => undefined);
+	const job = jobState<SweepState>(kv, SWEEP_STATE_KEY, await kv.getVersioned<SweepState>(SWEEP_STATE_KEY));
+	job.value.dirty = addDirty(job.value.dirty ?? [], eventIds);
+	await job.save(true);
 }
 
 export type HoldTaskResult = "expired" | "closed" | "rearmed" | "ignored";
@@ -219,7 +213,7 @@ export async function expireHoldTask(
 	const booking = (await storage.bookings.get(bookingId)) as BookingDoc | null;
 	if (!booking) return "ignored";
 	if (!expiryAction(booking, now)) {
-		const expires = Date.parse(booking.holdExpiresAt ?? "");
+		const expires = msOf(booking.holdExpiresAt);
 		if (cron && HOLD_STATUSES.includes(booking.status) && !booking.releaseClaimedAt && expires > now) {
 			await cron.schedule(holdTaskName(booking.ref), {
 				schedule: iso(expires),

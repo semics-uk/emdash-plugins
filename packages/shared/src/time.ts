@@ -62,6 +62,13 @@ export function utcToZoned(utcMs: number, timeZone: string): Required<LocalParts
 	};
 }
 
+/** A number as at least two digits (`7` → `07`). */
+export const pad2 = (n: number): string => String(n).padStart(2, "0");
+
+/** A valid IANA zone name, else undefined (callers default it, usually to UTC). */
+export const validZone = (timeZone: string | null | undefined): string | undefined =>
+	timeZone && isValidTimeZone(timeZone) ? timeZone : undefined;
+
 /** Calendar parts of a UTC instant in UTC (no `Intl`; one copy for ICS, RRULE and schedules, R99). */
 export function utcParts(utcMs: number): Required<LocalParts> {
 	const d = new Date(utcMs);

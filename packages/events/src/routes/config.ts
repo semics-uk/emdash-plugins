@@ -62,7 +62,8 @@ export async function loadEventState(eventId: string, storage: ConfigStorage) {
 	};
 }
 
-const byName = (a: { data: unknown }, b: { data: unknown }) => ticketOrder(a.data as TicketTypeDoc, b.data as TicketTypeDoc);
+const byName = (a: { data: unknown }, b: { data: unknown }) =>
+	ticketOrder(a.data as TicketTypeDoc, b.data as TicketTypeDoc);
 
 export type EventState = Awaited<ReturnType<typeof loadEventState>>;
 
@@ -112,7 +113,19 @@ export async function saveConfig(
 
 	// Plan: edits of stored documents (one guarded call each, only if something changed),
 	// retirements before deletes (one call each, plus one deleteMany), creations (one putMany).
-	type Edit = { collection: Collection; id: string; stored: object; next: { capacity: number }; path: string };
+	// The documents as they end up (`effective`), so the catalog follows even a partly failed save.
+	const effective: Record<"ticketTypes" | "occurrences", Map<string, never>> = {
+		ticketTypes: new Map(existing.ticketTypes as Map<string, never>),
+		occurrences: new Map(existing.occurrences as Map<string, never>),
+	};
+	type Edit = {
+		collection: Collection;
+		id: string;
+		stored: object;
+		next: { capacity: number };
+		path: string;
+		map?: Map<string, unknown>;
+	};
 	const edits: Edit[] = [];
 	if (state.config) {
 		edits.push({
@@ -131,15 +144,24 @@ export async function saveConfig(
 	) =>
 		items.filter((item, index) => {
 			const prior = stored.get(item.id);
-			if (prior) edits.push({ collection, id: item.id, stored: prior, next: item.data, path: `${name}[${index}]` });
+			if (prior) {
+				edits.push({
+					collection,
+					id: item.id,
+					stored: prior,
+					next: item.data,
+					path: `${name}[${index}]`,
+					map: effective[name],
+				});
+			}
 			return !prior;
 		});
 	const newTicketTypes = split("ticketTypes", storage.ticket_types, v.ticketTypes, existing.ticketTypes);
 	const newOccurrences = split("occurrences", storage.occurrences, v.occurrences, existing.occurrences);
 	const changed = edits.filter((e) => counterlessChanges(e.stored, e.next) !== null);
 	const deletes = [
-		{ name: "ticketTypes", collection: storage.ticket_types, ids: v.deleteTicketTypeIds },
-		{ name: "occurrences", collection: storage.occurrences, ids: v.deleteOccurrenceIds },
+		{ name: "ticketTypes" as const, collection: storage.ticket_types, ids: v.deleteTicketTypeIds },
+		{ name: "occurrences" as const, collection: storage.occurrences, ids: v.deleteOccurrenceIds },
 	].filter((d) => d.ids.length > 0);
 	// The checkout catalog on the config mirrors the documents as they end up, including after a
 	// partly failed save, so it is rewritten (one call, only when it changes) on every exit below.
@@ -158,12 +180,7 @@ export async function saveConfig(
 
 	const info: EventInfoDoc | null = state.config || !loadInfo ? null : await loadInfo().catch(() => null);
 
-	const effective = {
-		ticketTypes: new Map(existing.ticketTypes),
-		occurrences: new Map(existing.occurrences),
-	};
 	const writeCatalog = async () => {
-		const entries = <T>(m: Map<string, T>) => [...m].map(([id, data]) => ({ id, data }));
 		const catalog = catalogOf(entries(effective.ticketTypes), entries(effective.occurrences));
 		if (sameJson(storedCatalog, catalog) && !info) return;
 		await storage.event_configs.updateIf(eventId, {
@@ -176,11 +193,13 @@ export async function saveConfig(
 	// 1. Edits, guarded on what is reserved at write time (EV-FR-03).
 	const outcomes = await Promise.all(changed.map((e) => updateCountedFields(e.collection, e.id, e.stored, e.next)));
 	changed.forEach((e, i) => {
-		if (outcomes[i] !== "applied") return;
-		// `path` names the list (the storage proxy hands out a new collection object per access).
-		if (e.path.startsWith("ticketTypes[")) effective.ticketTypes.set(e.id, e.next as TicketTypeDoc);
-		if (e.path.startsWith("occurrences[")) effective.occurrences.set(e.id, e.next as OccurrenceDoc);
+		if (outcomes[i] === "applied") e.map?.set(e.id, e.next);
 	});
+	// Refuses with `issues`, after writing the catalog of what did change.
+	const refuse = async (issues: ConfigIssue[]) => {
+		if (state.config) await writeCatalog();
+		return badRequest(issues);
+	};
 	const conflicts = changed
 		.filter((_, i) => outcomes[i] === "conflict")
 		.map((e): ConfigIssue => {
@@ -189,10 +208,7 @@ export async function saveConfig(
 				? { path: `${e.path}.capacity`, code: "CAPACITY_BELOW_RESERVED" }
 				: { path: `${e.path}.id`, code: "UNKNOWN_ID" };
 		});
-	if (conflicts.length > 0) {
-		if (state.config) await writeCatalog();
-		return badRequest(conflicts);
-	}
+	if (conflicts.length > 0) return refuse(conflicts);
 
 	// 2. Deletes: close each document to reservations first; one that took a seat meanwhile stays.
 	const inUse: ConfigIssue[] = [];
@@ -201,39 +217,31 @@ export async function saveConfig(
 			const retired = await Promise.all(d.ids.map((id) => retireCounted(d.collection, id)));
 			const ids = d.ids.filter((_, i) => retired[i]);
 			if (ids.length > 0) await d.collection.deleteMany(ids);
-			const map = d.name === "ticketTypes" ? effective.ticketTypes : effective.occurrences;
-			for (const id of ids) map.delete(id);
+			for (const id of ids) effective[d.name].delete(id);
 			if (ids.length < d.ids.length) inUse.push({ path: d.name, code: "ITEM_IN_USE" });
 		}),
 	);
-	if (inUse.length > 0) {
-		if (state.config) await writeCatalog();
-		return badRequest(inUse);
-	}
+	if (inUse.length > 0) return refuse(inUse);
 
 	// 3. Creations, with zero counters; a new config goes last, carrying its catalog.
 	if (newTicketTypes.length > 0) await storage.ticket_types.putMany(newTicketTypes);
 	if (newOccurrences.length > 0) await storage.occurrences.putMany(newOccurrences);
-	for (const t of newTicketTypes) effective.ticketTypes.set(t.id, t.data);
-	for (const o of newOccurrences) effective.occurrences.set(o.id, o.data);
-	if (!state.config) {
-		await storage.event_configs.put(eventId, { ...v.config, catalog: target, ...(info ? { info } : {}) });
-	} else {
-		await writeCatalog();
-	}
+	for (const t of newTicketTypes) effective.ticketTypes.set(t.id, t.data as never);
+	for (const o of newOccurrences) effective.occurrences.set(o.id, o.data as never);
+	const created = { ...v.config, catalog: target, ...(info ? { info } : {}) };
+	if (!state.config) await storage.event_configs.put(eventId, created);
+	else await writeCatalog();
 	onSaved?.({
-		config: state.config
-			? { ...state.config, ...v.config }
-			: { ...v.config, catalog: target, ...(info ? { info } : {}) },
-		ticketTypes: [...effective.ticketTypes].map(([id, data]) => ({ id, data })),
-		occurrences: [...effective.occurrences]
-			.map(([id, data]) => ({ id, data }))
-			.sort((a, b) => cmp(a.data.startsAt, b.data.startsAt)),
+		config: state.config ? { ...state.config, ...v.config } : created,
+		ticketTypes: entries<TicketTypeDoc>(effective.ticketTypes),
+		occurrences: entries<OccurrenceDoc>(effective.occurrences).sort((a, b) => cmp(a.data.startsAt, b.data.startsAt)),
 	});
 	return { ok: true, eventId };
 }
 
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+const entries = <T>(m: Map<string, unknown>) => [...m].map(([id, data]) => ({ id, data: data as T }));
 
 const configStorage = (ctx: Ctx) => ctx.storage as unknown as ConfigStorage;
 

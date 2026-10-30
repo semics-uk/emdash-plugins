@@ -8,7 +8,7 @@ import { CLAIM_STALE_MS, HOLD_STATUSES } from "../domain/holds";
 import { type CounterStorage, countersForBooking, release } from "../domain/inventory";
 import type { LinkKv } from "../domain/link-secret";
 import { readSettings } from "../domain/settings";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
 import { badRequest, fail } from "./reply";
@@ -226,14 +226,14 @@ export async function closeBooking(
 	if (b.status === to) return cancelled;
 	if (decline && b.status !== "awaiting_approval") return fail("CANCEL_NOT_ALLOWED");
 	const held = HOLD_STATUSES.includes(b.status);
-	const claimedAt = Date.parse(b.releaseClaimedAt ?? "");
+	const claimedAt = msOf(b.releaseClaimedAt);
 	const claimLive = b.releaseClaimedAt != null && !(now - claimedAt >= CLAIM_STALE_MS);
 	// A claimed hold is the expirer's (the sweeper finishes it); a live claim on a confirmed
 	// booking is another cancel in flight.
 	if (held && b.releaseClaimedAt != null) return fail("HOLD_EXPIRED");
 	if (claimLive) return fail("INTERNAL");
 	if (!canTransition(b.status, to)) return fail("CANCEL_NOT_ALLOWED");
-	if (held && !(Date.parse(b.holdExpiresAt ?? "") > now)) return fail("HOLD_EXPIRED");
+	if (held && !(msOf(b.holdExpiresAt) > now)) return fail("HOLD_EXPIRED");
 
 	const decision = await decide(deps, b);
 	// Paid: confirmed by the payment provider, or awaiting approval after it (Pro, T131/T132).

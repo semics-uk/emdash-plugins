@@ -5,22 +5,24 @@ import {
 	column,
 	type FormField,
 	form,
-	isValidTimeZone,
 	notices,
 	numberInput,
+	pad2,
 	select,
 	table,
 	textInput,
 	toggle,
 	utcToZoned,
+	validZone,
 } from "@semics-tech/shared";
 
 import { entryOf } from "../cron/schedule";
 import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
 import { dayBounds, parseSchedule } from "../domain/schedule";
+import { msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { SAVED, saveRefused } from "./messages";
-import { held, panelView, str } from "./ui";
+import { countColumns, held, panelView, str } from "./ui";
 
 /**
  * The editor panel's Schedule section and day view (EV-FR-17, T129). The section edits
@@ -54,12 +56,12 @@ const split = (v: unknown) =>
 		.split(/[\s,]+/)
 		.filter(Boolean);
 const num = (v: unknown) => (v === undefined || v === "" ? undefined : Number(v));
-const pad = (n: number) => String(n).padStart(2, "0");
+const pad = pad2;
 
 /** The event's zone, from the copy of its entry's info; UTC when it has none. */
 export const zoneOf = (config: EventConfigDoc): string => {
 	const zone = config.info?.timezone;
-	return zone && isValidTimeZone(zone) ? zone : "UTC";
+	return validZone(zone) ?? "UTC";
 };
 
 /** `2026-12-01 19:30` in the zone. */
@@ -112,10 +114,14 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	const back = actions([button("panel.back", "Back to the event", { style: "secondary" })]);
 	let extra: Block[] = [];
 	if (!config || !bounds) {
-		return panelView([...notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]), dayPicker(day), back]);
+		return panelView([
+			...notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]),
+			dayPicker(day),
+			back,
+		]);
 	}
 	const slots = { ...config.catalog?.occurrences };
-	const at = (id: string) => Date.parse(slots[id]?.startsAt ?? "");
+	const at = (id: string) => msOf(slots[id]?.startsAt);
 	const ids = Object.keys(slots)
 		.filter((id) => at(id) >= bounds[0] && at(id) < bounds[1])
 		.sort((a, b) => at(a) - at(b));
@@ -211,9 +217,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			columns: [
 				column("time", `${day} (${zone})`),
 				column("status", "Status", "badge"),
-				column("sold", "Sold", "number"),
-				column("held", "Held", "number"),
-				column("places", "Places", "number"),
+				...countColumns("places", "Places"),
 			],
 			rows: rows.map(({ d }) => ({ time: time(d), status: d.status, sold: d.sold, held: held(d), places: d.capacity })),
 			pageActionId: "panel.day.page",

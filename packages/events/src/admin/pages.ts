@@ -199,7 +199,7 @@ async function bookingsPage(
 		...extra,
 		form({
 			fields: [
-				textInput("q", "Booking reference or buyer email", { initialValue: q }),
+				textInput("q", REF_OR_EMAIL, { initialValue: q }),
 				select("status", "Status", [{ label: "Any status", value: "" }, ...optionsOf(BOOKING_STATUSES)], {
 					initialValue: status,
 				}),
@@ -249,15 +249,22 @@ async function decide(deps: AdminDeps, id: string, reason?: string): Promise<Adm
 
 // --- deletion on request (EV-FR-20) -----------------------------------------------------------
 
-const retentionBlocks = (extra: Block[] = []): Block[] => [
-	...extra,
+const REF_OR_EMAIL = "Booking reference or buyer email";
+
+const retentionBlocks = (): Block[] => [
 	header("Delete personal data"),
 	context("Erases a booking's or an email's personal data. Live bookings are kept."),
 	form({
-		fields: [textInput("target", "Booking reference or buyer email")],
+		fields: [textInput("target", REF_OR_EMAIL)],
 		submit: { label: "Find", actionId: "retention.preview" },
 	}),
 ];
+
+/** A deletion request's outcome: the Bookings header, the banners, `blocks`, then the request form. */
+const retentionView = (banners: NoticeInput[], blocks: Block[] = []) =>
+	respond([header("Bookings"), ...notices(banners), ...blocks, ...retentionBlocks()]);
+
+const bookingCount = (n: number) => `${n} booking${n === 1 ? "" : "s"}`;
 
 /** The bookings and (by email) waitlist entries a deletion request names: two queries. */
 async function targetQuery(deps: AdminDeps, target: string) {
@@ -277,14 +284,13 @@ const entries = (n: number) => `${n} waitlist entr${n === 1 ? "y" : "ies"}`;
 async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminResponse> {
 	const { page, waitlist } = await targetQuery(deps, target);
 	const n = page.items.filter((i) => !(i.data as BookingDoc).erasedAt).length;
-	const found = [n && `${n} booking${n === 1 ? "" : "s"}`, waitlist.length && entries(waitlist.length)].filter(Boolean);
+	const found = [n && bookingCount(n), waitlist.length && entries(waitlist.length)].filter(Boolean);
 	const banner: NoticeInput = found.length
 		? { severity: "warning", title: `${found.join(" and ")} found for ${target}` }
 		: { severity: "info", title: "Nothing to delete for that reference or email" };
-	return respond([
-		header("Bookings"),
-		...notices([banner]),
-		...(found.length
+	return retentionView(
+		[banner],
+		found.length
 			? [
 					actions([
 						button("retention.erase", "Delete personal data", {
@@ -300,9 +306,8 @@ async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminR
 						}),
 					]),
 				]
-			: []),
-		...retentionBlocks(),
-	]);
+			: [],
+	);
 }
 
 async function retentionErase(deps: AdminDeps, target: string): Promise<AdminResponse> {
@@ -312,7 +317,7 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
 	if (waitlist.length) await deps.storage.waitlist.deleteMany(waitlist);
 	const also = waitlist.length ? ` and ${entries(waitlist.length)}` : "";
 	const banners: NoticeInput[] = [
-		{ severity: "info", title: `Deleted personal data of ${out.erased} booking${out.erased === 1 ? "" : "s"}${also}` },
+		{ severity: "info", title: `Deleted personal data of ${bookingCount(out.erased)}${also}` },
 		out.kept > 0 && {
 			severity: "warning",
 			title: `${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,
@@ -324,7 +329,7 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
 			description: "Run the deletion again to finish.",
 		},
 	].filter((b): b is NoticeInput => !!b);
-	return respond([header("Bookings"), ...notices(banners), ...retentionBlocks()]);
+	return retentionView(banners);
 }
 
 // --- events (list for attendees and the editor) -----------------------------------------------
@@ -443,18 +448,16 @@ async function attendeesPage(
 		};
 	});
 
+	const eventField = () => textInput("eventId", "Event", { initialValue: eventId });
 	return respond([
 		header(`Attendees: ${eventId}`),
 		...(opts.extra ?? []),
 		form({
-			fields: [textInput("eventId", "Event", { initialValue: eventId }), textInput("code", "Check-in code")],
+			fields: [eventField(), textInput("code", "Check-in code")],
 			submit: { label: "Check in by code", actionId: "attendees.checkin_code" },
 		}),
 		form({
-			fields: [
-				textInput("eventId", "Event", { initialValue: eventId }),
-				textInput("q", "Name, email or code", { initialValue: q }),
-			],
+			fields: [eventField(), textInput("q", "Name, email or code", { initialValue: q })],
 			submit: { label: "Search attendees", actionId: "attendees.search" },
 		}),
 		actions([
@@ -549,7 +552,10 @@ const eventIdOf = (value: unknown): string => {
 	return "";
 };
 
+const errorNotice = (title: string) => notices([{ severity: "error", title }]);
+
 export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction): Promise<AdminResponse> {
+	const events = () => eventsList(deps, "Events", "events.edit", "Edit");
 	if (interaction.type === "page_load") {
 		switch (interaction.page) {
 			case "/setup":
@@ -559,11 +565,11 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "/attendees":
 				return eventsList(deps, "Attendees", "attendees.open", "Open", "Choose an event.");
 			case "/events":
-				return eventsList(deps, "Events", "events.edit", "Edit");
+				return events();
 			case "widget:sales":
 				return salesWidget(deps);
 			default:
-				return respond(notices([{ severity: "error", title: "Page not found" }]));
+				return respond(errorNotice("Page not found"));
 		}
 	}
 
@@ -582,7 +588,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				const code = str(v.code, 80);
 				if (!code)
 					return attendeesPage(deps, eventIdOf(v.eventId), {
-						extra: notices([{ severity: "error", title: "Enter a check-in code" }]),
+						extra: errorNotice("Enter a check-in code"),
 					});
 				return doCheckIn(deps, { code }, eventIdOf(v.eventId));
 			}
@@ -624,10 +630,10 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "retention.erase":
 				return retentionErase(deps, str(value));
 			case "events.page":
-				return eventsList(deps, "Events", "events.edit", "Edit");
+				return events();
 			case "events.edit":
 				return panelPage(deps, eventIdOf(value), { type: "panel_load" });
 		}
 	}
-	return respond(notices([{ severity: "error", title: "Unknown action" }]));
+	return respond(errorNotice("Unknown action"));
 }

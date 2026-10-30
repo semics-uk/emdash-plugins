@@ -1,7 +1,7 @@
 import { confirmationMessage, confirmationOutboxId } from "../domain/booking-state";
 import { heldGuard } from "../domain/holds";
 import { confirmSold, countersForBooking } from "../domain/inventory";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { type BookingDeps, type BookingRouteStorage, closeBooking } from "./booking";
 import { fail } from "./reply";
@@ -46,7 +46,7 @@ export async function approveBooking(deps: ApprovalDeps, id: string): Promise<un
 		}
 		return answer(b, "confirmed");
 	}
-	const open = b.status === "awaiting_approval" && !b.releaseClaimedAt && Date.parse(b.holdExpiresAt ?? "") > now;
+	const open = b.status === "awaiting_approval" && !b.releaseClaimedAt && msOf(b.holdExpiresAt) > now;
 	if (!open) return fail("HOLD_EXPIRED");
 	// A held payment (Pro, R98) is captured by the edition before it confirms; Free never confirms it.
 	if (b.payment) return fail("PAYMENT_FAILED");

@@ -21,8 +21,9 @@
 import { sweepRateLimits } from "@semics-tech/shared";
 import { STATUSES } from "../domain/inventory";
 import { clampSetting, settingsObject } from "../domain/settings";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
+import { jobState } from "./state";
 
 export const RETENTION_TASK = "retention";
 export const RETENTION_MORE_TASK = "retention-more";
@@ -85,7 +86,7 @@ export function retentionDays(raw: { retentionDays?: unknown }): number {
 /** When the booked event ends (or starts), in ms, from its config; `null` when the config does not say. */
 function eventTime(b: BookingDoc, c: EventConfigDoc | undefined): number | null {
 	const occ = b.occurrenceId === undefined ? undefined : c?.catalog?.occurrences?.[b.occurrenceId]?.startsAt;
-	const ms = Date.parse(occ ?? c?.info?.endsAt ?? c?.info?.startsAt ?? c?.salesEnd ?? "");
+	const ms = msOf(occ ?? c?.info?.endsAt ?? c?.info?.startsAt ?? c?.salesEnd);
 	return Number.isFinite(ms) ? ms : null;
 }
 
@@ -213,10 +214,9 @@ export interface RetentionReport {
 
 /** One `retention` tick. */
 export async function retentionTick({ storage, kv, cron, settings, now }: RetentionDeps): Promise<RetentionReport> {
-	const stored = await kv.getVersioned<RetentionState>(RETENTION_STATE_KEY);
+	const job = jobState<RetentionState>(kv, RETENTION_STATE_KEY, await kv.getVersioned(RETENTION_STATE_KEY));
 	let calls = 1;
-	const before = JSON.stringify(stored?.value ?? {});
-	const s: RetentionState = structuredClone(stored?.value ?? {});
+	const s = job.value;
 	const phase = s.phase;
 	let erased = 0;
 	let idle = false;
@@ -299,10 +299,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 	}
 
 	if (idle) delete s.phase;
-	if (JSON.stringify(s) !== before) {
-		await kv.compareAndSet(RETENTION_STATE_KEY, stored?.revision ?? null, s).catch(() => undefined);
-		calls++;
-	}
+	calls += await job.save();
 	if (!idle && cron) {
 		await cron.schedule(RETENTION_MORE_TASK, { schedule: iso(now) });
 		calls++;

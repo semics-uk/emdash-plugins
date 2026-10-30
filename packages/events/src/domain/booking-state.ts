@@ -25,7 +25,7 @@ import type { InputIssue } from "./checkout";
 import { HOLD_STATUSES } from "./holds";
 import { STATUSES, seatsByType } from "./inventory";
 import { cmp } from "./order";
-import { iso } from "./time";
+import { iso, msOf } from "./time";
 
 /**
  * Every status (in `STATUSES` order: a draft, b held, c awaiting_signature, d awaiting_payment,
@@ -42,7 +42,7 @@ import { iso } from "./time";
 export const BOOKING_TRANSITIONS: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = Object.fromEntries(
 	STATUSES.map((s, i) => [
 		s,
-		[..."bg cdefgh defgh efghj fkgh hi j i".split(" ")[i] ?? ""].map((c) => STATUSES[c.charCodeAt(0) - 97]),
+		[...("bg cdefgh defgh efghj fkgh hi j i".split(" ")[i] ?? "")].map((c) => STATUSES[c.charCodeAt(0) - 97]),
 	]),
 ) as Record<BookingStatus, BookingStatus[]>;
 
@@ -89,7 +89,7 @@ export function checkoutState(
 	if (booking.status === "confirmed" || booking.status === "awaiting_approval") return "confirmed";
 	if (booking.status === "draft") return "pending";
 	if (!HOLD_STATUSES.includes(booking.status)) return "closed";
-	const expires = Date.parse(booking.holdExpiresAt ?? "");
+	const expires = msOf(booking.holdExpiresAt);
 	return !booking.releaseClaimedAt && Number.isFinite(expires) && expires > now ? "open" : "lapsed";
 }
 

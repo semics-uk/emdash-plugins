@@ -1,4 +1,4 @@
-import { isValidTimeZone, type OutboxMessage, utcOffsetMinutes, utcToZoned } from "@semics-tech/shared";
+import { type OutboxMessage, pad2, utcOffsetMinutes, utcToZoned, validZone } from "@semics-tech/shared";
 
 import type { EventInfo } from "../domain/event-info";
 import type { BookingDoc, OutboxDoc } from "../storage/schema";
@@ -33,14 +33,14 @@ export function escapeHtml(value: string): string {
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const pad = (n: number) => String(n).padStart(2, "0");
+const pad = pad2;
 
 /**
  * "Sat 14 Nov 2026, 19:00 UTC+1 (Europe/London)" in the event's own zone (UTC when it has none or
  * it is invalid). Built from zone parts, not `Intl` names, so workerd and Node agree.
  */
 export function formatWhen(event: Pick<EventInfo, "startsAt" | "timeZone">): string {
-	const zone = event.timeZone && isValidTimeZone(event.timeZone) ? event.timeZone : "UTC";
+	const zone = validZone(event.timeZone) ?? "UTC";
 	const t = utcToZoned(event.startsAt, zone);
 	const weekday = DAYS[new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay()];
 	const offset = utcOffsetMinutes(event.startsAt, zone);

@@ -1,5 +1,5 @@
 /** Small helpers the admin pages and the editor panel share (one copy in the bundle, R42). */
-import { type Block, header, meter, toMinor } from "@semics-tech/shared";
+import { type Block, column, header, meter, toMinor } from "@semics-tech/shared";
 
 import { EVENT_STATUSES, OCCURRENCE_STATUSES } from "../domain/config";
 
@@ -17,6 +17,13 @@ export const optionsOf = (values: readonly string[]) =>
 
 export const EVENT_STATUS_OPTIONS = optionsOf(EVENT_STATUSES);
 export const OCCURRENCE_STATUS_OPTIONS = optionsOf(OCCURRENCE_STATUSES);
+
+/** The Sold, Held and capacity columns of the panel's tables. */
+export const countColumns = (key = "capacity", label = "Capacity") => [
+	column("sold", "Sold", "number"),
+	column("held", "Held", "number"),
+	column(key, label, "number"),
+];
 
 /** Seats held but not sold (`reserved` counts sold seats too). */
 export const held = (c: { reserved: number; sold: number }) => Math.max(c.reserved - c.sold, 0);

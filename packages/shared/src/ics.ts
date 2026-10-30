@@ -6,7 +6,7 @@
  *   the year before to the year after the event, from `Intl`).
  * - An event without `timeZone` is written in UTC (`...Z`); `allDay` writes `VALUE=DATE` using UTC dates.
  */
-import { isValidTimeZone, utcOffsetMinutes, utcParts, utcToZoned } from "./time";
+import { isValidTimeZone, pad2, utcOffsetMinutes, utcParts, utcToZoned } from "./time";
 
 export interface IcsEvent {
 	/** Stable globally unique id; reuse it (with a higher `sequence`) to update or cancel. */
@@ -72,7 +72,7 @@ export function foldLine(line: string): string {
 	return out.join("\r\n");
 }
 
-const p2 = (n: number) => String(n).padStart(2, "0");
+const p2 = pad2;
 
 function localStamp(p: { year: number; month: number; day: number; hour: number; minute: number; second: number }) {
 	return `${String(p.year).padStart(4, "0")}${p2(p.month)}${p2(p.day)}T${p2(p.hour)}${p2(p.minute)}${p2(p.second)}`;

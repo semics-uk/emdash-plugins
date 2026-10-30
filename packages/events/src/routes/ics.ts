@@ -1,11 +1,4 @@
-import {
-	buildCalendar,
-	type ErrorCode,
-	type IcsEvent,
-	isValidTimeZone,
-	signLink,
-	verifyLink,
-} from "@semics-tech/shared";
+import { buildCalendar, type ErrorCode, type IcsEvent, signLink, validZone, verifyLink } from "@semics-tech/shared";
 import { type PluginContext, pluginResponse, type RouteHandler } from "emdash/plugin";
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
@@ -85,7 +78,7 @@ export async function bookingCalendarQuery(kv: LinkKv, ref: string, now: number)
 }
 
 function calendarEvent(uid: string, stamp: number, info: EventInfo, extra: Partial<IcsEvent> = {}): IcsEvent {
-	const zone = info.timeZone && isValidTimeZone(info.timeZone) ? info.timeZone : undefined;
+	const zone = validZone(info.timeZone);
 	return {
 		uid,
 		stamp,

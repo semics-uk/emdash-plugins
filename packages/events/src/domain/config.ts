@@ -393,8 +393,7 @@ export function catalogOf(
 	ticketTypes: Iterable<{ id: string; data: TicketTypeDoc }>,
 	occurrences: Iterable<{ id: string; data: OccurrenceDoc }>,
 ): EventCatalog {
-	const byId = <T>(items: Iterable<{ id: string; data: T }>) =>
-		[...items].sort((a, b) => cmp(a.id, b.id));
+	const byId = <T>(items: Iterable<{ id: string; data: T }>) => [...items].sort((a, b) => cmp(a.id, b.id));
 	const catalog: EventCatalog = { ticketTypes: {}, occurrences: {} };
 	for (const { id, data: t } of byId(ticketTypes)) {
 		catalog.ticketTypes[id] = {

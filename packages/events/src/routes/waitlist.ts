@@ -2,9 +2,10 @@ import { type RateLimitStore, rateLimit, type TurnstileFetch } from "@semics-tec
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { parseJoinInput, planCheckout } from "../domain/checkout";
+import { iso } from "../domain/time";
 import type { EventConfigDoc, WaitlistDoc } from "../storage/schema";
 import { type RedeemDeps, redeemBooking } from "./redeem";
-import { badRequest, botCheck, fail, httpFetch, type PublicSettings } from "./reply";
+import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal } from "./reply";
 
 /**
  * `POST public/waitlist/join` and `POST public/waitlist/claim` (EV-FR-16, EV-US-6, T081).
@@ -57,11 +58,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 	const planned = planCheckout(input.eventId, c, { ...input, lines: [line], buyer: input, idempotencyKey: "" }, d.now, {
 		maxSteps: 3,
 	});
-	if (!planned.ok && planned.error.code === "SALES_CLOSED") return fail("SALES_CLOSED");
-	if (!planned.ok && planned.error.code === "BAD_REQUEST") {
-		const reason = planned.error.reason;
-		return badRequest([{ path: reason.includes("OCCURRENCE") ? "occurrenceId" : "ticketTypeId", code: reason }]);
-	}
+	if (!planned.ok && planned.error.code !== "SOLD_OUT") return planRefusal(planned.error, "ticketTypeId");
 
 	const { salt, human: check } = botCheck(entries, d.settings, d.fetch, input.turnstileToken, d.ip);
 	const [limited, human] = await Promise.all([
@@ -88,7 +85,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 			name: input.name,
 			qty: input.qty,
 			status: "waiting",
-			createdAt: new Date(d.now).toISOString(),
+			createdAt: iso(d.now),
 		});
 	}
 	return { ok: true };

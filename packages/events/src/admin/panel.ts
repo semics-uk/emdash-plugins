@@ -8,7 +8,6 @@ import {
 	type FormField,
 	form,
 	fromMinor,
-	header,
 	link,
 	notices,
 	numberInput,
@@ -25,8 +24,8 @@ import {
 import { APPROVAL_HOURS } from "../domain/booking-state";
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
-import { scheduleOwned } from "../domain/schedule";
 import { ticketOrder } from "../domain/order";
+import { scheduleOwned } from "../domain/schedule";
 import { readSettings } from "../domain/settings";
 import { iso } from "../domain/time";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
@@ -34,6 +33,7 @@ import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/sc
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
 import { dayPanel, dayPicker, localText, scheduleFields, scheduleInput, zoneOf } from "./schedule";
 import {
+	countColumns,
 	EVENT_STATUS_OPTIONS,
 	held,
 	OCCURRENCE_STATUS_OPTIONS,
@@ -211,7 +211,7 @@ const NOT_IF_BOOKED = { description: "Not possible once seats are held or sold."
 function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], dates: Item<OccurrenceDoc>[]): Block[] {
 	const zone = zoneOf(config);
 	const out: Block[] = [];
-	const counts = [column("sold", "Sold", "number"), column("held", "Held", "number"), column("capacity", "Capacity", "number")];
+	const counts = countColumns();
 	if (tickets.length > 0) {
 		out.push(
 			table({
@@ -489,7 +489,10 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		occurrences.push(item);
 	}
 	occurrences.push(
-		...added(values.newDates, (row, places) => ({ startsAt: toInstant(str(row.startsAt, 40), zone), capacity: places })),
+		...added(values.newDates, (row, places) => ({
+			startsAt: toInstant(str(row.startsAt, 40), zone),
+			capacity: places,
+		})),
 	);
 
 	if (changed === 0) {

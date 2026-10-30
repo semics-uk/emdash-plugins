@@ -9,7 +9,7 @@
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { HOLD_STATUSES } from "./holds";
 import { clampSetting } from "./settings";
-import { iso } from "./time";
+import { iso, msOf } from "./time";
 
 export const DEFAULT_CANCEL_CUTOFF_HOURS = 24;
 const HOUR = 3_600_000;
@@ -31,8 +31,8 @@ export function referenceStart(
 		booking.occurrenceId !== undefined && occurrences && Object.hasOwn(occurrences, booking.occurrenceId)
 			? occurrences[booking.occurrenceId]
 			: undefined;
-	const iso = occ?.startsAt ?? (booking.occurrenceId === undefined ? config?.salesEnd : undefined);
-	const ms = Date.parse(iso ?? "");
+	const start = occ?.startsAt ?? (booking.occurrenceId === undefined ? config?.salesEnd : undefined);
+	const ms = msOf(start);
 	return Number.isFinite(ms) ? ms : null;
 }
 

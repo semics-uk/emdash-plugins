@@ -11,7 +11,7 @@ import {
 } from "@semics-tech/shared";
 import type { PluginContext } from "emdash/plugin";
 
-import type { InputIssue } from "../domain/checkout";
+import type { CheckoutError, InputIssue } from "../domain/checkout";
 import { settingsObject } from "../domain/settings";
 
 let errorCodes: ErrorTable = EVENTS_ERROR_CODES;
@@ -33,6 +33,15 @@ export const fail = (code: ErrorCode) => routeError(code).body;
 
 /** `BAD_REQUEST` with the input issues. */
 export const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });
+
+/**
+ * The answer to an order `planCheckout` refused (reserve and waitlist join): a bad date names
+ * `occurrenceId`, another bad request `path`; other refusals are their code.
+ */
+export const planRefusal = (e: CheckoutError, path: string) =>
+	e.code === "BAD_REQUEST"
+		? badRequest([{ path: e.reason.includes("OCCURRENCE") ? "occurrenceId" : path, code: e.reason }])
+		: fail(e.code);
 
 /** The host's `fetch`, refused when `network:request` is not granted. */
 export const httpFetch =

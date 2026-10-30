@@ -1,9 +1,9 @@
-import { fromMinor, isValidTimeZone, utcOffsetMinutes } from "@semics-tech/shared";
+import { fromMinor, pad2, utcOffsetMinutes, validZone } from "@semics-tech/shared";
 import type { PageMetadataEvent, PluginContext } from "emdash/plugin";
 
 import { mappingOf } from "../domain/event-info";
 import { ticketOrder } from "../domain/order";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, TicketTypeDoc } from "../storage/schema";
 
 /**
@@ -37,8 +37,6 @@ const safe = (value: string) => value.replaceAll("<", "＜");
 
 const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
 
-const p2 = (n: number) => String(n).padStart(2, "0");
-
 /**
  * ISO local date-time with the zone's offset (`2099-07-14T20:00:00+01:00`, `+00:00` in a zone at
  * UTC), or UTC with `Z` when the zone is unset or unknown. The offset is the shared minute offset
@@ -47,15 +45,16 @@ const p2 = (n: number) => String(n).padStart(2, "0");
 export function withOffset(text: string, timeZone: string | null | undefined): string | null {
 	const ms = Date.parse(text);
 	if (!Number.isFinite(ms)) return null;
-	if (!timeZone || !isValidTimeZone(timeZone)) return iso(ms).replace(/\.\d{3}Z$/, "Z");
-	const o = utcOffsetMinutes(ms, timeZone);
+	const zone = validZone(timeZone);
+	if (!zone) return iso(ms).replace(/\.\d{3}Z$/, "Z");
+	const o = utcOffsetMinutes(ms, zone);
 	const a = Math.abs(o);
-	return `${iso(ms + o * 60_000).slice(0, 19)}${o < 0 ? "-" : "+"}${p2(Math.floor(a / 60))}:${p2(a % 60)}`;
+	return `${iso(ms + o * 60_000).slice(0, 19)}${o < 0 ? "-" : "+"}${pad2(Math.floor(a / 60))}:${pad2(a % 60)}`;
 }
 
 function availability(c: EventConfigDoc, t: TicketTypeDoc, now: number): string {
-	const end = Date.parse(c.salesEnd ?? "");
-	const start = Date.parse(c.salesStart ?? "");
+	const end = msOf(c.salesEnd);
+	const start = msOf(c.salesStart);
 	if (c.status !== "on_sale" || (Number.isFinite(end) && end <= now)) return `${SCHEMA}Discontinued`;
 	if (left(t.capacity, t.reserved) === 0 || left(c.capacity, c.reserved) === 0) return `${SCHEMA}SoldOut`;
 	if (Number.isFinite(start) && start > now) return `${SCHEMA}PreOrder`;

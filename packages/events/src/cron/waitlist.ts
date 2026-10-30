@@ -23,13 +23,12 @@
  */
 import { generateToken, hashToken } from "@semics-tech/shared";
 
-import { approvalOf } from "../domain/booking-state";
 import { bookingKeys, type CheckoutPlan } from "../domain/checkout";
 import { DEFAULT_HOLD_SETTINGS, startHold } from "../domain/holds";
 import { type Counter, type CounterStorage, reserve } from "../domain/inventory";
 import { iso } from "../domain/time";
 import { OFFER_HOURS, offerable, planOffer } from "../domain/waitlist";
-import { waiverOf } from "../routes/checkout-reserve";
+import { newBooking } from "../routes/checkout-reserve";
 import type { BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
 
 export const WAITLIST_TASK = "waitlist";
@@ -74,25 +73,20 @@ async function offer(
 		set: { status: "offered", offerExpiresAt: hold.holdExpiresAt, bookingId: id },
 	});
 	if (!claimed.applied) return "entry";
-	await st.bookings.put(id, {
-		ref,
-		eventId: e.eventId,
-		...(e.occurrenceId ? { occurrenceId: e.occurrenceId } : {}),
-		status: "held",
-		...hold,
-		releaseClaimedAt: null,
-		buyer: { name: e.name, email: e.email },
-		email: e.email,
-		lines: plan.lines,
-		totals: plan.totals,
-		answers: {},
-		...waiverOf(c),
-		...approvalOf(c, e.occurrenceId, now),
-		// Nobody holds a token yet: the claim swaps the emailed code for one.
-		accessTokenHash: await hashToken(generateToken()),
-		waitlistId: entryId,
-		createdAt: iso(now),
-	});
+	await st.bookings.put(
+		id,
+		newBooking(
+			{ ref, eventId: e.eventId, occurrenceId: e.occurrenceId || undefined, status: "held" },
+			hold,
+			e,
+			plan,
+			c,
+			now,
+			// Nobody holds a token yet: the claim swaps the emailed code for one.
+			await hashToken(generateToken()),
+			{ waitlistId: entryId },
+		),
+	);
 	// Keep two calls to undo a lost race; compensation beyond that is left to drift repair.
 	const reserved = await reserve(st, plan.steps, { maxCalls: room - 4 });
 	if (reserved.ok) {

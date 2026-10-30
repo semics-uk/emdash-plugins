@@ -1,6 +1,6 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { cmp, ticketOrder } from "../domain/order";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { routeError } from "./reply";
 
@@ -59,7 +59,7 @@ const notFound = () => routeError("NOT_FOUND").body;
 
 /** `closed` once the sales end has passed, else the stored status. */
 const statusOf = (c: EventConfigDoc, now: number): EventConfigDoc["status"] => {
-	const end = Date.parse(c.salesEnd ?? "");
+	const end = msOf(c.salesEnd);
 	return c.status === "on_sale" && Number.isFinite(end) && end <= now ? "closed" : c.status;
 };
 

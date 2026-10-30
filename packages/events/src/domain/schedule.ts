@@ -11,6 +11,7 @@
 import { utcOffsetMinutes, utcParts, utcToZoned, WEEKDAYS, zonedToUtc } from "@semics-tech/shared";
 
 import type { EventConfigDoc, ScheduleDoc } from "../storage/schema";
+import { msOf } from "./time";
 
 export type { ScheduleDoc };
 
@@ -138,7 +139,7 @@ export function planSlots(eventId: string, c: EventConfigDoc, now: number): Slot
 	const have = c.catalog?.occurrences ?? {};
 	const wanted = new Set(starts.map((t) => slotId(eventId, t)));
 	const ours = Object.keys(have).filter((k) => k.startsWith(`s-${eventId}-`));
-	const at = (k: string) => Date.parse(have[k]?.startsAt ?? "");
+	const at = (k: string) => msOf(have[k]?.startsAt);
 	const pending = c.unlisted;
 	const ready = !!pending && now - pending.at >= GRACE;
 	const plan: SlotPlan = {

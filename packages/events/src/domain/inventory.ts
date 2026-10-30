@@ -147,12 +147,16 @@ export function planReservation(
 	if (req.occurrenceId !== undefined && !req.occurrence) return bad("UNKNOWN_OCCURRENCE");
 
 	// The same refs a booking of these lines holds, each with the document read for it (R99: one walk).
-	const read = countersForBooking({ ...req, lines: req.lines as BookingDoc["lines"] }).map((ref): [ReserveStep, Counter] => {
-		const doc = (
-			ref.collection === "ticket_types" ? req.ticketTypes.get(ref.id) : req[ref.collection === "occurrences" ? "occurrence" : "event"]
-		) as Counter;
-		return [{ ...ref, capacity: doc.capacity }, doc];
-	});
+	const read = countersForBooking({ ...req, lines: req.lines as BookingDoc["lines"] }).map(
+		(ref): [ReserveStep, Counter] => {
+			const doc = (
+				ref.collection === "ticket_types"
+					? req.ticketTypes.get(ref.id)
+					: req[ref.collection === "occurrences" ? "occurrence" : "event"]
+			) as Counter;
+			return [{ ...ref, capacity: doc.capacity }, doc];
+		},
+	);
 
 	const worst = compensation === "full" ? worstCaseCalls(read.length) : read.length;
 	if (worst > maxCalls) return bad("TOO_MANY_LINES");

@@ -36,7 +36,7 @@ import {
 	STATUSES,
 } from "./inventory";
 import { clampSetting } from "./settings";
-import { iso } from "./time";
+import { iso, msOf } from "./time";
 
 /**
  * The `where` of a write to a held booking: it still has the status and hold it was read with, and
@@ -122,10 +122,10 @@ export function planExtension(
 	until: number,
 ): Result<{ holdExpiresAt: string; changed: boolean; atCeiling: boolean }, ExtendError> {
 	if (!HOLD_STATUSES.includes(booking.status)) return err({ code: "NOT_HELD" });
-	const current = Date.parse(booking.holdExpiresAt ?? "");
+	const current = msOf(booking.holdExpiresAt);
 	if (!Number.isFinite(current)) return err({ code: "NOT_HELD" });
 	if (booking.releaseClaimedAt || current <= now) return err({ code: "HOLD_LAPSED" });
-	const parsedCeiling = Date.parse(booking.holdCeilingAt ?? "");
+	const parsedCeiling = msOf(booking.holdCeilingAt);
 	const ceiling = Number.isFinite(parsedCeiling) ? Math.max(parsedCeiling, current) : current;
 	const next = Math.min(ceiling, Math.max(current, until));
 	return ok({ holdExpiresAt: iso(next), changed: next > current, atCeiling: next >= ceiling });
@@ -183,7 +183,7 @@ export function expiryAction(b: ExpiringBooking, now: number): "release" | "clos
 		const claimed = Date.parse(b.releaseClaimedAt);
 		return !Number.isFinite(claimed) || now - claimed >= CLAIM_STALE_MS ? "close" : null;
 	}
-	const expires = Date.parse(b.holdExpiresAt ?? "");
+	const expires = msOf(b.holdExpiresAt);
 	if (!Number.isFinite(expires) || expires > now) return null;
 	if (b.status === "draft") return now - Date.parse(b.createdAt) >= DRAFT_GRACE_MS ? "close" : null;
 	return "release";

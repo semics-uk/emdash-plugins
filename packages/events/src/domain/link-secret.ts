@@ -1,4 +1,4 @@
-import { LINK_SECRET_BYTES } from "@semics-tech/shared";
+import { LINK_SECRET_BYTES, toHex } from "@semics-tech/shared";
 
 /**
  * The HMAC key for signed calendar links (`signLink`/`verifyLink`, purpose `events/booking-ics`):
@@ -13,7 +13,6 @@ export interface LinkKv {
 }
 
 const KEY_HEX = new RegExp(`^[0-9a-f]{${LINK_SECRET_BYTES * 2}}$`);
-const toHex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 
 function decodeKey(value: unknown): Uint8Array | null {
 	if (typeof value !== "string" || !KEY_HEX.test(value)) return null;

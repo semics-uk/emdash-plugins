@@ -5,6 +5,7 @@ import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
 import { approvalOf } from "../domain/booking-state";
 import {
 	bookingKeys,
+	type CheckoutPlan,
 	parseReserveInput,
 	planCheckout,
 	RESERVE_RATE_LIMIT,
@@ -14,9 +15,9 @@ import {
 } from "../domain/checkout";
 import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "../domain/holds";
 import { type CounterCollection, reserve } from "../domain/inventory";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
-import { badRequest, botCheck, fail, httpFetch, type PublicSettings } from "./reply";
+import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal } from "./reply";
 
 /**
  * `POST public/checkout/reserve` (EV-FR-05, R9): Turnstile + rate limit → validate → write the
@@ -76,6 +77,41 @@ export function waiverOf(config: EventConfigDoc): Pick<BookingDoc, "waiver"> {
 	return sig?.required && sig.templateId ? { waiver: { templateId: sig.templateId, mode: sig.mode } } : {};
 }
 
+/**
+ * A new booking document (checkout's draft, a waitlist offer's hold): the buyer, the planned lines
+ * and totals, the event's waiver and approval deadline, then `extra` before `createdAt`.
+ */
+export function newBooking(
+	head: Pick<BookingDoc, "ref" | "eventId" | "occurrenceId" | "status">,
+	hold: Pick<BookingDoc, "holdExpiresAt" | "holdCeilingAt">,
+	buyer: { name: string; email: string },
+	plan: Pick<CheckoutPlan, "lines" | "totals">,
+	config: EventConfigDoc,
+	now: number,
+	accessTokenHash: string,
+	extra: Partial<BookingDoc>,
+): BookingDoc {
+	const { occurrenceId, ...rest } = head;
+	return {
+		ref: rest.ref,
+		eventId: rest.eventId,
+		...(occurrenceId !== undefined ? { occurrenceId } : {}),
+		status: rest.status,
+		...hold,
+		releaseClaimedAt: null,
+		buyer: { name: buyer.name, email: buyer.email },
+		email: buyer.email,
+		lines: plan.lines,
+		totals: plan.totals,
+		answers: {},
+		...waiverOf(config),
+		...approvalOf(config, occurrenceId, now),
+		accessTokenHash,
+		...extra,
+		createdAt: iso(now),
+	} as BookingDoc;
+}
+
 interface Attempt {
 	deps: ReserveDeps;
 	input: ReserveInput;
@@ -108,7 +144,7 @@ async function resume(a: Attempt, existing: BookingDoc): Promise<unknown> {
 		if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
 		return success(existing, a.token, extended.value.holdExpiresAt);
 	}
-	if (existing.status === "draft" && !existing.releaseClaimedAt && Date.parse(existing.holdExpiresAt ?? "") > now) {
+	if (existing.status === "draft" && !existing.releaseClaimedAt && msOf(existing.holdExpiresAt) > now) {
 		// The first submit is still reserving: hand this one the booking it is creating.
 		const { applied } = await storage.bookings.updateIf(a.id, {
 			where: { status: "draft", holdExpiresAt: existing.holdExpiresAt, releaseClaimedAt: null },
@@ -153,31 +189,19 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 
 	// Keep two calls: the draft write before reserving and the move to `held` after.
 	const plan = planCheckout(input.eventId, config, input, now, { maxSteps: RESERVE_MAX_CALLS - calls - 2 });
-	if (!plan.ok) {
-		const e = plan.error;
-		const path = e.code === "BAD_REQUEST" && e.reason.includes("OCCURRENCE") ? "occurrenceId" : "lines";
-		return resumeOr(attempt, e.code === "BAD_REQUEST" ? badRequest([{ path, code: e.reason }]) : fail(e.code));
-	}
+	if (!plan.ok) return resumeOr(attempt, planRefusal(plan.error, "lines"));
 
 	const hold = startHold(now, { paid: plan.value.paid }, holdSettings(settings));
-	const draft: BookingDoc = {
-		ref,
-		eventId: input.eventId,
-		...(input.occurrenceId !== undefined ? { occurrenceId: input.occurrenceId } : {}),
-		status: "draft",
-		...hold,
-		releaseClaimedAt: null,
-		buyer: { name: input.buyer.name, email: input.buyer.email },
-		email: input.buyer.email,
-		lines: plan.value.lines,
-		totals: plan.value.totals,
-		answers: {},
-		...waiverOf(config),
-		...approvalOf(config, input.occurrenceId, now),
-		accessTokenHash: attempt.tokenHash,
-		ipHash,
-		createdAt: iso(now),
-	};
+	const draft = newBooking(
+		{ ref, eventId: input.eventId, occurrenceId: input.occurrenceId, status: "draft" },
+		hold,
+		input.buyer,
+		plan.value,
+		config,
+		now,
+		attempt.tokenHash,
+		{ ipHash },
+	);
 	let created: { applied: boolean };
 	try {
 		created = await storage.bookings.compareAndSet(id, null, draft);

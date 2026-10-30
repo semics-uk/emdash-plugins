@@ -19,11 +19,11 @@
  * Slot schedules (T129) share the task: a config with `schedule` is planned by `planSlots` and run by
  * `scheduleStep` (`src/cron/schedule.ts`) instead.
  */
-import { isValidTimeZone, occurrencesBetween, parseRrule } from "@semics-tech/shared";
+import { occurrencesBetween, parseRrule, validZone } from "@semics-tech/shared";
 
 import { MAX_OCCURRENCES } from "../domain/config";
 import { planSlots } from "../domain/schedule";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import { type ConfigStorage, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { scheduleStep } from "./schedule";
@@ -47,7 +47,7 @@ function plan(eventId: string, c: EventConfigDoc, now: number) {
 	const rule = c.recurrence ? parseRrule(c.recurrence) : null;
 	const info = c.info;
 	if (!rule || !info) return null;
-	const zone = info.timezone && isValidTimeZone(info.timezone) ? info.timezone : "UTC";
+	const zone = validZone(info.timezone) ?? "UTC";
 	const starts = occurrencesBetween(rule, Date.parse(info.startsAt), zone, now, now + HORIZON, OCCURRENCES_WINDOW);
 	const have = c.catalog?.occurrences ?? {};
 	const prefix = `r-${eventId}-`;
@@ -57,8 +57,8 @@ function plan(eventId: string, c: EventConfigDoc, now: number) {
 	const room = MAX_OCCURRENCES - Object.keys(have).length;
 	const series = Object.keys(have)
 		.filter((k) => k.startsWith(prefix) && !wanted.has(k))
-		.sort((a, b) => Date.parse(have[a]?.startsAt ?? "") - Date.parse(have[b]?.startsAt ?? ""));
-	const stale = series.filter((k) => Date.parse(have[k]?.startsAt ?? "") >= now || missing.length > room);
+		.sort((a, b) => msOf(have[a]?.startsAt) - msOf(have[b]?.startsAt));
+	const stale = series.filter((k) => msOf(have[k]?.startsAt) >= now || missing.length > room);
 	const add = missing.slice(0, Math.max(room, 0));
 	return add.length > 0 || stale.length > 0 ? { add, stale, id, info } : null;
 }

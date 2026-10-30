@@ -2,6 +2,7 @@ import { generateToken, hashToken, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type InputIssue, parseBookingAccessInput } from "../domain/checkout";
+import { msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { fail } from "./reply";
 
@@ -59,7 +60,7 @@ export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = fa
 	const booking = found?.data as BookingDoc | undefined;
 	const stored = booking?.redeemHash ?? undefined;
 	const matches = await verifyToken(code, stored);
-	const live = Date.parse(booking?.redeemExpiresAt ?? "") > deps.now;
+	const live = msOf(booking?.redeemExpiresAt) > deps.now;
 	const offer = booking?.status === "held" ? booking.waitlistId : undefined;
 	if (!found || !booking || !stored || !matches || !live || (claim && !offer)) return fail("NOT_FOUND");
 	const accessToken = generateToken();
