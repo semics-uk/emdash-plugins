@@ -2517,7 +2517,8 @@
 				"R64"
 			],
 			"unblocks": [
-				"T127"
+				"T127",
+				"T138"
 			],
 			"column": "done"
 		},
@@ -2751,6 +2752,25 @@
 			],
 			"unblocks": [],
 			"column": "in-progress"
+		},
+		"T138": {
+			"file": "T138-plugin-test-build-race.md",
+			"id": "T138",
+			"title": "CI: plugin-test workers share one plugin build",
+			"phase": 6,
+			"package": "esign",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T125"
+			],
+			"spec": [
+				"R99"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2761,7 +2781,8 @@
 		"in-progress": [
 			"T135",
 			"T136",
-			"T137"
+			"T137",
+			"T138"
 		],
 		"review": [],
 		"done": [

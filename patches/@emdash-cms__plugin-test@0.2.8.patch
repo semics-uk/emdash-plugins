@@ -1,0 +1,41 @@
+diff --git a/dist/config.mjs b/dist/config.mjs
+index 1feeaa35be108115ed304fdbea4493947c09e42a..03c8e7dcf972f33074c336a3aecf23129f40a37e 100644
+--- a/dist/config.mjs
++++ b/dist/config.mjs
+@@ -29,10 +29,25 @@ function runtimeVirtualModulePlugin() {
+ 		}
+ 	};
+ }
++const inflightPoolOptions = /* @__PURE__ */ new Map();
+ function emdashPluginTest(options = {}) {
+ 	const pluginDir = resolve(options.dir ?? process.cwd());
+ 	const workerEntry = fileURLToPath(new URL(import.meta.url.endsWith(".ts") ? "./worker.ts" : "./worker.mjs", import.meta.url));
+-	const workerPlugin = cloudflareTest(async () => {
++	const workerPlugin = cloudflareTest(() => {
++		// semics patch (T138): the pool calls this once per worker, and buildPlugin rewrites dist/ in
++		// place, so workers starting together could read a half-written manifest.json. Concurrent
++		// starts share one build; a later start rebuilds, so watch mode still sees changes.
++		let pending = inflightPoolOptions.get(pluginDir);
++		if (!pending) {
++			pending = poolOptionsFor(pluginDir, workerEntry).finally(() => inflightPoolOptions.delete(pluginDir));
++			inflightPoolOptions.set(pluginDir, pending);
++		}
++		return pending;
++	});
++	return [runtimeVirtualModulePlugin(), workerPlugin];
++}
++async function poolOptionsFor(pluginDir, workerEntry) {
++	{
+ 		const build = await buildPlugin({ dir: pluginDir });
+ 		const [code, manifest] = await Promise.all([readFile(build.files.runtime, "utf8"), readFile(build.files.manifestJson, "utf8")]);
+ 		return {
+@@ -51,8 +66,7 @@ function emdashPluginTest(options = {}) {
+ 				}
+ 			}
+ 		};
+-	});
+-	return [runtimeVirtualModulePlugin(), workerPlugin];
++	}
+ }
+ 
+ //#endregion

@@ -34,7 +34,10 @@
 			"esbuild",
 			"workerd",
 			"sharp"
-		]
+		],
+		"patchedDependencies": {
+			"@emdash-cms/plugin-test@0.2.8": "patches/@emdash-cms__plugin-test@0.2.8.patch"
+		}
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.5.15",

@@ -16,10 +16,13 @@ type PoolOptions = () => Promise<{ miniflare: { bindings: Record<string, string>
 
 function poolOptionsFor(dir: string): PoolOptions {
 	const [, workerPlugin] = emdashPluginTest({ dir }) as [unknown, { configureVitest(ctx: unknown): void }];
-	const context = { project: { config: {} as { poolRunner?: { createPoolWorker(o: unknown): { poolOptions: PoolOptions } } } } };
+	const context = {
+		project: { config: {} as { poolRunner?: { createPoolWorker(o: unknown): { poolOptions: PoolOptions } } } },
+	};
 	workerPlugin.configureVitest(context);
-	const worker = context.project.config.poolRunner!.createPoolWorker({ project: { vitest: { distPath: vitestDist } } });
-	return worker.poolOptions;
+	const runner = context.project.config.poolRunner;
+	if (!runner) throw new Error("emdashPluginTest set no pool runner");
+	return runner.createPoolWorker({ project: { vitest: { distPath: vitestDist } } }).poolOptions;
 }
 
 describe("T138 plugin-test builds once for concurrent pool workers", () => {
