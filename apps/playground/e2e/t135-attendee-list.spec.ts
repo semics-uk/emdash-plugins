@@ -4,7 +4,6 @@ import { type APIRequestContext, type Browser, expect, type Page, test } from "@
 import {
 	address,
 	BOOKING_URL,
-	bookingByRef,
 	createEvent,
 	isPro,
 	mailbox,
@@ -100,7 +99,7 @@ async function violations(page: Page) {
 	return results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
 }
 
-test("R95 the booking page lists Signed / Waiting; Sign now signs the child's waiver on the same device", async ({
+test("R95 the booking page lists Signed / Waiting; Sign now signs the waiting adult's waiver on the same device", async ({
 	browser,
 	request,
 }) => {
@@ -108,35 +107,35 @@ test("R95 the booking page lists Signed / Waiting; Sign now signs the child's wa
 	const who = { buyer: address("ada"), adult: address("charles") };
 	const { context, page } = await visitor(browser, true);
 	const ref = await bookParty(page, who);
-	// The flow opens the buyer's own waiver first; they sign it, then leave for the booking page.
+	// The flow opens the buyer's waiver (for themselves and, as guardian, the child) and lands on the
+	// booking: confirmed, with the emailed adult still to sign.
 	await signCeremony(page, "Ada Lovelace");
-	await page.waitForURL(/\/_events\/waiver\?ref=/);
-	await page.goto(`/booking?ref=${ref}`);
+	await page.waitForURL(new RegExp(`/booking\\?ref=${ref}&waiver=signed`));
 
-	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "awaiting_signature");
+	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "confirmed");
 	const list = page.getByTestId("attendee-list");
 	await expect(list.getByTestId("attendee-row")).toHaveCount(3);
 	await expect(row(page, "Ada Lovelace")).toHaveAttribute("data-signing", "signed");
+	await expect(row(page, "Lucy Lovelace")).toHaveAttribute("data-signing", "signed");
 	await expect(row(page, "Charles Babage")).toHaveAttribute("data-signing", "waiting");
-	await expect(row(page, "Lucy Lovelace")).toHaveAttribute("data-signing", "waiting");
 	// Only waiting attendees can be signed; only the emailed adult can be invited again.
-	await expect(row(page, "Ada Lovelace").getByTestId("attendee-sign-now")).toHaveCount(0);
-	await expect(row(page, "Lucy Lovelace").getByTestId("attendee-resend")).toHaveCount(0);
-	await expect(row(page, "Charles Babage").getByTestId("attendee-resend")).toBeVisible();
+	await expect(list.getByTestId("attendee-sign-now")).toHaveCount(1);
+	await expect(list.getByTestId("attendee-resend")).toHaveCount(1);
+	await expect(row(page, "Charles Babage")).toContainText(who.adult);
 	expect(await violations(page)).toEqual([]);
 	await page.setViewportSize({ width: 320, height: 800 });
 	expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBeLessThanOrEqual(0);
 	expect(await violations(page)).toEqual([]);
 
-	// Sign now: the child's waiver, signed by the buyer as guardian, here; back on the same page.
-	await row(page, "Lucy Lovelace").getByTestId("attendee-sign-now").click();
+	// Sign now: the adult signs their own waiver on the buyer's device; back on the same page.
+	await row(page, "Charles Babage").getByTestId("attendee-sign-now").click();
 	await page.waitForURL(/\/sign\/[A-Za-z0-9_-]+$/);
-	await signCeremony(page, "Ada Lovelace");
+	await signCeremony(page, "Charles Babage");
 	await page.waitForURL(new RegExp(`/booking\\?ref=${ref}`));
-	await expect(row(page, "Lucy Lovelace")).toHaveAttribute("data-signing", "signed");
-	await expect(row(page, "Charles Babage")).toHaveAttribute("data-signing", "waiting");
-	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "awaiting_signature");
-	expect(bookingByRef(ref).data.status).toBe("awaiting_signature");
+	await expect(row(page, "Charles Babage")).toHaveAttribute("data-signing", "signed");
+	await expect(list.getByTestId("attendee-sign-now")).toHaveCount(0);
+	await expect(page.getByTestId("attendee-edit")).toHaveCount(0);
+	await expect(page.getByTestId("ticket-pass")).toHaveCount(3);
 	await context.close();
 });
 
@@ -213,6 +212,6 @@ test("R95 no JavaScript: the list, Sign now and Resend are plain forms; the rece
 	// Without the page script the fragment's receipt is not posted: reloading reconciles with e-sign.
 	await page.goto(`/booking?ref=${ref}`);
 	await expect(row(page, "Ada Lovelace")).toHaveAttribute("data-signing", "signed");
-	await expect(row(page, "Lucy Lovelace")).toHaveAttribute("data-signing", "waiting");
+	await expect(row(page, "Charles Babage")).toHaveAttribute("data-signing", "waiting");
 	await context.close();
 });

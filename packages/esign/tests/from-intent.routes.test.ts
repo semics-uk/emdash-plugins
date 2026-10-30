@@ -422,6 +422,21 @@ describe("T067 SX-NFR-03 idempotent return hands a signing token only to the awa
 		expect(await runtime?.inspect.storage.list("envelopes")).toHaveLength(1);
 	});
 
+	it("T135 a guardian's ceremony names the child: the session's participant is the name, not the stored object", async () => {
+		const budget = await integration();
+		const opened = await call(
+			budget,
+			await sign(payload({ as: "guardian", participant: { name: "Lucy Lovelace" }, ref: "BK7Q2M:3" })),
+		);
+		expect(opened.signingToken).toBeTypeOf("string");
+		const session = await budget.invokeRoute("public/session", { token: opened.signingToken });
+		expect((session.value as { signer?: unknown }).signer).toEqual({
+			name: "Ada Lovelace",
+			as: "guardian",
+			participant: "Lucy Lovelace",
+		});
+	});
+
 	it("SX-NFR-03 an intent for another person, or as guardian, gets the envelope but no token, and rotates nothing", async () => {
 		const budget = await integration();
 		const first = await call(budget, await sign(payload({ ...adult, delivery: "email" })), EMAIL_TARGET);
