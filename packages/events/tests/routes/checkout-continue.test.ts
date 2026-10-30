@@ -384,7 +384,14 @@ describe("checkout/continue paid step seam (EV-FR-05, Pro)", () => {
 
 	it("EV-FR-05 T134 a continue that names attendees while awaiting payment (no waiver) still writes them", async () => {
 		const w = await world({ priceMinor: 1500, status: "awaiting_payment" });
-		w.storage.attendees.set(`${ID}-1`, { bookingId: ID, ticketTypeId: "tt_a", name: "Old", email: "o@example.com", status: "pending", code: "c" });
+		w.storage.attendees.set(`${ID}-1`, {
+			bookingId: ID,
+			ticketTypeId: "tt_a",
+			name: "Old",
+			email: "o@example.com",
+			status: "pending",
+			code: "c",
+		});
 		const attendees = [{ ticketTypeId: "tt_a", name: "Grace Hopper", email: "grace@example.com" }];
 		const { body } = await run(w.deps(T0 + MIN, { payment: payment([]) }), { ...w.input, attendees });
 		expect(body).toMatchObject({ ok: true, next: { type: "pay" } });

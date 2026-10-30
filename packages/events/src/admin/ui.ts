@@ -9,6 +9,9 @@ export const respond = (blocks: Block[]): { blocks: Block[] } => ({ blocks });
 export const panelView = (blocks: Block[]) => respond([header("Tickets & booking"), ...blocks]);
 
 /** A trimmed string of at most `max` characters; "" for anything else. */
+/** A field's starting value (`{ initialValue }`), short to keep the backend's hotfix room (R100, T134). */
+export const initial = <T>(initialValue: T) => ({ initialValue });
+
 export const str = (v: unknown, max = 200): string => (typeof v === "string" ? v.trim().slice(0, max) : "");
 
 /** Select options for status values, labelled with spaces for underscores. */

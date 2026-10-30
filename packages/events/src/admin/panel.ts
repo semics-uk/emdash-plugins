@@ -36,6 +36,7 @@ import {
 	countColumns,
 	EVENT_STATUS_OPTIONS,
 	held,
+	initial,
 	OCCURRENCE_STATUS_OPTIONS,
 	panelView,
 	priceEdit,
@@ -144,8 +145,8 @@ function waiverFields(config: EventConfigDoc, waivers: WaiverAvailability): Form
 			? select("waiver_template", "Waiver template (E-sign)", options, {
 					initialValue: saved || (options[0]?.value ?? ""),
 				})
-			: textInput("waiver_template", "Waiver template id (E-sign)", { initialValue: saved }),
-		select("waiver_mode", "Who signs", MODE_OPTIONS, { initialValue: sig?.mode ?? "each_attendee" }),
+			: textInput("waiver_template", "Waiver template id (E-sign)", initial(saved)),
+		select("waiver_mode", "Who signs", MODE_OPTIONS, initial(sig?.mode ?? "each_attendee")),
 	];
 }
 
@@ -254,9 +255,9 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 	const dates = owned ? [] : (state.occurrences as Item<OccurrenceDoc>[]);
 
 	const fields = [
-		select("status", "Sales status", EVENT_STATUS_OPTIONS, { initialValue: config.status }),
+		select("status", "Sales status", EVENT_STATUS_OPTIONS, initial(config.status)),
 		numberInput("capacity", "Event capacity", { initialValue: config.capacity, min: 1 }),
-		toggle("waitlist", "Waitlist when sold out", { initialValue: config.waitlistEnabled }),
+		toggle("waitlist", "Waitlist when sold out", initial(config.waitlistEnabled)),
 		numberInput("approval", "Approval hours (0: no approval)", {
 			initialValue: approvalHours(config),
 			min: 0,
@@ -273,7 +274,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		...scheduleFields(config.schedule),
 		...waiverFields(config, waivers),
 		...tickets.flatMap(({ id, data: t }) => [
-			textInput(`tt_name:${id}`, `${t.name}: name`, { initialValue: t.name }),
+			textInput(`tt_name:${id}`, `${t.name}: name`, initial(t.name)),
 			textInput(`tt_price:${id}`, `${t.name}: price (${config.currency})`, {
 				initialValue: fromMinor(t.priceMinor, config.currency),
 			}),
@@ -297,9 +298,9 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		...dates.flatMap(({ id, data: o }) => {
 			const when = localText(o.startsAt, zone);
 			return [
-				textInput(`oc_start:${id}`, `${when}: starts (${zone})`, { initialValue: when }),
+				textInput(`oc_start:${id}`, `${when}: starts (${zone})`, initial(when)),
 				numberInput(`oc_capacity:${id}`, `${when}: capacity`, { initialValue: o.capacity, min: 1 }),
-				select(`oc_status:${id}`, `${when}: status`, OCCURRENCE_STATUS_OPTIONS, { initialValue: o.status }),
+				select(`oc_status:${id}`, `${when}: status`, OCCURRENCE_STATUS_OPTIONS, initial(o.status)),
 				toggle(`oc_remove:${id}`, `Remove ${when}`, NOT_IF_BOOKED),
 			];
 		}),
@@ -341,7 +342,7 @@ async function enableForm(deps: PanelDeps, extra: Block[] = []): Promise<PanelRe
 		form({
 			fields: [
 				numberInput("capacity", "Event capacity", { initialValue: 100, min: 1 }),
-				textInput("currency", "Currency (ISO code)", { initialValue: currency }),
+				textInput("currency", "Currency (ISO code)", initial(currency)),
 			],
 			submit: { label: "Enable booking", actionId: "panel.enable" },
 			blockId: "tickets-enable",

@@ -22,7 +22,7 @@ import { dayBounds, parseSchedule } from "../domain/schedule";
 import { msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { SAVED, saveRefused } from "./messages";
-import { countColumns, held, panelView, str } from "./ui";
+import { countColumns, held, initial, panelView, str } from "./ui";
 
 /**
  * The editor panel's Schedule section and day view (EV-FR-17, T129). The section edits
@@ -99,7 +99,7 @@ export function scheduleInput(values: Obj, stored: EventConfigDoc["schedule"], c
 	return parseSchedule(s) ?? s;
 }
 
-const dayField = (day: string) => textInput("day", "Day (YYYY-MM-DD)", { initialValue: day });
+const dayField = (day: string) => textInput("day", "Day (YYYY-MM-DD)", initial(day));
 
 export const dayPicker = (day = ""): Block =>
 	form({ fields: [dayField(day)], submit: { label: "Show day", actionId: "panel.day" }, blockId: "day" });
@@ -207,7 +207,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			{ initialValue: "" },
 		),
 		...rows.flatMap(({ id, d }) => [
-			toggle(`sl_open:${id}`, `${time(d)} open`, { initialValue: d.status === "open" }),
+			toggle(`sl_open:${id}`, `${time(d)} open`, initial(d.status === "open")),
 			numberInput(`sl_places:${id}`, `${time(d)} places`, { initialValue: d.capacity, min: 1 }),
 		]),
 	];

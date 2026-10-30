@@ -29,7 +29,7 @@ import type { RefundStep } from "../routes/booking";
 import type { ConfigStorage } from "../routes/config";
 import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
 import { handlePanel, type PanelDeps, type PanelInteraction } from "./panel";
-import { optionsOf, respond, soldMeter, str } from "./ui";
+import { initial, optionsOf, respond, soldMeter, str } from "./ui";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -199,7 +199,7 @@ async function bookingsPage(
 		...extra,
 		form({
 			fields: [
-				textInput("q", REF_OR_EMAIL, { initialValue: q }),
+				textInput("q", REF_OR_EMAIL, initial(q)),
 				select("status", "Status", [{ label: "Any status", value: "" }, ...optionsOf(BOOKING_STATUSES)], {
 					initialValue: status,
 				}),
@@ -448,7 +448,7 @@ async function attendeesPage(
 		};
 	});
 
-	const eventField = () => textInput("eventId", "Event", { initialValue: eventId });
+	const eventField = () => textInput("eventId", "Event", initial(eventId));
 	return respond([
 		header(`Attendees: ${eventId}`),
 		...(opts.extra ?? []),
@@ -457,7 +457,7 @@ async function attendeesPage(
 			submit: { label: "Check in by code", actionId: "attendees.checkin_code" },
 		}),
 		form({
-			fields: [eventField(), textInput("q", "Name, email or code", { initialValue: q })],
+			fields: [eventField(), textInput("q", "Name, email or code", initial(q))],
 			submit: { label: "Search attendees", actionId: "attendees.search" },
 		}),
 		actions([
