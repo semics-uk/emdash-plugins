@@ -4,7 +4,7 @@ title: "E-sign: CPU-budget tests flaky under a full local verify"
 phase: 7
 package: esign
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: []
