@@ -17,7 +17,6 @@ import {
 	bookingByRef,
 	createEvent,
 	EVENTS,
-	eventsRoute,
 	isPro,
 	mailTo,
 	patchBooking,
@@ -138,7 +137,9 @@ async function bookWithAttendees(
 	attendees: Array<{ name: string; email: string; minor?: boolean }>,
 ) {
 	const ip = { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}` };
-	const event = await eventsRoute<{ ticketTypes: Array<{ id: string }> }>(request, "public/event", { eventId }, false);
+	const res = await request.get(`${EVENTS}/public/event?eventId=${encodeURIComponent(eventId)}`);
+	expect(res.ok(), await res.text()).toBe(true);
+	const event = ((await res.json()) as { data: { ticketTypes: Array<{ id: string }> } }).data;
 	const ticketTypeId = event.ticketTypes[0]?.id as string;
 	const post = async <T>(path: string, data: unknown) => {
 		const res = await request.post(`${EVENTS}/${path}`, { data, headers: { "x-emdash-request": "1", ...ip } });
