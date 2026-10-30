@@ -90,4 +90,5 @@ in full; the per-package `CONTEXT.md` files summarise them.
   finished agents' leftover background jobs (TaskStop) so they don't load the machine.
 - Bundle budgets (R42/R43/R47): Free bundles ≤ 116 KiB (R51) (Events 103.4, E-sign 103.9 KiB after T092 — new Free
   code must be offset by trimming); Pro bundles ≤ 256 KiB plus a cold-start CPU check.
+- Inside workerd `os.loadavg()` is always 0 and `os.cpus()` empty: CPU budgets there go lenient locally (T137), strict on CI.
 - Agents sometimes skip the "ready for review" commit; check `status:` and the checkboxes before landing.
