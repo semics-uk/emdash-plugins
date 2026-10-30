@@ -2744,7 +2744,7 @@
 			"phase": 7,
 			"package": "esign",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [],
@@ -2752,7 +2752,7 @@
 				"R92"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T138": {
 			"file": "T138-plugin-test-build-race.md",
@@ -2778,8 +2778,7 @@
 		"backlog": [],
 		"ready": [],
 		"in-progress": [
-			"T134",
-			"T137"
+			"T134"
 		],
 		"review": [],
 		"done": [
@@ -2899,6 +2898,7 @@
 			"T133",
 			"T135",
 			"T136",
+			"T137",
 			"T138"
 		],
 		"blocked": [
