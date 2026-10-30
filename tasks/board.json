@@ -2783,7 +2783,7 @@
 			"phase": 6,
 			"package": "suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2793,15 +2793,13 @@
 				"R86"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [],
-		"in-progress": [
-			"T139"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2922,7 +2920,8 @@
 			"T135",
 			"T136",
 			"T137",
-			"T138"
+			"T138",
+			"T139"
 		],
 		"blocked": [
 			"T111"

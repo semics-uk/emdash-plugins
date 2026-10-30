@@ -4,7 +4,7 @@ title: "Release: the registry workflow plans when release.yml calls it"
 phase: 6
 package: suite
 edition: free
-status: in-progress
+status: done
 model: opus-5.5
 size: S
 depends_on: [T138]
@@ -23,5 +23,6 @@ called workflow sees the caller's event (`push`), so neither plan step ran, `sel
 ## Acceptance criteria
 
 - [x] Test first (`scripts/release-workflows.test.mjs`), then the fix
-- [ ] CI green on main; rc.1 published to the EmDash registry (run id recorded)
-- [ ] Meets the Definition of Done
+- [x] CI green on main (run 41033532498, 0580ad7); semics-esign and semics-events 1.0.0-rc.1 on the EmDash registry, listing-passed (2026-10-30)
+- [x] Meets the Definition of Done
+- Two sessions dispatched the manual registry publish at the same time; the later runs ended in `RELEASE_CONFLICT` / `RELEASE_EXISTS` because rc.1 was already there. Dispatch a release from one session only.
