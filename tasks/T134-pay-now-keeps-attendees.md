@@ -4,7 +4,7 @@ title: "Events: Pay now keeps the attendees typed at checkout; booking_from per 
 phase: 7
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T136]
