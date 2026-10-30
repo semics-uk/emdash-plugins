@@ -2771,14 +2771,37 @@
 			"spec": [
 				"R99"
 			],
-			"unblocks": [],
+			"unblocks": [
+				"T139"
+			],
 			"column": "done"
+		},
+		"T139": {
+			"file": "T139-registry-plan-in-called-workflow.md",
+			"id": "T139",
+			"title": "Release: the registry workflow plans when release.yml calls it",
+			"phase": 6,
+			"package": "suite",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T138"
+			],
+			"spec": [
+				"R86"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [],
-		"in-progress": [],
+		"in-progress": [
+			"T139"
+		],
 		"review": [],
 		"done": [
 			"T000",

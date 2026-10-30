@@ -50,9 +50,10 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version-file: .nvmrc
+      # Called from release.yml, github.event_name is the caller's event (push), never workflow_call.
       - name: Plan Changesets plugin releases
         id: changesets
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         shell: bash
         env:
           EMDASH_PUBLISHED_PACKAGES: ${{ inputs.published-packages }}
@@ -72,7 +73,7 @@ jobs:
   publish:
     name: Build and publish ${{ matrix.selector }}
     needs: plan
-    if: ${{ needs.plan.outputs.selectors != '[]' }}
+    if: ${{ needs.plan.outputs.selectors != '' && needs.plan.outputs.selectors != '[]' }}
     strategy:
       fail-fast: false
       matrix:
