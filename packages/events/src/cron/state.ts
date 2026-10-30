@@ -1,7 +1,7 @@
 /**
  * A cron job's state between ticks: one KV value, written back guarded on the revision read (a
  * racing tick's write wins; the next tick redoes the work). One copy for the sweeper and the
- * retention job (R99, T136).
+ * retention job (R100, T136).
  */
 export interface StateKv {
 	getVersioned<T>(key: string): Promise<{ value: T; revision: string } | null>;

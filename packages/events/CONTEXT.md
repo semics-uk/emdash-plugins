@@ -280,10 +280,15 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 125 KiB (`EVENTS_BUNDLE_BUDGET`, R94: 124.1 after T129's slot
   schedules, 124.6 after T130's picker paging, 124.8 after T131's approval (R97: own error table, editor page = panel), 124.9 after T132 (R98, 131 B left); R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
-  registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
+  registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). **R100 (T136): 120.9 KiB (123,774 B),
+  and the test also keeps `EVENTS_HOTFIX_ROOM` (4 KiB) free under 125**, so a feature that would use it trims first. No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
-  `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,
-  `src/routes/reply.ts`, `src/domain/time.ts`) rather than a copy per file.
+  `tests/domain/checkout-input.test.ts`). Shared helpers go in one place rather than a copy per file: `src/admin/ui.ts`
+  (`panelView`, `countColumns`), `src/routes/reply.ts` (`planRefusal`), `src/domain/time.ts` (`iso`, `msOf`),
+  `src/domain/order.ts` (`cmp`, `ticketOrder`), `src/domain/settings.ts` (`clampSetting`), `src/cron/state.ts` (`jobState`),
+  `src/domain/inventory.ts` (`STATUSES`: hold/live/expirable lists are slices; `seatsByType`), `findByToken` (booking.ts),
+  `newBooking` (checkout-reserve.ts), and shared `utcParts`/`pad2`/`validZone`/`toHex`/`WEEKDAYS`. Measure a trim with a
+  source-map breakdown of `dist/plugin.mjs`; `plugin.mjs` is byte-identical to the registry's `backend.js`.
 
 - Accessibility (T101, R56): the playground's `e2e/t101-accessibility.spec.ts` requires zero WCAG 2.2 A/AA axe violations on
   every public page (1280 and 320 px), a visible focus ring on every control, and no sideways scroll at 320 px. Each Turnstile

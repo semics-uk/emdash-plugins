@@ -1,5 +1,5 @@
 /**
- * Sort comparators shared across the core, so the bundle carries each once (R99, T136).
+ * Sort comparators shared across the core, so the bundle carries each once (R100, T136).
  */
 
 /** Ascending order of strings (code-unit order, as `<` compares). */

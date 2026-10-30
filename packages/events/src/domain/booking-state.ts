@@ -37,7 +37,7 @@ import { iso, msOf } from "./time";
  * awaiting_approval → confirmed, declined, expired, cancelled; confirmed → cancelled, refunded;
  * expired → refunded_unavailable; cancelled → refunded; refunded, refunded_unavailable, declined: none.
  *
- * Built from letters (`a` = `STATUSES[0]`) so the sandbox bundle carries each name once (R99).
+ * Built from letters (`a` = `STATUSES[0]`) so the sandbox bundle carries each name once (R100).
  */
 export const BOOKING_TRANSITIONS: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = Object.fromEntries(
 	STATUSES.map((s, i) => [

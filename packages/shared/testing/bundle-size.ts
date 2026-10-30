@@ -26,7 +26,7 @@ export const BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - BUNDLE_HEADROOM;
  */
 export const EVENTS_BUNDLE_BUDGET = REGISTRY_FILE_LIMIT - 3 * 1024;
 /**
- * Room the Free Events backend keeps free under `EVENTS_BUNDLE_BUDGET` for a hotfix (R99, T136):
+ * Room the Free Events backend keeps free under `EVENTS_BUNDLE_BUDGET` for a hotfix (R100, T136):
  * a feature that would eat into it trims first.
  */
 export const EVENTS_HOTFIX_ROOM = 4 * 1024;

@@ -40,7 +40,7 @@ const left = (capacity: number, reserved: number) => Math.max(0, capacity - rese
 /**
  * ISO local date-time with the zone's offset (`2099-07-14T20:00:00+01:00`, `+00:00` in a zone at
  * UTC), or UTC with `Z` when the zone is unset or unknown. The offset is the shared minute offset
- * (R99: it replaced an `Intl` `longOffset` lookup of the same value).
+ * (R100: it replaced an `Intl` `longOffset` lookup of the same value).
  */
 export function withOffset(text: string, timeZone: string | null | undefined): string | null {
 	const ms = Date.parse(text);

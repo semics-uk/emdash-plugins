@@ -146,7 +146,7 @@ export function planReservation(
 	}
 	if (req.occurrenceId !== undefined && !req.occurrence) return bad("UNKNOWN_OCCURRENCE");
 
-	// The same refs a booking of these lines holds, each with the document read for it (R99: one walk).
+	// The same refs a booking of these lines holds, each with the document read for it (R100: one walk).
 	const read = countersForBooking({ ...req, lines: req.lines as BookingDoc["lines"] }).map(
 		(ref): [ReserveStep, Counter] => {
 			const doc = (
@@ -296,7 +296,7 @@ export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurr
 
 /**
  * Every booking status, in lifecycle order: the hold states are `[1, 5)`, the live ones `[1, 6)`.
- * One list so the sandbox bundle carries each name once (R99); `BOOKING_TRANSITIONS` indexes it.
+ * One list so the sandbox bundle carries each name once (R100); `BOOKING_TRANSITIONS` indexes it.
  */
 export const STATUSES: readonly BookingStatus[] = [
 	"draft",
