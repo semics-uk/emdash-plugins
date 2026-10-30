@@ -21,7 +21,7 @@
  * on bridge calls. It is a local proxy for Cloudflare's CPU-time limit, not the real meter.
  */
 
-import { availableParallelism, loadavg } from "node:os";
+import { availableParallelism, cpus, loadavg } from "node:os";
 
 /** One round trip from the sandbox to the host bridge. */
 export interface BridgeCall {
@@ -317,14 +317,29 @@ const LENIENT_CPU_FACTOR = 4;
  * The CPU figure is sandbox wall time minus bridge waits (workerd has no CPU clock), so a loaded
  * machine inflates it. Strict on CI, with `SEMICS_STRICT_CPU=1`, or when the 1-minute load average
  * is below half the core count (parallel suites already contend there); lenient otherwise.
+ *
+ * The tests run inside workerd, where `os.cpus()` is empty and `os.loadavg()` is always 0: a load of
+ * 0 there meant "quiet" and made every local run strict (T137). With no readable load the answer is
+ * lenient locally (a stall of 5-10x on a 4-13 ms invocation is what a busy machine does); CI and
+ * `SEMICS_STRICT_CPU=1` stay strict.
  */
 export function cpuEnforcement(
 	env: Record<string, string | undefined> = process.env,
-	load: number = loadavg()[0] ?? 0,
+	load: number | null = readLoad(),
 	cores: number = availableParallelism(),
 ): CpuEnforcement {
 	if (env.SEMICS_STRICT_CPU === "1" || env.CI) return "strict";
+	if (load === null) return "lenient";
 	return load < cores / 2 ? "strict" : "lenient";
+}
+
+/** The 1-minute load average, or null where the runtime cannot report one (workerd). */
+function readLoad(): number | null {
+	try {
+		return cpus().length === 0 ? null : (loadavg()[0] ?? null);
+	} catch {
+		return null;
+	}
 }
 
 export function expectWithinBudget(
