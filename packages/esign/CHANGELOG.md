@@ -1,5 +1,15 @@
 # @semics-tech/emdash-esign
 
+## 1.0.0-rc.1
+
+### Minor Changes
+
+- b037939: Attendee signing list on the booking page (T133, R95; the routes behind it are Events Pro's). When Events Pro describes a waiver booking's seats, `/booking` lists every attendee as Signed or Waiting, with a "Sign now on this device" button (the attendee signs on the buyer's phone or a front-desk tablet; a minor's guardian signs for them), "Resend invitation" for adults invited by email, and a form to correct the names and emails of attendees who have not signed until the site's cutoff. Every action is a plain form post: no JavaScript is needed. Free shows nothing new. E-sign's `public/envelopes/from-intent` honours two optional intent fields (protocol §5.1, §8.1): `resend: true` emails the open envelope's invitation again with a fresh link, and `replace: true` voids the open envelope for the seat (audited as the integration) unless it already names that signer, and never creates one. An older e-sign ignores both.
+
+### Patch Changes
+
+- fb2f7f0: Fixes two bugs found by the Pro playground e2e (T135). An integration client could create only one envelope on a real site: the `clients` collection declared `clientId` unique, and EmDash 1.2 builds a unique index over every collection of the plugin, so the second envelope from the same client (which also carries `clientId`) failed with a UNIQUE constraint error. The index is gone (EmDash drops it on upgrade; a client's document id is its client id, which keeps it unique), and the client is read by id. A guardian's signing page also showed "Signing as guardian for [object Object]": it now names the child.
+
 ## 1.0.0-rc.0
 
 ### Major Changes

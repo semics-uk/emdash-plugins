@@ -1,6 +1,6 @@
 {
 	"name": "@semics-tech/shared",
-	"version": "0.0.1-rc.0",
+	"version": "0.1.0-rc.1",
 	"private": true,
 	"type": "module",
 	"sideEffects": false,
