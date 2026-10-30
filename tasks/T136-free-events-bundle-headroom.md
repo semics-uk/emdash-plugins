@@ -4,7 +4,7 @@ title: "Events: restore Free bundle headroom (at least 4 KiB under the 125 KiB b
 phase: 7
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: []
