@@ -2684,7 +2684,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2692,10 +2692,11 @@
 			],
 			"spec": [
 				"R98",
-				"R96"
+				"R96",
+				"R101"
 			],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T135": {
 			"file": "T135-e2e-attendee-list-and-payment-holds.md",
@@ -2777,9 +2778,7 @@
 	"columns": {
 		"backlog": [],
 		"ready": [],
-		"in-progress": [
-			"T134"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -2896,6 +2895,7 @@
 			"T131",
 			"T132",
 			"T133",
+			"T134",
 			"T135",
 			"T136",
 			"T137",
