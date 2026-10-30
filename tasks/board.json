@@ -2794,11 +2794,30 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T140": {
+			"file": "T140-pro-esign-cold-start-ci-flake.md",
+			"id": "T140",
+			"title": "Pro E-sign: cold-start CPU budget flaked on CI (52.7 ms against 50)",
+			"phase": 7,
+			"package": "esign",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [
+				"R92"
+			],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [],
+		"ready": [
+			"T140"
+		],
 		"in-progress": [],
 		"review": [],
 		"done": [
