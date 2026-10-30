@@ -4,7 +4,7 @@ title: "Licence Worker: owner issues a key without a sale"
 phase: 6
 package: suite
 edition: pro
-status: blocked
+status: done
 model: opus-5.5
 size: S
 depends_on: [T106, T126]
@@ -30,7 +30,7 @@ env var or a file path in `ADMIN_TOKEN_FILE`, never printing the token, printing
 - [x] Tests first: no/short/wrong token → 404; bad plan or sites → 400; good request → a key the Pro gate accepts for those sites only; row is findable; email only when asked; migration if the schema needs `source`
 - [x] Script tested (argument parsing, token never echoed)
 - [x] R93 in BUILD-PLAN §12; Pro README support section documents it
-- [ ] Deployed: `npx wrangler deploy` (and `wrangler d1 migrations apply semics-licences --remote` if a migration was added); `curl` without a token returns 404
+- [x] Deployed: `npx wrangler deploy` (and `wrangler d1 migrations apply semics-licences --remote` if a migration was added); `curl` without a token returns 404
 - [x] Meets the Definition of Done
 
 ## Notes
@@ -50,3 +50,4 @@ env var or a file path in `ADMIN_TOKEN_FILE`, never printing the token, printing
   3. `curl -s -o /dev/null -w '%{http_code}\n' -X POST https://licences.semics.co.uk/admin/licences/issue` → 404
   Then issue a key: `ADMIN_TOKEN_FILE=~/.semics-admin-token node scripts/issue-licence.mjs --plan suite --site example.com`
   (from the Pro repo root; the file holds the Worker's `ADMIN_TOKEN` secret).
+- **Deployed (2026-10-30):** the owner applied `0003_licence_source.sql` remotely, then deployed version `7b7b6136`. Unauthenticated `POST /admin/licences/issue` returns 404 and the unsigned webhook 401.

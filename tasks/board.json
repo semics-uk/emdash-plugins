@@ -2572,7 +2572,7 @@
 			"phase": 6,
 			"package": "suite",
 			"edition": "pro",
-			"status": "blocked",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2583,7 +2583,7 @@
 				"R93"
 			],
 			"unblocks": [],
-			"column": "blocked"
+			"column": "done"
 		},
 		"T129": {
 			"file": "T129-slot-schedules.md",
@@ -2791,6 +2791,7 @@
 			"T125",
 			"T126",
 			"T127",
+			"T128",
 			"T129",
 			"T130",
 			"T131",
@@ -2798,8 +2799,7 @@
 			"T133"
 		],
 		"blocked": [
-			"T111",
-			"T128"
+			"T111"
 		]
 	},
 	"criticalPath": [
