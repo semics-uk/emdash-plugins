@@ -2675,12 +2675,94 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T134": {
+			"file": "T134-pay-now-keeps-attendees.md",
+			"id": "T134",
+			"title": "Events: Pay now keeps the attendees typed at checkout; booking_from per widget",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "ready",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T136"
+			],
+			"spec": [
+				"R98",
+				"R96"
+			],
+			"unblocks": [],
+			"column": "ready"
+		},
+		"T135": {
+			"file": "T135-e2e-attendee-list-and-payment-holds.md",
+			"id": "T135",
+			"title": "Playground e2e: attendee signing list, approval and payment holds",
+			"phase": 7,
+			"package": "playground",
+			"edition": "pro",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [],
+			"spec": [
+				"R95",
+				"R97",
+				"R98"
+			],
+			"unblocks": [],
+			"column": "in-progress"
+		},
+		"T136": {
+			"file": "T136-free-events-bundle-headroom.md",
+			"id": "T136",
+			"title": "Events: restore Free bundle headroom (at least 4 KiB under the 125 KiB budget)",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [],
+			"spec": [
+				"R51",
+				"R94"
+			],
+			"unblocks": [
+				"T134"
+			],
+			"column": "in-progress"
+		},
+		"T137": {
+			"file": "T137-esign-cpu-tests-flaky-under-load.md",
+			"id": "T137",
+			"title": "E-sign: CPU-budget tests flaky under a full local verify",
+			"phase": 7,
+			"package": "esign",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [
+				"R92"
+			],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [],
-		"in-progress": [],
+		"ready": [
+			"T134"
+		],
+		"in-progress": [
+			"T135",
+			"T136",
+			"T137"
+		],
 		"review": [],
 		"done": [
 			"T000",
@@ -2803,7 +2885,8 @@
 		]
 	},
 	"criticalPath": [
-		"T111"
+		"T136",
+		"T134"
 	],
-	"criticalWeight": 2
+	"criticalWeight": 3
 }
