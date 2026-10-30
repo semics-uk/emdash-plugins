@@ -99,9 +99,24 @@ describe("ES storage collections accept documents and query by every declared in
 
 	// Unique indexes are declared in the manifest and enforced by the site database. The sandbox test
 	// host creates no database unique constraint, so duplicate rejection cannot be asserted here.
-	it("declares at least two unique indexes (token hash, client id, nonce)", () => {
+	it("declares the unique indexes (token hash, nonce)", () => {
 		const unique = COLLECTIONS.flatMap((name) => STORAGE_DECLARATIONS[name].uniqueIndexes ?? []);
-		expect(unique).toEqual(expect.arrayContaining(["tokenHash", "clientId", "nonce"]));
+		expect(unique).toEqual(expect.arrayContaining(["tokenHash", "nonce"]));
+	});
+
+	// T135: EmDash 1.2 builds a unique index as `(plugin_id, collection, field)` over the plugin's whole
+	// storage, not only the declaring collection, so a field it makes unique must not be a field of any
+	// other collection's documents. `clients.clientId` was: every envelope carries its client's id, and
+	// a site's second envelope from one integration client failed with a UNIQUE constraint error (the
+	// playground's waiver e2e). A client's document id is its client id, which keeps it unique.
+	it("no unique field is a field of another collection's documents", () => {
+		for (const owner of COLLECTIONS) {
+			for (const field of (STORAGE_DECLARATIONS[owner].uniqueIndexes ?? []).flatMap(fieldOf)) {
+				for (const other of COLLECTIONS.filter((c) => c !== owner)) {
+					expect(Object.keys(sample(other, 1)), `${owner}.${field} is also a field of ${other}`).not.toContain(field);
+				}
+			}
+		}
 	});
 });
 

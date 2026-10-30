@@ -6,7 +6,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { rmSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { applyEsignAdmin } from "./esign-admin.mjs";
 import { applyBookingFixtures } from "./fixtures.mjs";
@@ -30,7 +30,9 @@ if (seed.status !== 0) {
 applyBookingFixtures(root);
 applyEsignAdmin(root);
 
-const server = spawn(process.execPath, [resolve(root, "dist/server/entry.mjs")], {
+// stripe-preload.mjs points Events Pro's Stripe requests at the specs' fake Stripe when E2E_STRIPE_URL is set (T135).
+const preload = pathToFileURL(resolve(root, "e2e/harness/stripe-preload.mjs")).href;
+const server = spawn(process.execPath, ["--import", preload, resolve(root, "dist/server/entry.mjs")], {
 	cwd: root,
 	stdio: "inherit",
 	detached: true, // own process group so one signal reaches workerd too
