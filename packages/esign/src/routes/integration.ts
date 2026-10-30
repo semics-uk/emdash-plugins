@@ -25,13 +25,13 @@ export function integrationClients(ctx: PluginContext): IntegrationClients {
 	return {
 		settings: () => settings,
 		async getClient(cid) {
-			const [all, found] = await Promise.all([
+			const [all, client] = await Promise.all([
 				ctx.settings.list(),
-				stores(ctx).clients.query({ where: { clientId: cid }, limit: 1 }),
+				// The document id is the client id (T135): `clients` has no index on `clientId`.
+				stores(ctx).clients.get(cid),
 			]);
 			settings = Object.fromEntries(all.map((s) => [s.key, s.value]));
 			const key = masterKeyBytes(settings.integrationMasterKey);
-			const client = found.items[0]?.data;
 			if (!key || !client) return undefined;
 			return {
 				secret: await deriveClientSecret(key, cid),

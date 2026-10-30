@@ -322,7 +322,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 			docSha256: envelope.docSha256,
 			expiresAt: envelope.expiresAt,
 		},
-		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant } : {}) },
+		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant: participant.name } : {}) },
 		snapshot: text,
 		...(doc ? { document: { kind: doc.kind, name: doc.name, bytes: doc.bytes, pages: doc.pages } } : {}),
 		...(envelope.otp ? { otp: signer.data.otpVerifiedAt ? "verified" : "required" } : {}),

@@ -42,7 +42,8 @@ export const STORAGE_DECLARATIONS: Readonly<Record<CollectionName, StorageDeclar
 	snapshots: { indexes: ["envelopeId"] },
 	artifacts: { indexes: ["envelopeId", ["envelopeId", "kind"]] },
 	audit_events: { indexes: ["envelopeId", ["envelopeId", "seq"]] },
-	clients: { indexes: ["createdAt"], uniqueIndexes: ["clientId"] },
+	// The document id is the client id (T135: no unique index on `clientId`, which envelopes carry too).
+	clients: { indexes: ["createdAt"] },
 	nonces: { indexes: ["expiresAt"], uniqueIndexes: ["nonce"] },
 	// The email outbox (shared T015): mail waiting for the cron drain.
 	outbox: { indexes: [["status", "nextAttemptAt"]] },

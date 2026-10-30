@@ -58,7 +58,7 @@
 		"snapshots": { "indexes": ["envelopeId"] },
 		"artifacts": { "indexes": ["envelopeId", ["envelopeId", "kind"]] },
 		"audit_events": { "indexes": ["envelopeId", ["envelopeId", "seq"]] },
-		"clients": { "indexes": ["createdAt"], "uniqueIndexes": ["clientId"] },
+		"clients": { "indexes": ["createdAt"] },
 		"nonces": { "indexes": ["expiresAt"], "uniqueIndexes": ["nonce"] },
 		"outbox": { "indexes": [["status", "nextAttemptAt"]] }
 	},

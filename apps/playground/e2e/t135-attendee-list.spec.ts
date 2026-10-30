@@ -107,8 +107,10 @@ test("R95 the booking page lists Signed / Waiting; Sign now signs the waiting ad
 	const who = { buyer: address("ada"), adult: address("charles") };
 	const { context, page } = await visitor(browser, true);
 	const ref = await bookParty(page, who);
-	// The flow opens the buyer's waiver (for themselves and, as guardian, the child) and lands on the
+	// The flow opens the buyer's own waiver, then the child's (the buyer as guardian), and lands on the
 	// booking: confirmed, with the emailed adult still to sign.
+	await signCeremony(page, "Ada Lovelace");
+	await expect(page.getByText("Signing as guardian for")).toContainText("Lucy Lovelace");
 	await signCeremony(page, "Ada Lovelace");
 	await page.waitForURL(new RegExp(`/booking\\?ref=${ref}&waiver=signed`));
 
