@@ -4,7 +4,7 @@ title: "Events Pro: hold the payment until a booking is approved"
 phase: 7
 package: events
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: L
 depends_on: [T131]
