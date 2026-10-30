@@ -9,16 +9,22 @@
  * repeated DST hour stay on their day.
  *
  * Paging: `public/event` answers up to 200 upcoming open slots from `from` (closed ones never), with
- * `more` when there are further ones. The widget shows one month, starting at the `booking_from` query
+ * `more` when there are further ones. The widget shows one month, starting at its `booking_from.<eventId>` query
  * parameter (a local `YYYY-MM-DD`, today when absent or past); it asks the core from that day's earliest
  * possible local midnight (UTC+14) and skips what falls before the day. A truncated answer's last day
  * may be partial, so it is left for the next page, which starts on it.
  */
 import { translator } from "../../i18n/index";
-import { WIDGET_PARAMS } from "./widget";
+import { anchorId, WIDGET_PARAMS } from "./widget";
 
-/** The query parameter holding the first local day the picker shows. */
+/** The query parameter holding the first local day the picker shows (prefix: one per widget). */
 export const PICKER_PARAM = "booking_from";
+
+/**
+ * One widget's `booking_from` parameter, keyed by its event (`booking_from.<eventId>`, T134), so two
+ * pickers on a page page independently, with or without JavaScript (paging is a plain link).
+ */
+export const pickerParam = (eventId: string) => `${PICKER_PARAM}.${eventId.replace(/[^A-Za-z0-9_-]/g, "_")}`;
 
 const DAY_KEY = /^(\d{4})-(\d{2})-(\d{2})$/;
 const HOUR = 3_600_000;
@@ -158,12 +164,15 @@ export function pickerFetchFrom(start: string | null | undefined): string | unde
 	return ms === null ? undefined : new Date(ms - EARLIEST_OFFSET).toISOString();
 }
 
-/** A link to another page of the picker: the current page's query without widget errors, and the anchor. */
-export function pickerHref(url: URL, start: string, anchor: string): string {
+/**
+ * A link to another page of one event's picker: the current page's query without widget errors (other
+ * widgets' pages kept), and that widget's anchor.
+ */
+export function pickerHref(url: URL, start: string, eventId: string): string {
 	const next = new URL(url.href);
 	for (const name of Object.values(WIDGET_PARAMS)) next.searchParams.delete(name);
-	next.searchParams.set(PICKER_PARAM, start);
-	return `${next.pathname}${next.search}#${anchor}`;
+	next.searchParams.set(pickerParam(eventId), start);
+	return `${next.pathname}${next.search}#${anchorId(eventId)}`;
 }
 
 export interface PickerOptions {

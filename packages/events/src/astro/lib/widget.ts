@@ -44,6 +44,14 @@ export interface PublicEvent {
 	questions?: PublicQuestion[];
 }
 
+/**
+ * Ticket type names by id from a `public/event` answer, for `<BookingStatus>` (T134): the booking's
+ * lines carry only ids (UUIDs for types made in the editor). A hidden type is not listed there.
+ */
+export function ticketNames(event: Pick<PublicEvent, "ticketTypes"> | undefined): Record<string, string> {
+	return Object.fromEntries((event?.ticketTypes ?? []).map((t) => [t.id, t.name]));
+}
+
 /** One custom question as `public/event` lists it (EV-FR-15). */
 export interface PublicQuestion {
 	id: string;

@@ -56,7 +56,9 @@ const at = (iso: string) => {
 		{
 			booking.lines.map((line) => (
 				<li>
-					{t("booking.line", { qty: new Intl.NumberFormat(locale).format(line.qty), name: ticketNames[line.ticketTypeId] ?? line.ticketTypeId })}
+					{ticketNames[line.ticketTypeId]
+						? t("booking.line", { qty: new Intl.NumberFormat(locale).format(line.qty), name: ticketNames[line.ticketTypeId] })
+						: plural("booking.lines", line.qty)}
 				</li>
 			))
 		}

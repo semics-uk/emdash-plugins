@@ -364,8 +364,10 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	const signature = signing ? deps.signature : undefined;
 	const step = nextStep(booking, { signaturePending: signature !== undefined });
 	if (!step) return fail("INTERNAL");
+	// "Pay now" (R98, T134) resumes a booking awaiting payment: one whose seats are stored keeps them.
+	const resume = booking.status === "awaiting_payment" && !c.attendees;
 	const planned =
-		(intentsOut(booking) ? await lockedAttendees(c, booking) : null) ??
+		(intentsOut(booking) || resume ? await lockedAttendees(c, booking) : null) ??
 		attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
 	if (!planned.ok) return badRequest(planned.error);
 	if (step.type === "sign" && signature) return sign(c, booking, signature, planned.value);

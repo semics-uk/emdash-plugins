@@ -30,7 +30,7 @@ import AttendeeList from "./AttendeeList.astro";
 import { handleAttendeeAction, signingRows } from "./lib/attendees";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
-import type { BookingView } from "./lib/widget";
+import { type BookingView, type PublicEvent, ticketNames } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
 
 export const prerender = false;
@@ -158,6 +158,12 @@ if (booking && form && ref && token) {
 	const done = await handleAttendeeAction(ctx, form, { ref, token }, { pluginId, esignPluginId }, booking);
 	if (done) return Astro.redirect(done.location, 303);
 }
+// The lines name their ticket types from the event (T134): the booking itself carries only ids.
+let names: Record<string, string> = {};
+if (booking?.eventId) {
+	const event = await callPublicRoute<PublicEvent>(ctx, { path: "public/event", pluginId, body: { eventId: booking.eventId } });
+	if (event.ok) names = ticketNames(event.data);
+}
 const signingList = booking && !cancelled ? signingRows(booking) : null;
 const payment = booking && !cancelled ? paymentView(booking, locale) : null;
 const passes = booking && !cancelled && booking.status === "confirmed" ? booking.attendees.filter((a) => a.code) : [];
@@ -189,7 +195,7 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 					</form>
 				) : booking ? (
 					<>
-						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} locale={locale} />
+						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} ticketNames={names} locale={locale} />
 						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} locale={locale} />}
 						{signingList && (
 							<AttendeeList

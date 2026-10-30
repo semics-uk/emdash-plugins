@@ -8,7 +8,7 @@ import { pluginId } from "virtual:semics-events/config";
 import { pickLocale, translator } from "../i18n/index";
 import { callPublicRoute } from "./lib/call";
 import { CHECKOUT_PATH, QTY_PREFIX } from "./lib/checkout-form";
-import { PICKER_PARAM, pickerFetchFrom, pickerHref, pickerView, usesPicker } from "./lib/picker";
+import { pickerFetchFrom, pickerHref, pickerParam, pickerView, usesPicker } from "./lib/picker";
 import { PROMO_PATH, type PromoView, promoCookieName, promoView } from "./lib/promo";
 import { QUESTIONS_MARKER, questionControls } from "./lib/questions";
 import { readWaitlistState, WAITLIST_PATH, waitlistMessage } from "./lib/waitlist";
@@ -44,8 +44,9 @@ const { t, lang, dir } = translator(locale);
 const heading = Astro.props.heading ?? t("widget.heading");
 const fieldText = (field: Parameters<typeof fieldMessage>[0]) => fieldMessage(field, locale);
 let data = Astro.props.data;
-// The day-then-time picker's page (T130): the first local day it shows, from `booking_from`.
-const pickerStart = Astro.url.searchParams.get(PICKER_PARAM);
+// The day-then-time picker's page (T130): the first local day it shows, from this widget's own
+// `booking_from.<eventId>` (T134: another picker on the page keeps its month).
+const pickerStart = Astro.url.searchParams.get(pickerParam(eventId));
 if (!data) {
 	const from = pickerFetchFrom(pickerStart);
 	const result = await callPublicRoute<PublicEvent>(Astro, {
@@ -167,8 +168,8 @@ const when = (iso: string) => {
 						</div>
 						<nav class="semics-picker-nav" aria-labelledby={monthId}>
 							<p id={monthId} class="semics-picker-month">{picker.month.label}</p>
-							{picker.prev && <a href={pickerHref(Astro.url, picker.prev, id)} rel="nofollow">{t("widget.picker.earlier")}</a>}
-							{picker.next && <a href={pickerHref(Astro.url, picker.next, id)} rel="nofollow">{t("widget.picker.later")}</a>}
+							{picker.prev && <a href={pickerHref(Astro.url, picker.prev, eventId)} rel="nofollow">{t("widget.picker.earlier")}</a>}
+							{picker.next && <a href={pickerHref(Astro.url, picker.next, eventId)} rel="nofollow">{t("widget.picker.later")}</a>}
 						</nav>
 						{picker.days.length === 0 && <p data-testid="picker-none">{t("widget.picker.none")}</p>}
 						<fieldset
