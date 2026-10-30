@@ -96,7 +96,10 @@ test("T139 emdash-release.yml plans when called from release.yml, and skips publ
 	// In a called workflow github.event_name is the caller's event (push), never workflow_call.
 	assert.ok(!/event_name == 'workflow_call'/.test(text), "a called workflow never sees event_name workflow_call");
 	assert.match(text, /id: changesets\n\s+if: \$\{\{ github\.event_name != 'workflow_dispatch' \}\}/);
-	assert.match(text, /if: \$\{\{ needs\.plan\.outputs\.selectors != '' && needs\.plan\.outputs\.selectors != '\[\]' \}\}/);
+	assert.match(
+		text,
+		/if: \$\{\{ needs\.plan\.outputs\.selectors != '' && needs\.plan\.outputs\.selectors != '\[\]' \}\}/,
+	);
 });
 
 test("R84: release.yml publishes to npm by trusted publishing (OIDC), with no stored npm token", () => {
