@@ -20,6 +20,11 @@ describe("T007 CPU enforcement under load", () => {
 		expect(cpuEnforcement({}, 3.9, 8)).toBe("strict");
 		expect(cpuEnforcement({}, 4, 8)).toBe("lenient");
 	});
+	it("is lenient where the machine's load cannot be read (workerd reports no cores and a load of 0)", () => {
+		expect(cpuEnforcement({}, undefined, 8)).toBe("lenient");
+		expect(cpuEnforcement({ CI: "true" }, undefined, 8)).toBe("strict");
+		expect(cpuEnforcement({ SEMICS_STRICT_CPU: "1" }, undefined, 8)).toBe("strict");
+	});
 	it("lenient mode warns instead of failing for up to 4x the CPU limit", () => {
 		const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 		expect(() => expectWithinBudget(slow(104), { cpuMs: 50 }, { enforcement: "lenient" })).not.toThrow();
