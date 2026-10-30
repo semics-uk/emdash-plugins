@@ -204,7 +204,10 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   admin route's `bookings.approve` / `bookings.decline:<id>` (`src/routes/approval.ts`): approve guarded on `heldGuard`, then
   `confirmSold` + the usual confirmation; decline = `closeBooking` (cancel protocol, `declined`, `declineReason`, paid only with
   `AdminSteps.refund`). Pro's payment confirm must call `settle` (T132). New statuses `awaiting_approval`, `declined` are in the UI
-  status lists and i18n; the booking page shows "decide by".
+  status lists and i18n; the booking page shows "decide by". Pro (T132, R98) holds a paid request's card instead of charging
+  (manual capture within `authoriseWithinDays`, else a saved card; `payment.hold` on the booking) and charges it in its own wrapper of
+  `bookings.approve`; Free's approve refuses any booking with `payment` (`PAYMENT_FAILED`), so a held request is never confirmed unpaid
+  after a downgrade. Retention erases `declineReason`.
 - Error codes (R97): routes answer through `fail`/`routeError` (`src/routes/reply.ts`) over `EVENTS_ERROR_CODES`; never import
   `toRouteError` in the core (it pulls the whole registry). An edition needing the e-sign/protocol messages calls `useErrorCodes`.
 - Event editor admin page (R97): "Edit" renders the Tickets & booking panel (`panelPage` in `src/admin/pages.ts`); every block id
@@ -276,7 +279,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Site content fields are snake_case (`starts_at`, `ends_at`, `timezone`, `venue`); plugin storage
   fields are camelCase.
 - Bundle size (R42, T118, R47): `dist/plugin.mjs` must stay ≤ 125 KiB (`EVENTS_BUNDLE_BUDGET`, R94: 124.1 after T129's slot
-  schedules, 124.6 after T130's picker paging, 124.8 after T131's approval (R97: own error table, editor page = panel); R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
+  schedules, 124.6 after T130's picker paging, 124.8 after T131's approval (R97: own error table, editor page = panel), 124.9 after T132 (R98, 131 B left); R51's 116 before, 115.9 after T084's recurring events, 110.9 before them; trim before adding) (`tests/bundle-size.build.test.ts`; the
   registry caps a file at 128 KiB and the Pro build adds about 8 KiB on top of Free). No `zod` in the core:
   checkout bodies use the small validators in `src/domain/checkout.ts` (zod-identical issues, checked by
   `tests/domain/checkout-input.test.ts`). Shared helpers go in one place (`src/admin/ui.ts`,
