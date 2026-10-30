@@ -67,3 +67,14 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   for `wrangler d1 execute`; `staging/{cpu,lighthouse,visitor-ip}.mjs` are nightly checks (`.github/workflows/staging.yml`). Local
   Cloudflare run: `build:staging`, seed with `wrangler d1 execute semics-staging-playground --local --file`, `wrangler dev --port 4411
   --var EMDASH_SITE_URL:http://127.0.0.1:4411`, then `STAGING_URL=http://127.0.0.1:4411 e2e:staging`.
+- Pro e2e (T135, R94-R98): `e2e/t135-*.spec.ts` run only on a Pro build and skip on Free (`requirePro`, Pro's `pro/licence`).
+  Build: `EMDASH_PRO_DIR=<Pro checkout with events-pro built> pnpm --filter playground e2e` (or run `e2e/harness/build.mjs` with
+  that env, then `npx playwright test e2e/t135-*`); remove `node_modules/@semics-tech/emdash-events-pro` afterwards (a Free run
+  ignores the link, but the Free specs fail against Pro: promo field, webhook 503). `e2e/harness/pro.ts`: events made through the
+  content API + `config/save`, settings via `PUT /_emdash/api/admin/plugins/semics-events/settings`, e-sign pairing, `data.db`
+  reads and a deadline moved into the past, `runCron` (reads `public/events` first on a fresh server). Stripe is faked: serve.mjs
+  starts the server with `--import e2e/harness/stripe-preload.mjs`, which sends `https://api.stripe.com/*` to `E2E_STRIPE_URL`
+  (port `E2E_PORT + 1`, set by playwright.config.ts) and answers the SSRF check's DoH lookup; `e2e/harness/fake-stripe.ts` runs
+  there in the spec (sessions, capture, cancel, off-session charges with `refuseCharges`, setup intents, refunds) and signs the
+  `checkout.session.completed` delivery the spec posts to `webhooks/stripe`. Session URLs (`https://checkout.stripe.test`) are
+  never loaded (a redirect cannot be routed): `toCheckout` waits for the request instead.
