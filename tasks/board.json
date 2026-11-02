@@ -2888,7 +2888,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -2896,7 +2896,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T146": {
 			"file": "T146-licence-page-and-refund-wording.md",
@@ -2934,10 +2934,11 @@
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T140",
+			"T140"
+		],
+		"in-progress": [
 			"T145"
 		],
-		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
