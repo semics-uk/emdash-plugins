@@ -4,7 +4,7 @@ title: "Waiver page shows the event and the booked date and time"
 phase: 7
 package: events-suite
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T143]
