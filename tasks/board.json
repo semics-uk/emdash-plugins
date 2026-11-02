@@ -2942,7 +2942,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2950,7 +2950,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T149": {
 			"file": "T149-pairing-status-hand-made.md",
@@ -2994,9 +2994,7 @@
 			"T149",
 			"T150"
 		],
-		"in-progress": [
-			"T148"
-		],
+		"in-progress": [],
 		"review": [],
 		"done": [
 			"T000",
@@ -3125,7 +3123,8 @@
 			"T144",
 			"T145",
 			"T146",
-			"T147"
+			"T147",
+			"T148"
 		],
 		"blocked": [
 			"T111"
