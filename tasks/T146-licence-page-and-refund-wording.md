@@ -58,4 +58,4 @@ Legal research pass 3 (`docs/legal/research.md`) found:
 - 2026-11-02: Paddle discount created (live account): 40% off, 1 payment (the first year), 100 redemptions,
   code `LAUNCH40`, all products. The checkout must apply it (code or discount id) once buy links exist.
 - Paddle has no in-dashboard chat; the question on the EU withdrawal function and UK DMCC rules is drafted in Gmail
-  to sellers@paddle.com, waiting for the owner's OK to send.
+  to sellers@paddle.com, sent 2026-11-02 from oliver@semics.co.uk with the owner's OK; awaiting Paddle's reply.
