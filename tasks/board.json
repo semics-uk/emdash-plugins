@@ -2920,7 +2920,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2928,7 +2928,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2937,11 +2937,11 @@
 		],
 		"ready": [
 			"T140",
-			"T143",
-			"T147"
+			"T143"
 		],
 		"in-progress": [
-			"T144"
+			"T144",
+			"T147"
 		],
 		"review": [],
 		"done": [
