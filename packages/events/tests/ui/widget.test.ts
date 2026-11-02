@@ -8,6 +8,7 @@ import {
 	IDEMPOTENCY_KEY_PATTERN,
 	newIdempotencyKey,
 	readWidgetState,
+	reconcileWanted,
 	safeReturnTo,
 	ticketNames,
 	validateCheckoutFields,
@@ -150,5 +151,15 @@ describe("ticket names on the booking page (T134, T135 follow-up)", () => {
 		};
 		expect(ticketNames(event)).toEqual({ "0b4f6d3e-9c1a-4c8e-8a51-2f3c9d7e6a10": "Class place", tt_b: "Balcony" });
 		expect(ticketNames(undefined)).toEqual({});
+	});
+});
+
+describe("reconciliation on the booking page (T066, T152)", () => {
+	it("T152 a booking with lookups or void intents is reconciled; one with neither is not", () => {
+		const t = `x.${"s".repeat(43)}`;
+		expect(reconcileWanted({ waiver: { refs: ["R:1"], lookups: { "R:1": t } } })).toBe(true);
+		expect(reconcileWanted({ waiver: { refs: [], voids: { "R:1": t } } })).toBe(true);
+		expect(reconcileWanted({ waiver: { refs: ["R:1"] } })).toBe(false);
+		expect(reconcileWanted(undefined)).toBe(false);
 	});
 });

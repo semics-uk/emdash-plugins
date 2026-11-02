@@ -4,7 +4,7 @@ title: "Void a booking's E-sign envelopes when its hold expires"
 phase: 7
 package: events
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T151]

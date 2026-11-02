@@ -145,6 +145,35 @@ describe("reconcile on status page load (SX-FR-05)", () => {
 	});
 });
 
+describe("an ended booking's open envelopes are voided (T152)", () => {
+	const VOID = (ref: string) => `void-${ref.replace(":", "-")}.${"v".repeat(43)}`;
+	const ended = (status: string) => ({
+		...waiting({ status }),
+		waiver: { refs: [], voids: { [`${REF}:1`]: VOID(`${REF}:1`), [`${REF}:2`]: VOID(`${REF}:2`) } },
+	});
+
+	it("T152 each void intent goes to e-sign's from-intent; nothing is looked up or forwarded", async () => {
+		const h = host({ [`${ESIGN} public/envelopes/from-intent`]: () => ok({ status: "voided" }) });
+		expect(await reconcileBooking(h.ctx, input(ended("expired")))).toEqual({ forwarded: 0, voided: 2 });
+		expect(h.calls).toEqual([
+			{ id: ESIGN, path: "public/envelopes/from-intent", body: { intent: VOID(`${REF}:1`) } },
+			{ id: ESIGN, path: "public/envelopes/from-intent", body: { intent: VOID(`${REF}:2`) } },
+		]);
+	});
+
+	it("T152 a refusing or failing e-sign is swallowed; malformed intents are never sent", async () => {
+		const h = host({ [`${ESIGN} public/envelopes/from-intent`]: () => refused("ENVELOPE_CLOSED") });
+		expect(await reconcileBooking(h.ctx, input(ended("cancelled")))).toEqual({ forwarded: 0, voided: 0 });
+		const broken = {
+			...ended("expired"),
+			waiver: { refs: [], voids: { [`${REF}:1`]: "not a token", [`${REF}:2`]: 7 as unknown as string } },
+		};
+		const none = host({});
+		expect(await reconcileBooking(none.ctx, input(broken))).toEqual({ forwarded: 0, voided: 0 });
+		expect(none.calls).toEqual([]);
+	});
+});
+
 describe("catalogue refresh (SX-FR-07)", () => {
 	const TOKEN = `catalog.${"c".repeat(43)}`;
 	const templates = [

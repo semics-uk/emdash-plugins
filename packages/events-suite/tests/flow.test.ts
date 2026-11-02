@@ -497,6 +497,41 @@ describe("an expired booking has nothing to sign (T151)", () => {
 	});
 });
 
+describe("an ended booking's envelopes are voided from the waiver page (T152)", () => {
+	const cookies = { [flowCookieName(REF)]: `${SIGNING(1)}.${SIGNING(2)}`, [retryCookieName(REF)]: ACCESS };
+	const VOID = `void-intent.${"v".repeat(43)}`;
+
+	it("T152 the expired page redeems the booking's void intents with e-sign, and still shows the expired message", async () => {
+		const h = ceremonyHost({
+			[`${EVENTS} public/booking`]: () =>
+				ok({ bookingRef: REF, status: "expired", waiver: { refs: [], voids: { [`${REF}:1`]: VOID } } }),
+			[`${ESIGN} public/envelopes/from-intent`]: () => ok({ status: "voided" }),
+		});
+		expect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`), cookies)).toEqual({
+			type: "error",
+			ref: REF,
+			code: "BOOKING_EXPIRED",
+		});
+		expect(h.calls.map((c) => [c.path, c.body])).toEqual([
+			["public/booking", { bookingRef: REF, accessToken: ACCESS }],
+			["public/envelopes/from-intent", { intent: VOID }],
+		]);
+		// No ceremony and no submit: the void is the only e-sign call.
+		expect(h.calls.some((c) => c.path === "public/session" || c.path === "public/submit")).toBe(false);
+	});
+
+	it("T152 an e-sign that refuses the void never changes the page", async () => {
+		const h = ceremonyHost({
+			[`${EVENTS} public/booking`]: () =>
+				ok({ bookingRef: REF, status: "cancelled", waiver: { refs: [], voids: { [`${REF}:1`]: VOID } } }),
+		});
+		expect(await run(h, post(`${WAIVER_PATH}?ref=${REF}`, SIGN_FORM), cookies)).toMatchObject({
+			type: "error",
+			code: "BOOKING_EXPIRED",
+		});
+	});
+});
+
 describe("payment after the last receipt (T077, EU-FR-09)", () => {
 	const BOOKING_COOKIE = { [`semics_booking_${REF}`]: ACCESS };
 	const LAST = { [flowCookieName(REF)]: SIGNING(2) };
