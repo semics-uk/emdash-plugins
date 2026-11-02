@@ -4,7 +4,7 @@ title: "Waiver template stays a text box after Refresh templates; E-sign never s
 phase: 7
 package: esign
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: []
