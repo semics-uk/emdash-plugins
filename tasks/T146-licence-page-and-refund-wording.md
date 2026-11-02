@@ -42,3 +42,15 @@ Legal research pass 3 (`docs/legal/research.md`) found:
   pricing and refunds text.
 - The owner must set the D5 discount (40% off the first year, first 100 customers) in Paddle before checkout opens.
 - Pro LICENSE change is in the Pro repo with a changeset, so it ships in the next Pro release.
+- Paddle check (2026-11-02, public help pages, not confirmed with Paddle):
+  - UK and EU (all 27 states) buyers of subscriptions of 180 days or more get Paddle's auto-renewal reminder, 7 or 30
+    days before renewal; it cannot be switched off. Our plans are yearly, so every renewal, including the first
+    full-price one after the D5 discount, gets a reminder.
+  - Subscription emails carry a cancel / manage-subscription link to Paddle's customer portal; cancelling keeps the
+    licence to the end of the paid year.
+  - Our 14-day refund on every renewal covers the UK renewal cooling-off.
+  - Not found: anything on the EU withdrawal function (Directive 2023/2673, in force 19 June 2026) or on the UK DMCC
+    rules by name. Ask Paddle support whether the portal meets the withdrawal-function rules; until answered, the
+    refunds page (email, or paddle.net) is our withdrawal route.
+  - Sources: paddle.com/help/manage/your-customers/enhanced-billing-notifications-location-list,
+    .../which-emails-will-customers-receive-on-paddle-billing, developer.paddle.com/build/subscriptions/cancel-subscriptions/
