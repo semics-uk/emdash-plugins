@@ -120,7 +120,7 @@ describe("ES-FR-11 admin pages in the host", () => {
 	it("T144 the Templates table has an ID column and the editor shows the id as copyable text", async () => {
 		const { r, templateId } = await setup();
 		const page = await r.admin.loadPage("/templates");
-		const tableBlock = (page.blocks as Array<Record<string, unknown>>).find((b) => b.type === "table") as {
+		const tableBlock = (page.blocks as unknown as Array<Record<string, unknown>>).find((b) => b.type === "table") as {
 			columns: Array<{ key: string; label: string }>;
 			rows: Array<Record<string, unknown>>;
 		};
@@ -129,7 +129,7 @@ describe("ES-FR-11 admin pages in the host", () => {
 		expect(tableBlock.rows.map((row) => row[idKey])).toContain(templateId);
 
 		const open = await r.admin.act("/templates", "template.edit", { value: templateId });
-		const codeBlock = (open.blocks as Array<Record<string, unknown>>).find(
+		const codeBlock = (open.blocks as unknown as Array<Record<string, unknown>>).find(
 			(b) => b.type === "code" && b.code === templateId,
 		);
 		expect(codeBlock, text(open)).toBeDefined();
