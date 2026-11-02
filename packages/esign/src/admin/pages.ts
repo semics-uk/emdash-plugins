@@ -576,6 +576,7 @@ async function templatesPage(deps: AdminDeps, extra: Block[] = []): Promise<Admi
 	const reply = await run(deps, templateRoute("templates/list"), {});
 	const rows = ((reply.templates as Array<Record<string, unknown>>) ?? []).map((t) => ({
 		name: t.name,
+		id: t.id,
 		version: t.version,
 		fields: ((t.fields as string[]) ?? []).join(", "),
 		integrations: t.integrations === true ? "Yes" : "No",
@@ -589,6 +590,7 @@ async function templatesPage(deps: AdminDeps, extra: Block[] = []): Promise<Admi
 		table({
 			columns: [
 				column("name", "Name"),
+				column("id", "ID"),
 				column("version", "Version", "number"),
 				column("fields", "Fields"),
 				column("integrations", "Integrations"),
@@ -642,6 +644,9 @@ function templateEditor(id: string, tpl: Record<string, unknown>, extra: Block[]
 		context(
 			`Version ${String(tpl.version ?? 1)}. Saving writes a new version; sent envelopes keep the text they were sent with.`,
 		),
+		// T144: the id a paired site (such as Events) names this template by.
+		context("Template id:"),
+		code({ code: id }),
 		form({
 			fields: [
 				textInput("name", "Name", { initialValue: String(tpl.name ?? "") }),
