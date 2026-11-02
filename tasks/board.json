@@ -3014,7 +3014,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "review",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -3022,17 +3022,18 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "ready"
+			"column": "review"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T140",
-			"T152"
+			"T140"
 		],
 		"in-progress": [],
-		"review": [],
+		"review": [
+			"T152"
+		],
 		"done": [
 			"T000",
 			"T001",
