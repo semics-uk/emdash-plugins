@@ -2995,7 +2995,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -3003,7 +3003,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -3013,8 +3013,7 @@
 		],
 		"in-progress": [
 			"T149",
-			"T150",
-			"T151"
+			"T150"
 		],
 		"review": [],
 		"done": [
@@ -3145,7 +3144,8 @@
 			"T145",
 			"T146",
 			"T147",
-			"T148"
+			"T148",
+			"T151"
 		],
 		"blocked": [
 			"T111"
