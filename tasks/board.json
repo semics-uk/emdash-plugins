@@ -2811,14 +2811,70 @@
 			],
 			"unblocks": [],
 			"column": "ready"
+		},
+		"T141": {
+			"file": "T141-panel-no-repeaters.md",
+			"id": "T141",
+			"title": "Events panel: add ticket types and dates without repeaters (Block Kit draws none in a form)",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [],
+			"spec": [
+				"R92"
+			],
+			"unblocks": [
+				"T143"
+			],
+			"column": "in-progress"
+		},
+		"T142": {
+			"file": "T142-waiver-message-editor.md",
+			"id": "T142",
+			"title": "Event editor says waivers need Events Pro when Pro is installed but not paired",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "in-progress"
+		},
+		"T143": {
+			"file": "T143-suite-slot-picker.md",
+			"id": "T143",
+			"title": "Suite BookingWithWaiver uses the day/time slot picker for slot-schedule events",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T141"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "backlog"
 		}
 	},
 	"columns": {
-		"backlog": [],
+		"backlog": [
+			"T143"
+		],
 		"ready": [
 			"T140"
 		],
-		"in-progress": [],
+		"in-progress": [
+			"T141",
+			"T142"
+		],
 		"review": [],
 		"done": [
 			"T000",
@@ -2947,7 +3003,8 @@
 		]
 	},
 	"criticalPath": [
-		"T111"
+		"T141",
+		"T143"
 	],
-	"criticalWeight": 2
+	"criticalWeight": 3
 }
