@@ -17,7 +17,12 @@ interface Options {
 	signedIn?: boolean;
 	permitted?: boolean;
 	failWrite?: boolean;
+	/** Events Pro: answers `esign/catalog-request` and caches the catalogue (T150). Free has neither route. */
+	pro?: boolean;
 }
+
+const CATALOG_REQUEST = `eyJ2IjoxfQ.${"r".repeat(43)}`;
+const TEMPLATES = [{ id: "tpl_climb", name: "Climbing waiver", version: 1 }];
 
 function site(options: Options = {}) {
 	const esign = { clients: [] as Array<{ id: string; revoked: boolean }>, calls: [] as Array<Record<string, unknown>> };
@@ -31,6 +36,14 @@ function site(options: Options = {}) {
 	const find = (id: string | null | undefined) => esign.clients.find((c) => c.id === id);
 	const mint = (id: string) => `esign1.${id}.${"s".repeat(43)}`;
 	async function handlePluginApiRoute(pluginId: string, method: string, path: string, request: Request, user: unknown) {
+		if (pluginId === IDS.eventsPluginId) {
+			const input = (await request.json()) as Record<string, unknown>;
+			events.calls.push({ path, user, input, origin: request.headers.get("origin") });
+			if (!options.pro || path !== "esign/catalog-request") {
+				return { success: false, error: { code: "NOT_FOUND", message: `Route not found: ${path}` } };
+			}
+			return { success: true, data: { ok: true, request: CATALOG_REQUEST } };
+		}
 		if (pluginId !== IDS.esignPluginId || !installed) {
 			return { success: false, error: { code: "NOT_FOUND", message: `Plugin not enabled: ${pluginId}` } };
 		}
@@ -73,11 +86,33 @@ function site(options: Options = {}) {
 		return { success: true, data: { ok: true, created, clientId: use.id, pairing: mint(use.id) } };
 	}
 
+	// Public routes in process: E-sign's catalogue and Events Pro's cache of it (T066).
+	const events = {
+		calls: [] as Array<Record<string, unknown>>,
+		cached: [] as Array<Record<string, unknown>>,
+	};
+	async function handlePublicPluginApiRoute(pluginId: string, _method: string, path: string, request: Request) {
+		const input = (await request.json()) as Record<string, unknown>;
+		if (pluginId === IDS.esignPluginId && path === "public/templates/catalog" && installed) {
+			return input.request === CATALOG_REQUEST
+				? { success: true, data: { templates: TEMPLATES } }
+				: { success: false, error: { code: "TOKEN_INVALID", message: "no" } };
+		}
+		if (pluginId === IDS.eventsPluginId && path === "esign/catalog" && options.pro) {
+			events.cached.push(input);
+			return { success: true, data: { ok: true, count: (input.templates as unknown[]).length } };
+		}
+		return { success: false, error: { code: "NOT_FOUND", message: "Route not found" } };
+	}
+
 	const denied = () => Response.json({ success: false, error: { code: "FORBIDDEN" } }, { status: 403 });
 	const ctx: PairContext = {
 		locals: {
 			user: options.signedIn === false ? undefined : ADMIN,
-			emdash: options.signedIn === false ? {} : { handlePluginApiRoute },
+			emdash:
+				options.signedIn === false
+					? { handlePublicPluginApiRoute }
+					: { handlePluginApiRoute, handlePublicPluginApiRoute },
 		},
 		url: new URL("http://site.test/_events/pair"),
 		// The host's own decrypting read of Events' setting (server side only).
@@ -115,6 +150,7 @@ function site(options: Options = {}) {
 	return {
 		ctx,
 		esign,
+		events,
 		/** An admin made a client on E-sign's Integrations page and pasted its string into Events (T060). */
 		handMade(id = "cl_hand") {
 			esign.clients.push({ id, revoked: false });
@@ -235,6 +271,32 @@ describe("T145 suite auto-pairing", () => {
 		expect(await pairAction(t.ctx, IDS, "unpair")).toEqual({ state: "unpaired" });
 		expect(t.esign.calls.find((c) => c.action === "unpair")?.clientId).toBe(hand);
 		expect(t.esign.clients[0]?.revoked).toBe(true);
+	});
+
+	it("T150 pairing also loads the E-sign templates into Events Pro: no Refresh needed", async () => {
+		const s = site({ pro: true });
+		expect(await pairAction(s.ctx, IDS, "pair")).toEqual({ state: "paired", templates: 1 });
+		// Events Pro minted the catalogue request (asked in process, as the admin, no browser headers)…
+		expect(s.events.calls).toEqual([{ path: "esign/catalog-request", user: ADMIN, input: {}, origin: null }]);
+		// …and cached what E-sign listed, for the panel's template select.
+		expect(s.events.cached).toEqual([{ request: CATALOG_REQUEST, templates: TEMPLATES }]);
+	});
+
+	it("T150 Refresh templates on the pair page fetches the catalogue again in one step", async () => {
+		const s = site({ pro: true });
+		await pairAction(s.ctx, IDS, "pair");
+		expect(await pairAction(s.ctx, IDS, "templates")).toEqual({ state: "paired", templates: 1 });
+		expect(s.events.cached).toHaveLength(2);
+		// Not paired: nothing to fetch with.
+		const t = site({ pro: true });
+		expect(await pairAction(t.ctx, IDS, "templates")).toEqual({ state: "unpaired" });
+		expect(t.events.cached).toEqual([]);
+	});
+
+	it("T150 on Free (no catalogue routes) pairing still succeeds, with no template count", async () => {
+		const s = site();
+		expect(await pairAction(s.ctx, IDS, "pair")).toEqual({ state: "paired" });
+		expect(s.events.cached).toEqual([]);
 	});
 
 	it("T145 refuses visitors who are not signed-in administrators before calling E-sign", async () => {

@@ -167,6 +167,13 @@ describe("SX-FR-07 catalogue refresh on the editor panel (T066)", () => {
 		expect(text(res.blocks)).toContain('"kind":"external"');
 	});
 
+	it("T150 the Refresh response says plainly what to do: open the page, then reload this panel", async () => {
+		const w = world({ available: true, refresh: async () => "https://site.test/_events/templates#catalog=tok.sig" });
+		const said = text((await press(w.deps)).blocks);
+		expect(said).toContain("Step 1: fetch the templates");
+		expect(said).toContain("Step 2: reload this panel");
+	});
+
 	it("T144 with no templates loaded the panel says why, so an empty catalogue is never silent", async () => {
 		const refresh = async () => "https://site.test/_events/templates#catalog=tok.sig";
 		const empty = text((await load(world({ available: true, refresh }).deps)).blocks);

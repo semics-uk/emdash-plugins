@@ -206,3 +206,24 @@ test("T149 a hand-made pairing shows as paired, and pairing again keeps that one
 	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "unpaired");
 	expect(clientsNamed("Events by hand").every((c) => c.revokedAt !== null)).toBe(true);
 });
+
+test("T150 the templates page links back to the events, and the pair page refreshes templates in one step", async ({
+	page,
+	baseURL,
+}) => {
+	// The page the panel's Refresh link opens: whatever happened, it says where to go next and links back.
+	await page.goto("/_events/templates");
+	await expect(page.getByTestId("templates-back")).toHaveAttribute("href", "/_emdash/admin/content/events");
+
+	await signIn(page, baseURL as string);
+	await page.goto("/_events/pair");
+	await page.getByTestId("pair-button").click();
+	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "paired");
+	// Paired: templates added in E-sign later are fetched from here with one click, no link to follow.
+	await page.getByTestId("templates-button").click();
+	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "paired");
+	// The playground runs Free Events, which has no template catalogue: the page says so plainly.
+	await expect(page.getByTestId("pair-templates")).toContainText("Events Pro");
+	await page.getByTestId("unpair-button").click();
+	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "unpaired");
+});
