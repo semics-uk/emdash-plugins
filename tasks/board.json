@@ -2897,7 +2897,10 @@
 				"T144"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T149",
+				"T150"
+			],
 			"column": "done"
 		},
 		"T146": {
@@ -2948,12 +2951,48 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "in-progress"
+		},
+		"T149": {
+			"file": "T149-pairing-status-hand-made.md",
+			"id": "T149",
+			"title": "Pair page: a hand-made pairing shows as revoked; pairing again leaves two clients",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T145"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
+		},
+		"T150": {
+			"file": "T150-refresh-templates-flow.md",
+			"id": "T150",
+			"title": "Refresh templates: fetch in one step, or make the next step obvious",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T145"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T140"
+			"T140",
+			"T149",
+			"T150"
 		],
 		"in-progress": [
 			"T148"
