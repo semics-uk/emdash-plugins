@@ -2961,7 +2961,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2969,7 +2969,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T150": {
 			"file": "T150-refresh-templates-flow.md",
@@ -2978,7 +2978,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "review",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2986,7 +2986,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "review"
 		},
 		"T151": {
 			"file": "T151-waiver-page-expired-and-draft.md",
@@ -3031,11 +3031,10 @@
 			"T140",
 			"T152"
 		],
-		"in-progress": [
-			"T149",
+		"in-progress": [],
+		"review": [
 			"T150"
 		],
-		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -3165,6 +3164,7 @@
 			"T146",
 			"T147",
 			"T148",
+			"T149",
 			"T151"
 		],
 		"blocked": [
