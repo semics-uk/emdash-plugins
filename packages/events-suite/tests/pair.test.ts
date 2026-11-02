@@ -25,40 +25,52 @@ function site(options: Options = {}) {
 	const writes: Array<Record<string, unknown>> = [];
 	let installed = (options.esign ?? "installed") === "installed";
 
+	// E-sign's model: clients by id, and the site client's id (KV). `clientId` in the input names the
+	// client Events' stored pairing uses (T149); without it the site client is meant.
+	let siteId: string | null = null;
+	const find = (id: string | null | undefined) => esign.clients.find((c) => c.id === id);
+	const mint = (id: string) => `esign1.${id}.${"s".repeat(43)}`;
 	async function handlePluginApiRoute(pluginId: string, method: string, path: string, request: Request, user: unknown) {
 		if (pluginId !== IDS.esignPluginId || !installed) {
 			return { success: false, error: { code: "NOT_FOUND", message: `Plugin not enabled: ${pluginId}` } };
 		}
-		const input = (await request.json()) as { action: string };
+		const body = await request.text();
+		const input = JSON.parse(body) as { action: string; clientId?: string };
 		esign.calls.push({
 			method,
 			path,
 			user,
 			action: input.action,
+			clientId: input.clientId,
+			body,
 			origin: request.headers.get("origin"),
 			fetchMode: request.headers.get("sec-fetch-mode"),
 			cookie: request.headers.get("cookie"),
 		});
-		const current = esign.clients.at(-1);
-		const active = current && !current.revoked;
+		const theirs = find(input.clientId ?? siteId);
+		const site = find(siteId);
 		if (input.action === "status") {
 			return {
 				success: true,
-				data: current
-					? { ok: true, client: active ? "active" : "revoked", clientId: current.id }
+				data: theirs
+					? { ok: true, client: theirs.revoked ? "revoked" : "active", clientId: theirs.id }
 					: { ok: true, client: "none" },
 			};
 		}
 		if (input.action === "unpair") {
-			if (active) current.revoked = true;
-			return { success: true, data: { ok: true, revoked: Boolean(active) } };
+			const revoked = Boolean(theirs && !theirs.revoked);
+			for (const c of [theirs, site]) if (c) c.revoked = true;
+			return { success: true, data: { ok: true, revoked } };
 		}
-		if (!active) esign.clients.push({ id: `cl_${esign.clients.length + 1}`, revoked: false });
-		const id = esign.clients.at(-1)?.id as string;
-		return {
-			success: true,
-			data: { ok: true, created: !active, clientId: id, pairing: `esign1.${id}.${"s".repeat(43)}` },
-		};
+		let use = theirs && !theirs.revoked ? theirs : site && !site.revoked ? site : undefined;
+		if (use && use !== site && site) site.revoked = true;
+		const created = !use;
+		if (!use) {
+			use = { id: `cl_${esign.clients.length + 1}`, revoked: false };
+			esign.clients.push(use);
+		}
+		siteId = use.id;
+		return { success: true, data: { ok: true, created, clientId: use.id, pairing: mint(use.id) } };
 	}
 
 	const denied = () => Response.json({ success: false, error: { code: "FORBIDDEN" } }, { status: 403 });
@@ -68,6 +80,8 @@ function site(options: Options = {}) {
 			emdash: options.signedIn === false ? {} : { handlePluginApiRoute },
 		},
 		url: new URL("http://site.test/_events/pair"),
+		// The host's own decrypting read of Events' setting (server side only).
+		readPairing: async () => settings.get("esignPairing"),
 		settings: {
 			async read(pluginId) {
 				if (options.permitted === false) return denied();
@@ -101,6 +115,12 @@ function site(options: Options = {}) {
 	return {
 		ctx,
 		esign,
+		/** An admin made a client on E-sign's Integrations page and pasted its string into Events (T060). */
+		handMade(id = "cl_hand") {
+			esign.clients.push({ id, revoked: false });
+			settings.set("esignPairing", mint(id));
+			return id;
+		},
 		settings,
 		writes,
 		remove: () => {
@@ -176,6 +196,45 @@ describe("T145 suite auto-pairing", () => {
 		expect(await pairingStatus(s.ctx, IDS)).toEqual({ state: "revoked" });
 		expect(await pairAction(s.ctx, IDS, "pair")).toEqual({ state: "paired" });
 		expect(s.settings.get("esignPairing")).toContain("cl_2");
+	});
+
+	it("T149 a hand-made, active pairing shows as paired, not revoked", async () => {
+		const s = site();
+		const id = s.handMade();
+		expect(await pairingStatus(s.ctx, IDS)).toEqual({ state: "paired" });
+		// Only the client id goes to E-sign, never the secret half of the string.
+		const call = s.esign.calls.find((c) => c.action === "status");
+		expect(call?.clientId).toBe(id);
+		expect(String(call?.body)).not.toContain("s".repeat(43));
+	});
+
+	it("T149 pairing from a hand-made pairing keeps that one client; nothing is left unused", async () => {
+		const s = site();
+		const id = s.handMade();
+		expect(await pairAction(s.ctx, IDS, "pair")).toEqual({ state: "paired" });
+		expect(s.esign.clients).toEqual([{ id, revoked: false }]);
+		expect(s.settings.get("esignPairing")).toContain(id);
+		// After an earlier auto-pair, the replaced site client is revoked: one active client, the one Events uses.
+		const t = site();
+		await pairAction(t.ctx, IDS, "pair");
+		const hand = t.handMade();
+		expect(await pairingStatus(t.ctx, IDS)).toEqual({ state: "paired" });
+		await pairAction(t.ctx, IDS, "pair");
+		expect(t.esign.clients.filter((c) => !c.revoked).map((c) => c.id)).toEqual([hand]);
+	});
+
+	it("T149 a revoked hand-made pairing still shows as revoked; unpair revokes the client Events used", async () => {
+		const s = site();
+		const id = s.handMade();
+		(s.esign.clients[0] as { revoked: boolean }).revoked = true;
+		expect(await pairingStatus(s.ctx, IDS)).toEqual({ state: "revoked" });
+		expect(await pairAction(s.ctx, IDS, "pair")).toEqual({ state: "paired" });
+		expect(s.settings.get("esignPairing")).not.toContain(id);
+		const t = site();
+		const hand = t.handMade();
+		expect(await pairAction(t.ctx, IDS, "unpair")).toEqual({ state: "unpaired" });
+		expect(t.esign.calls.find((c) => c.action === "unpair")?.clientId).toBe(hand);
+		expect(t.esign.clients[0]?.revoked).toBe(true);
 	});
 
 	it("T145 refuses visitors who are not signed-in administrators before calling E-sign", async () => {

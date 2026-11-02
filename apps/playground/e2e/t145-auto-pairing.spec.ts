@@ -5,6 +5,7 @@ import { type APIRequestContext, expect, type Page, test } from "@playwright/tes
 
 // @ts-expect-error plain .mjs without types
 import { ADMIN_TOKEN } from "./harness/esign-admin.mjs";
+import { route } from "./harness/esign-journey";
 
 // T145: on a site with Events, E-sign and the suite, an administrator pairs Events with E-sign from
 // `/_events/pair` with one click: no master key to generate, no string to copy. The pairing string
@@ -135,4 +136,73 @@ test("T145 a fresh site reaches paired with one admin click; the pairing string 
 	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "unpaired");
 	expect(await eventsPaired(page.request)).toBe(false);
 	expect(siteClients().every((c) => c.revokedAt !== null)).toBe(true);
+});
+
+/** Every client row E-sign holds with one of these names, active or not. */
+function clientsNamed(...names: string[]): Array<{ name: string; clientId: string; revokedAt: string | null }> {
+	const db = new DatabaseSync(resolve(root, "data.db"), { readOnly: true });
+	try {
+		return (
+			db
+				.prepare("SELECT data FROM _plugin_storage WHERE plugin_id = 'semics-esign' AND collection = 'clients'")
+				.all() as Array<{ data: string }>
+		)
+			.map((row) => JSON.parse(row.data) as { name: string; clientId: string; revokedAt: string | null })
+			.filter((c) => names.includes(c.name));
+	} finally {
+		db.close();
+	}
+}
+
+test("T149 a hand-made pairing shows as paired, and pairing again keeps that one client", async ({ page, baseURL }) => {
+	const bodies: string[] = [];
+	page.on("response", async (res) => {
+		bodies.push(`${res.url()} ${JSON.stringify(await res.allHeaders())} ${await res.text().catch(() => "")}`);
+	});
+	// The admin pairs by hand (T060): a client made on E-sign's Integrations page, its string pasted into Events.
+	await route(page.request, "admin", { type: "block_action", action_id: "integrations.generate-key" }, true).catch(
+		() => null,
+	);
+	const created = await route(
+		page.request,
+		"admin",
+		{ type: "form_submit", action_id: "client.create", values: { name: "Events by hand", returnUrlAllowlist: "" } },
+		true,
+	);
+	const pairing = PAIRING.exec(JSON.stringify(created))?.[0] as string;
+	expect(pairing).toBeDefined();
+	const [, handId, secret] = pairing.split(".") as [string, string, string];
+	const saved = await page.request.put("/_emdash/api/admin/plugins/semics-events/settings", {
+		headers: admin,
+		data: { values: { esignPairing: pairing } },
+	});
+	expect(saved.ok(), await saved.text()).toBe(true);
+	bodies.length = 0;
+
+	await signIn(page, baseURL as string);
+	await page.goto("/_events/pair");
+	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "paired");
+	await expect(page.getByTestId("pair-status")).toContainText("is paired");
+
+	// Pairing again (a replayed post) adopts the hand-made client: no second client, nothing left unused.
+	const again = await page.evaluate(async () => {
+		const res = await fetch("/_events/pair", {
+			method: "POST",
+			body: "action=pair",
+			headers: { "content-type": "application/x-www-form-urlencoded" },
+		});
+		return { status: res.status, text: await res.text() };
+	});
+	expect(again.status, again.text).toBe(200);
+	expect(again.text).toContain('data-state="paired"');
+	const active = clientsNamed("Events by hand", "Events on this site").filter((c) => c.revokedAt === null);
+	expect(active.map((c) => c.clientId)).toEqual([handId]);
+	expect(await eventsPaired(page.request)).toBe(true);
+	expect(bodies.filter((b) => b.includes(secret))).toEqual([]);
+
+	// Unpairing revokes the client Events used.
+	await page.goto("/_events/pair");
+	await page.getByTestId("unpair-button").click();
+	await expect(page.getByTestId("pair-page")).toHaveAttribute("data-state", "unpaired");
+	expect(clientsNamed("Events by hand").every((c) => c.revokedAt !== null)).toBe(true);
 });

@@ -35,6 +35,16 @@ async function setup(encryption = true) {
 
 const clients = async (r: PluginRuntimeTestHost) => (await r.inspect.storage.list("clients")) as Row<ClientDoc>[];
 
+/** A client an admin made by hand on the Integrations page (T060), whose string they pasted into Events. */
+async function handMade(r: PluginRuntimeTestHost, name = "Events") {
+	await r.transport.invokeRoute("admin", { type: "block_action", action_id: "integrations.generate-key" });
+	const res = await r.admin.submit("/integrations", "client.create", { name, returnUrlAllowlist: "" });
+	const pairing = PAIRING.exec(JSON.stringify(res))?.[0] as string;
+	expect(pairing).toBeDefined();
+	const [, clientId, secret] = pairing.split(".") as [string, string, string];
+	return { pairing, clientId, secret };
+}
+
 describe("T145 integrations/pair (suite auto-pairing)", () => {
 	it("T145 pairs a fresh site: generates the master key, creates one client, returns a pairing that verifies", async () => {
 		const { r, budget } = await setup();
@@ -142,6 +152,81 @@ describe("T145 integrations/pair (suite auto-pairing)", () => {
 			error: { code: "ENCRYPTION_KEY_MISSING" },
 		});
 		expect(await clients(fresh.r)).toHaveLength(0);
+	});
+
+	it("T149 status for Events' own client: a hand-made, active pairing is active (not none)", async () => {
+		const { r, budget } = await setup();
+		const made = await handMade(r);
+		const res = await budget.invokeRoute(ROUTE, { action: "status", clientId: made.clientId }, SERVER);
+		expectWithinBudget(res);
+		expect(res.value).toEqual({ ok: true, client: "active", clientId: made.clientId });
+		expect(JSON.stringify(res.value)).not.toContain(made.secret);
+		// An id E-sign does not know is not a working pairing.
+		expect(await r.transport.invokeRoute(ROUTE, { action: "status", clientId: "cl_UNKNOWN0000" }, SERVER)).toEqual({
+			ok: true,
+			client: "none",
+		});
+	});
+
+	it("T149 pairing from a hand-made pairing adopts that client: no second client, same pairing string", async () => {
+		const { r, budget } = await setup();
+		const made = await handMade(r);
+		const res = await budget.invokeRoute(ROUTE, { action: "pair", clientId: made.clientId }, SERVER);
+		expectWithinBudget(res);
+		expect(res.value).toMatchObject({ ok: true, created: false, clientId: made.clientId, pairing: made.pairing });
+		expect(await clients(r)).toHaveLength(1);
+		// It is now the site client: a plain status and a repeat pair find it.
+		expect(await r.transport.invokeRoute(ROUTE, { action: "status" }, SERVER)).toEqual({
+			ok: true,
+			client: "active",
+			clientId: made.clientId,
+		});
+		expect(await r.transport.invokeRoute(ROUTE, { action: "pair" }, SERVER)).toMatchObject({ clientId: made.clientId });
+		expect(await clients(r)).toHaveLength(1);
+	});
+
+	it("T149 adopting a hand-made client revokes the auto-pair client it replaces: one active client", async () => {
+		const { r, budget } = await setup();
+		const auto = (await r.transport.invokeRoute(ROUTE, { action: "pair" }, SERVER)) as { clientId: string };
+		const made = await handMade(r);
+		const res = await budget.invokeRoute(ROUTE, { action: "pair", clientId: made.clientId }, SERVER);
+		expectWithinBudget(res);
+		expect(res.value).toMatchObject({ clientId: made.clientId, pairing: made.pairing });
+		const rows = await clients(r);
+		expect(rows.filter((c) => c.data.revokedAt === null).map((c) => c.data.clientId)).toEqual([made.clientId]);
+		expect(rows.find((c) => c.data.clientId === auto.clientId)?.data.revokedAt).not.toBeNull();
+	});
+
+	it("T149 a revoked hand-made client is replaced by the site client; unpair revokes Events' client", async () => {
+		const { r } = await setup();
+		const made = await handMade(r);
+		await r.admin.act("/integrations", "client.revoke", { value: made.clientId });
+		expect(await r.transport.invokeRoute(ROUTE, { action: "status", clientId: made.clientId }, SERVER)).toMatchObject({
+			client: "revoked",
+		});
+		const next = (await r.transport.invokeRoute(ROUTE, { action: "pair", clientId: made.clientId }, SERVER)) as {
+			clientId: string;
+			created: boolean;
+		};
+		expect(next).toMatchObject({ created: true });
+		expect(next.clientId).not.toBe(made.clientId);
+		expect((await clients(r)).filter((c) => c.data.revokedAt === null)).toHaveLength(1);
+
+		const other = await handMade(r, "Events again");
+		const unpair = await r.transport.invokeRoute(ROUTE, { action: "unpair", clientId: other.clientId }, SERVER);
+		expect(unpair).toEqual({ ok: true, revoked: true });
+		// Both the client Events used and the now-unused site client are revoked.
+		expect((await clients(r)).filter((c) => c.data.revokedAt === null)).toHaveLength(0);
+	});
+
+	it("T149 refuses a malformed client id", async () => {
+		const { r } = await setup();
+		for (const clientId of ["", "a.b", 7, "x".repeat(65)]) {
+			expect(await r.transport.invokeRoute(ROUTE, { action: "status", clientId }, SERVER)).toMatchObject({
+				ok: false,
+				error: { code: "BAD_REQUEST" },
+			});
+		}
 	});
 
 	it("T145 the Integrations page points to the suite's one-click pairing", async () => {
