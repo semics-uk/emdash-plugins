@@ -25,7 +25,7 @@ import { generateToken, hashToken } from "@semics-tech/shared";
 
 import { bookingKeys, type CheckoutPlan } from "../domain/checkout";
 import { DEFAULT_HOLD_SETTINGS, startHold } from "../domain/holds";
-import { type Counter, type CounterStorage, reserve } from "../domain/inventory";
+import { type Counter, type CounterStorage, keyOf, reserve } from "../domain/inventory";
 import { iso } from "../domain/time";
 import { OFFER_HOURS, offerable, planOffer } from "../domain/waitlist";
 import { newBooking } from "../routes/checkout-reserve";
@@ -141,14 +141,14 @@ export async function waitlistTick({ storage: st, now }: { storage: WaitlistStor
 			const c = configs.get(e.eventId) as EventConfigDoc;
 			const o = planOffer(e.eventId, c, e, now);
 			if (!o) continue;
-			const unread = o.reads.filter((r) => !counters.has(`${r.collection}/${r.id}`));
+			const unread = o.reads.filter((r) => !counters.has(keyOf(r)));
 			if (calls + unread.length + o.plan.steps.length + 4 > MAX_CALLS) break;
 			for (const r of unread) {
-				counters.set(`${r.collection}/${r.id}`, (await st[r.collection].get(r.id)) as Counter | null);
+				counters.set(keyOf(r), (await st[r.collection].get(r.id)) as Counter | null);
 				calls++;
 			}
 			const full = o.reads.some((r) => {
-				const d = counters.get(`${r.collection}/${r.id}`);
+				const d = counters.get(keyOf(r));
 				return !d || (d.reserved ?? 0) + r.qty > d.capacity;
 			});
 			if (full) continue;

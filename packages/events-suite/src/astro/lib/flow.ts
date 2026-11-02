@@ -26,6 +26,7 @@ import {
 	bookingCookieOptions,
 	isCrossSiteRequest,
 } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { eventHref } from "@semics-tech/emdash-events/astro/lib/list";
 import { isPayUrl } from "@semics-tech/emdash-events/astro/lib/payment";
 import { forwardReceipt } from "@semics-tech/emdash-events/astro/lib/receipt";
 import { newIdempotencyKey } from "@semics-tech/emdash-events/astro/lib/widget";
@@ -65,13 +66,61 @@ export interface CookieOp {
 export type WaiverOutcome =
 	| { type: "redirect"; location: string; cookies: CookieOp[] }
 	/** Show `view` in `<SigningCeremony>`; `remaining` signers follow this one. */
-	| { type: "render"; ref: string; token: string; remaining: number; view: SignView; cookies: CookieOp[] }
-	| { type: "error"; code: string; ref?: string }
+	| {
+			type: "render";
+			ref: string;
+			token: string;
+			remaining: number;
+			view: SignView;
+			cookies: CookieOp[];
+			/** The booking as `public/booking` answered it, when this page could read it (T151). */
+			booking?: BookingAnswer;
+	  }
+	/** `href`: the event's page, for "book again" (`BOOKING_EXPIRED`, T151). */
+	| { type: "error"; code: string; ref?: string; href?: string }
 	| { type: "forbidden" };
 
 export interface FlowDeps {
 	/** Injected for tests: the idempotency key when the form carries none. */
 	newKey?: () => string;
+	/** Injected for tests: epoch milliseconds. */
+	now?: () => number;
+}
+
+/** What this page reads from Events `public/booking` (only the event's public details, T148/T151). */
+export interface BookingAnswer {
+	status?: string;
+	holdExpiresAt?: string;
+	eventId?: string;
+	occurrenceId?: string;
+	/** The event's public info; `startsAt` is the booked date's. Kept after the event leaves sale. */
+	event?: { title?: string; startsAt?: string; timezone?: string | null; slug?: string | null };
+}
+
+/** Booking statuses with nothing left to sign for: the places are gone (T151). */
+const ENDED = ["expired", "cancelled", "declined", "refunded", "refunded_unavailable"];
+
+/** The booking `ref`, read with this page's access token; undefined without one or when Events refuses. */
+export async function readBooking(
+	ctx: WaiverRequestContext,
+	ids: SuiteIds,
+	ref: string,
+): Promise<BookingAnswer | undefined> {
+	const accessToken = ctx.cookie(retryCookieName(ref)) || ctx.cookie(bookingCookieName(ref));
+	if (!accessToken) return undefined;
+	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
+	const answer = await post<BookingAnswer>(call, ids.eventsPluginId, "public/booking", {
+		bookingRef: ref,
+		accessToken,
+	}).catch(() => undefined);
+	return answer?.ok ? answer.data : undefined;
+}
+
+/** Expired, cancelled, or a hold that lapsed before the sweeper got to it. */
+function ended(booking: BookingAnswer, now: number): boolean {
+	if (booking.status && ENDED.includes(booking.status)) return true;
+	const until = booking.holdExpiresAt ? Date.parse(booking.holdExpiresAt) : Number.NaN;
+	return Number.isFinite(until) && until <= now;
 }
 
 const BOOKING_REF = /^[0-9A-HJKMNP-TV-Z]{10}$/;
@@ -330,7 +379,12 @@ async function payOrLand(ctx: WaiverRequestContext, ids: SuiteIds, ref: string, 
 	return next?.type === "pay" && isPayUrl(next.url) ? next.url : landed;
 }
 
-async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | null): Promise<WaiverOutcome> {
+async function sign(
+	ctx: WaiverRequestContext,
+	ids: SuiteIds,
+	form: FormData | null,
+	deps: FlowDeps,
+): Promise<WaiverOutcome> {
 	const ref = ctx.url.searchParams.get("ref") ?? "";
 	if (!BOOKING_REF.test(ref)) return redirect(BOOKING_PATH);
 	const error = ctx.url.searchParams.get("error");
@@ -340,6 +394,15 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 	if (tokens.length === 0 || !tokens.every((t) => SIGNING_TOKEN.test(t))) {
 		return redirect(bookingPage(ref), tokens.length ? [flowCookie(ctx.url, ref, [])] : []);
 	}
+	// A booking whose places are gone has nothing to sign for (T151): no ceremony, and a post is refused
+	// before e-sign is asked, so no signature is captured for it. When Events cannot answer, signing goes on
+	// (its receipt step still confirms nothing for an ended booking).
+	const booking = await readBooking(ctx, ids, ref);
+	if (booking && ended(booking, (deps.now ?? Date.now)())) {
+		const href = booking.event?.slug ? eventHref({ slug: booking.event.slug }) : undefined;
+		return { type: "error", ref, code: "BOOKING_EXPIRED", ...(href ? { href } : {}) };
+	}
+	const withBooking = booking ? { booking } : {};
 	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
 	const signCtx = { ...call, pluginId: ids.esignPluginId };
 	const forward = (receipt: string) =>
@@ -350,7 +413,7 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 		const [token = "", ...after] = rest;
 		const view = await handleSign(signCtx, token, form);
 		if (view.kind === "ready" || view.kind === "error") {
-			return { type: "render", ref, token, remaining: after.length, view, cookies: [] };
+			return { type: "render", ref, token, remaining: after.length, view, cookies: [], ...withBooking };
 		}
 		// Signed, declined, or closed meanwhile (another tab): record the outcome with Events.
 		const receipt = receiptOf(view);
@@ -371,7 +434,7 @@ async function sign(ctx: WaiverRequestContext, ids: SuiteIds, form: FormData | n
 		const view = await handleSign(signCtx, token, null);
 		if (view.kind !== "closed") {
 			const cookies = rest.length === tokens.length ? [] : [flowCookie(ctx.url, ref, rest)];
-			return { type: "render", ref, token, remaining: after.length, view, cookies };
+			return { type: "render", ref, token, remaining: after.length, view, cookies, ...withBooking };
 		}
 		const receipt = receiptOf(view);
 		if (receipt) landed = (await forward(receipt)).location;
@@ -394,5 +457,5 @@ export async function handleWaiverRequest(
 	const form = ctx.request.method === "POST" ? await ctx.request.formData().catch(() => new FormData()) : null;
 	if (form?.get("intent") === "book") return book(ctx, form, ids, deps);
 	if (form?.get("intent") === "retry") return retry(ctx, ids);
-	return sign(ctx, ids, form);
+	return sign(ctx, ids, form, deps);
 }

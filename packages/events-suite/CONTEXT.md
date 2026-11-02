@@ -33,7 +33,10 @@ bundles nothing new into the cores; it calls them through their public routes in
    envelope); a closed one (signed elsewhere) is forwarded and skipped. The ceremony's posts come back here;
    when it ends, the receipt (fragment of `ceremonyRedirect(view)`) goes to Events `signatures/receipt` via
    Events' `forwardReceipt` in-process (no JS needed), then the next token, or after the last / a decline
-   `/booking?ref=&waiver=…`. The page sends `ceremonyCsp()` and renders nothing else inline (no own styles).
+   `/booking?ref=&waiver=…`. With an access cookie, every GET/POST first reads `public/booking` (`readBooking`): an
+   expired/cancelled/declined/refunded booking, or a lapsed hold, is `error` `BOOKING_EXPIRED` (message, "Book again" link to
+   `/events/<slug>` when `event.slug` is known, no ceremony, e-sign never asked, T151). The render outcome carries that answer
+   so `lib/slot.ts` (title and booked date, T148) reuses it: `event` from `public/booking`, else `public/event`. The page sends `ceremonyCsp()` and renders nothing else inline (no own styles).
 
    After the last receipt (`waiver=signed`) `payOrLand` continues the booking again (no attendees) and follows a `pay` step (T077);
    anything else lands on `/booking`. The token for that comes from the `semics_waiver_access_<ref>` cookie (waiver path, set

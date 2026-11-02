@@ -35,8 +35,9 @@ import { badRequest, fail } from "./reply";
  * `outbox.put`: 6 plus the counters. One ticket type without an occurrence is 8. Counters beyond
  * the budget (event and occurrence go first) are left for the sweeper's drift repair, which counts
  * only live bookings. Abandoning a held booking skips the config and settings reads.
- * Status is query, attendees query, and for a confirmed booking the config and settings reads, plus
- * the calendar link's key read (the first use creates it): 5, or 7 on that first use. A waiver
+ * Status is query, attendees query, the config read (the event's public info, T151, and for a
+ * confirmed booking the cancel policy), and for a confirmed booking the settings read, plus the
+ * calendar link's key read (the first use creates it): 5, or 7 on that first use; 3 for a held one. A waiver
  * booking's lookup requests (Pro) reuse a confirmed booking's settings read; awaiting signatures, +1.
  *
  * A confirmed booking's answer carries `calendar: { query }`, a 15-minute signed query for
@@ -141,9 +142,10 @@ async function authenticate(deps: BookingDeps, raw: unknown): Promise<Found | { 
 async function decide(
 	deps: BookingDeps,
 	b: BookingDoc,
+	read?: Promise<unknown>,
 ): Promise<CancelDecision & { settings: Record<string, unknown> }> {
 	if (b.status !== "confirmed") return { ...cancelDecision(b, null, 0, deps.now), settings: {} };
-	const config = (await deps.storage.event_configs.get(b.eventId)) as EventConfigDoc | null;
+	const config = (await (read ?? deps.storage.event_configs.get(b.eventId))) as EventConfigDoc | null;
 	const settings = await readSettings(deps);
 	return { ...cancelDecision(b, config, cancelCutoffHours(settings), deps.now), settings };
 }
@@ -152,13 +154,17 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	const auth = await authenticate(deps, raw);
 	if ("error" in auth) return auth.error;
 	const { id, booking: b } = auth;
-	const [{ items }, decision, calendar] = await Promise.all([
+	// One config read serves the cancel policy and the event's public info (T151: kept after it leaves sale).
+	const read = deps.storage.event_configs.get(b.eventId);
+	const [{ items }, decision, calendar, config] = await Promise.all([
 		deps.storage.attendees.query({ where: { bookingId: id }, limit: 100 }),
-		decide(deps, b),
+		decide(deps, b, read),
 		b.status === "confirmed" && deps.kv
 			? bookingCalendarQuery(deps.kv, b.ref, deps.now).catch(() => undefined)
 			: undefined,
+		read as Promise<EventConfigDoc | null>,
 	]);
+	const info = config?.info;
 	// A booking waiting for signatures lists the refs to reconcile with e-sign (a signer who closed the
 	// tab, or signed by email); with Pro's step it carries a lookup request for each (SX-FR-05). So does a
 	// confirmed one for its seats still pending: an emailed adult whose return page never ran (no
@@ -180,6 +186,10 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 		status: b.status,
 		eventId: b.eventId,
 		...(b.occurrenceId !== undefined ? { occurrenceId: b.occurrenceId } : {}),
+		// The event's public info; `startsAt` is the booked date's (absent once that date leaves the catalog).
+		...(info && {
+			event: b.occurrenceId ? { ...info, startsAt: config.catalog?.occurrences[b.occurrenceId]?.startsAt } : info,
+		}),
 		buyer: b.buyer,
 		lines: b.lines,
 		totals: b.totals,

@@ -83,7 +83,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   page POSTs it to `public/booking/redeem` for a fresh access token (R34): `/booking?k=` only renders an "Open my booking"
   button; its POST calls `redeemBookingLink` (`src/astro/lib/checkout-form.ts`), sets the cookie and redirects without `k` (T056). `public/booking` also
   returns `calendar.query` (`signLink`, `events/booking-ics`, 15 min, key in KV `events:link-key`) and
-  valid attendees' `code` (R33). Event fields for emails/ICS come from `src/domain/event-info.ts` (see Public event routes).
+  valid attendees' `code` (R33), and `event` (the config's `info`, `startsAt` replaced by the booked occurrence's from
+  the catalog, absent if it left it), so the waiver page keeps title and date once `public/event` hides a draft (T151). Event fields for emails/ICS come from `src/domain/event-info.ts` (see Public event routes).
 - Public event routes (`src/routes/public-events.ts`, T046): `public/events` (cached 60 s, one query) and
   `public/event` (`GET { eventId }`, the `PublicEvent` shape, 4 calls). A draft or orphaned event is
   `NOT_FOUND` (so is `public/event/ics`: `loadEventInfo(…, { publicOnly: true })`); answers carry `available` only (min of type, date, event seats left), never counters,

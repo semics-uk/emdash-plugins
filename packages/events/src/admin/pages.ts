@@ -348,8 +348,8 @@ async function eventTitles(deps: AdminDeps): Promise<Map<string, string>> {
 		const { collection } = mappingOf(await deps.settings.list());
 		const found = await deps.content.list(collection, { limit: 100 });
 		for (const entry of found.items) {
-			const t = entry.data?.title;
-			if (typeof t === "string" && t.trim() !== "") titles.set(entry.id, t.trim());
+			const t = str(entry.data?.title);
+			if (t) titles.set(entry.id, t);
 		}
 	} catch {
 		// Titles are a convenience: the list still works with ids.

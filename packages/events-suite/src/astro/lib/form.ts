@@ -133,6 +133,7 @@ export const WAIVER_MESSAGES: Record<string, string> = {
 	RATE_LIMITED: "Too many bookings from this connection. Please wait a few minutes and try again.",
 	TURNSTILE_FAILED: "The security check did not pass. Please try again.",
 	HOLD_EXPIRED: "Your hold on these tickets expired. Please start again.",
+	BOOKING_EXPIRED: "This booking has expired. Please book again.",
 	NOT_FOUND: "This event is not taking bookings.",
 	SIGNING_UNAVAILABLE:
 		"The waiver could not be opened for signing just now. Your tickets are still held for a short time: try again, or contact the organiser.",

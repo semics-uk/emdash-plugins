@@ -1,4 +1,5 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
+import { text } from "../domain/event-info";
 import { cmp, ticketOrder } from "../domain/order";
 import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
@@ -159,7 +160,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 			endsAt: o.endsAt ?? null,
 			available: Math.min(left(o.capacity, o.reserved), eventLeft),
 		}));
-	const siteKey = settings.find((s) => s.key === "turnstileSiteKey")?.value;
+	const siteKey = text(settings.find((s) => s.key === "turnstileSiteKey")?.value);
 	const info = config.info;
 	return {
 		ok: true,
@@ -174,7 +175,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		...(occurrences ? { occurrences } : {}),
 		...(next?.hasMore ? { more: true } : {}),
 		...(config.schedule ? { slots: true } : {}),
-		...(typeof siteKey === "string" && siteKey.trim() !== "" ? { turnstileSiteKey: siteKey.trim() } : {}),
+		...(siteKey ? { turnstileSiteKey: siteKey } : {}),
 	};
 }
 

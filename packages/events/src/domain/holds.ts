@@ -30,6 +30,7 @@ import {
 	type CounterStorage,
 	countersForBooking,
 	DRAFT_GRACE_MS,
+	keyOf,
 	mergeRefs,
 	release,
 	restore,
@@ -265,7 +266,7 @@ export async function expireBookings(
 	);
 	const releasing = planned.filter((p, i) => p.action === "release" && claimed[i]);
 	const unreleased = await release(storage, mergeRefs(releasing.flatMap((p) => p.refs)));
-	const unreleasedDocs = new Set(unreleased.map((r) => `${r.collection}/${r.id}`));
+	const unreleasedDocs = new Set(unreleased.map(keyOf));
 
 	return Promise.all(
 		planned.map(async (p, i): Promise<ExpiryOutcome> => {
@@ -280,7 +281,7 @@ export async function expireBookings(
 			const { applied } = await storage.bookings
 				.updateIf(p.id, { where: guard, set: { status: "expired", expiredAt: at } })
 				.catch(() => ({ applied: false }));
-			const partly = p.refs.some((r) => unreleasedDocs.has(`${r.collection}/${r.id}`));
+			const partly = p.refs.some((r) => unreleasedDocs.has(keyOf(r)));
 			if (applied) {
 				return p.action === "release"
 					? { ...base, outcome: "expired", dirty: partly }
@@ -289,7 +290,7 @@ export async function expireBookings(
 			if (p.action === "close") return { ...base, outcome: "skipped", dirty: false };
 			await restore(
 				storage,
-				p.refs.filter((r) => !unreleasedDocs.has(`${r.collection}/${r.id}`)),
+				p.refs.filter((r) => !unreleasedDocs.has(keyOf(r))),
 			);
 			return { ...base, outcome: "restored", dirty: true };
 		}),

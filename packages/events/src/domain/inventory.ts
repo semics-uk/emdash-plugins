@@ -87,7 +87,8 @@ export const DEFAULT_MAX_CALLS = 8;
 
 const isQty = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 1;
 const strip = ({ collection, id, qty }: CounterRef): CounterRef => ({ collection, id, qty });
-const keyOf = (collection: CountedCollection, id: string) => `${collection}/${id}`;
+/** A counter document's key, `<collection>/<id>`. */
+export const keyOf = (r: { collection: string; id: string }) => `${r.collection}/${r.id}`;
 
 // --- reserving -------------------------------------------------------------------------------------
 
@@ -255,7 +256,7 @@ export function restore(storage: CounterStorage, refs: CounterRef[]): Promise<Co
 export function mergeRefs(refs: Iterable<CounterRef>): CounterRef[] {
 	const merged = new Map<string, CounterRef>();
 	for (const ref of refs) {
-		const key = keyOf(ref.collection, ref.id);
+		const key = keyOf(ref);
 		const m = merged.get(key);
 		if (m) m.qty += ref.qty;
 		else merged.set(key, strip(ref));
@@ -329,7 +330,7 @@ export function tallyBookings(bookings: Iterable<BookingLike>, now: number): Tal
 		if (!draftLive && !LIVE_BOOKING_STATUSES.includes(b.status)) continue;
 		const sold = b.status === "confirmed";
 		for (const ref of countersForBooking(b)) {
-			const key = keyOf(ref.collection, ref.id);
+			const key = keyOf(ref);
 			const t = tally.get(key) ?? { reserved: 0, sold: 0 };
 			t.reserved += ref.qty;
 			if (sold) t.sold += ref.qty;
@@ -356,7 +357,7 @@ export interface DriftFix {
 /** Fixes for the documents whose counters differ from the tally (absent from it means zero). */
 export function planDriftRepair(snapshot: CounterSnapshot[], tally: Tally): DriftFix[] {
 	return snapshot.flatMap((doc) => {
-		const to = tally.get(keyOf(doc.collection, doc.id)) ?? { reserved: 0, sold: 0 };
+		const to = tally.get(keyOf(doc)) ?? { reserved: 0, sold: 0 };
 		if (to.reserved === doc.reserved && to.sold === doc.sold) return [];
 		return [
 			{ collection: doc.collection, id: doc.id, from: { reserved: doc.reserved, sold: doc.sold }, to: { ...to } },
