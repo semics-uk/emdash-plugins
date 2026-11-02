@@ -3014,7 +3014,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "pro",
-			"status": "review",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -3022,7 +3022,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "review"
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -3031,9 +3031,7 @@
 			"T140"
 		],
 		"in-progress": [],
-		"review": [
-			"T152"
-		],
+		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -3165,7 +3163,8 @@
 			"T148",
 			"T149",
 			"T150",
-			"T151"
+			"T151",
+			"T152"
 		],
 		"blocked": [
 			"T111"
