@@ -2854,7 +2854,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2862,7 +2862,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T144": {
 			"file": "T144-waiver-template-picker.md",
@@ -2935,10 +2935,11 @@
 		"backlog": [],
 		"ready": [
 			"T140",
-			"T143",
 			"T145"
 		],
-		"in-progress": [],
+		"in-progress": [
+			"T143"
+		],
 		"review": [],
 		"done": [
 			"T000",
