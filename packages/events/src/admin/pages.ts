@@ -28,7 +28,7 @@ import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "..
 import type { RefundStep } from "../routes/booking";
 import type { ConfigStorage } from "../routes/config";
 import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
-import { handlePanel, type PanelDeps, type PanelInteraction } from "./panel";
+import { handlePanel, type PanelDeps, type PanelInteraction, type WaiverCheck } from "./panel";
 import { initial, optionsOf, respond, soldMeter, str } from "./ui";
 
 /**
@@ -83,6 +83,8 @@ export interface AdminDeps {
 	signingLink?: SigningLink;
 	/** The edition's refund step, for declining a paid booking awaiting approval (Pro, T131/T132). */
 	refund?: RefundStep;
+	/** The Event editor page's waiver check, the same seam as the entry panel's (Pro, T142). */
+	waivers?: WaiverCheck;
 }
 
 /** Makes the signing link for an attendee whose waiver is pending (Pro seam, `adminRoute`). */

@@ -214,7 +214,9 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 - Error codes (R97): routes answer through `fail`/`routeError` (`src/routes/reply.ts`) over `EVENTS_ERROR_CODES`; never import
   `toRouteError` in the core (it pulls the whole registry). An edition needing the e-sign/protocol messages calls `useErrorCodes`.
 - Event editor admin page (R97): "Edit" renders the Tickets & booking panel (`panelPage` in `src/admin/pages.ts`); every block id
-  is `event:<id>:<n>` and `panel.*` actions with such a block id are forwarded to `handlePanel`. No waiver step there (Pro: entry panel).
+  is `event:<id>:<n>` (plus the panel's own id, T141) and `panel.*` actions with such a block id are forwarded to `handlePanel`.
+  Waivers there come from `adminRoute({ waivers })`, the same seam as `editorTicketsRoute({ waivers })`; an edition must pass
+  both, or the page says "need Events Pro" while the entry panel asks for the pairing string (T142).
 - Day-then-time picker (T130, R96): `public/event` takes `from` (ISO; only a later string than now counts) and answers up to
   200 upcoming open dates (two cursor pages of 100: 5 calls past 100), `more: true` past that, `slots: true` for a schedule.
   `<BookingWidget>` uses the picker when `slots` or two starts share a local day (`usesPicker`); all logic is UI-side

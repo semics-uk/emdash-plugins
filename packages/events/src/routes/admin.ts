@@ -2,6 +2,7 @@ import { isPageLoad, withScheduleCheck } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type AdminDeps, type AdminInteraction, handleAdmin, type SigningLink } from "../admin/pages";
+import type { WaiverCheck } from "../admin/panel";
 import type { RefundStep } from "./booking";
 
 /**
@@ -19,6 +20,8 @@ export interface AdminSteps {
 	signingLink?: (ctx: PluginContext) => SigningLink;
 	/** Refunds a paid booking declined while awaiting approval (T131/T132); pass the same to `approvalRoutes`. */
 	refund?: (ctx: PluginContext) => RefundStep;
+	/** The Event editor page's waiver check: pass the same as `editorTicketsRoute({ waivers })` (T142). */
+	waivers?: (ctx: PluginContext) => WaiverCheck;
 }
 
 /** The `admin` route with the given steps (none: the Free route). */
@@ -42,6 +45,7 @@ export function adminRoute(steps: AdminSteps = {}): RouteDef {
 				newId: () => crypto.randomUUID(),
 				...(steps.signingLink ? { signingLink: steps.signingLink(ctx) } : {}),
 				...(steps.refund ? { refund: steps.refund(ctx) } : {}),
+				...(steps.waivers ? { waivers: steps.waivers(ctx) } : {}),
 			};
 			return handleAdmin(deps, routeCtx.input as AdminInteraction);
 		}) as Handler,

@@ -17,6 +17,9 @@
  *   has none and refuses to cancel a paid confirmed booking.
  * - `adminRoute({ signingLink })`: the Block Kit admin with a signing link for attendees that
  *   check-in refuses because their waiver is pending. Free refuses them without a link.
+ * - `adminRoute({ waivers })` (T142): the Event editor page's waiver check. Pass the same factory as
+ *   `editorTicketsRoute({ waivers })`, or the page says waivers need Events Pro while the entry panel asks
+ *   for the pairing string.
  * - `adminRoute({ refund })` (T131): approve/decline on the Bookings page with a refund step for a
  *   paid booking declined while awaiting approval. Free has none and refuses to decline a paid one.
  *   Pro's payment confirm settles a paid booking with `settle` (`src/domain/booking-state.ts`) so an
