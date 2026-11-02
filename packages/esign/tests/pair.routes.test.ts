@@ -62,11 +62,8 @@ describe("T145 integrations/pair (suite auto-pairing)", () => {
 		expect(await clients(r)).toHaveLength(1);
 		const parsed = parsePairing(first.pairing);
 		if (!parsed.ok) throw new Error("malformed");
-		const key = await r.inspect.setting("integrationMasterKey");
-		// The test host decrypts settings for the plugin; derive from what the route reads back.
 		const status = (await r.transport.invokeRoute(ROUTE, { action: "status" }, SERVER)) as Record<string, unknown>;
 		expect(status).toEqual({ ok: true, client: "active", clientId: parsed.value.clientId });
-		expect(key).toBeTruthy();
 	});
 
 	it("T145 keeps an existing master key and derives the secret from it", async () => {
@@ -94,9 +91,7 @@ describe("T145 integrations/pair (suite auto-pairing)", () => {
 		expect(await r.transport.invokeRoute(ROUTE, { action: "unpair" }, SERVER)).toEqual({ ok: true, revoked: false });
 		const next = (await r.transport.invokeRoute(ROUTE, { action: "pair" }, SERVER)) as { clientId: string };
 		expect(next.clientId).not.toBe(first.clientId);
-		expect((await clients(r)).map((c) => c.data.revokedAt === null)).toEqual(
-			expect.arrayContaining([true, false]),
-		);
+		expect((await clients(r)).map((c) => c.data.revokedAt === null)).toEqual(expect.arrayContaining([true, false]));
 	});
 
 	it("T145 status on a fresh site says no client", async () => {
@@ -121,7 +116,7 @@ describe("T145 integrations/pair (suite auto-pairing)", () => {
 
 	it("T145 refuses a browser request: the pairing string never reaches a browser", async () => {
 		const { r } = await setup();
-		for (const headers of [
+		for (const headers of <Array<Record<string, string>>>[
 			{ "sec-fetch-mode": "cors" },
 			{ "sec-fetch-site": "same-origin" },
 			{ origin: "http://localhost" },

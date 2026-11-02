@@ -104,6 +104,9 @@ function view(key: unknown, clients: ClientDoc[], extra: Block[] = []): AdminRes
 			pageActionId: "clients.page",
 			emptyText: "No clients yet.",
 		}),
+		context(
+			'Events on this site: with the Events suite installed, an administrator pairs it in one click at /_events/pair (the client appears here as "Events on this site"; no string to copy).',
+		),
 		header("Add a client"),
 		context(
 			"The pairing string is shown once, right after you create the client, and cannot be shown again. Paste it into the other plugin's settings. Return URLs: one per line, https (http only for localhost); leave blank to allow this site only.",

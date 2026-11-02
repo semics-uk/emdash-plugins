@@ -42,7 +42,12 @@ function site(options: Options = {}) {
 		const current = esign.clients.at(-1);
 		const active = current && !current.revoked;
 		if (input.action === "status") {
-			return { success: true, data: current ? { ok: true, client: active ? "active" : "revoked", clientId: current.id } : { ok: true, client: "none" } };
+			return {
+				success: true,
+				data: current
+					? { ok: true, client: active ? "active" : "revoked", clientId: current.id }
+					: { ok: true, client: "none" },
+			};
 		}
 		if (input.action === "unpair") {
 			if (active) current.revoked = true;
@@ -50,7 +55,10 @@ function site(options: Options = {}) {
 		}
 		if (!active) esign.clients.push({ id: `cl_${esign.clients.length + 1}`, revoked: false });
 		const id = esign.clients.at(-1)?.id as string;
-		return { success: true, data: { ok: true, created: !active, clientId: id, pairing: `esign1.${id}.${"s".repeat(43)}` } };
+		return {
+			success: true,
+			data: { ok: true, created: !active, clientId: id, pairing: `esign1.${id}.${"s".repeat(43)}` },
+		};
 	}
 
 	const denied = () => Response.json({ success: false, error: { code: "FORBIDDEN" } }, { status: 403 });
@@ -64,24 +72,41 @@ function site(options: Options = {}) {
 			async read(pluginId) {
 				if (options.permitted === false) return denied();
 				expect(pluginId).toBe(IDS.eventsPluginId);
-				return Response.json({ success: true, data: { values: {}, secretsSet: { esignPairing: settings.has("esignPairing") } } });
+				return Response.json({
+					success: true,
+					data: { values: {}, secretsSet: { esignPairing: settings.has("esignPairing") } },
+				});
 			},
 			async write(pluginId, values) {
 				if (options.permitted === false) return denied();
 				expect(pluginId).toBe(IDS.eventsPluginId);
 				if (options.failWrite) {
-					return Response.json({ success: false, error: { code: "PLUGIN_SETTING_ENCRYPTION_KEY_MISSING" } }, { status: 500 });
+					return Response.json(
+						{ success: false, error: { code: "PLUGIN_SETTING_ENCRYPTION_KEY_MISSING" } },
+						{ status: 500 },
+					);
 				}
 				writes.push(values);
 				for (const [k, v] of Object.entries(values)) {
 					if (v === null) settings.delete(k);
 					else settings.set(k, v);
 				}
-				return Response.json({ success: true, data: { values: {}, secretsSet: { esignPairing: settings.has("esignPairing") } } });
+				return Response.json({
+					success: true,
+					data: { values: {}, secretsSet: { esignPairing: settings.has("esignPairing") } },
+				});
 			},
 		},
 	};
-	return { ctx, esign, settings, writes, remove: () => void (installed = false) };
+	return {
+		ctx,
+		esign,
+		settings,
+		writes,
+		remove: () => {
+			installed = false;
+		},
+	};
 }
 
 describe("T145 suite auto-pairing", () => {

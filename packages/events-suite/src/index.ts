@@ -60,6 +60,8 @@ const RESOLVED = `\0${VIRTUAL}`;
 export const WAIVER_ROUTE = "/_events/waiver";
 /** The suite's catalogue page: where the Events panel's Refresh templates link lands (T066). */
 export const TEMPLATES_ROUTE = "/_events/templates";
+/** The suite's pairing page: pairs Events with E-sign on this site in one click (T145). */
+export const PAIR_ROUTE = "/_events/pair";
 /** What Events' booking page runs for a booking waiting for signatures (T066). */
 const RECONCILE_MODULE = "@semics-tech/emdash-events-suite/astro/lib/reconcile";
 
@@ -84,6 +86,11 @@ export function suiteIntegration(ids: { eventsPluginId: string; esignPluginId: s
 				injectRoute({
 					pattern: TEMPLATES_ROUTE,
 					entrypoint: "@semics-tech/emdash-events-suite/astro/TemplatesPage.astro",
+					prerender: false,
+				});
+				injectRoute({
+					pattern: PAIR_ROUTE,
+					entrypoint: "@semics-tech/emdash-events-suite/astro/PairPage.astro",
 					prerender: false,
 				});
 				updateConfig({

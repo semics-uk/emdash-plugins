@@ -1,0 +1,124 @@
+---
+// Injected at `/_events/pair` by the suite (T145): pairs Events with E-sign on this site in one click.
+// Administrators only (the host's own plugin-settings handler checks `plugins:manage`). The pairing
+// string goes from E-sign to Events' encrypted setting inside this request and is never sent to the
+// browser. The logic is in `lib/pair.ts`; this page only renders the state and posts the button.
+import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
+import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { GET as readSettings, PUT as writeSettings } from "emdash/internal/routes/api/admin/plugins/_id_/settings";
+
+import { PAIR_PATH, type PairContext, type PairView, pairAction, pairingStatus } from "./lib/pair";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const ids = { eventsPluginId, esignPluginId };
+// The host's handlers for `/_emdash/api/admin/plugins/<id>/settings`, run with this visitor's locals.
+const settingsUrl = (id: string) => new URL(`/_emdash/api/admin/plugins/${encodeURIComponent(id)}/settings`, Astro.url);
+const ctx: PairContext = {
+	locals: Astro.locals,
+	url: Astro.url,
+	settings: {
+		read: (id) =>
+			readSettings({ params: { id }, locals: Astro.locals, request: new Request(settingsUrl(id)) } as never) as Promise<Response>,
+		write: (id, values) =>
+			writeSettings({
+				params: { id },
+				locals: Astro.locals,
+				request: new Request(settingsUrl(id), {
+					method: "PUT",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ values }),
+				}),
+			} as never) as Promise<Response>,
+	},
+};
+
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
+
+const CODE = /^[A-Z0-9_]{1,64}$/;
+const STATES = new Set(["paired", "unpaired", "revoked", "esign-missing", "forbidden", "error"]);
+
+if (Astro.request.method === "POST") {
+	const form = await Astro.request.formData().catch(() => new FormData());
+	const result = await pairAction(ctx, ids, form.get("action"));
+	const next = new URLSearchParams({ result: result.state });
+	if (result.code) next.set("code", result.code);
+	return Astro.redirect(`${PAIR_PATH}?${next}`, 303);
+}
+
+const view: PairView = await pairingStatus(ctx, ids);
+const result = Astro.url.searchParams.get("result") ?? "";
+const resultCode = Astro.url.searchParams.get("code") ?? "";
+const done = STATES.has(result) ? result : "";
+const doneCode = CODE.test(resultCode) ? resultCode : "";
+if (view.state === "forbidden") Astro.response.status = 403;
+
+const ERRORS: Record<string, string> = {
+	ENCRYPTION_KEY_MISSING: "Set EMDASH_ENCRYPTION_KEY in the site environment and restart, then try again.",
+	PLUGIN_SETTING_ENCRYPTION_KEY_MISSING: "Set EMDASH_ENCRYPTION_KEY in the site environment and restart, then try again.",
+	MASTER_KEY_INVALID:
+		"E-sign's integration master key is unreadable or too short. Fix it in E-sign's settings, then try again.",
+};
+const errorText = (code?: string) =>
+	(code && ERRORS[code]) || "Pairing did not finish. Please try again; if it keeps failing, check that E-sign is up to date.";
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Pair Events with E-sign</title>
+	</head>
+	<body>
+		<main data-testid="pair-page" data-state={view.state}>
+			<h1>Pair Events with E-sign</h1>
+			{done === "paired" && <p role="status" data-testid="pair-done">Paired. Events can now ask for signed waivers.</p>}
+			{done === "unpaired" && <p role="status" data-testid="pair-done">Unpaired. Events no longer sends waivers to E-sign.</p>}
+			{done === "error" && <p role="alert" data-testid="pair-error">{errorText(doneCode)}</p>}
+			{view.state === "forbidden" && (
+				<p data-testid="pair-forbidden">
+					Sign in to the admin as an administrator, then open this page again. <a href="/_emdash/admin">Sign in</a>
+				</p>
+			)}
+			{view.state === "error" && <p role="alert" data-testid="pair-error">{errorText(view.code)}</p>}
+			{view.state === "esign-missing" && (
+				<p data-testid="pair-status">
+					E-sign is not installed or not enabled on this site.
+					{view.cleared && " The old pairing was removed, so Events asks for a pairing again."}
+				</p>
+			)}
+			{view.state === "unpaired" && (
+				<>
+					<p data-testid="pair-status">Events and E-sign are both installed but not paired yet.</p>
+					<form method="post" action={PAIR_PATH}>
+						<input type="hidden" name="action" value="pair" />
+						<button type="submit" data-testid="pair-button">Pair with E-sign on this site</button>
+					</form>
+				</>
+			)}
+			{view.state === "revoked" && (
+				<>
+					<p data-testid="pair-status">E-sign revoked this pairing. Pair again to keep using waivers.</p>
+					<form method="post" action={PAIR_PATH}>
+						<input type="hidden" name="action" value="pair" />
+						<button type="submit" data-testid="pair-button">Pair with E-sign on this site</button>
+					</form>
+				</>
+			)}
+			{view.state === "paired" && (
+				<>
+					<p data-testid="pair-status">Events is paired with E-sign on this site.</p>
+					<form method="post" action={PAIR_PATH}>
+						<input type="hidden" name="action" value="unpair" />
+						<button type="submit" data-testid="unpair-button">Unpair</button>
+					</form>
+				</>
+			)}
+		</main>
+	</body>
+</html>

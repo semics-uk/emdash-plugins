@@ -19,6 +19,7 @@ import { CEREMONY_HANDLERS } from "./routes/ceremony";
 import { downloadHandler } from "./routes/download";
 import { ENVELOPE_ROUTES } from "./routes/envelopes";
 import { fromIntentHandler } from "./routes/from-intent";
+import { PAIR_ROUTES } from "./routes/pair";
 import { publicRoutes } from "./routes/public";
 import { lookupHandler } from "./routes/receipts";
 import { TEMPLATE_ROUTES } from "./routes/templates";
@@ -73,6 +74,7 @@ const plugin: SandboxedPlugin = {
 		...ADMIN_ROUTES,
 		...TEMPLATE_ROUTES,
 		...ENVELOPE_ROUTES,
+		...PAIR_ROUTES,
 		admin: withScheduleCheck(ADMIN_ROUTES.admin as RouteDef, isPageLoad),
 		"templates/create": withScheduleCheck(TEMPLATE_ROUTES["templates/create"] as RouteDef),
 		"public/verify": withScheduleCheck(PUBLIC["public/verify"] as RouteDef),
