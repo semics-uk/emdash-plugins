@@ -4,7 +4,7 @@ title: "Pair page: a hand-made pairing shows as revoked; pairing again leaves tw
 phase: 7
 package: events-suite
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T145]

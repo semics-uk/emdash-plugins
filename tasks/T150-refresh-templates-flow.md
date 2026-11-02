@@ -4,7 +4,7 @@ title: "Refresh templates: fetch in one step, or make the next step obvious"
 phase: 7
 package: events-suite
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: S
 depends_on: [T145]
