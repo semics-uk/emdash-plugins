@@ -13,9 +13,10 @@ const PAGES = {
 	"/refunds": "refunds.html",
 	"/privacy": "privacy.html",
 	"/contact": "contact.html",
+	"/licence": "licence.html",
 };
 const FOOTER = ["/terms", "/refunds", "/privacy", "/contact"];
-const LEGAL = ["/terms", "/refunds", "/privacy"];
+const LEGAL = ["/terms", "/refunds", "/privacy", "/licence"];
 const SUPPORT = "support@semics.co.uk";
 /** Plan name -> USD a year, as BUILD-PLAN D5 and the Pro licence Worker's plans.ts hold them. */
 const PRICES = { "Events Pro": 79, "E-sign Pro": 79, "Suite Pro": 129, Agency: 349 };
@@ -296,5 +297,45 @@ describe("deployment", () => {
 
 	test("a 404 page exists for unknown paths", () => {
 		expect(existsSync(join(distDir, "404.html"))).toBe(true);
+	});
+});
+
+describe("T146: the Pro licence is published before you buy", () => {
+	test("the licence page carries the Pro licence, without the draft note", () => {
+		const body = text("/licence");
+		expect(body).toMatch(/semics Pro plugins for EmDash: commercial licence/);
+		expect(body).toMatch(/SEMICS LTD \(company number 12871299\)/);
+		expect(body).not.toMatch(/\bdraft\b/i);
+		expect(body).not.toMatch(/not by a lawyer/i);
+	});
+
+	test.each(["/pricing", "/terms"])("%s links the licence page", (path) => {
+		expect(hrefs(read(path))).toContain("/licence");
+	});
+
+	test("a refund ends the licence for that purchase, on the refunds page and in the licence", () => {
+		expect(text("/refunds")).toMatch(/you no longer have a licence to use it/);
+		const licence = text("/licence");
+		expect(licence).toMatch(/A refund ends this licence for the purchase you were refunded/);
+		expect(licence).toMatch(/Sections 4 \(except after a refund or after we end this licence under this section\)/);
+	});
+
+	test("refunding a renewal keeps the versions from the years you paid for", () => {
+		expect(text("/refunds")).toMatch(/If you refund a renewal, you keep the versions released during the years you paid for/);
+		expect(text("/licence")).toMatch(/If you refund a renewal, you keep the versions released during the years you paid for/);
+	});
+});
+
+describe("T146: the D5 first-year discount is on the pricing page", () => {
+	test("BUILD-PLAN D5 still offers 40% off the first year for the first 100 customers", () => {
+		const d5 = readFileSync(join(repoRoot, "BUILD-PLAN.md"), "utf8").match(/^\| D5 \|.*$/m)?.[0] ?? "";
+		expect(d5).toMatch(/40% off the first year for the first 100 customers/);
+	});
+
+	test("the pricing page says so, and that renewals are at the full price", () => {
+		const body = text("/pricing");
+		expect(body).toMatch(/40% off your first year/);
+		expect(body).toMatch(/first 100 customers/);
+		expect(body).toMatch(/renews at the full price/);
 	});
 });
