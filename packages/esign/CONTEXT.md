@@ -125,6 +125,16 @@ action is `envelopes.page:<status>`. Coverage counts only code imported by tests
 
 Integrations (T060): `/integrations` page (`src/admin/integrations.ts`, `domain/clients.ts`). `client.create` returns the pairing string in that one response (a `code` block) and nothing can show it again; the `clients` doc holds `name, clientId, createdAt, lastUsedAt, revokedAt, returnUrlAllowlist` and no secret (derived per S8). `client.revoke` sets `revokedAt` once (`updateIf` on `revokedAt: null`). Master-key rule: `masterKeyBytes` unchanged (trimmed UTF-8, >= 32 bytes); `integrations.generate-key` sets 32 CSPRNG bytes as base64url, only while no key is set (changing it re-pairs every client); the settings save refuses a typed key under 32 bytes. Allowlist lines follow protocol §7 (https, http only for loopback, no userinfo/query/fragment, max 10). Page load 2 calls, actions 3. Admin actions ride EmDash's own admin API (CSRF-protected); no public route. The `clients` collection has no unique index (T135): EmDash 1.2 builds a unique index as `(plugin_id, collection, field)` over the plugin's whole storage, and envelopes carry `clientId`, so a second envelope from one client failed; the doc id is the client id. Never make unique a field another collection stores (`tests/storage-host.test.ts`).
 
+Suite pairing (T145): private route `integrations/pair` (`src/routes/pair.ts`), called in process by the Events
+suite's `/_events/pair` with the signed-in admin as caller. `action`: `status` (`none`/`active`/`revoked` + id),
+`pair` (generates the master key if nothing is stored, never overwrites a stored one, even unreadable:
+`MASTER_KEY_INVALID`; reuses the active site client, whose id is in KV `integrations:site-client`, else creates
+"Events on this site" with an empty allowlist; returns `pairing`), `unpair` (revokes it). Refuses a caller below
+role 50 (`ADMIN_REQUIRED`: in-process calls skip the host's permission check) and any request with `Origin` or
+`Sec-Fetch-*` (`SERVER_ONLY`: the sandbox keeps those headers, a browser always sends them, the suite's
+`Request` has none), so a pairing string never reaches a browser. Logs nothing. Calls: status/repeat pair 3,
+fresh pair 5, unpair 4. Not in the manifest (private routes are not part of the trust contract).
+
 Hardening (T117, `tasks/reviews/phase-1.md` findings 5-9, 14-18): `public/session` records the first view only with
 `open: true`; the sign page sends it with its first POST (sign or decline), never on a GET (mail scanners). Session
 returns `consent.sha256`; submit requires `consentSha256` (`INVALID_CONSENT_HASH`; `CONSENT_CHANGED` when the wording

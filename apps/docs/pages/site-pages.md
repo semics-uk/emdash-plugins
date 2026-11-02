@@ -23,6 +23,7 @@ The Astro integrations add these routes. Do not create pages of your own at the 
 | `/_esign/start` | E-sign | Where the self-serve signing form posts (Pro) |
 | `/_events/waiver` | Suite | Books and signs waivers inline |
 | `/_events/templates` | Suite | Refreshes the panel's list of waiver templates (Pro) |
+| `/_events/pair` | Suite | Pairs Events with E-sign on this site in one click (administrators) |
 
 All of them are rendered on the server. Every page sends `Referrer-Policy: no-referrer` and
 `Cache-Control: no-store`, and every route that takes a form post refuses posts from other sites.

@@ -66,6 +66,31 @@ bundles nothing new into the cores; it calls them through their public routes in
   re-verifies the request (minted by this site, <= 5 minutes) and caches the well-formed templates for the
   panel's select. Both lookup and catalogue tokens are minted by the Events Pro core, never here.
 
+## Auto-pairing (T145, `/_events/pair`)
+
+Sandbox facts (EmDash 1.2, checked in `emdash/dist`): a sandboxed core reaches only its own settings,
+storage and KV (scoped by plugin id) and cannot call another plugin's routes, so neither core can pair
+the other. Site pages are native: for a signed-in visitor `locals.emdash.handlePluginApiRoute` runs any
+route of a plugin, private ones too, in process with the caller we pass (it skips the HTTP dispatcher's
+`plugins:manage`/CSRF check, so the caller must check); anonymous visitors only get
+`handlePublicPluginApiRoute`. Plugin settings are written by the host's own handler (`GET`/`PUT` of
+`emdash/internal/routes/api/admin/plugins/_id_/settings`): it checks `plugins:manage` on `locals.user`,
+validates against the manifest, encrypts secrets, merges only the keys sent (`null` deletes) and masks
+secrets in answers (`secretsSet`). The sandbox strips `cookie`, `authorization` and `x-emdash-request`
+from a route's headers but keeps `origin` and `sec-fetch-*`.
+
+Design: `PairPage.astro` + `lib/pair.ts`. GET: the host's settings read (the admin check) says whether
+Events holds `esignPairing`; E-sign's private `integrations/pair` `status` says whether its site client is
+active → `paired` / `unpaired` / `revoked` / `esign-missing` / `forbidden` / `error`. One POST
+(`action=pair`, cross-site posts refused) asks E-sign `pair` (as the admin, with a fresh server-side
+`Request`: no browser headers) and writes the returned string with the host's settings write; PRG to
+`?result=`. The string is only in that request's memory: no response, URL, cookie or log. `unpair`
+revokes the client and deletes the setting (Events' "pairing" waiver state). When the host says E-sign is
+not there (`NOT_FOUND` "Plugin not enabled/found"), a GET clears a leftover pairing (it cannot work).
+E-sign's route refuses non-admins and any request with `Origin`/`Sec-Fetch-*`, so an admin's browser
+cannot read a pairing string from it either; re-running reuses the one client (id in E-sign KV). The
+manual flow (E-sign Integrations → paste into Events settings) is unchanged.
+
 ## Tests
 
 `tests/*.test.ts`, plain Node vitest: the flow runs the real UI helpers of both products against a fake

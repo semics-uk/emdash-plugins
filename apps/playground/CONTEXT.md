@@ -43,6 +43,11 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   booking through it (no JS, an under-18 attendee), the C0 refusal, and `/_events/waiver` with an intent minted like Events
   Pro (flow cookie `semics_waiver_<ref>` set by the test): ceremony under `ceremonyCsp()`, receipt forwarded in-process
   (Free's `signatures/receipt` is a stub, so the notice is `waiver=failed`).
+- `e2e/t145-auto-pairing.spec.ts` (T145): signs the browser in as the seeded admin through the real magic-link flow
+  (`magic-link/send`, token from `/e2e/mail`, `magic-link/verify`), then one click on `/_events/pair` pairs Events with
+  E-sign; checks Events' `secretsSet.esignPairing`, one "Events on this site" row in `data.db`, no pairing string in any
+  response, the E-sign route's `SERVER_ONLY` refusal and unpairing. The session cookie is `Secure`: Chrome sends it to
+  127.0.0.1 but Playwright's API client does not, so signed-in replays run as `fetch` inside the page.
 - `e2e/t082-check-in.spec.ts` (T082): `/_events/check-in` at 320 px (overflow, 44 px targets, axe); Pro's `checkin/code`
   answers are played by `page.route` mocks (checked in, waiver pending with the sign link, a foreign link dropped), Free's own
   answer says the screen needs Events Pro; `/e2e/widgets` shows a pass with a fixed Pro QR matrix.

@@ -2,7 +2,7 @@
  * Automatic pairing of Events with E-sign on one site (T145), behind `/_events/pair`.
  *
  * Sandbox facts this rests on (EmDash 1.2):
- * - A sandboxed core reaches only its own `ctx.settings`, `ctx.storage` and `ctx.kv` (all scoped by
+ * - A sandboxed core reaches only its own settings, storage and KV (all scoped by
  *   plugin id) and cannot call another plugin's routes, so neither core can pair the other.
  * - Site pages run as native code. For a signed-in visitor `locals.emdash` carries
  *   `handlePluginApiRoute`, which runs any route of a plugin (private ones too) in process with the

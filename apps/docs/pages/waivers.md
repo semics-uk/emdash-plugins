@@ -13,9 +13,12 @@ An event can require every attendee to sign a waiver before they get in. This jo
 1. Install with the suite ([Install](install.md#events-and-e-sign-together)).
 2. In E-sign, write the waiver template and mark it **available to integrations**. Use
    `{{participant.name}}` for the person a guardian signs for.
-3. In E-sign **Integrations**, create a client whose return URL is `https://<your site>/booking`, and copy
-   its pairing string ([E-sign guide](esign.md#integrations)).
-4. In the Events settings, paste it into **E-sign pairing string**.
+3. Signed in as an administrator, open `https://<your site>/_events/pair` and press **Pair with E-sign on
+   this site**. The suite creates the E-sign client and saves the pairing string in the Events settings;
+   nothing to copy, and the string is never shown.
+4. Or pair by hand: in E-sign **Integrations**, create a client whose return URL is
+   `https://<your site>/booking`, copy its pairing string ([E-sign guide](esign.md#integrations)) and paste
+   it into **E-sign pairing string** in the Events settings.
 5. In the event's **Tickets & booking** panel, turn on **Require a signed waiver**, pick the template, and
    choose **Who signs**:
    - **Each attendee** (default): the buyer signs for themselves and for every attendee under 18. Every other

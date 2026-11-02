@@ -101,7 +101,7 @@ async function waiverAvailability(deps: PanelDeps): Promise<WaiverAvailability> 
 
 const WAIVER_UNAVAILABLE: Record<"edition" | "pairing" | "licence", string> = {
 	edition: "Required waivers need Events Pro and the E-sign plugin.",
-	pairing: "Pair E-sign at /_events/pair or in settings to require waivers.",
+	pairing: "Use /_events/pair or add the E-sign pairing string in settings.",
 	licence: "Your Events Pro licence is not valid for this site.",
 };
 

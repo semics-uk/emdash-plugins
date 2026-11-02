@@ -50,8 +50,12 @@ import { eventsSuite } from "@semics-tech/emdash-events-suite";
 export const suite = eventsSuite({ events: { pluginId: "r_events_id" }, esign: { pluginId: "r_esign_id" } });
 ```
 
-Pair the two cores in the admin: create an integration client in E-sign (Integrations), paste its
-pairing string into the Events settings, and allow `https://<your site>/booking` as a return URL.
+Pair the two cores: sign in to the admin as an administrator, open `/_events/pair` on your site and
+press **Pair with E-sign on this site**. The suite creates the E-sign integration client (and the master
+key, if none is set) and stores the pairing string in the Events settings for you; it is never shown.
+The site needs `EMDASH_ENCRYPTION_KEY` set, as for any secret setting. Pairing by hand still works:
+create an integration client in E-sign (Integrations) and paste its pairing string into the Events
+settings.
 
 ## Book with a waiver
 
