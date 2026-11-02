@@ -2827,7 +2827,8 @@
 				"R92"
 			],
 			"unblocks": [
-				"T143"
+				"T143",
+				"T147"
 			],
 			"column": "done"
 		},
@@ -2911,6 +2912,23 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T147": {
+			"file": "T147-pro-questions-no-repeater.md",
+			"id": "T147",
+			"title": "Pro booking questions: add questions without a repeater, and show them on the Event editor",
+			"phase": 7,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T141"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
@@ -2919,7 +2937,8 @@
 		],
 		"ready": [
 			"T140",
-			"T143"
+			"T143",
+			"T147"
 		],
 		"in-progress": [
 			"T144"
