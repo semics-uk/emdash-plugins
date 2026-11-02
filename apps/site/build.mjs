@@ -25,6 +25,7 @@ const FOOTER = [
 	{ href: "/terms", label: "Terms of sale" },
 	{ href: "/refunds", label: "Refunds" },
 	{ href: "/privacy", label: "Privacy" },
+	{ href: "/licence", label: "Pro licence" },
 	{ href: "/contact", label: "Contact" },
 ];
 
@@ -43,6 +44,7 @@ main{display:block;padding-block:24px 48px}h1,h2,h3{line-height:1.25}h1{font-siz
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin:24px 0}
 .card{border:1px solid var(--line);border-radius:8px;padding:16px}.card h2,.card h3{margin-top:0;font-size:1.15rem}
 .price{font-size:1.6rem;font-weight:600;margin:4px 0}.price small{font-size:.9rem;font-weight:400;color:var(--muted)}
+.licence{white-space:pre-wrap;font:inherit;max-width:72ch}
 .note{background:var(--code);border-radius:8px;padding:12px 16px}
 code{background:var(--code);padding:1px 4px;border-radius:4px;font-size:.92em}
 table{border-collapse:collapse;display:block;overflow-x:auto;max-width:100%}th,td{border:1px solid var(--line);padding:6px 8px;text-align:start;vertical-align:top}

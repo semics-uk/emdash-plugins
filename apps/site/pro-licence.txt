@@ -1,0 +1,98 @@
+semics Pro plugins for EmDash: commercial licence
+Version 1.0
+
+Copyright (c) 2026 SEMICS LTD. All rights reserved.
+
+1. Who this licence is between
+
+   This licence is between SEMICS LTD (company number 12871299), registered in England and Wales, registered
+   office Slowley Hall, Tamworth Road, Coventry, CV7 8EB ("we", "us"), and the person or organisation that
+   bought the licence ("you"). Contact: support@semics.co.uk.
+
+   It covers the semics Pro plugin packages for EmDash (@semics-tech/emdash-events-pro and
+   @semics-tech/emdash-esign-pro), with their documentation and updates ("the Software"). You buy a licence
+   through our online reseller Paddle.com, which is the Merchant of Record; our terms of sale at
+   https://plugins.semics.co.uk/terms also apply.
+
+2. The licence key and the Update Term
+
+   When you buy or renew, you receive a licence key for your plan. The key names the production hostnames it
+   covers and the products it unlocks: one production hostname for Events Pro, E-sign Pro and Suite Pro, or
+   up to 10 production hostnames for Agency. Each production hostname needs its own place in a key.
+
+   The "Update Term" is one year from the date you pay. Each renewal adds another year.
+
+3. What you may do
+
+   We grant you a non-exclusive, non-transferable licence to:
+
+   (a) install and run the Software on the production hostnames your key covers;
+   (b) install and run it without a key, in any number, on local and preview hosts used for development and
+       testing: localhost, 127.0.0.1, [::1], *.localhost, *.workers.dev and *.pages.dev;
+   (c) make the copies you need for those installs, for backups and for your build and deployment pipeline;
+   (d) modify the Software for your own use on the hostnames this licence covers, for example to fix a bug or
+       fit it to your site; and
+   (e) let your staff and contractors do these things for you, as long as they follow this licence.
+
+   An agency may install the Software for its clients on the hostnames its key covers. The licence stays with
+   the buyer unless we agree in writing to move it.
+
+4. Updates, and the versions you keep
+
+   During the Update Term you may install every version of the Software we release, and you get email
+   support.
+
+   Your right to use each version released during the Update Term is perpetual: it does not end when the
+   Update Term ends, when you cancel, or when you stop renewing. It does end if you take a refund (section
+   7). A version released after your Update Term ends needs a renewed key; the key you already have does not
+   unlock it.
+
+   The key is checked offline on your site. We cannot switch it off remotely, and your site never needs to
+   contact us for the Software to keep working.
+
+5. What you must not do
+
+   You must not:
+
+   (a) sell, rent, lend, sublicense, redistribute or publish the Software or a modified version of it, or
+       offer it to others as a product, plugin or hosted service of its own;
+   (b) share your licence key, or use it on hostnames it does not cover;
+   (c) remove, disable or get around the licence check, or help anyone else do so; or
+   (d) remove copyright or licence notices.
+
+   Nothing here stops you doing what the law allows you to do whatever a contract says, such as making a
+   back-up copy or decompiling for interoperability where the law permits it.
+
+6. Your data and the free plugins
+
+   The Software stores its data in your own site. Your data stays yours: when your licence ends, or you go
+   back to the free plugins, nothing is deleted or locked, and you can export it.
+
+   The free plugins (Events and E-sign) are open source under the MIT licence. The parts of this package that
+   come from them remain available to you under MIT; this licence covers the Pro additions.
+
+7. Refunds and ending this licence
+
+   You may have a full refund within 14 days of a purchase or renewal, for any reason (see
+   https://plugins.semics.co.uk/refunds). A refund ends this licence for the purchase you were refunded: we
+   issue no new keys, updates or support for it, and you must stop using the Software it gave you and remove
+   the key from your site. If you refund a renewal, you keep the versions released during the years you paid
+   for and were not refunded.
+
+   If you seriously break section 5 and do not put it right within 30 days of our written notice, we may end
+   this licence. You must then stop using the Software and delete your copies.
+
+   Sections 4 (except after a refund or after we end this licence under this section), 5, 6, 8 and 9
+   continue after this licence ends.
+
+8. Our responsibility
+
+   Our responsibility for the Software, and the limits on it, are set out in our terms of sale at
+   https://plugins.semics.co.uk/terms. If you are a consumer, nothing in this licence affects your legal
+   rights.
+
+9. Law
+
+   This licence is governed by the law of England and Wales, and the courts of England and Wales have
+   jurisdiction. If you are a consumer living elsewhere in the UK or the EU, you also keep the protection of
+   the law where you live and may bring a claim in your local courts.

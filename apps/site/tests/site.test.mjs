@@ -321,8 +321,12 @@ describe("T146: the Pro licence is published before you buy", () => {
 	});
 
 	test("refunding a renewal keeps the versions from the years you paid for", () => {
-		expect(text("/refunds")).toMatch(/If you refund a renewal, you keep the versions released during the years you paid for/);
-		expect(text("/licence")).toMatch(/If you refund a renewal, you keep the versions released during the years you paid for/);
+		expect(text("/refunds")).toMatch(
+			/If you refund a renewal, you keep the versions released during the years you paid for/,
+		);
+		expect(text("/licence")).toMatch(
+			/If you refund a renewal, you keep the versions released during the years you paid for/,
+		);
 	});
 });
 

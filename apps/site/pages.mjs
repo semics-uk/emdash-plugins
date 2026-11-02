@@ -2,6 +2,8 @@
 // (footer and JSON-LD); prices are BUILD-PLAN D5 and the Pro licence Worker's plans.ts. The terms, refund
 // and privacy text (`review: true`) needs the lawyer's review before launch (docs/legal/brief.md §13).
 
+import { readFileSync } from "node:fs";
+
 export const SITE = {
 	origin: "https://plugins.semics.co.uk",
 	support: "support@semics.co.uk",
@@ -91,14 +93,16 @@ ${PLANS.map(
 		`<section class="card"><h2>${p.name}</h2><p class="price">$${p.usd} a year <small>${p.sites}, plus VAT or sales tax where it applies</small></p><p>${p.what}</p></section>`,
 ).join("\n")}
 </div>
+<p class="note"><strong>Launch offer:</strong> 40% off your first year for our first 100 customers. Your licence then renews at the full price shown above.</p>
 <p class="note"><strong>Buy links are coming.</strong> Online checkout opens soon. Until then, email ${mail} to buy a licence or ask a question.</p>
 <h2>How it works</h2>
 <ul>
 <li>Prices are in US dollars. Paddle adds VAT or sales tax where it applies and may show the price in your currency: the total price, including any VAT or sales tax, is shown at checkout before you pay.</li>
 <li>${MOR} Your receipt and invoice come from Paddle.</li>
-<li>After payment you receive a licence key by email, tied to your site's hostnames. Paste it into the plugin's settings. The plugin checks it offline; it never calls home.</li>
+<li>After payment you receive a licence key by email, tied to your site's production hostname. Paste it into the plugin's settings. The plugin checks it offline; it never calls home.</li>
 <li>A licence renews each year until you cancel. You can cancel at any time and keep Pro until the end of the year you paid for.</li>
 <li>Versions released while your licence was current keep working after it ends: the key is checked offline and never switched off. Newer versions need a renewed key. See <a href="${docsPage("editions.md")}">how Pro works</a>.</li>
+<li>Pro is used under our <a href="/licence">Pro licence</a>. Please read it before you buy.</li>
 <li>Changed your mind? You can have a full refund within 14 days, no questions asked. See <a href="/refunds">Refunds</a>.</li>
 </ul>
 `,
@@ -120,8 +124,8 @@ const terms = {
 <p>This means you buy the licence from Paddle, which takes your payment, charges any sales tax and issues your invoice. Paddle's own <a href="https://www.paddle.com/legal/checkout-buyer-terms">buyer terms</a> apply to the purchase. These terms cover the licence and the software we supply.</p>
 <h2 id="licence">What you get</h2>
 <ul>
-<li>A licence key for the plan you chose: one site for Events Pro, E-sign Pro or Suite Pro, or up to 10 sites for Agency. A site is identified by its hostnames.</li>
-<li>The right to install and use the Pro plugin on the licensed sites, under our Pro licence (the <code>LICENSE</code> file in each Pro package). It lets you change the plugin for your own use on those sites, but not sell or redistribute it.</li>
+<li>A licence key for the plan you chose: one site for Events Pro, E-sign Pro or Suite Pro, or up to 10 sites for Agency. Each site is one production hostname, such as <code>www.example.com</code>; local and preview hosts need no key.</li>
+<li>The right to install and use the Pro plugin on the licensed sites, under our <a href="/licence">Pro licence</a> (also the <code>LICENSE</code> file in each Pro package). It lets you change the plugin for your own use on those sites, but not sell or redistribute it.</li>
 <li>Updates and email support for one year from the date you pay.</li>
 </ul>
 <p>Prices are on the <a href="/pricing">pricing page</a>. The total price, including any VAT or sales tax, is shown at checkout before you pay.</p>
@@ -162,7 +166,7 @@ const refunds = {
 </ul>
 <p>${MOR} Paddle sends the refund to the card or account you paid with. Banks usually take 5 to 10 working days to show it.</p>
 <h2 id="after">After a refund</h2>
-<p>The licence ends when the refund is made: we issue no new keys for it and give no further updates or support, and you should remove the licence key from your site. Keys are checked offline on your site and we cannot switch them off, so the key you already have keeps working with versions released before its year of updates ends, but you no longer have a licence to use it. Your data stays where it is.</p>
+<p>The licence ends when the refund is made: we issue no new keys for it and give no further updates or support, and you should remove the licence key from your site. Keys are checked offline on your site and we cannot switch them off, so the key you already have keeps working with versions released before its year of updates ends, but you no longer have a licence to use it. If you refund a renewal, you keep the versions released during the years you paid for and were not refunded. Your data stays where it is.</p>
 <h2 id="later">After 14 days</h2>
 <p>After 14 days we do not usually refund, but you can cancel at any time so that your licence does not renew. If a Pro feature does not work as described and we cannot fix it, we will refund the current year's fee. If you are a consumer, this policy does not affect your legal rights.</p>
 `,
@@ -225,7 +229,23 @@ const contact = {
 `,
 };
 
-export const PAGES = [home, pricing, terms, refunds, privacy, contact];
+const escapeHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/** The Pro licence (T146): a copy of each Pro package's LICENSE file. Change both together. */
+const licence = {
+	path: "/licence",
+	file: "licence.html",
+	review: true,
+	title: "Pro licence: semics plugins for EmDash",
+	description: "The commercial licence for the semics Pro plugins for EmDash: what you may do, updates, refunds.",
+	body: `
+<h1>Pro licence</h1>
+<p class="lead">The licence you agree to when you buy Events Pro, E-sign Pro, Suite Pro or Agency. The same text ships as the <code>LICENSE</code> file in each Pro package.</p>
+<pre class="licence">${escapeHtml(readFileSync(new URL("./pro-licence.txt", import.meta.url), "utf8"))}</pre>
+`,
+};
+
+export const PAGES = [home, pricing, terms, refunds, privacy, contact, licence];
 
 export const NOT_FOUND = {
 	path: "/404",

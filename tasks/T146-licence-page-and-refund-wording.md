@@ -1,6 +1,6 @@
 # T146: Publish the Pro licence, align its refund clause, show the first-year discount
 
-Status: in progress (owner: orchestrator, from legal research pass 3, `c5b3ea4`)
+Status: done (owner: orchestrator, from legal research pass 3, `c5b3ea4`)
 
 ## Why
 Legal research pass 3 (`docs/legal/research.md`) found:
@@ -20,6 +20,12 @@ Legal research pass 3 (`docs/legal/research.md`) found:
 - The discount wording is shown now; the owner sets the matching Paddle discount (T072: discounts live in Paddle).
 
 ## Done when
-- [ ] Tests in `apps/site/tests/site.test.mjs` (T146 blocks) pass.
-- [ ] Pro `packages/esign-pro/LICENSE` and `packages/events-pro/LICENSE` match `apps/site/pro-licence.txt`.
-- [ ] Brief fixes from pass 3: issue number, Q17 line in §14, §12 multi-signer review, hostname vs site.
+- [x] Tests in `apps/site/tests/site.test.mjs` (T146 blocks) pass.
+- [x] Pro `packages/esign-pro/LICENSE` and `packages/events-pro/LICENSE` match `apps/site/pro-licence.txt`.
+- [x] Brief fixes from pass 3: issue number, Q17 line in §14, §12 multi-signer review, hostname vs site.
+
+## Notes
+- The site is not deployed by CI: the owner runs `pnpm --filter site deploy` to publish `/licence` and the new
+  pricing and refunds text.
+- The owner must set the D5 discount (40% off the first year, first 100 customers) in Paddle before checkout opens.
+- Pro LICENSE change is in the Pro repo with a changeset, so it ships in the next Pro release.

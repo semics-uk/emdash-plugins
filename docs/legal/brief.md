@@ -1,6 +1,6 @@
 # E-sign: brief for legal review of consent, evidence and retention
 
-Issue 2. Prepared from the code of `packages/esign` (the E-sign plugin) and the Events integration protocol as they stand
+Issue 3 (2 November 2026). Prepared from the code of `packages/esign` (the E-sign plugin) and the Events integration protocol as they stand
 in this repository. Numbers in square brackets, such as [C3], point to the code list at the end. Where a project document
 and the code disagree, this brief follows the code and says so (section 12).
 
@@ -385,8 +385,10 @@ people; the integration tokens are signed with keys derived per client, never st
 - **`signer.viewed` on GET.** An earlier question (review T034, task T117) was whether a view should be recorded when a
   mail scanner fetches the page. The code now records a view only on the first submit (sign or decline). [C6]
 - The `Free`/`Pro` split is described in the build plan; this brief describes the Free code, and the Pro code for the email
-  one-time code (section 6, [C35]) and for uploaded PDF documents (section 5.6, [C36]). Other Pro features are described from the protocol and Events notes, not as reviewed
-  code. [C1][C22]
+  one-time code (section 6, [C35]) and for uploaded PDF documents (section 5.6, [C36]). The routing of envelopes with
+  several signers (section 5.5) is described from the Free code's seams and signed-PDF code [C34] and the task notes
+  (T090), not from a review of the Pro routing code (`packages/esign-pro/src/routing/` in the Pro repo). Other Pro
+  features are described from the protocol and Events notes, not as reviewed code. [C1][C22]
 
 ## 13. Open questions for the lawyer
 
@@ -443,11 +445,14 @@ people; the integration tokens are signed with keys derived per client, never st
     signer was shown the document, and should the page require the signer to open it before signing?
 17. **The product site's legal text and the Pro licence need your review before launch (T124, T126).**
     https://plugins.semics.co.uk publishes terms of sale (`/terms`), a refund policy (`/refunds`) and a privacy policy
-    (`/privacy`), written in plain English by the build agents, not by a lawyer; the source is `apps/site/pages.mjs`.
+    (`/privacy`), and the Pro licence (`/licence`, linked from the pricing page and the terms so a buyer can read it
+    before paying), written in plain English by the build agents, not by a lawyer; the source is `apps/site/pages.mjs`
+    and `apps/site/pro-licence.txt`.
     Paddle.com is the Merchant of Record and reseller, and the terms use Paddle's reseller wording. The terms grant use
     of Pro under the commercial licence shipped in each public Pro npm package (`packages/events-pro/LICENSE` and
-    `packages/esign-pro/LICENSE` in the Pro repo, identical): a draft by the build agents from SEMICS LTD following
-    BUILD-PLAN D6 and R90 (one key per production hostname, local and preview hosts free, a year of updates, perpetual
+    `packages/esign-pro/LICENSE` in the Pro repo, identical to `apps/site/pro-licence.txt`): written by the build agents
+    for SEMICS LTD following BUILD-PLAN D6 and R90 (one key per production hostname, which the site's terms and pricing
+    call a "site", local and preview hosts free, a year of updates, perpetual
     use of versions released in that year, modification for own use, no redistribution). Please check in particular:
     - the Pro licence text, including its termination clause and that it defers liability to the terms of sale;
     - the liability limits (capped at the year's fee; unforeseeable and business losses excluded), for business buyers
@@ -461,7 +466,10 @@ people; the integration tokens are signed with keys derived per client, never st
       payment (DMCCA s.230);
     - what the site says happens when a licence ends or is refunded: an issued key keeps verifying offline and cannot
       be switched off (`licence-worker/src/handlers.ts`), so the site says no new keys or updates are issued and newer
-      versions need a renewed key;
+      versions need a renewed key; a refund ends the licence for the refunded purchase (refunds page and licence
+      section 7 agree, T146), while refunding a renewal keeps the versions from the years paid for;
+    - the 40%-off first year for the first 100 customers (D5), now shown on the pricing page with renewal at the full
+      price;
     - governing law (England and Wales);
     - the privacy policy: Paddle as an independent controller, legitimate interests for website logs and support
       email, the rights listed (including portability and objection), whether an EU representative is needed (Art 27),
@@ -471,15 +479,21 @@ people; the integration tokens are signed with keys derived per client, never st
 
 ## 14. Changes since last review
 
+Issue 3 follows the third round of AI-assisted research (`docs/legal/research.md`, not legal advice): section 12 says
+the Pro routing for several signers was not reviewed as code; question 17 now covers the published licence page, the
+refund rule both the refunds page and the licence now state (a refund ends the licence for that purchase, T146), the
+first-year discount on the pricing page, and that a licensed "site" is one production hostname. The draft note was
+removed from the shipped licence file; the licence still awaits your review.
+
 Issue 2 corrects Issue 1 after a first round of AI-assisted research (`docs/legal/research.md`, not legal advice):
 section 2 now says when ESIGN section 7001(c) applies and that eIDAS does not define a "simple" signature; the email
 one-time code is no longer called "not built yet"; sections 6 and 13 name the "Identity check" label on the
 certificate; section 10 describes the licence service; section 12 says which Pro code was reviewed; and question 4 gives
-the limitation rules for minors in full. Question 17 (the product site, new in this review) now also covers the Pro licence text, the
+the limitation rules for minors in full. Question 17 (the product site, added after Issue 1) now also covers the Pro licence text, the
 14-day refund decision (R89), the 2027 UK subscription rules, the price-with-tax note, the licence-end wording and the
 privacy changes (T126).
 
-Issue 1 was the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094; and question 17, the product site's terms, refund and privacy text, T124.)
+Issue 1 was the first issue. (Added before review: section 5.5, several signers in the Pro edition, T090; the Pro email one-time code in section 6, T091; and section 5.6, uploaded PDF documents in the Pro edition, T094.)
 
 ## 15. Code references
 
