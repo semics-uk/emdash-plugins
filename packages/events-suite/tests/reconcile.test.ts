@@ -53,7 +53,10 @@ const waiting = (over: Body = {}) => ({
 	...over,
 });
 
-const input = (booking: ReturnType<typeof waiting>) => ({ booking, pluginId: EVENTS, esignPluginId: ESIGN });
+const input = (booking: {
+	bookingRef: string;
+	waiver?: Parameters<typeof reconcileBooking>[1]["booking"]["waiver"];
+}) => ({ booking, pluginId: EVENTS, esignPluginId: ESIGN });
 
 /** E-sign's lookup: seat 1 is signed (a terminal receipt), seat 2 is still pending. */
 const lookup = (body: Body) =>

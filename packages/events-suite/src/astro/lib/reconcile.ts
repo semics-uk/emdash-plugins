@@ -33,8 +33,41 @@ const RECEIPT_MAX = 2048;
 const tokenOf = (value: unknown, max: number): string | null =>
 	typeof value === "string" && value.length <= max && TOKEN.test(value) ? value : null;
 
+const INTENT_MAX = 4096;
+
+/**
+ * T152: an ended booking (expired, cancelled) carries, with Pro, a `replace` intent per seat not signed.
+ * Each goes to e-sign's `from-intent`, which voids the seat's open envelope and creates nothing, so a
+ * signing token lifted from the waiver cookie signs nothing any more. Idempotent (a voided or completed
+ * envelope is left alone), so every visit may send them again. Resolves with how many e-sign accepted.
+ */
+export async function voidEnvelopes(
+	ctx: PublicRouteContext,
+	input: Pick<ReconcileInput, "booking" | "esignPluginId">,
+): Promise<number> {
+	const intents = Object.values(input.booking.waiver?.voids ?? {})
+		.slice(0, MAX_LOOKUPS)
+		.map((intent) => tokenOf(intent, INTENT_MAX))
+		.filter((token): token is string => token !== null);
+	const answers = await Promise.all(
+		intents.map((intent) =>
+			callPublicRoute(ctx, {
+				method: "POST",
+				path: "public/envelopes/from-intent",
+				pluginId: input.esignPluginId,
+				body: { intent },
+			}).catch(() => null),
+		),
+	);
+	return answers.filter((a) => a?.ok).length;
+}
+
 /** Forwards the receipts e-sign already holds for the booking's unsigned refs; resolves with how many Events took. */
-export async function reconcileBooking(ctx: PublicRouteContext, input: ReconcileInput): Promise<{ forwarded: number }> {
+export async function reconcileBooking(
+	ctx: PublicRouteContext,
+	input: ReconcileInput,
+): Promise<{ forwarded: number; voided?: number }> {
+	if (input.booking.waiver?.voids) return { forwarded: 0, voided: await voidEnvelopes(ctx, input) };
 	const { refs = [], lookups = {} } = input.booking.waiver ?? {};
 	const requests = refs
 		.slice(0, MAX_LOOKUPS)

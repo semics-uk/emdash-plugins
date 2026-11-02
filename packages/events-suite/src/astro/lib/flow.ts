@@ -40,6 +40,7 @@ import {
 	type WaiverOrder,
 	waiverErrorLocation,
 } from "./form.ts";
+import { voidEnvelopes } from "./reconcile.ts";
 
 /** The steps of the flow. `pay` is the Phase 4 slot: continue's `pay` answer is followed as it is. */
 export const FLOW_STEPS = ["book", "sign", "pay", "done"] as const;
@@ -95,6 +96,8 @@ export interface BookingAnswer {
 	occurrenceId?: string;
 	/** The event's public info; `startsAt` is the booked date's. Kept after the event leaves sale. */
 	event?: { title?: string; startsAt?: string; timezone?: string | null; slug?: string | null };
+	/** Pro, once the booking has ended: a void intent per seat not signed (T152). */
+	waiver?: { refs: string[]; voids?: Record<string, string> };
 }
 
 /** Booking statuses with nothing left to sign for: the places are gone (T151). */
@@ -399,6 +402,15 @@ async function sign(
 	// (its receipt step still confirms nothing for an ended booking).
 	const booking = await readBooking(ctx, ids, ref);
 	if (booking && ended(booking, (deps.now ?? Date.now)())) {
+		// T152: with Pro the answer carries void intents for the seats not signed; e-sign voids their
+		// envelopes, so the cookie's tokens sign nothing. A failure never changes the page.
+		if (booking.waiver?.voids) {
+			const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
+			await voidEnvelopes(call, {
+				booking: { bookingRef: ref, waiver: booking.waiver },
+				esignPluginId: ids.esignPluginId,
+			});
+		}
 		const href = booking.event?.slug ? eventHref({ slug: booking.event.slug }) : undefined;
 		return { type: "error", ref, code: "BOOKING_EXPIRED", ...(href ? { href } : {}) };
 	}

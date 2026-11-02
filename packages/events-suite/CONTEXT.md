@@ -63,6 +63,11 @@ bundles nothing new into the cores; it calls them through their public routes in
   `public/receipts/lookup` per lookup request (max 10, in parallel) and forwards each terminal receipt with
   `forwardReceipt`; the page then re-reads the booking. Events stores a receipt once and never replaces a
   completed one, so a second visit changes nothing. Free lists no requests: no calls. Errors are swallowed.
+- T152 `voidEnvelopes` (same file): an ended booking (expired, cancelled, declined, refunded, or a lapsed hold) carries,
+  with Pro, `waiver.voids` (`{ ref: replace-intent }`, seats not signed). `reconcileBooking` then sends each to E-sign
+  `public/envelopes/from-intent` (voids the open envelope, creates nothing; idempotent) instead of looking anything up;
+  Events' `/booking` page reconciles when `reconcileWanted` (lookups or voids), and the waiver page's `BOOKING_EXPIRED`
+  path runs it too. The Events core cannot reach E-sign, so the void happens on the buyer's next visit, not at expiry.
 - `lib/templates.ts` `refreshCatalogue` and `TemplatesPage.astro` (`/_events/templates`): the panel's Refresh
   templates (Pro) links to `/_events/templates#catalog=<request>`; Events' `receipt.ts` client script posts it
   from the fragment; the page asks E-sign `public/templates/catalog`, then Events (Pro) `esign/catalog`, which

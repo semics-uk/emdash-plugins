@@ -48,6 +48,10 @@ export interface PublicEvent {
  * Ticket type names by id from a `public/event` answer, for `<BookingStatus>` (T134): the booking's
  * lines carry only ids (UUIDs for types made in the editor). A hidden type is not listed there.
  */
+/** Whether the booking page hands the booking to the suite's reconciliation: lookups, or void intents (T152). */
+export const reconcileWanted = (b: Pick<BookingView, "waiver"> | undefined): boolean =>
+	Boolean(b?.waiver?.lookups || b?.waiver?.voids);
+
 export function ticketNames(event: Pick<PublicEvent, "ticketTypes"> | undefined): Record<string, string> {
 	return Object.fromEntries((event?.ticketTypes ?? []).map((t) => [t.id, t.name]));
 }
@@ -78,9 +82,10 @@ export interface BookingView {
 	calendar?: { query?: string };
 	/**
 	 * While a waiver booking waits for signatures (T066): the refs still unsigned, and with Pro a signed
-	 * receipt-lookup request for each, which the suite's reconciliation sends to e-sign.
+	 * receipt-lookup request for each, which the suite's reconciliation sends to e-sign. Once the booking
+	 * has ended (expired, cancelled), Pro lists instead a void intent per seat not signed (T152).
 	 */
-	waiver?: { refs: string[]; lookups?: Record<string, string> };
+	waiver?: { refs: string[]; lookups?: Record<string, string>; voids?: Record<string, string> };
 	/**
 	 * Events Pro (T133): a waiver booking's attendee signing list. Each attendee then also carries
 	 * `seat`, `signing`, `signs`, `email` and `minor` (`SigningAttendee` in `lib/attendees.ts`);

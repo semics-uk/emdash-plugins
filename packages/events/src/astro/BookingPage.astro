@@ -30,7 +30,7 @@ import AttendeeList from "./AttendeeList.astro";
 import { handleAttendeeAction, signingRows } from "./lib/attendees";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
-import { type BookingView, type PublicEvent, ticketNames } from "./lib/widget";
+import { type BookingView, type PublicEvent, reconcileWanted, ticketNames } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
 
 export const prerender = false;
@@ -138,7 +138,8 @@ if (ref && token) {
 	else missing = true;
 	// A booking waiting for signatures is reconciled with e-sign (the suite supplies `reconcile`): a signer who
 	// closed the tab or signed by email has a receipt this page forwards, then it shows the booking afresh.
-	if (booking?.waiver?.lookups && reconcile && esignPluginId) {
+	// An ended booking's open envelopes are voided the same way (Pro's void intents, T152).
+	if (reconcileWanted(booking) && reconcile && esignPluginId) {
 		const done = await reconcile(ctx, { booking, pluginId, esignPluginId });
 		if (done.forwarded > 0) {
 			const fresh = await callPublicRoute<BookingView>(ctx, {
