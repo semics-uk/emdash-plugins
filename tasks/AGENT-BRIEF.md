@@ -71,6 +71,8 @@ and end every commit message with a blank line and:
   orchestrator regenerates them).
 - Don't push, publish, deploy, log in to anything, or touch files outside your worktree.
 - Never print or commit secrets (`.env`, tokens, keys).
+- New changesets go in `.changeset/` (public repo). `.changeset/pre/` holds ones already released: the release
+  skips anything put there.
 - If something in the task is wrong or impossible, don't improvise a different scope: record it under
   `## Notes`, finish what is possible, and say so in your report.
 
