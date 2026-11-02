@@ -48,7 +48,8 @@ const DEFAULTS: EventMapping = {
 	venue: "venue",
 };
 
-export const text = (v: unknown): string | undefined => (typeof v === "string" && v.trim() !== "" ? v.trim() : undefined);
+export const text = (v: unknown): string | undefined =>
+	typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
 const instant = (v: unknown): number | undefined => {
 	const ms = typeof v === "string" ? Date.parse(v) : Number.NaN;
 	return Number.isFinite(ms) ? ms : undefined;
