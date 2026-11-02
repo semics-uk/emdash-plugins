@@ -2861,7 +2861,9 @@
 				"T141"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T148"
+			],
 			"column": "done"
 		},
 		"T144": {
@@ -2929,12 +2931,30 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T148": {
+			"file": "T148-waiver-page-shows-slot.md",
+			"id": "T148",
+			"title": "Waiver page shows the event and the booked date and time",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "S",
+			"depends_on": [
+				"T143"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T140"
+			"T140",
+			"T148"
 		],
 		"in-progress": [
 			"T145"
