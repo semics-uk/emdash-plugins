@@ -4,7 +4,7 @@ title: "Events panel: add ticket types and dates without repeaters (Block Kit dr
 phase: 7
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: []
