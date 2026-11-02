@@ -4,7 +4,7 @@ title: "Waiver page: expired bookings say so; slot line survives a draft or paus
 phase: 7
 package: events-suite
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T148]
