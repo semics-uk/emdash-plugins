@@ -4,7 +4,7 @@ title: "Suite BookingWithWaiver uses the day/time slot picker for slot-schedule 
 phase: 7
 package: events-suite
 edition: free
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: [T141]
