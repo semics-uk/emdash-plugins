@@ -1,3 +1,16 @@
+---
+id: T146
+title: "Publish the Pro licence, align its refund clause, show the first-year discount"
+phase: 7
+package: site
+edition: free
+status: done
+model: opus-5.5
+size: S
+depends_on: []
+spec: []
+---
+
 # T146: Publish the Pro licence, align its refund clause, show the first-year discount
 
 Status: done (owner: orchestrator, from legal research pass 3, `c5b3ea4`)

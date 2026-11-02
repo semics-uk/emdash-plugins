@@ -4,7 +4,7 @@ title: "Event editor says waivers need Events Pro when Pro is installed but not 
 phase: 7
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: []

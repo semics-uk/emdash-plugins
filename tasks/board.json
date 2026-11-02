@@ -2819,7 +2819,7 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [],
@@ -2829,7 +2829,7 @@
 			"unblocks": [
 				"T143"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T142": {
 			"file": "T142-waiver-message-editor.md",
@@ -2838,13 +2838,13 @@
 			"phase": 7,
 			"package": "events",
 			"edition": "free",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [],
 			"spec": [],
 			"unblocks": [],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T143": {
 			"file": "T143-suite-slot-picker.md",
@@ -2861,7 +2861,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T144": {
 			"file": "T144-waiver-template-picker.md",
@@ -2896,19 +2896,32 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "backlog"
+		},
+		"T146": {
+			"file": "T146-licence-page-and-refund-wording.md",
+			"id": "T146",
+			"title": "Publish the Pro licence, align its refund clause, show the first-year discount",
+			"phase": 7,
+			"package": "site",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
 		}
 	},
 	"columns": {
 		"backlog": [
-			"T143",
 			"T145"
 		],
 		"ready": [
-			"T140"
+			"T140",
+			"T143"
 		],
 		"in-progress": [
-			"T141",
-			"T142",
 			"T144"
 		],
 		"review": [],
@@ -3032,15 +3045,18 @@
 			"T136",
 			"T137",
 			"T138",
-			"T139"
+			"T139",
+			"T141",
+			"T142",
+			"T146"
 		],
 		"blocked": [
 			"T111"
 		]
 	},
 	"criticalPath": [
-		"T141",
-		"T143"
+		"T144",
+		"T145"
 	],
 	"criticalWeight": 3
 }
