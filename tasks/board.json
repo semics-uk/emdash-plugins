@@ -3002,14 +3002,34 @@
 				"T148"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T152"
+			],
 			"column": "done"
+		},
+		"T152": {
+			"file": "T152-void-envelopes-on-expiry.md",
+			"id": "T152",
+			"title": "Void a booking's E-sign envelopes when its hold expires",
+			"phase": 7,
+			"package": "events",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T151"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T140"
+			"T140",
+			"T152"
 		],
 		"in-progress": [
 			"T149",
