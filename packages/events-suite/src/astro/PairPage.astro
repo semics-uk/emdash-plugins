@@ -5,6 +5,7 @@
 // browser. The logic is in `lib/pair.ts`; this page only renders the state and posts the button.
 import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
 import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { getPluginSetting } from "emdash";
 import { GET as readSettings, PUT as writeSettings } from "emdash/internal/routes/api/admin/plugins/_id_/settings";
 
 import { PAIR_PATH, type PairContext, type PairView, pairAction, pairingStatus } from "./lib/pair";
@@ -20,6 +21,9 @@ const settingsUrl = (id: string) => new URL(`/_emdash/api/admin/plugins/${encode
 const ctx: PairContext = {
 	locals: Astro.locals,
 	url: Astro.url,
+	// T149: the host's server-side read of Events' pairing (decrypted). `lib/pair.ts` calls it only after
+	// the admin check and keeps just the client id, so E-sign can report a hand-made pairing as it is.
+	readPairing: () => getPluginSetting(eventsPluginId, "esignPairing"),
 	settings: {
 		read: (id) =>
 			readSettings({ params: { id }, locals: Astro.locals, request: new Request(settingsUrl(id)) } as never) as Promise<Response>,

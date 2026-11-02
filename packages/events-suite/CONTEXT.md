@@ -94,6 +94,11 @@ E-sign's route refuses non-admins and any request with `Origin`/`Sec-Fetch-*`, s
 cannot read a pairing string from it either; re-running reuses the one client (id in E-sign KV). The
 manual flow (E-sign Integrations → paste into Events settings) is unchanged.
 
+Hand-made pairings (T149): the page reads Events' stored string server side with emdash's public
+`getPluginSetting(eventsPluginId, "esignPairing")` (it decrypts; only after the admin check), keeps only
+the client id and sends it as `clientId` to every E-sign action. So a pasted pairing shows as `paired`,
+and Pair adopts that client (E-sign revokes the auto-pair client it replaces) instead of minting a second.
+
 ## Tests
 
 `tests/*.test.ts`, plain Node vitest: the flow runs the real UI helpers of both products against a fake

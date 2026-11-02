@@ -134,6 +134,11 @@ role 50 (`ADMIN_REQUIRED`: in-process calls skip the host's permission check) an
 `Sec-Fetch-*` (`SERVER_ONLY`: the sandbox keeps those headers, a browser always sends them, the suite's
 `Request` has none), so a pairing string never reaches a browser. Logs nothing. Calls: status/repeat pair 3,
 fresh pair 5, unpair 4. Not in the manifest (private routes are not part of the trust contract).
+T149: optional input `clientId` (the id in Events' stored pairing; the suite reads it server side, never the
+secret) makes every action about that client instead of the KV one: `status` reports a hand-made client as it is;
+`pair` reuses it while active and adopts it as the site client (KV set, the replaced auto-pair client revoked:
+one active client serves Events), else falls back to the active site client, else creates one; `unpair` revokes it
+and the site client. Calls: adopt 6, unpair up to 6.
 
 Hardening (T117, `tasks/reviews/phase-1.md` findings 5-9, 14-18): `public/session` records the first view only with
 `open: true`; the sign page sends it with its first POST (sign or decline), never on a GET (mail scanners). Session

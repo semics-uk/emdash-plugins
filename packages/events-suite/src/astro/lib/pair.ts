@@ -38,6 +38,12 @@ export interface PairContext {
 	locals: unknown;
 	url: URL;
 	settings: SettingsHandlers;
+	/**
+	 * Events' stored pairing string, decrypted on the server (`getPluginSetting` in the page). Only its
+	 * client id is used, so the page can tell E-sign which client Events holds (T149); the secret half
+	 * is dropped here and never leaves this process.
+	 */
+	readPairing?: () => Promise<unknown>;
 }
 
 export type PairState = "paired" | "unpaired" | "revoked" | "esign-missing" | "forbidden" | "error";
@@ -78,12 +84,26 @@ type EsignAnswer =
 	| { kind: "error"; code: string }
 	| { kind: "ok"; data: Record<string, unknown> };
 
+const PAIRING_ID = /^esign1\.([A-Za-z0-9_-]{4,64})\.[A-Za-z0-9_-]{43}$/;
+
+/** The client id of the pairing Events holds (a hand-made one too), or undefined. Never the secret. */
+async function heldClientId(ctx: PairContext): Promise<string | undefined> {
+	const value = await ctx.readPairing?.().catch(() => undefined);
+	return typeof value === "string" ? PAIRING_ID.exec(value)?.[1] : undefined;
+}
+
 /** E-sign's `integrations/pair`, in process. "missing" only when the host says the plugin is not there. */
-async function esign(ctx: PairContext, admin: Admin, ids: PairIds, action: string): Promise<EsignAnswer> {
+async function esign(
+	ctx: PairContext,
+	admin: Admin,
+	ids: PairIds,
+	action: string,
+	clientId?: string,
+): Promise<EsignAnswer> {
 	const request = new Request(new URL(`/_emdash/api/plugins/${ids.esignPluginId}/${ESIGN_ROUTE}`, ctx.url), {
 		method: "POST",
 		headers: { "content-type": "application/json" },
-		body: JSON.stringify({ action }),
+		body: JSON.stringify(clientId ? { action, clientId } : { action }),
 	});
 	const res = await admin.call(ids.esignPluginId, "POST", ESIGN_ROUTE, request, admin.user).catch(() => null);
 	if (!res) return { kind: "error", code: "INTERNAL" };
@@ -126,7 +146,7 @@ export async function pairingStatus(ctx: PairContext, ids: PairIds): Promise<Pai
 	if (!admin) return { state: "forbidden" };
 	const paired = await eventsPaired(ctx, ids);
 	if (paired === null) return { state: "forbidden" };
-	const status = await esign(ctx, admin, ids, "status");
+	const status = await esign(ctx, admin, ids, "status", paired ? await heldClientId(ctx) : undefined);
 	if (status.kind === "missing") {
 		if (!paired) return { state: "esign-missing" };
 		const failed = await writePairing(ctx, ids, null);
@@ -142,16 +162,18 @@ export async function pairAction(ctx: PairContext, ids: PairIds, action: unknown
 	if (action !== "pair" && action !== "unpair") return { state: "error", code: "BAD_REQUEST" };
 	const admin = adminOf(ctx.locals);
 	if (!admin) return { state: "forbidden" };
-	if ((await eventsPaired(ctx, ids)) === null) return { state: "forbidden" };
+	const paired = await eventsPaired(ctx, ids);
+	if (paired === null) return { state: "forbidden" };
+	const held = paired ? await heldClientId(ctx) : undefined;
 
 	if (action === "unpair") {
-		const revoked = await esign(ctx, admin, ids, "unpair");
+		const revoked = await esign(ctx, admin, ids, "unpair", held);
 		if (revoked.kind === "error") return { state: "error", code: revoked.code };
 		const failed = await writePairing(ctx, ids, null);
 		return failed ? { state: "error", code: failed } : { state: "unpaired" };
 	}
 
-	const made = await esign(ctx, admin, ids, "pair");
+	const made = await esign(ctx, admin, ids, "pair", held);
 	if (made.kind === "missing") return { state: "esign-missing" };
 	if (made.kind === "error") return { state: "error", code: made.code };
 	const pairing = made.data.pairing;
