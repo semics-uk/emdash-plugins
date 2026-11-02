@@ -314,7 +314,13 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		...extra,
 		...waiverBlocks(config, waivers),
 		...(waivers.available && waivers.refresh
-			? [actions([button("panel.templates.refresh", "Refresh templates")], { blockId: "waiver-templates" })]
+			? [
+					actions([button("panel.templates.refresh", "Refresh templates")], { blockId: "waiver-templates" }),
+					// An empty catalogue usually means no E-sign template is shared with integrations (T144).
+					...(waivers.templates?.length
+						? []
+						: [context("No templates loaded. E-sign lists only templates Available to integrations.")]),
+				]
 			: []),
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
