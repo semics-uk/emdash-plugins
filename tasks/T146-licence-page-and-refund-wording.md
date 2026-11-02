@@ -54,3 +54,8 @@ Legal research pass 3 (`docs/legal/research.md`) found:
     refunds page (email, or paddle.net) is our withdrawal route.
   - Sources: paddle.com/help/manage/your-customers/enhanced-billing-notifications-location-list,
     .../which-emails-will-customers-receive-on-paddle-billing, developer.paddle.com/build/subscriptions/cancel-subscriptions/
+- 2026-11-02: site deployed (Worker version 67dd84cb); `/licence`, pricing and refunds checked live.
+- 2026-11-02: Paddle discount created (live account): 40% off, 1 payment (the first year), 100 redemptions,
+  code `LAUNCH40`, all products. The checkout must apply it (code or discount id) once buy links exist.
+- Paddle has no in-dashboard chat; the question on the EU withdrawal function and UK DMCC rules is drafted in Gmail
+  to sellers@paddle.com, waiting for the owner's OK to send.
