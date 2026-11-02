@@ -4,7 +4,7 @@ title: "Suite pairs Events with E-sign automatically on the same site"
 phase: 7
 package: events-suite
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T144]
