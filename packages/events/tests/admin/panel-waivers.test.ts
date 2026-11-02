@@ -167,6 +167,15 @@ describe("SX-FR-07 catalogue refresh on the editor panel (T066)", () => {
 		expect(text(res.blocks)).toContain('"kind":"external"');
 	});
 
+	it("T144 with no templates loaded the panel says why, so an empty catalogue is never silent", async () => {
+		const refresh = async () => "https://site.test/_events/templates#catalog=tok.sig";
+		const empty = text((await load(world({ available: true, refresh }).deps)).blocks);
+		expect(empty).toContain("No templates loaded");
+		expect(empty).toContain("Available to integrations");
+		const loaded = text((await load(world({ available: true, refresh, templates: TEMPLATES }).deps)).blocks);
+		expect(loaded).not.toContain("No templates loaded");
+	});
+
 	it("SX-FR-07 Refresh without a minted link says so, and Free ignores the action", async () => {
 		const none = world({ available: true, refresh: async () => null });
 		expect(text((await press(none.deps)).blocks)).toMatch(/pairing|paste|could not/i);
