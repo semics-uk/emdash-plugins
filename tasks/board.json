@@ -2949,7 +2949,9 @@
 				"T143"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T151"
+			],
 			"column": "done"
 		},
 		"T149": {
@@ -2985,6 +2987,23 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "in-progress"
+		},
+		"T151": {
+			"file": "T151-waiver-page-expired-and-draft.md",
+			"id": "T151",
+			"title": "Waiver page: expired bookings say so; slot line survives a draft or paused event",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T148"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -2994,7 +3013,8 @@
 		],
 		"in-progress": [
 			"T149",
-			"T150"
+			"T150",
+			"T151"
 		],
 		"review": [],
 		"done": [
