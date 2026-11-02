@@ -9,7 +9,8 @@
 	"exports": {
 		".": "./src/index.ts",
 		"./testing": "./testing/budget.ts",
-		"./testing/bundle-size": "./testing/bundle-size.ts"
+		"./testing/bundle-size": "./testing/bundle-size.ts",
+		"./testing/blocks": "./testing/blocks.ts"
 	},
 	"scripts": {
 		"typecheck": "tsc --noEmit",

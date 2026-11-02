@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 const packagesDir = fileURLToPath(new URL("../..", import.meta.url));
 const TESTING_IMPORT =
-	/["'](?:@semics-tech\/shared\/testing(?:\/[\w-]+)?|[./]*(?:shared\/)?testing\/(?:budget|bundle-size)(?:\.ts)?)["']/;
+	/["'](?:@semics-tech\/shared\/testing(?:\/[\w-]+)?|[./]*(?:shared\/)?testing\/(?:budget|bundle-size|blocks)(?:\.ts)?)["']/;
 
 function sourceFiles(dir: string): string[] {
 	return readdirSync(dir).flatMap((name) => {
@@ -38,6 +38,8 @@ describe("@semics-tech/shared/testing boundary (T007)", () => {
 			'"../testing/budget"',
 			"'../../shared/testing/budget.ts'",
 			'"../testing/bundle-size"',
+			'"@semics-tech/shared/testing/blocks"',
+			'"../testing/blocks"',
 		]) {
 			expect(spec).toMatch(TESTING_IMPORT);
 		}

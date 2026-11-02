@@ -33,6 +33,7 @@ export default defineConfig({
 						"tests/holds.test.ts",
 						"tests/manifest.test.ts",
 						"tests/ui/*.build.test.ts",
+						"tests/**/*.render.test.ts",
 						"tests/fixtures/**",
 					],
 				},
@@ -56,6 +57,10 @@ export default defineConfig({
 			},
 			{
 				test: { name: "manifest", environment: "node", testTimeout, include: ["tests/manifest.test.ts"] },
+			},
+			{
+				// The admin's real Block Kit renderer (React and kumo) runs in Node, not workerd (T141).
+				test: { name: "admin-render", environment: "node", include: ["tests/**/*.render.test.ts"] },
 			},
 			{
 				test: { name: "ui-build", environment: "node", include: ["tests/ui/*.build.test.ts"] },
