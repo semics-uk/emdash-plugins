@@ -90,6 +90,24 @@ describe("the waiver page names the slot (T148)", () => {
 		expect(await waiverSlot(ctx(h), IDS, REF)).toBeUndefined();
 	});
 
+	it("T151 a booking on a draft or paused event keeps its title and date from public/booking alone", async () => {
+		const h = host({
+			[`${EVENTS} public/booking`]: () =>
+				ok({
+					eventId: "ev_1",
+					occurrenceId: "oc_2",
+					event: { title: "Clay session", startsAt: "2026-11-04T13:30:00.000Z", timezone: "Europe/London" },
+				}),
+			// public/event answers NOT_FOUND for a draft event (the host's default here).
+		});
+		expect(await waiverSlot(ctx(h), IDS, REF)).toEqual({
+			title: "Clay session",
+			startsAt: "2026-11-04T13:30:00.000Z",
+			when: "Wednesday, 4 November 2026 at 13:30",
+		});
+		expect(h.calls.map((c) => c.path)).toEqual(["public/booking"]);
+	});
+
 	it("a booked date that is no longer listed still shows the title", async () => {
 		const h = host({
 			[`${EVENTS} public/booking`]: () => ok({ eventId: "ev_1", occurrenceId: "gone" }),

@@ -144,6 +144,42 @@ describe("public/booking (EV-US-4)", () => {
 		const { body } = await run(bookingStatus, w.deps(T0), { bookingRef: REF });
 		expect(body).toMatchObject({ ok: false, error: { code: "BAD_REQUEST" } });
 	});
+
+	// T151: the waiver page names what is being signed for even once the event leaves sale, when
+	// public/event answers NOT_FOUND. The token holder gets the event's public info, with the start of
+	// the date they booked, from the config read the answer already makes (no extra bridge call).
+	const INFO = {
+		title: "Clay session",
+		startsAt: at(-500),
+		endsAt: null,
+		timezone: "Europe/London",
+		venue: null,
+		slug: "clay",
+	};
+	const unlisted = (w: Awaited<ReturnType<typeof world>>, status: string) =>
+		w.storage.event_configs.set("ev1", { ...(w.storage.event_configs.docs.get("ev1") as Doc), status, info: INFO });
+
+	it("T151 a held booking on a draft or paused event still names the event and the booked date", async () => {
+		for (const sales of ["draft", "paused"]) {
+			const w = await world({ status: "awaiting_signature" });
+			unlisted(w, sales);
+			const { body, calls } = await run(bookingStatus, w.deps(T0), w.input);
+			expect(body).toMatchObject({ ok: true, event: { ...INFO, startsAt: at(48) } });
+			expect(calls).toBeLessThanOrEqual(BOOKING_TARGET_CALLS);
+		}
+	});
+
+	it("T151 a dated booking (no occurrence) carries the event's own start; a date no longer listed carries none", async () => {
+		const dated = await world({ status: "awaiting_signature", occurrence: false });
+		unlisted(dated, "draft");
+		expect((await run(bookingStatus, dated.deps(T0), dated.input)).body).toMatchObject({ event: INFO });
+		const gone = await world({ status: "awaiting_signature" });
+		unlisted(gone, "draft");
+		gone.storage.bookings.set(ID, { ...gone.booking(), occurrenceId: "oc_gone" });
+		const { body } = await run(bookingStatus, gone.deps(T0), gone.input);
+		expect(body).toMatchObject({ event: { title: "Clay session" } });
+		expect((body.event as Doc).startsAt).toBeUndefined();
+	});
 });
 
 describe("public/booking/cancel (EV-US-4)", () => {

@@ -232,6 +232,16 @@ describe("signatures/receipt confirms a waiver booking (EV-FR-12, SX-FR-04)", ()
 		expect(w.attendee(1)).toMatchObject({ status: "cancelled", signature: { status: "completed" } });
 	});
 
+	it("T151 EV-FR-12 a signature on an expired booking is refused: the booking stays expired, nothing is sold or queued", async () => {
+		const w = await world({ status: "expired" });
+		const { body } = await run(w.deps(T0 + MIN, { step: step([`${ID}-1`]) }), post(receipt()));
+		expect(body).toMatchObject({ ok: true, status: "expired" });
+		expect(body.status).not.toBe("confirmed");
+		expect(w.booking()).toMatchObject({ status: "expired" });
+		expect(w.storage.outbox.docs.size).toBe(0);
+		expect(w.storage.ticket_types.docs.get("tt_a")).toMatchObject({ sold: 0 });
+	});
+
 	it("EV-FR-12 a receipt after the hold lapsed is stored as evidence but confirms nothing", async () => {
 		const w = await world();
 		const deps = w.deps(T0 + 16 * MIN, { step: step([`${ID}-1`]) });

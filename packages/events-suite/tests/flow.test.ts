@@ -440,6 +440,63 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 	});
 });
 
+describe("an expired booking has nothing to sign (T151)", () => {
+	const cookies = { [flowCookieName(REF)]: `${SIGNING(1)}.${SIGNING(2)}`, [retryCookieName(REF)]: ACCESS };
+	const NOW = Date.parse("2026-11-02T10:00:00.000Z");
+	const at = (ms: number) => new Date(NOW + ms).toISOString();
+	const bookingAs = (data: Record<string, unknown>) => () =>
+		ok({ bookingRef: REF, eventId: "ev_1", event: { title: "Clay session", slug: "clay" }, ...data });
+	const runAt = (h: ReturnType<typeof host>, request: Request, jar: Record<string, string>) =>
+		handleWaiverRequest({ locals: h.locals, url: new URL(request.url), request, cookie: (name) => jar[name] }, IDS, {
+			now: () => NOW,
+		});
+
+	it("T151 an expired or cancelled booking shows the expired message and a link to the event, and no ceremony", async () => {
+		for (const status of ["expired", "cancelled"]) {
+			const h = ceremonyHost({ [`${EVENTS} public/booking`]: bookingAs({ status }) });
+			const outcome = await runAt(h, get(`${WAIVER_PATH}?ref=${REF}`), cookies);
+			expect(outcome).toEqual({ type: "error", ref: REF, code: "BOOKING_EXPIRED", href: "/events/clay" });
+			expect(h.calls.map((c) => c.path)).toEqual(["public/booking"]);
+		}
+		expect(WAIVER_MESSAGES.BOOKING_EXPIRED).toBe("This booking has expired. Please book again.");
+	});
+
+	it("T151 a hold that lapsed before the sweeper ran is expired too; one still open signs as before", async () => {
+		const lapsed = ceremonyHost({
+			[`${EVENTS} public/booking`]: bookingAs({ status: "awaiting_signature", holdExpiresAt: at(-1000) }),
+		});
+		expect(await runAt(lapsed, get(`${WAIVER_PATH}?ref=${REF}`), cookies)).toMatchObject({
+			type: "error",
+			code: "BOOKING_EXPIRED",
+		});
+		const open = ceremonyHost({
+			[`${EVENTS} public/booking`]: bookingAs({ status: "awaiting_signature", holdExpiresAt: at(60_000) }),
+		});
+		expect(await runAt(open, get(`${WAIVER_PATH}?ref=${REF}`), cookies)).toMatchObject({
+			type: "render",
+			token: SIGNING(1),
+		});
+	});
+
+	it("T151 signing an expired booking is refused before e-sign is asked: nothing is submitted", async () => {
+		const h = ceremonyHost({ [`${EVENTS} public/booking`]: bookingAs({ status: "expired" }) });
+		const outcome = await runAt(h, post(`${WAIVER_PATH}?ref=${REF}`, SIGN_FORM), cookies);
+		expect(outcome).toMatchObject({ type: "error", code: "BOOKING_EXPIRED" });
+		expect(h.calls.some((c) => c.id === ESIGN)).toBe(false);
+	});
+
+	it("T151 without a slug the expired page has no event link; when Events cannot answer, signing goes on", async () => {
+		const bare = ceremonyHost({ [`${EVENTS} public/booking`]: () => ok({ bookingRef: REF, status: "expired" }) });
+		expect(await runAt(bare, get(`${WAIVER_PATH}?ref=${REF}`), cookies)).toEqual({
+			type: "error",
+			ref: REF,
+			code: "BOOKING_EXPIRED",
+		});
+		const down = ceremonyHost();
+		expect(await runAt(down, get(`${WAIVER_PATH}?ref=${REF}`), cookies)).toMatchObject({ type: "render" });
+	});
+});
+
 describe("payment after the last receipt (T077, EU-FR-09)", () => {
 	const BOOKING_COOKIE = { [`semics_booking_${REF}`]: ACCESS };
 	const LAST = { [flowCookieName(REF)]: SIGNING(2) };
