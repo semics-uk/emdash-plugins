@@ -117,6 +117,24 @@ describe("ES-FR-11 admin pages in the host", () => {
 		});
 	});
 
+	it("T144 the Templates table has an ID column and the editor shows the id as copyable text", async () => {
+		const { r, templateId } = await setup();
+		const page = await r.admin.loadPage("/templates");
+		const tableBlock = (page.blocks as Array<Record<string, unknown>>).find((b) => b.type === "table") as {
+			columns: Array<{ key: string; label: string }>;
+			rows: Array<Record<string, unknown>>;
+		};
+		expect(tableBlock.columns.map((c) => c.label)).toContain("ID");
+		const idKey = tableBlock.columns.find((c) => c.label === "ID")?.key as string;
+		expect(tableBlock.rows.map((row) => row[idKey])).toContain(templateId);
+
+		const open = await r.admin.act("/templates", "template.edit", { value: templateId });
+		const codeBlock = (open.blocks as Array<Record<string, unknown>>).find(
+			(b) => b.type === "code" && b.code === templateId,
+		);
+		expect(codeBlock, text(open)).toBeDefined();
+	});
+
 	it("ES-US-4 create, send, then the detail shows the audit events in order without secrets", async () => {
 		const { r, templateId } = await setup();
 		const form = await r.admin.act("/templates", "envelope.new", { value: templateId });
