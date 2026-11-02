@@ -1,5 +1,16 @@
 # @semics-tech/emdash-esign
 
+## 1.0.0-rc.2
+
+### Minor Changes
+
+- 79cb347: New private route `integrations/pair` (status, pair, unpair) behind the Events suite's one-click pairing: administrators only, refused for browser requests, idempotent (one reusable "Events on this site" client). The Integrations page points to `/_events/pair`.
+
+### Patch Changes
+
+- 89d9cd1: `integrations/pair` takes an optional `clientId` (the client in Events' stored pairing). A hand-made client an administrator pasted into Events is now reported as active, and pairing again adopts it as the site client instead of creating a second one; the auto-pair client it replaces is revoked, as is the site client on unpair.
+- 402b871: The Templates page lists each template's ID, and the template editor shows the ID so you can copy it into a paired site such as Events.
+
 ## 1.0.0-rc.1
 
 ### Minor Changes

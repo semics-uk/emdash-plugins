@@ -1,5 +1,32 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.2
+
+### Minor Changes
+
+- 79cb347: New page `/_events/pair`: an administrator pairs Events with E-sign on the same site in one click. E-sign creates (or reuses) the site client and the pairing string goes straight into Events' encrypted `esignPairing` setting on the server; it is never shown or sent to the browser. Unpair revokes the client; a pairing left behind after E-sign is removed is cleared when the page is opened.
+- d37b853: `<BookingWithWaiver>` books a slot-schedule event (or an event with several starts a day) through the same day-then-time picker as Events' booking widget, paging by its own `booking_from.<eventId>` parameter; dated events keep the date select.
+- d8217eb: Waiver templates load in one step. Pairing on `/_events/pair` also loads the E-sign templates into Events Pro, so the event panel offers them in its select straight away, and the paired page has a Refresh templates button for templates added later (no link to follow; the request stays on the server). `/_events/templates`, where the panel's link lands, now says what to do next and links back to your events.
+
+### Patch Changes
+
+- 89d9cd1: `/_events/pair` recognises a pairing made by hand: it shows as paired (not revoked), and pressing Pair keeps that one client instead of leaving an unused second one. Only the client id of the stored pairing is read and passed to E-sign on the server; the secret is never sent anywhere.
+- 29d95f7: When a waiver booking has expired or been cancelled before every seat signed, the booking page and the waiver page send E-sign the void intents Events Pro lists for it, so the booking's open envelopes are voided and can no longer be signed. A failed void never changes the page, and sending the same voids again is harmless.
+- bff3368: The waiver page of an expired or cancelled booking says "This booking has expired. Please book again." with a link to the event, and shows no signing form; a signing post for it is refused before E-sign is asked. The event title and booked date stay on the waiver page after the event moves to draft or paused.
+- 62f4b8e: The waiver page now shows the event title and the booked date and time (in the event's time zone, same format as the booking widget) above the disclaimer, read from Events' public routes.
+- Updated dependencies [89d9cd1]
+- Updated dependencies [79cb347]
+- Updated dependencies [402b871]
+- Updated dependencies [bff3368]
+- Updated dependencies [e232705]
+- Updated dependencies [8effa92]
+- Updated dependencies [79cb347]
+- Updated dependencies [74754f7]
+- Updated dependencies [d8217eb]
+- Updated dependencies [29d95f7]
+  - @semics-tech/emdash-esign@1.0.0-rc.2
+  - @semics-tech/emdash-events@1.0.0-rc.2
+
 ## 1.0.0-rc.1
 
 ### Patch Changes
