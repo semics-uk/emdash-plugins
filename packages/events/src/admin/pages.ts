@@ -533,7 +533,10 @@ async function doCheckIn(
  */
 async function panelPage(deps: AdminDeps, id: string, interaction: PanelInteraction): Promise<AdminResponse> {
 	const out = await handlePanel(deps as unknown as PanelDeps, interaction, id);
-	return respond(out.blocks.map((b, n) => ({ ...b, block_id: `event:${id}:${n}` })));
+	// The panel's own block id stays at the end: the form's changes after a save (T141).
+	return respond(
+		out.blocks.map((b, n) => ({ ...b, block_id: `event:${id}:${n}${b.block_id ? `:${b.block_id}` : ""}` })),
+	);
 }
 
 // --- dashboard widget -------------------------------------------------------------------------

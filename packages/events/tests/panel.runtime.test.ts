@@ -122,7 +122,9 @@ describe("EV-US-1 editor panel", () => {
 		const child = await idOf("ticket_types", "name", "Child");
 		const res = await r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", {
 			[`tt_remove:${child}`]: true,
-			newTickets: [{ name: "VIP", price: "40.00", capacity: 10 }],
+			nt_name: "VIP",
+			nt_price: "40.00",
+			nt_capacity: 10,
 		});
 		expect(text(res.blocks)).toContain("Saved");
 		expect(text(res.blocks)).toContain("VIP");
@@ -136,7 +138,8 @@ describe("EV-US-1 editor panel", () => {
 		const res = await r.admin.submitEditorPanel(PANEL, "events", id, "panel.save", {
 			[`oc_start:${occ}`]: "2099-12-02 20:30",
 			[`oc_capacity:${occ}`]: 40,
-			newDates: [{ startsAt: "2099-07-01 19:00", capacity: 30 }],
+			nd_start: "2099-07-01 19:00",
+			nd_capacity: 30,
 		});
 		expect(text(res.blocks)).toContain("Saved");
 		const all = await rows("occurrences");

@@ -11,7 +11,6 @@ import {
 	link,
 	notices,
 	numberInput,
-	repeater,
 	select,
 	stats,
 	table,
@@ -51,8 +50,10 @@ import {
  * edits the event's booking config through `saveConfig`, the same code as `config/save`.
  *
  * Existing ticket types and dates are flat fields keyed by id (`tt_price:<id>`, `oc_start:<id>`, ...)
- * so a removed or edited row can never be matched to the wrong document; new ones come from two
- * repeaters. Only changed items differ from the stored documents, so `saveConfig` writes only those
+ * so a removed or edited row can never be matched to the wrong document. New ones come from one blank
+ * row each (`nt_*`, `nd_*`), added on save; Block Kit draws no repeater in a form (T141), and a form's
+ * block id changes after each save so the admin drops what was typed in the row. Only changed items
+ * differ from the stored documents, so `saveConfig` writes only those
  * (one guarded call each). Budget: a load is 3 bridge calls; a save is at most 8 (`saveConfig`
  * refuses a bigger one as `TOO_MANY_CHANGES`) and renders what it wrote without reading it back.
  * `catalog` and `info` on the config are managed: they are never diffed or submitted.
@@ -246,7 +247,11 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 	return out;
 }
 
-function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailability): PanelResponse {
+/** The new ticket type / date row (`nt_*`, `nd_*`) is added on save, so it is blank on every render. */
+const newCapacity = (prefix: string, label: string) =>
+	numberInput(`${prefix}_capacity`, `${label}: capacity (blank: the event's)`, { min: 1 });
+
+function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailability, rev = ""): PanelResponse {
 	const config = state.config as EventConfigDoc;
 	const zone = zoneOf(config);
 	const tickets = (state.ticketTypes as Item<TicketTypeDoc>[]).slice().sort(byTicketOrder);
@@ -283,16 +288,9 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		]),
 		...(tickets.length < MAX_TICKET_TYPES
 			? [
-					repeater(
-						"newTickets",
-						"New ticket types",
-						[
-							textInput("name", "Name"),
-							textInput("price", `Price (${config.currency})`, { placeholder: "0.00" }),
-							numberInput("capacity", "Capacity", { min: 1 }),
-						],
-						{ itemLabel: "Ticket type", maxItems: MAX_TICKET_TYPES - tickets.length },
-					),
+					textInput("nt_name", "New ticket type: name"),
+					textInput("nt_price", `New ticket type: price (${config.currency})`, { placeholder: "0.00" }),
+					newCapacity("nt", "New ticket type"),
 				]
 			: []),
 		...dates.flatMap(({ id, data: o }) => {
@@ -306,18 +304,10 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		}),
 		...(!owned && dates.length < MAX_OCCURRENCES
 			? [
-					repeater(
-						"newDates",
-						"New dates",
-						[
-							textInput("startsAt", `Starts (${zone})`, { placeholder: "2026-12-01 19:30" }),
-							numberInput("capacity", "Capacity", { min: 1 }),
-						],
-						{ itemLabel: "Date", maxItems: MAX_OCCURRENCES - dates.length },
-					),
+					textInput("nd_start", `New date: starts (${zone})`, { placeholder: "2026-12-01 19:30" }),
+					newCapacity("nd", "New date"),
 				]
 			: []),
-		// The Block Kit types leave repeaters out of FormField, but the host accepts them in a form.
 	] as FormField[];
 
 	return panelView([
@@ -329,7 +319,11 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 		...statsBlocks(config),
 		...liveTables(config, tickets, dates),
 		context(`Dates are in ${zone}.`),
-		form({ fields, submit: { label: "Save changes", actionId: "panel.save" }, blockId: "tickets" }),
+		form({
+			fields,
+			submit: { label: "Save changes", actionId: "panel.save" },
+			blockId: rev ? `tickets.${rev}` : "tickets",
+		}),
 		...(owned ? [dayPicker()] : []),
 	]);
 }
@@ -377,8 +371,13 @@ async function runSave(
 	return { ok: false, issues: out.issues ?? [] };
 }
 
-async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
+/** The form's revision from its block id (`tickets.<rev>`, also inside the Event editor page's `event:<id>:<n>:…`). */
+const revOf = (blockId = "") => /tickets\.([\w-]+)$/.exec(blockId)?.[1] ?? "";
+
+async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?: string): Promise<PanelResponse> {
 	const state = await loadEventState(eventId, deps.storage);
+	// Kept unless the save goes through, so a refused save leaves what the admin typed in the form.
+	const rev = revOf(blockId);
 	const stored = state.config;
 	if (!stored) return enableForm(deps);
 	const { catalog: _catalog, info: _info, ...base } = stored;
@@ -412,7 +411,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 				? values.waiver_mode
 				: storedSignature.mode;
 		if (required && !/^[A-Za-z0-9_-]{1,64}$/.test(templateId)) {
-			return panelForm(state, saveRefused([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers);
+			return panelForm(state, saveRefused([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers, rev);
 		}
 		signature = { required, mode, ...(templateId ? { templateId } : {}) };
 		if (JSON.stringify(signature) !== JSON.stringify(storedSignature)) changed++;
@@ -432,9 +431,9 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		}
 		return item;
 	};
-	// The filled-in rows of a repeater, each a change; a row without places takes the event's.
-	const added = (list: unknown, make: (row: Obj, places: number) => Obj) =>
-		rows(list)
+	// The filled-in new row, and rows of an older admin's repeater: each a change; a row without places takes the event's.
+	const added = (list: unknown, row: Obj, make: (row: Obj, places: number) => Obj) =>
+		[...rows(list), row]
 			.filter((row) => !blankRow(row))
 			.map((row) => {
 				changed++;
@@ -461,12 +460,16 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		ticketTypes.push(item);
 	}
 	ticketTypes.push(
-		...added(values.newTickets, (row, places) => ({
-			name: str(row.name, 120),
-			price: str(row.price, 20) || "0",
-			capacity: places,
-			sort: nextSort++,
-		})),
+		...added(
+			values.newTickets,
+			{ name: values.nt_name, price: values.nt_price, capacity: values.nt_capacity },
+			(row, places) => ({
+				name: str(row.name, 120),
+				price: str(row.price, 20) || "0",
+				capacity: places,
+				sort: nextSort++,
+			}),
+		),
 	);
 
 	const occurrences: Obj[] = [];
@@ -490,14 +493,14 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		occurrences.push(item);
 	}
 	occurrences.push(
-		...added(values.newDates, (row, places) => ({
+		...added(values.newDates, { startsAt: values.nd_start, capacity: values.nd_capacity }, (row, places) => ({
 			startsAt: toInstant(str(row.startsAt, 40), zone),
 			capacity: places,
 		})),
 	);
 
 	if (changed === 0) {
-		return panelForm(state, NOTHING_TO_SAVE(), waivers);
+		return panelForm(state, NOTHING_TO_SAVE(), waivers, rev);
 	}
 	const result = await runSave(
 		deps,
@@ -510,7 +513,9 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj): Promise
 		state,
 		waiverCalls(deps),
 	);
-	return result.ok ? panelForm(result.state, SAVED(), waivers) : panelForm(state, saveRefused(result.issues), waivers);
+	return result.ok
+		? panelForm(result.state, SAVED(), waivers, deps.newId())
+		: panelForm(state, saveRefused(result.issues), waivers, rev);
 }
 
 async function enablePanel(deps: PanelDeps, eventId: string, values: Obj): Promise<PanelResponse> {
@@ -538,7 +543,9 @@ export async function handlePanel(
 ): Promise<PanelResponse> {
 	if (!eventId) return respond(notices([{ severity: "error", title: "Save the entry first" }]));
 	if (interaction.type === "form_submit") {
-		if (interaction.action_id === "panel.save") return savePanel(deps, eventId, interaction.values);
+		if (interaction.action_id === "panel.save") {
+			return savePanel(deps, eventId, interaction.values, interaction.block_id);
+		}
 		if (interaction.action_id === "panel.enable") return enablePanel(deps, eventId, interaction.values);
 		if (interaction.action_id.startsWith("panel.day")) {
 			return dayPanel(deps as never, eventId, interaction.values, interaction.action_id === "panel.day.save");

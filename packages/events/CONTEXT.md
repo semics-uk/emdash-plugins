@@ -259,8 +259,12 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   rows carry the entry `slug` (from `info.slug`), and list cards link to `/events/<slug>` by default (`hrefFor` overrides).
 - Editor panel (T043): `admin.editorPanels` `tickets` (collection `events`) -> private route `editor/tickets`
   (`src/routes/editor.ts`, `src/admin/panel.ts`); the event id is `routeCtx.ui.entry.id`. Existing ticket types and
-  dates are flat fields keyed by id (`tt_price:<id>`, `oc_start:<id>`, `*_remove:<id>`); new ones come from the
-  `newTickets`/`newDates` repeaters (the Block Kit `FormField` type omits repeaters, the host accepts them). Dates are typed
+  dates are flat fields keyed by id (`tt_price:<id>`, `oc_start:<id>`, `*_remove:<id>`); new ones come from one
+  blank row each (`nt_name`/`nt_price`/`nt_capacity`, `nd_start`/`nd_capacity`), added on save (T141: `@emdash-cms/blocks`
+  draws no `repeater` in a form; the old `newTickets`/`newDates` arrays still parse). After a save the form's block id
+  becomes `tickets.<rev>` so the admin remounts it and drops what was typed; a refused save keeps it. Never put a field
+  `renderElement` does not draw in a form: `tests/admin/panel-fields.render.test.ts` (Node project `admin-render`) asks the
+  real renderer via `@semics-tech/shared/testing/blocks`. Dates are typed
   as `YYYY-MM-DD HH:mm` in the event's zone (`info.timezone`, else UTC). Saves go through `saveConfig` with the loaded state
   and an `onSaved` callback so the result renders without a read back: load = 3 calls, save <= 8. Messages for refusals
   live in `src/admin/messages.ts`. Admin event lists read titles with one `content.list` (mapped collection, 100 entries),

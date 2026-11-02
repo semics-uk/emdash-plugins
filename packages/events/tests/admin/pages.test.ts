@@ -344,7 +344,7 @@ describe("event editor page = the Tickets & booking panel (T044, R97)", () => {
 		const text = json(out.blocks);
 		expect(text).toContain("tt_capacity:tt_a");
 		expect(text).toContain("panel.save");
-		expect(blockIdOf(out.blocks, "panel.save")).toMatch(/^event:ev1:\d+$/);
+		expect(blockIdOf(out.blocks, "panel.save")).toMatch(/^event:ev1:\d+(:|$)/);
 		expect(meter.calls).toBeLessThanOrEqual(3);
 	});
 
