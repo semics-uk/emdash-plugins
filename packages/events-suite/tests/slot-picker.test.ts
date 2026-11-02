@@ -1,14 +1,16 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
-
 import { PICKER_PARAM, pickerParam, usesPicker } from "@semics-tech/emdash-events/astro/lib/picker";
+import { describe, expect, it } from "vitest";
 
 // T143: <BookingWithWaiver> books a slot-schedule event through the same day/time picker as Events'
 // <BookingWidget> (T130): it reuses the picker's helpers and client script, it does not fork them.
 
 const source = readFileSync(fileURLToPath(new URL("../src/astro/BookingWithWaiver.astro", import.meta.url)), "utf8");
-const widget = readFileSync(fileURLToPath(new URL("../../events/src/astro/BookingWidget.astro", import.meta.url)), "utf8");
+const widget = readFileSync(
+	fileURLToPath(new URL("../../events/src/astro/BookingWidget.astro", import.meta.url)),
+	"utf8",
+);
 
 describe("BookingWithWaiver slot picker (T143)", () => {
 	it("EV-FR-17 renders the picker for a slot schedule, not only a date select", () => {

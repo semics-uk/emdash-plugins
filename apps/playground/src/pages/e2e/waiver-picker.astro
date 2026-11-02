@@ -1,0 +1,41 @@
+---
+// e2e-only page (T143): the suite's <BookingWithWaiver> for a slot schedule, fixed data as on /e2e/picker
+// (three sessions a day on the first nine days of next month, UTC; day 3 fully booked).
+import BookingWithWaiver from "@semics-tech/emdash-events-suite/astro/BookingWithWaiver.astro";
+
+export const prerender = false;
+
+const now = new Date();
+const first = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1);
+const occurrences = Array.from({ length: 9 }, (_, d) =>
+	[9, 13, 18].map((hour, i) => {
+		const start = new Date(first + d * 864e5 + hour * 36e5);
+		return { id: `s-e2e-${d}-${i}`, startsAt: start.toISOString(), available: d === 2 ? 0 : 6 - i };
+	}),
+).flat();
+const data = {
+	eventId: "e2e-waiver-picker",
+	status: "on_sale" as const,
+	currency: "GBP",
+	timezone: "UTC",
+	slots: true,
+	waiver: true,
+	ticketTypes: [{ id: "tt_e2e_lane", name: "Lane", priceMinor: 0, available: 50, maxPerOrder: 4 }],
+	occurrences,
+};
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>Waiver booking with the day and time picker</title>
+	</head>
+	<body>
+		<main>
+			<h1>Waiver booking with the day and time picker</h1>
+			<BookingWithWaiver event="e2e-waiver-picker" data={data} />
+		</main>
+	</body>
+</html>
