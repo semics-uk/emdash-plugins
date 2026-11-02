@@ -2871,7 +2871,7 @@
 			"phase": 7,
 			"package": "esign",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [],
@@ -2879,7 +2879,7 @@
 			"unblocks": [
 				"T145"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T145": {
 			"file": "T145-suite-auto-pairing.md",
@@ -2896,7 +2896,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T146": {
 			"file": "T146-licence-page-and-refund-wording.md",
@@ -2932,15 +2932,13 @@
 		}
 	},
 	"columns": {
-		"backlog": [
-			"T145"
-		],
+		"backlog": [],
 		"ready": [
 			"T140",
-			"T143"
+			"T143",
+			"T145"
 		],
 		"in-progress": [
-			"T144",
 			"T147"
 		],
 		"review": [],
@@ -3067,6 +3065,7 @@
 			"T139",
 			"T141",
 			"T142",
+			"T144",
 			"T146"
 		],
 		"blocked": [
@@ -3074,8 +3073,7 @@
 		]
 	},
 	"criticalPath": [
-		"T144",
-		"T145"
+		"T111"
 	],
-	"criticalWeight": 3
+	"criticalWeight": 2
 }
