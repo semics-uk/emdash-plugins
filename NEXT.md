@@ -4,9 +4,10 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T152 void a booking's E-sign envelopes when its hold expires (agent running in a worktree; Pro edition)
+- (none)
 
 ## Next
+- T152 follow-up: void at expiry itself, not on the buyer's next visit (needs a server-to-server channel; Events can't call E-sign)
 - T140 Pro E-sign cold-start CPU flake on CI (52.7 ms against 50)
 - lmsc-site PR #8 E-sign/Stripe admin setup: check what it needs from the plugins once rc.2 is out
 
@@ -27,6 +28,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-02 T152 ended waiver bookings void their unsigned envelopes (Pro; on next booking/waiver page visit)
 - 2026-11-02 T151 waiver page handles expired bookings and draft events
 - 2026-11-02 T149/T150 pairing status; templates load when you pair; one-step Refresh
 - 2026-11-02 T141–T148 LMSC fixes (panel without repeaters, slot picker, auto-pairing, template ids)
