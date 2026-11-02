@@ -2862,18 +2862,54 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "backlog"
+		},
+		"T144": {
+			"file": "T144-waiver-template-picker.md",
+			"id": "T144",
+			"title": "Waiver template stays a text box after Refresh templates; E-sign never shows template ids",
+			"phase": 7,
+			"package": "esign",
+			"edition": "pro",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [
+				"T145"
+			],
+			"column": "in-progress"
+		},
+		"T145": {
+			"file": "T145-suite-auto-pairing.md",
+			"id": "T145",
+			"title": "Suite pairs Events with E-sign automatically on the same site",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T144"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "backlog"
 		}
 	},
 	"columns": {
 		"backlog": [
-			"T143"
+			"T143",
+			"T145"
 		],
 		"ready": [
 			"T140"
 		],
 		"in-progress": [
 			"T141",
-			"T142"
+			"T142",
+			"T144"
 		],
 		"review": [],
 		"done": [
