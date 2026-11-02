@@ -9,7 +9,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Next
 - T152 follow-up: void at expiry itself, not on the buyer's next visit (needs a server-to-server channel; Events can't call E-sign)
 - T140 Pro E-sign cold-start CPU flake on CI (52.7 ms against 50)
-- lmsc-site PR #8 E-sign/Stripe admin setup: check what it needs from the plugins once rc.2 is out
+- lmsc-site PR #8 E-sign/Stripe admin setup: rc.2 is out; check what it still needs from the plugins
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
@@ -24,10 +24,10 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
-- Publish rc.2: merge PR #2 (https://github.com/semics-uk/emdash-plugins/pull/2), or reply "publish rc.2". After that, run the Pro release workflow.
 - Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-02 rc.2 published: npm (Free and Pro) and EmDash registry (semics-events, semics-esign)
 - 2026-11-02 T152 ended waiver bookings void their unsigned envelopes (Pro; on next booking/waiver page visit)
 - 2026-11-02 T151 waiver page handles expired bookings and draft events
 - 2026-11-02 T149/T150 pairing status; templates load when you pair; one-step Refresh
