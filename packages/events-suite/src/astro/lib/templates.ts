@@ -74,3 +74,41 @@ export async function refreshCatalogue(
 	if (!cached) return { ok: false, code: "INTERNAL" };
 	return cached.ok ? { ok: true, count: templates.length } : { ok: false, code: cached.error.code };
 }
+
+const REQUEST_ROUTE = "esign/catalog-request";
+
+type PrivateRoute = (
+	pluginId: string,
+	method: string,
+	path: string,
+	request: Request,
+	user?: unknown,
+) => Promise<{ success?: boolean; data?: unknown; error?: { code?: unknown; message?: unknown } }>;
+
+/**
+ * The catalogue fetch without a link (T150): asks Events Pro's private `esign/catalog-request` in
+ * process, as the signed-in administrator in `ctx.locals`, for a fresh request, then runs
+ * `refreshCatalogue` with it. The request never leaves the server. Free Events has no such route:
+ * `NOT_FOUND`. Never throws.
+ */
+export async function loadCatalogue(ctx: PublicRouteContext, ids: CatalogueIds): Promise<CatalogueResult> {
+	const l = (ctx.locals ?? {}) as { user?: unknown; emdash?: { handlePluginApiRoute?: unknown } };
+	const call = l.emdash?.handlePluginApiRoute;
+	if (typeof call !== "function" || !l.user) return { ok: false, code: "FORBIDDEN" };
+	const asked = new Request(new URL(`/_emdash/api/plugins/${ids.eventsPluginId}/${REQUEST_ROUTE}`, ctx.url), {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: "{}",
+	});
+	const res = await (call as PrivateRoute)(ids.eventsPluginId, "POST", REQUEST_ROUTE, asked, l.user).catch(() => null);
+	const data = (res?.success ? res.data : null) as {
+		ok?: unknown;
+		request?: unknown;
+		error?: { code?: unknown };
+	} | null;
+	if (data?.ok === true) return refreshCatalogue(ctx, data.request, ids);
+	// A sandboxed core without the route (Free): the host answers ROUTE_ERROR "… Route not found …".
+	const missing = typeof res?.error?.message === "string" && /\bRoute not found\b/.test(res.error.message);
+	const code = missing ? "NOT_FOUND" : (data?.error?.code ?? res?.error?.code);
+	return { ok: false, code: typeof code === "string" ? code : "INTERNAL" };
+}

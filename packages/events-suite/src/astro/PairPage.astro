@@ -47,18 +47,38 @@ const STATES = new Set(["paired", "unpaired", "revoked", "esign-missing", "forbi
 
 if (Astro.request.method === "POST") {
 	const form = await Astro.request.formData().catch(() => new FormData());
-	const result = await pairAction(ctx, ids, form.get("action"));
+	const action = form.get("action");
+	const result = await pairAction(ctx, ids, action);
 	const next = new URLSearchParams({ result: result.state });
 	if (result.code) next.set("code", result.code);
+	// T150: how many templates the action loaded for the panel (a count or an error code, nothing else).
+	if (action === "templates") next.set("did", "templates");
+	if (result.templates !== undefined) next.set("templates", String(result.templates));
+	if (result.templatesCode) next.set("tcode", result.templatesCode);
 	return Astro.redirect(`${PAIR_PATH}?${next}`, 303);
 }
 
 const view: PairView = await pairingStatus(ctx, ids);
-const result = Astro.url.searchParams.get("result") ?? "";
-const resultCode = Astro.url.searchParams.get("code") ?? "";
+const query = Astro.url.searchParams;
+const result = query.get("result") ?? "";
+const resultCode = query.get("code") ?? "";
 const done = STATES.has(result) ? result : "";
 const doneCode = CODE.test(resultCode) ? resultCode : "";
+const refreshed = query.get("did") === "templates";
+const loaded = /^\d{1,3}$/.test(query.get("templates") ?? "") ? Number(query.get("templates")) : -1;
+const loadCode = CODE.test(query.get("tcode") ?? "") ? (query.get("tcode") as string) : "";
 if (view.state === "forbidden") Astro.response.status = 403;
+
+const templatesText =
+	loaded === 0
+		? "E-sign has no templates Available to integrations yet. Mark one in E-sign, then press Refresh templates here."
+		: loaded > 0
+			? `${loaded === 1 ? "One waiver template" : `${loaded} waiver templates`} loaded. The event panel offers ${loaded === 1 ? "it" : "them"} now (reload it if it is open).`
+			: loadCode === "NOT_FOUND"
+				? "Waiver templates need Events Pro, so there is nothing to load on this site."
+				: loadCode
+					? "The templates could not be loaded. Press Refresh templates to try again."
+					: "";
 
 const ERRORS: Record<string, string> = {
 	ENCRYPTION_KEY_MISSING: "Set EMDASH_ENCRYPTION_KEY in the site environment and restart, then try again.",
@@ -81,7 +101,8 @@ const errorText = (code?: string) =>
 	<body>
 		<main data-testid="pair-page" data-state={view.state}>
 			<h1>Pair Events with E-sign</h1>
-			{done === "paired" && <p role="status" data-testid="pair-done">Paired. Events can now ask for signed waivers.</p>}
+			{done === "paired" && !refreshed && <p role="status" data-testid="pair-done">Paired. Events can now ask for signed waivers.</p>}
+			{templatesText && <p role="status" data-testid="pair-templates">{templatesText}</p>}
 			{done === "unpaired" && <p role="status" data-testid="pair-done">Unpaired. Events no longer sends waivers to E-sign.</p>}
 			{done === "error" && <p role="alert" data-testid="pair-error">{errorText(doneCode)}</p>}
 			{view.state === "forbidden" && (
@@ -117,6 +138,11 @@ const errorText = (code?: string) =>
 			{view.state === "paired" && (
 				<>
 					<p data-testid="pair-status">Events is paired with E-sign on this site.</p>
+					<form method="post" action={PAIR_PATH}>
+						<input type="hidden" name="action" value="templates" />
+						<button type="submit" data-testid="templates-button">Refresh templates</button>
+						<span>Loads templates added in E-sign since, for the event panel's waiver select.</span>
+					</form>
 					<form method="post" action={PAIR_PATH}>
 						<input type="hidden" name="action" value="unpair" />
 						<button type="submit" data-testid="unpair-button">Unpair</button>

@@ -18,6 +18,8 @@
  * response, URL, cookie or log. Glue only: no rules, no tokens, no `@semics-tech/shared` (R35).
  */
 
+import { loadCatalogue } from "./templates";
+
 /** The page (injected by `suiteIntegration`). */
 export const PAIR_PATH = "/_events/pair";
 const ESIGN_ROUTE = "integrations/pair";
@@ -49,6 +51,10 @@ export interface PairContext {
 export type PairState = "paired" | "unpaired" | "revoked" | "esign-missing" | "forbidden" | "error";
 export interface PairView {
 	state: PairState;
+	/** T150: templates loaded into Events Pro's catalogue by this action; absent when none could be. */
+	templates?: number;
+	/** T150: why the templates could not be loaded (an error code; `NOT_FOUND` on Free Events). */
+	templatesCode?: string;
 	/** An error code (never a message that could carry a value). */
 	code?: string;
 	/** The page removed a pairing left behind by an uninstalled E-sign. */
@@ -157,15 +163,29 @@ export async function pairingStatus(ctx: PairContext, ids: PairIds): Promise<Pai
 	return { state: status.data.client === "active" ? "paired" : "revoked" };
 }
 
-/** The page's POST: `pair` (idempotent) or `unpair`. */
+/**
+ * T150: loads E-sign's templates into Events Pro's catalogue (`loadCatalogue`, in process), so the
+ * panel offers them without its Refresh link. Free has no catalogue: no count, the paired state stands.
+ */
+async function withTemplates(ctx: PairContext, ids: PairIds, view: PairView, report: boolean): Promise<PairView> {
+	const loaded = await loadCatalogue({ locals: ctx.locals as never, url: ctx.url }, ids);
+	if (loaded.ok) return { ...view, templates: loaded.count };
+	return report ? { ...view, templatesCode: loaded.code } : view;
+}
+
+/** The page's POST: `pair` (idempotent), `unpair`, or `templates` (fetch the catalogue again, T150). */
 export async function pairAction(ctx: PairContext, ids: PairIds, action: unknown): Promise<PairView> {
-	if (action !== "pair" && action !== "unpair") return { state: "error", code: "BAD_REQUEST" };
+	if (action !== "pair" && action !== "unpair" && action !== "templates")
+		return { state: "error", code: "BAD_REQUEST" };
 	const admin = adminOf(ctx.locals);
 	if (!admin) return { state: "forbidden" };
 	const paired = await eventsPaired(ctx, ids);
 	if (paired === null) return { state: "forbidden" };
 	const held = paired ? await heldClientId(ctx) : undefined;
 
+	if (action === "templates") {
+		return paired ? withTemplates(ctx, ids, { state: "paired" }, true) : { state: "unpaired" };
+	}
 	if (action === "unpair") {
 		const revoked = await esign(ctx, admin, ids, "unpair", held);
 		if (revoked.kind === "error") return { state: "error", code: revoked.code };
@@ -179,5 +199,5 @@ export async function pairAction(ctx: PairContext, ids: PairIds, action: unknown
 	const pairing = made.data.pairing;
 	if (typeof pairing !== "string" || !pairing.startsWith("esign1.")) return { state: "error", code: "INTERNAL" };
 	const failed = await writePairing(ctx, ids, pairing);
-	return failed ? { state: "error", code: failed } : { state: "paired" };
+	return failed ? { state: "error", code: failed } : withTemplates(ctx, ids, { state: "paired" }, false);
 }

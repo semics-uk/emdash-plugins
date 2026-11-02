@@ -68,6 +68,14 @@ bundles nothing new into the cores; it calls them through their public routes in
   from the fragment; the page asks E-sign `public/templates/catalog`, then Events (Pro) `esign/catalog`, which
   re-verifies the request (minted by this site, <= 5 minutes) and caches the well-formed templates for the
   panel's select. Both lookup and catalogue tokens are minted by the Events Pro core, never here.
+- T150, no link to follow: `loadCatalogue` (same file) asks Events Pro's private `esign/catalog-request` in
+  process as the signed-in admin for a fresh request and runs `refreshCatalogue` with it (the request never
+  leaves the server). `/_events/pair` runs it right after a successful pair (the PRG carries only a count,
+  `templates=`) and from its own "Refresh templates" button (`action=templates`; `tcode=` on failure). Free has
+  no such route: the host answers ROUTE_ERROR "Route not found" (and logs one line), mapped to `NOT_FOUND`, and
+  the pair page says waiver templates need Pro. The panel's link still works: it now reads "Step 1: fetch the
+  templates" / "Step 2: reload this panel and pick one", and `/_events/templates` links back to
+  `/_emdash/admin/content/events` (the panel's collection) and to the pair page.
 
 ## Auto-pairing (T145, `/_events/pair`)
 

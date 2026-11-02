@@ -40,7 +40,9 @@ function site(options: Options = {}) {
 			const input = (await request.json()) as Record<string, unknown>;
 			events.calls.push({ path, user, input, origin: request.headers.get("origin") });
 			if (!options.pro || path !== "esign/catalog-request") {
-				return { success: false, error: { code: "NOT_FOUND", message: `Route not found: ${path}` } };
+				// What EmDash answers for a route the sandboxed core does not have (Free).
+				const message = `Plugin semics-events:1.0.0 route ${path} failed: Route not found: ${path}`;
+				return { success: false, error: { code: "ROUTE_ERROR", message } };
 			}
 			return { success: true, data: { ok: true, request: CATALOG_REQUEST } };
 		}
@@ -297,6 +299,8 @@ describe("T145 suite auto-pairing", () => {
 		const s = site();
 		expect(await pairAction(s.ctx, IDS, "pair")).toEqual({ state: "paired" });
 		expect(s.events.cached).toEqual([]);
+		// Refresh templates says why there is nothing to load.
+		expect(await pairAction(s.ctx, IDS, "templates")).toEqual({ state: "paired", templatesCode: "NOT_FOUND" });
 	});
 
 	it("T145 refuses visitors who are not signed-in administrators before calling E-sign", async () => {

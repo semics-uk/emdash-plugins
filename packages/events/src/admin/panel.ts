@@ -566,8 +566,8 @@ export async function handlePanel(
 		const url = await waivers.refresh?.();
 		extra = url
 			? [
-					actions([link("Fetch the templates from E-sign", { kind: "external", url }, { appearance: "primary" })]),
-					context("Reload this panel after fetching to pick a template."),
+					actions([link("Step 1: fetch the templates", { kind: "external", url }, { appearance: "primary" })]),
+					context("Step 2: reload this panel and pick one."),
 				]
 			: notices([
 					{

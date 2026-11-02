@@ -8,7 +8,11 @@
 import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
 import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
 
+import { PAIR_PATH } from "./lib/pair";
 import { refreshCatalogue, TEMPLATES_PATH } from "./lib/templates";
+
+/** The admin's list of events, where the editor panel lives (it is scoped to the `events` collection). */
+const BACK_PATH = "/_emdash/admin/content/events";
 
 export const prerender = false;
 
@@ -57,11 +61,15 @@ if (Astro.request.method === "POST") {
 							: count === 1
 								? "One template loaded."
 								: `${count} templates loaded.`}{" "}
-						Reload the event panel to choose one.
+						Step 2: go back to the event and reload its panel to choose one.
 					</p>
 				)
 			}
 			{count < 0 && !error && <p>Fetching the templates…</p>}
+			<p>
+				<a href={BACK_PATH} data-testid="templates-back">Back to your events</a>
+				{" "}(Refresh templates on <a href={PAIR_PATH}>{PAIR_PATH}</a> loads them in one step.)
+			</p>
 			<form method="post" action={TEMPLATES_PATH} data-semics-fragment="catalog" hidden>
 				<input type="hidden" name="catalog" value="" />
 			</form>
