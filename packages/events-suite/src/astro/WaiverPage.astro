@@ -12,6 +12,7 @@ import { crossSiteResponse } from "@semics-tech/emdash-events/astro/lib/checkout
 
 import { handleWaiverRequest } from "./lib/flow";
 import { WAIVER_MESSAGES, WAIVER_PATH } from "./lib/form";
+import { waiverSlot } from "./lib/slot";
 
 export const prerender = false;
 
@@ -31,6 +32,14 @@ Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
 const render = outcome.type === "render" ? outcome : undefined;
 const ref = outcome.type === "render" || outcome.type === "error" ? (outcome.ref ?? "") : "";
 const error = outcome.type === "error" ? (WAIVER_MESSAGES[outcome.code] ?? WAIVER_MESSAGES.INTERNAL) : "";
+// The event and the booked date and time, so the signer can confirm what they sign for (T148).
+const slot = render
+	? await waiverSlot(
+			{ locals: Astro.locals, url: Astro.url, request: Astro.request, cookie: (name) => Astro.cookies.get(name)?.value },
+			{ eventsPluginId, esignPluginId },
+			ref,
+		)
+	: undefined;
 const signer = render?.view.kind === "ready" ? render.view.session.signer : undefined;
 ---
 <!doctype html>
@@ -56,6 +65,13 @@ const signer = render?.view.kind === "ready" ? render.view.session.signer : unde
 			}
 			{render && (
 				<>
+					{slot && (
+						<p data-testid="waiver-slot">
+							{slot.title && <strong data-testid="waiver-event">{slot.title}</strong>}
+							{slot.title && slot.when && <br />}
+							{slot.when && <time datetime={slot.startsAt} data-testid="waiver-when">{slot.when}</time>}
+						</p>
+					)}
 					{signer?.participant && <p data-testid="waiver-for">Signing as guardian for <strong>{signer.participant}</strong>.</p>}
 					{render.remaining > 0 && (
 						<p data-testid="waiver-remaining">

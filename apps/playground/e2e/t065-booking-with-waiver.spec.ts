@@ -116,6 +116,9 @@ test("SX-FR-03 the waiver page embeds the ceremony under its CSP and forwards th
 	expect(response?.headers()["referrer-policy"]).toBe("no-referrer");
 	await expect(page.getByTestId("waiver-page")).toHaveAttribute("data-step", "sign");
 	await expect(page.getByTestId("signing-ceremony")).toHaveAttribute("data-state", "ready");
+	// T148: the slot block comes from the booking; this ref has no Events booking, so nothing extra shows
+	// and the ceremony is unaffected (the slot's text is covered by packages/events-suite/tests/slot.test.ts).
+	await expect(page.getByTestId("waiver-slot")).toHaveCount(0);
 
 	await page.getByLabel("Type your full name to sign").fill("Ada Lovelace");
 	await page.getByLabel(/electronic records and an electronic signature/).check();
