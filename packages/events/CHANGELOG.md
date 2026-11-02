@@ -1,5 +1,17 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.2
+
+### Patch Changes
+
+- bff3368: `public/booking` answers with the event's public info (`event`: title, time zone, slug, and the booked date's start) from the config read it already makes, so a booking keeps its title and date after the event leaves sale.
+- e232705: `adminRoute({ waivers })` (T142): the Event editor page takes the same waiver check as the entry panel's `editorTicketsRoute({ waivers })`, so an edition that passes both shows the same waiver state on each (the page said "Required waivers need Events Pro" on a Pro site that only lacked the E-sign pairing string).
+- 8effa92: The "Tickets & booking" panel says why the waiver template list is empty: only E-sign templates marked Available to integrations are listed.
+- 79cb347: The panel's pairing hint points to the suite's one-click pairing page, `/_events/pair`.
+- 74754f7: The "Tickets & booking" panel and Events → Event editor can add ticket types and dates again (T141, R92): the admin's Block Kit renderer draws no repeater inside a form, so the "New ticket types" and "New dates" lists were invisible and no event could get a price. Each is now one blank row of plain fields (name, price, capacity; starts, capacity), added on save, with a fresh blank row after each save. Values from an older admin (`newTickets` / `newDates`) still parse.
+- d8217eb: The panel's Refresh templates answer reads as two plain steps: "Step 1: fetch the templates", then "Step 2: reload this panel and pick one".
+- 29d95f7: When a waiver booking has expired or been cancelled before every seat signed, the booking page and the waiver page send E-sign the void intents Events Pro lists for it, so the booking's open envelopes are voided and can no longer be signed. A failed void never changes the page, and sending the same voids again is harmless.
+
 ## 1.0.0-rc.1
 
 ### Minor Changes
