@@ -2978,7 +2978,7 @@
 			"phase": 7,
 			"package": "events-suite",
 			"edition": "free",
-			"status": "review",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "S",
 			"depends_on": [
@@ -2986,7 +2986,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "review"
+			"column": "done"
 		},
 		"T151": {
 			"file": "T151-waiver-page-expired-and-draft.md",
@@ -3032,9 +3032,7 @@
 			"T152"
 		],
 		"in-progress": [],
-		"review": [
-			"T150"
-		],
+		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -3165,6 +3163,7 @@
 			"T147",
 			"T148",
 			"T149",
+			"T150",
 			"T151"
 		],
 		"blocked": [
