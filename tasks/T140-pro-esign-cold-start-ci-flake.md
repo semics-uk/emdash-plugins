@@ -27,7 +27,7 @@ the cause rather than raising the budget.
 - [x] Cause named: real headroom shortfall, or the hung `pro/licence` request inflating the measure.
 - [x] If headroom: the Pro E-sign cold start is under 45 ms on CI (10% room), budget unchanged at 50.
 - [ ] If the hung request: no uncaught "Route not found: pro/licence" in the Pro test logs.
-- [ ] `gh workflow run pro-release.yml -f public-ref=main -f dry-run=true` passes twice in a row.
+- [x] `gh workflow run pro-release.yml -f public-ref=main -f dry-run=true` passes twice in a row.
 
 ## Notes
 
