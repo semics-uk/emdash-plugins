@@ -4,12 +4,11 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- (none)
+- T140 Pro E-sign cold-start CI flake (agent running in a worktree)
 
 ## Next
 - T152 follow-up: void at expiry itself, not on the buyer's next visit (needs a server-to-server channel; Events can't call E-sign)
-- T140 Pro E-sign cold-start CPU flake on CI (52.7 ms against 50)
-- lmsc-site PR #8 E-sign/Stripe admin setup: rc.2 is out; check what it still needs from the plugins
+- lmsc-site PR #8 is on npm rc.2 (CI green); after Oli redeploys staging, recheck the LMSC flows against rc.2
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
