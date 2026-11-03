@@ -2802,7 +2802,7 @@
 			"phase": 7,
 			"package": "esign",
 			"edition": "pro",
-			"status": "review",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "S",
 			"depends_on": [],
@@ -2810,7 +2810,7 @@
 				"R92"
 			],
 			"unblocks": [],
-			"column": "review"
+			"column": "done"
 		},
 		"T141": {
 			"file": "T141-panel-no-repeaters.md",
@@ -3029,9 +3029,7 @@
 		"backlog": [],
 		"ready": [],
 		"in-progress": [],
-		"review": [
-			"T140"
-		],
+		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -3153,6 +3151,7 @@
 			"T137",
 			"T138",
 			"T139",
+			"T140",
 			"T141",
 			"T142",
 			"T143",
