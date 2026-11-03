@@ -4,7 +4,7 @@ title: "Pro E-sign: cold-start CPU budget flaked on CI (52.7 ms against 50)"
 phase: 7
 package: esign
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: S
 depends_on: []
