@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T140 Pro E-sign cold-start CI flake (agent running in a worktree)
+- T140 landed; Pro dry-run release running twice to confirm the CI timing
 
 ## Next
 - T152 follow-up: void at expiry itself, not on the buyer's next visit (needs a server-to-server channel; Events can't call E-sign)
@@ -26,6 +26,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-03 T140 cold-start test measures in a fresh Node process (Vitest's loader had tripled it)
 - 2026-11-02 rc.2 published: npm (Free and Pro) and EmDash registry (semics-events, semics-esign)
 - 2026-11-02 T152 ended waiver bookings void their unsigned envelopes (Pro; on next booking/waiver page visit)
 - 2026-11-02 T151 waiver page handles expired bookings and draft events
