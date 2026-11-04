@@ -7,7 +7,6 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
-- T152 follow-up: void at expiry itself, not on the buyer's next visit (needs a server-to-server channel; Events can't call E-sign)
 - lmsc-site PR #8 is on npm rc.2 (CI green); after Oli redeploys staging, recheck the LMSC flows against rc.2
 
 ## Monitor
@@ -18,6 +17,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Events backend size: 125 KiB budget, about 95 bytes of hotfix room after T151
 
 ## Ideas
+- T153 (proposal, size M, protocol change): intents carry `signBy`, so E-sign itself refuses signatures after the hold ends; closes T152's gap. Move to Next to build
 - Templates page links straight to the event it was opened from, not the events list
 - Free sites log "Route not found: esign/catalog-request" once per Refresh click; make Free answer quietly
 - Share the slot-picker markup in the suite instead of duplicating it

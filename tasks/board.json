@@ -3021,13 +3021,34 @@
 				"T151"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T153"
+			],
 			"column": "done"
+		},
+		"T153": {
+			"file": "T153-intent-sign-by.md",
+			"id": "T153",
+			"title": "Intent `signBy`: E-sign refuses a signature once the booking's hold is over",
+			"phase": 7,
+			"package": "esign",
+			"edition": "free",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T152"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "ready"
 		}
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [],
+		"ready": [
+			"T153"
+		],
 		"in-progress": [],
 		"review": [],
 		"done": [
