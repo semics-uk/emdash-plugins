@@ -76,6 +76,11 @@ export async function refreshCatalogue(
 }
 
 const REQUEST_ROUTE = "esign/catalog-request";
+// Events plugins found without the route (Free): not asked again in this isolate, so the host logs one
+// "Route not found" rather than one per Refresh (T154). Installing Pro restarts the site, which clears it.
+const missingRoute = new Set<string>();
+/** Tests only: forget which Events plugins lacked the route. */
+export const forgetMissingRoutes = () => missingRoute.clear();
 
 type PrivateRoute = (
 	pluginId: string,

@@ -1,6 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { type PairContext, pairAction, pairingStatus } from "../src/astro/lib/pair";
+import { forgetMissingRoutes } from "../src/astro/lib/templates";
 import { eventsSuite } from "../src/index";
 
 // T145: the suite pairs Events with E-sign on the same site. The page logic runs against a fake host:
@@ -168,6 +169,8 @@ function site(options: Options = {}) {
 }
 
 describe("T145 suite auto-pairing", () => {
+	beforeEach(() => forgetMissingRoutes());
+
 	it("T145 a fresh site reaches paired with one admin action and no copy-paste", async () => {
 		const s = site();
 		expect(await pairingStatus(s.ctx, IDS)).toEqual({ state: "unpaired" });
@@ -301,6 +304,14 @@ describe("T145 suite auto-pairing", () => {
 		expect(s.events.cached).toEqual([]);
 		// Refresh templates says why there is nothing to load.
 		expect(await pairAction(s.ctx, IDS, "templates")).toEqual({ state: "paired", templatesCode: "NOT_FOUND" });
+	});
+
+	it("T154 on Free the suite asks Events for the Pro-only route once, so the host logs one miss, not one per click", async () => {
+		const s = site();
+		await pairAction(s.ctx, IDS, "pair");
+		await pairAction(s.ctx, IDS, "templates");
+		expect(await pairAction(s.ctx, IDS, "templates")).toEqual({ state: "paired", templatesCode: "NOT_FOUND" });
+		expect(s.events.calls.filter((c) => c.path === "esign/catalog-request")).toHaveLength(1);
 	});
 
 	it("T145 refuses visitors who are not signed-in administrators before calling E-sign", async () => {
