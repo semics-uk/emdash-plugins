@@ -19,13 +19,13 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Ideas
 - T153 (proposal, size M, protocol change): intents carry `signBy`, so E-sign itself refuses signatures after the hold ends; closes T152's gap. Move to Next to build
 - Templates page links straight to the event it was opened from, not the events list
-- Free sites log "Route not found: esign/catalog-request" once per Refresh click; make Free answer quietly
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
 - Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-04 T154 Free sites ask for esign/catalog-request once per process, not per Refresh
 - 2026-11-03 T140 cold-start test measures in a fresh Node process (Vitest's loader had tripled it)
 - 2026-11-02 rc.2 published: npm (Free and Pro) and EmDash registry (semics-events, semics-esign)
 - 2026-11-02 T152 ended waiver bookings void their unsigned envelopes (Pro; on next booking/waiver page visit)

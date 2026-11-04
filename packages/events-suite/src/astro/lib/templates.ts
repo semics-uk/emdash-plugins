@@ -100,6 +100,7 @@ export async function loadCatalogue(ctx: PublicRouteContext, ids: CatalogueIds):
 	const l = (ctx.locals ?? {}) as { user?: unknown; emdash?: { handlePluginApiRoute?: unknown } };
 	const call = l.emdash?.handlePluginApiRoute;
 	if (typeof call !== "function" || !l.user) return { ok: false, code: "FORBIDDEN" };
+	if (missingRoute.has(ids.eventsPluginId)) return { ok: false, code: "NOT_FOUND" };
 	const asked = new Request(new URL(`/_emdash/api/plugins/${ids.eventsPluginId}/${REQUEST_ROUTE}`, ctx.url), {
 		method: "POST",
 		headers: { "content-type": "application/json" },
@@ -114,6 +115,7 @@ export async function loadCatalogue(ctx: PublicRouteContext, ids: CatalogueIds):
 	if (data?.ok === true) return refreshCatalogue(ctx, data.request, ids);
 	// A sandboxed core without the route (Free): the host answers ROUTE_ERROR "… Route not found …".
 	const missing = typeof res?.error?.message === "string" && /\bRoute not found\b/.test(res.error.message);
+	if (missing) missingRoute.add(ids.eventsPluginId);
 	const code = missing ? "NOT_FOUND" : (data?.error?.code ?? res?.error?.code);
 	return { ok: false, code: typeof code === "string" ? code : "INTERNAL" };
 }

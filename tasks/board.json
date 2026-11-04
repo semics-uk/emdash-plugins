@@ -2985,7 +2985,9 @@
 				"T145"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T154"
+			],
 			"column": "done"
 		},
 		"T151": {
@@ -3042,6 +3044,23 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "ready"
+		},
+		"T154": {
+			"file": "T154-quiet-catalog-request-on-free.md",
+			"id": "T154",
+			"title": "Free sites: ask for esign/catalog-request once, not on every Refresh",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T150"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -3184,7 +3203,8 @@
 			"T149",
 			"T150",
 			"T151",
-			"T152"
+			"T152",
+			"T154"
 		],
 		"blocked": [
 			"T111"
