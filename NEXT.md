@@ -4,20 +4,19 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- (none)
+- T153 intent `signBy`: E-sign refuses signatures after the hold ends (agent running in a worktree; Oli said keep building 2026-11-05)
 
 ## Next
 - lmsc-site PR #8 is on npm rc.2 (CI green); after Oli redeploys staging, recheck the LMSC flows against rc.2
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
-- Open PRs: `gh pr list` (PR #2 is the changesets release PR; merging it publishes)
+- Open PRs: `gh pr list` (PR #3 is the changesets release PR; merging it publishes)
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Events backend size: 125 KiB budget, about 95 bytes of hotfix room after T151
 
 ## Ideas
-- T153 (proposal, size M, protocol change): intents carry `signBy`, so E-sign itself refuses signatures after the hold ends; closes T152's gap. Move to Next to build
 - Templates page links straight to the event it was opened from, not the events list
 - Share the slot-picker markup in the suite instead of duplicating it
 
