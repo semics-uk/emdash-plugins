@@ -282,6 +282,254 @@
 			}
 		},
 		{
+			"name": "intent/valid-sign-by",
+			"type": "intent",
+			"description": "Carries the booking's hold as signBy; the payload comes back whole, signBy included.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtU0lHTkJZQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSIsInNpZ25CeSI6MTgwMDAwMDg0MH0.b4Z7dWwIxsWhjksn5QelziBrnRmSJTfqmWj50mKN1vU",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIGNBYAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"signBy": 1800000840
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIGNBYAAAAAAAAAA",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"signBy": 1800000840
+				}
+			}
+		},
+		{
+			"name": "intent/valid-sign-by-not-a-time",
+			"type": "intent",
+			"description": "A signBy that is not an integer time is not a verification failure; e-sign treats it as absent.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtU0lHTkJZQkJCQkJCQkJCQiIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSIsInNpZ25CeSI6InNvb24ifQ.fISB-aNcxNJDqC63i1sBV0UehS66-8vF9mkKElH3GeU",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIGNBYBBBBBBBBBB",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"signBy": "soon"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIGNBYBBBBBBBBBB",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"signBy": "soon"
+				}
+			}
+		},
+		{
+			"name": "intent/valid-sign-by-not-after-iat",
+			"type": "intent",
+			"description": "signBy = iat breaks the signBy > iat rule; verification still passes and e-sign treats it as absent.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtU0lHTkJZQ0NDQ0NDQ0NDQyIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSIsInNpZ25CeSI6MTc5OTk5OTk0MH0.-D1tuWGcMjzvSgPrBlgQC61mLN4DWPfU8E89hzGM5Rg",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIGNBYCCCCCCCCCC",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"signBy": 1799999940
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "intent",
+					"cid": "cl_test_aaaaaaaa",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"nonce": "n0nce-SIGNBYCCCCCCCCCC",
+					"tpl": "tpl_waiver",
+					"ref": "BK7Q2M:ATT01",
+					"signer": {
+						"name": "Alex Example",
+						"email": "alex@example.com"
+					},
+					"prefill": {},
+					"returnUrl": "https://events.example/booking/BK7Q2M",
+					"signBy": 1799999940
+				}
+			}
+		},
+		{
+			"name": "intent/sign-by-tampered",
+			"type": "intent",
+			"description": "signBy moved later after signing; the signature covers it, so the token fails.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJpbnRlbnQiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsIm5vbmNlIjoibjBuY2UtU0lHTkJZQUFBQUFBQUFBQSIsInRwbCI6InRwbF93YWl2ZXIiLCJyZWYiOiJCSzdRMk06QVRUMDEiLCJzaWduZXIiOnsibmFtZSI6IkFsZXggRXhhbXBsZSIsImVtYWlsIjoiYWxleEBleGFtcGxlLmNvbSJ9LCJwcmVmaWxsIjp7fSwicmV0dXJuVXJsIjoiaHR0cHM6Ly9ldmVudHMuZXhhbXBsZS9ib29raW5nL0JLN1EyTSIsInNpZ25CeSI6MTgwMDA4NjQwMH0.b4Z7dWwIxsWhjksn5QelziBrnRmSJTfqmWj50mKN1vU",
+				"expectedPrefix": "esign-intent/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+				"tamper": "payload segment replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+						"revoked": false,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					},
+					"cl_test_revoked1": {
+						"secret": "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+						"revoked": true,
+						"returnUrlAllowlist": [
+							"https://events.example/booking",
+							"https://events.example/sign/"
+						]
+					}
+				},
+				"usedNonces": []
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
 			"name": "intent/valid-unknown-field-ignored",
 			"type": "intent",
 			"description": "Unknown top-level fields are ignored, not rejected.",

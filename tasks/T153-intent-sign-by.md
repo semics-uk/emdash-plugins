@@ -4,7 +4,7 @@ title: "Intent `signBy`: E-sign refuses a signature once the booking's hold is o
 phase: 7
 package: esign
 edition: free
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T152]

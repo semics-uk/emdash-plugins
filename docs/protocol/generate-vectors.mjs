@@ -326,6 +326,45 @@ async function intentVectors() {
 		ok(email),
 	);
 
+	// T153: `signBy` is an optional field e-sign reads after verification (§5.1, §8.1). Verification never
+	// looks at it, so an e-sign from before the field passes these vectors too.
+	const signBy = intentPayload({ nonce: "n0nce-SIGNBYAAAAAAAAAA", signBy: NOW + 840 });
+	const signByToken = await tokenVector(
+		t,
+		"valid-sign-by",
+		"Carries the booking's hold as signBy; the payload comes back whole, signBy included.",
+		signBy,
+		v(),
+		ok(signBy),
+	);
+	const signByNotATime = intentPayload({ nonce: "n0nce-SIGNBYBBBBBBBBBB", signBy: "soon" });
+	await tokenVector(
+		t,
+		"valid-sign-by-not-a-time",
+		"A signBy that is not an integer time is not a verification failure; e-sign treats it as absent.",
+		signByNotATime,
+		v(),
+		ok(signByNotATime),
+	);
+	const signByEarly = intentPayload({ nonce: "n0nce-SIGNBYCCCCCCCCCC", signBy: NOW - 60 });
+	await tokenVector(
+		t,
+		"valid-sign-by-not-after-iat",
+		"signBy = iat breaks the signBy > iat rule; verification still passes and e-sign treats it as absent.",
+		signByEarly,
+		v(),
+		ok(signByEarly),
+	);
+	rawVector(
+		t,
+		"sign-by-tampered",
+		"signBy moved later after signing; the signature covers it, so the token fails.",
+		`${b64urlText(JSON.stringify({ ...signBy, signBy: NOW + 86400 }))}.${signByToken.split(".")[1]}`,
+		v(),
+		fail("TOKEN_INVALID"),
+		{ signedWithPrefix: PREFIXES.intent, signedWithSecret: KEYS.A.secret, tamper: "payload segment replaced" },
+	);
+
 	const unknownField = { ...intentPayload({ nonce: "n0nce-DDDDDDDDDDDDDDDD" }), ext: { future: true } };
 	await tokenVector(
 		t,

@@ -440,6 +440,67 @@ describe("inline ceremony and receipt (SX-FR-03)", () => {
 	});
 });
 
+describe("T153 the envelopes' deadline follows the hold", () => {
+	const cookies = { [flowCookieName(REF)]: `${SIGNING(1)}.${SIGNING(2)}`, [retryCookieName(REF)]: ACCESS };
+	const fresh = {
+		[`${EVENTS} public/checkout/continue`]: signNext,
+		[`${ESIGN} public/envelopes/from-intent`]: fromIntent(),
+	};
+	/** E-sign's rotated tokens: only seat 2 is left to sign. */
+	const seatTwoLeft = () =>
+		ok({
+			bookingRef: REF,
+			status: "awaiting_signature",
+			next: {
+				type: "sign",
+				intents: [{ ref: `${REF}:2`, delivery: "inline", as: "guardian", token: INTENT(7) }],
+			},
+		});
+
+	it("T153 a receipt that extends the hold re-issues the seats still to sign, so their deadlines move with it", async () => {
+		const h = ceremonyHost({ ...fresh, [`${EVENTS} public/checkout/continue`]: seatTwoLeft });
+		const outcome = expectRedirect(await run(h, post(`${WAIVER_PATH}?ref=${REF}`, SIGN_FORM), cookies));
+		const paths = h.calls.map((c) => c.path);
+		expect(paths.indexOf("signatures/receipt")).toBeLessThan(paths.indexOf("public/checkout/continue"));
+		expect(paths.indexOf("public/checkout/continue")).toBeLessThan(paths.indexOf("public/envelopes/from-intent"));
+		expect(h.calls.find((c) => c.path === "public/checkout/continue")?.body).toEqual({
+			bookingRef: REF,
+			accessToken: ACCESS,
+		});
+		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}`);
+		// The token e-sign answered with this time, not the cookie's old one.
+		expect(cookieValue(outcome, flowCookieName(REF))?.value).toBe(SIGNING(7));
+	});
+
+	it("T153 when the re-issue is refused, the next signer goes on with the token already held", async () => {
+		const h = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: () => refused("LICENCE_REQUIRED") });
+		const outcome = expectRedirect(await run(h, post(`${WAIVER_PATH}?ref=${REF}`, SIGN_FORM), cookies));
+		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}`);
+		expect(cookieValue(outcome, flowCookieName(REF))?.value).toBe(SIGNING(2));
+	});
+
+	it("T153 a seat refused as expired while the booking is still open gets a fresh intent, not a dead end", async () => {
+		const h = ceremonyHost({
+			...fresh,
+			[`${EVENTS} public/booking`]: () => ok({ status: "awaiting_signature" }),
+			[`${ESIGN} public/session`]: () => refused("SIGNING_TOKEN_EXPIRED"),
+		});
+		const outcome = expectRedirect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`), cookies));
+		expect(h.calls.map((c) => c.path)).toContain("public/checkout/continue");
+		expect(outcome.location).toBe(`${WAIVER_PATH}?ref=${REF}`);
+		expect(cookieValue(outcome, flowCookieName(REF))?.value).toBe(`${SIGNING(1)}.${SIGNING(2)}`);
+	});
+
+	it("T153 without a booking answer an expired seat shows the error as before", async () => {
+		const h = ceremonyHost({ ...fresh, [`${ESIGN} public/session`]: () => refused("SIGNING_TOKEN_EXPIRED") });
+		expect(await run(h, get(`${WAIVER_PATH}?ref=${REF}`), cookies)).toMatchObject({
+			type: "render",
+			view: { kind: "error", code: "SIGNING_TOKEN_EXPIRED" },
+		});
+		expect(h.calls.map((c) => c.path)).not.toContain("public/checkout/continue");
+	});
+});
+
 describe("an expired booking has nothing to sign (T151)", () => {
 	const cookies = { [flowCookieName(REF)]: `${SIGNING(1)}.${SIGNING(2)}`, [retryCookieName(REF)]: ACCESS };
 	const NOW = Date.parse("2026-11-02T10:00:00.000Z");

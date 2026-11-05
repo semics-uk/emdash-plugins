@@ -75,7 +75,7 @@ function keyCid(secret: string): string {
 }
 
 const shiftTimes = (text: string, shift: number) =>
-	text.replace(/"(iat|exp)":(\d+)/g, (_m, field: string, n: string) => `"${field}":${Number(n) + shift}`);
+	text.replace(/"(iat|exp|signBy)":(\d+)/g, (_m, field: string, n: string) => `"${field}":${Number(n) + shift}`);
 
 async function sig(secret: string, prefix: string, payloadB64: string): Promise<Buffer> {
 	return createHmac("sha256", await derived(keyCid(secret)))
@@ -193,8 +193,8 @@ async function runVector(v: Vector) {
 }
 
 describe("ES-FR-13 SX-NFR-02 SX-FR-08 ES-NFR-03 every intent vector through public/envelopes/from-intent", () => {
-	it("the vector file has the 53 intent vectors the route must honour", () => {
-		expect(INTENT_VECTORS).toHaveLength(53);
+	it("the vector file has the 57 intent vectors the route must honour", () => {
+		expect(INTENT_VECTORS).toHaveLength(57);
 	});
 
 	it.each(INTENT_VECTORS.map((v) => [v.name, v] as const))("%s", async (_name, v) => {
@@ -606,5 +606,206 @@ describe("T133 R95 R48 resend and replace intents", () => {
 			REPLACE_TARGET,
 		);
 		expect(kept).toEqual({ ok: true, envelopeId: id, status: "completed" });
+	});
+});
+
+// T153: an intent can carry `signBy`, the time its booking's hold ends. E-sign enforces it with no call
+// back to Events: the envelope's expiry is capped at `signBy + S`, every signing path refuses after it,
+// the receipt says `expired`, and a re-issue for the same `(cid, ref)` only ever moves it later.
+describe("T153 intent signBy caps the envelope's expiry", () => {
+	const SKEW = 60;
+	const DAY = 86_400;
+	const REF = "BK7Q2M:A1";
+	type Stored = { status: string; expiresAt: string | null; signBy?: number; sentAt: string };
+	const extra = (over: Record<string, unknown>) => over as Partial<IntentPayload>;
+	const iso = (seconds: number) => new Date(seconds * 1000).toISOString();
+	const stored = async (id: unknown) =>
+		(await runtime?.inspect.storage.get<Stored>("envelopes", id as string)) as Stored;
+	/** An intent issued a while ago whose `signBy` has passed by more than the skew. */
+	const lapsed = () => {
+		const iat = nowS() - 600;
+		return payload({ iat, exp: nowS() + 600, ...extra({ signBy: iat + 100 }) });
+	};
+	const open = (budget: BudgetedHost, token: unknown) =>
+		budget.invokeRoute("public/session", { token, open: true }).then((r) => r.value as Body);
+	const submit = (budget: BudgetedHost, token: unknown, session: Body) => {
+		const { envelope, consent } = session as unknown as {
+			envelope: { docSha256: string };
+			consent: { sha256: string };
+		};
+		return budget.invokeRoute("public/submit", {
+			token,
+			docSha256: envelope.docSha256,
+			consentSha256: consent.sha256,
+			consent: true,
+			intent: true,
+			signature: { kind: "typed", typedName: "Ada Lovelace" },
+			fieldValues: {},
+		});
+	};
+	const lookup = async (budget: BudgetedHost) => {
+		const request = await signEsignToken(
+			"lookup",
+			{ v: 1, typ: "lookup", cid: CID, ts: nowS(), ref: REF },
+			await derived(CID),
+		);
+		return (await budget.invokeRoute("public/receipts/lookup", { request })).value as Body;
+	};
+	const receiptStatus = (body: Body) =>
+		JSON.parse(Buffer.from(String(body.receipt).split(".")[0] as string, "base64url").toString("utf8")).status;
+
+	it("T153 the envelope's expiry is signBy plus the protocol's skew, when that comes first", async () => {
+		const budget = await integration();
+		const signBy = nowS() + 900;
+		const made = await call(budget, await sign(payload(extra({ signBy }))));
+		expect((await stored(made.envelopeId)).expiresAt).toBe(iso(signBy + SKEW));
+	});
+
+	it("T153 a signBy past e-sign's own expiry leaves the setting in charge", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(payload(extra({ signBy: nowS() + 400 * DAY }))));
+		const env = await stored(made.envelopeId);
+		expect(Date.parse(env.expiresAt as string)).toBe(Date.parse(env.sentAt) + 30 * DAY * 1000);
+	});
+
+	it.each([
+		["a string", () => "soon"],
+		["a fraction", () => nowS() + 900.5],
+		["not after iat", () => nowS() - 3600],
+	])("T153 a signBy that is %s means absent (§5.1): e-sign's own expiry applies", async (_name, value) => {
+		const budget = await integration();
+		const made = await call(budget, await sign(payload(extra({ signBy: value() }))));
+		const env = await stored(made.envelopeId);
+		expect(Date.parse(env.expiresAt as string)).toBe(Date.parse(env.sentAt) + 30 * DAY * 1000);
+	});
+
+	it("T153 a signature after signBy + S is refused, the envelope closes and the receipt says expired", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(payload(extra({ signBy: nowS() + 900 }))));
+		const session = await open(budget, made.signingToken);
+		expect(session).toMatchObject({ ok: true, state: "ready" });
+		// The ceremony stays open past the deadline.
+		await runtime?.fixtures.plugin.storage("envelopes", made.envelopeId as string, {
+			...(await stored(made.envelopeId)),
+			expiresAt: iso(nowS() - 1),
+		});
+		const late = await submit(budget, made.signingToken, session);
+		expectWithinBudget(late, { calls: 9, cpuMs: 50 });
+		expect(late.value).toMatchObject({ ok: false, error: { code: "SIGNING_TOKEN_EXPIRED" } });
+		expect((await stored(made.envelopeId)).status).toBe("expired");
+		const found = await lookup(budget);
+		expect(found).toMatchObject({ ok: true, state: "terminal" });
+		expect(receiptStatus(found)).toBe("expired");
+	});
+
+	it("T153 opening or declining after the deadline is refused the same way and closes the envelope", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(lapsed()));
+		const session = await open(budget, made.signingToken);
+		expect(session).toMatchObject({ ok: false, error: { code: "SIGNING_TOKEN_EXPIRED" } });
+		expect((await stored(made.envelopeId)).status).toBe("expired");
+
+		const other = await call(budget, await sign({ ...lapsed(), ref: "BK7Q2M:A3" }));
+		const declined = await budget.invokeRoute("public/decline", { token: other.signingToken });
+		expect(declined.value).toMatchObject({ ok: false, error: { code: "SIGNING_TOKEN_EXPIRED" } });
+		expect((await stored(other.envelopeId)).status).toBe("expired");
+	});
+
+	it("T153 the expiry sweep closes a lapsed envelope nobody came back to, and the receipt says expired", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(lapsed()));
+		expect(await lookup(budget)).toMatchObject({ state: "pending" });
+		const tick = await budget.invokeHook("cron", { name: "expire", scheduledAt: new Date().toISOString() });
+		expectWithinBudget(tick, { calls: 8 });
+		expect((await stored(made.envelopeId)).status).toBe("expired");
+		expect(receiptStatus(await lookup(budget))).toBe("expired");
+	});
+
+	it("T153 a re-issue with a later signBy extends the open envelope; an earlier or absent one changes nothing", async () => {
+		const budget = await integration();
+		const first = nowS() + 900;
+		const made = await call(budget, await sign(payload(extra({ signBy: first }))));
+		const later = first + 600;
+		const extended = await call(budget, await sign(payload(extra({ signBy: later }))));
+		expect(extended.envelopeId).toBe(made.envelopeId);
+		expect(typeof extended.signingToken).toBe("string");
+		expect((await stored(made.envelopeId)).expiresAt).toBe(iso(later + SKEW));
+
+		// An older deadline, and an intent with none, never shorten or lift it.
+		await call(budget, await sign(payload(extra({ signBy: first }))));
+		expect((await stored(made.envelopeId)).expiresAt).toBe(iso(later + SKEW));
+		await call(budget, await sign(payload()));
+		expect((await stored(made.envelopeId)).expiresAt).toBe(iso(later + SKEW));
+	});
+
+	it("T153 an extension never passes e-sign's own expiry, and never touches an envelope without a deadline", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(payload(extra({ signBy: nowS() + 900 }))));
+		await call(budget, await sign(payload(extra({ signBy: nowS() + 400 * DAY }))));
+		const env = await stored(made.envelopeId);
+		expect(Date.parse(env.expiresAt as string)).toBe(Date.parse(env.sentAt) + 30 * DAY * 1000);
+
+		const free = await call(budget, await sign(payload({ ref: "BK7Q2M:A4" })));
+		const own = (await stored(free.envelopeId)).expiresAt;
+		await call(budget, await sign(payload({ ref: "BK7Q2M:A4", ...extra({ signBy: nowS() + 900 }) })));
+		expect((await stored(free.envelopeId)).expiresAt).toBe(own);
+	});
+
+	it("T153 a later signBy reopens an envelope past its deadline that the sweep has not closed, and it can be signed", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(lapsed()));
+		const again = await call(budget, await sign(payload(extra({ signBy: nowS() + 900 }))));
+		expect(again.envelopeId).toBe(made.envelopeId);
+		const session = await open(budget, again.signingToken);
+		expect(session).toMatchObject({ ok: true, state: "ready" });
+		expect((await submit(budget, again.signingToken, session)).value).toMatchObject({ ok: true });
+	});
+
+	it("T153 after a refusal closed the envelope, the next intent starts a fresh one with its own deadline", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(lapsed()));
+		await open(budget, made.signingToken);
+		const signBy = nowS() + 900;
+		const next = await call(budget, await sign(payload(extra({ signBy }))), { calls: 10, cpuMs: 50 });
+		expect(next.envelopeId).not.toBe(made.envelopeId);
+		expect((await stored(next.envelopeId)).expiresAt).toBe(iso(signBy + SKEW));
+	});
+
+	it("T153 an email retry stored as a draft keeps signBy, a re-issue moves it, and the finishing task applies it", async () => {
+		const budget = await integration();
+		const signBy = nowS() + 900;
+		const email = { delivery: "email" as const };
+		const first = await call(budget, await sign(payload(email)), EMAIL_TARGET);
+		await runtime?.fixtures.plugin.storage("envelopes", first.envelopeId as string, {
+			...(await stored(first.envelopeId)),
+			status: "voided",
+		});
+		const draft = await call(budget, await sign(payload({ ...email, ...extra({ signBy }) })), { calls: 10, cpuMs: 50 });
+		expect(draft).toMatchObject({ status: "draft" });
+		const later = signBy + 300;
+		await call(budget, await sign(payload({ ...email, ...extra({ signBy: later }) })), { calls: 10, cpuMs: 50 });
+		await call(budget, await sign(payload({ ...email, ...extra({ signBy }) })), { calls: 10, cpuMs: 50 });
+		expect((await stored(draft.envelopeId)).signBy).toBe(later);
+		await budget.invokeHook("cron", {
+			name: `intent-finish-${draft.envelopeId}`,
+			data: { envelopeId: draft.envelopeId },
+			scheduledAt: new Date().toISOString(),
+		});
+		const env = await stored(draft.envelopeId);
+		expect(env.status).toBe("sent");
+		expect(env.expiresAt).toBe(iso(later + SKEW));
+	});
+
+	it("T153 a replace intent neither creates an envelope nor moves a deadline", async () => {
+		const budget = await integration();
+		const none = await call(budget, await sign(payload(extra({ replace: true, signBy: nowS() + 900 }))), {
+			calls: 7,
+			cpuMs: 50,
+		});
+		expect(none).toEqual({ ok: true, status: "none" });
+		const signBy = nowS() + 900;
+		const made = await call(budget, await sign(payload(extra({ signBy }))));
+		await call(budget, await sign(payload(extra({ replace: true, signBy: signBy + 600 }))), { calls: 7, cpuMs: 50 });
+		expect((await stored(made.envelopeId)).expiresAt).toBe(iso(signBy + SKEW));
 	});
 });

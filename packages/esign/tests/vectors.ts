@@ -41,7 +41,7 @@ function keyCid(secret: string): string {
 	return key.cid;
 }
 
-const TIME_FIELDS = /"(iat|exp|ts|at)":(\d+)/g;
+const TIME_FIELDS = /"(iat|exp|signBy|ts|at)":(\d+)/g;
 const shiftTimes = (text: string, shift: number) =>
 	text.replace(TIME_FIELDS, (_m, field: string, n: string) => `"${field}":${Number(n) + shift}`);
 const segmentText = (token: string) => Buffer.from(token.split(".")[0] as string, "base64url").toString("utf8");

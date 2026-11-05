@@ -107,8 +107,8 @@ const outcome = (r: Awaited<ReturnType<typeof runVector>>) =>
 	r.ok ? { ok: true, payload: r.value } : { ok: false, error: r.error };
 
 describe("SX-NFR-01 SX-NFR-02 esign-intent/1 vectors", () => {
-	it("has the 93 token vectors and constants the spec defines", () => {
-		expect(tokenVectors).toHaveLength(93);
+	it("has the 97 token vectors and constants the spec defines", () => {
+		expect(tokenVectors).toHaveLength(97);
 		expect(ESIGN_PREFIXES).toEqual(file.constants.prefixes);
 		expect(ESIGN_MAX_TOKEN_LENGTH).toEqual(file.constants.maxTokenLength);
 	});
