@@ -20,6 +20,7 @@
  */
 import {
 	canonicalSnapshot,
+	ESIGN_CLOCK_SKEW_SECONDS,
 	err,
 	type IntentPayload,
 	ok,
@@ -83,6 +84,8 @@ export interface EnvelopeDoc {
 	 */
 	document?: EnvelopeDocument;
 	expiresAt: string | null;
+	/** The intent's deadline (T153), from `signByOf`: send caps `expiresAt` with it. */
+	signBy?: number;
 	sentAt: string | null;
 	completedAt: string | null;
 	/** When a decline or void closed the envelope (T062: the receipt's `at`); absent on older envelopes. */
@@ -324,7 +327,7 @@ function missingFields(envelope: EnvelopeDoc, body: string): EnvelopeIssue[] {
 
 function draftDoc(
 	base: Pick<EnvelopeDoc, "templateId" | "signer" | "fieldValues" | "delivery"> &
-		Partial<Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title" | "signerFields">>,
+		Partial<Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title" | "signerFields" | "signBy">>,
 	template: TemplateDoc,
 	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
@@ -377,6 +380,7 @@ export function draftFromIntent(
 	template: TemplateDoc,
 	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
+	const signBy = signByOf(intent);
 	const signer: SignerInput = {
 		name: intent.signer.name.trim(),
 		email: intent.signer.email.trim().toLowerCase(),
@@ -392,10 +396,23 @@ export function draftFromIntent(
 			clientId: intent.cid,
 			externalRef: intent.ref,
 			returnUrl: intent.returnUrl,
+			...(signBy === undefined ? {} : { signBy }),
 		},
 		template,
 		ctx,
 	);
+}
+
+/** The intent's `signBy` (§5.1): an integer time after `iat`; any other value means absent. */
+export function signByOf(intent: Pick<IntentPayload, "iat" | "signBy">): number | undefined {
+	const { signBy, iat } = intent;
+	return Number.isSafeInteger(signBy) && (signBy as number) > iat ? signBy : undefined;
+}
+
+/** An envelope's expiry: `expiryDays` from `from`, capped at `signBy + S` when the intent set a deadline (T153). */
+export function expiryFrom(from: string, expiryDays: number, signBy?: number): string {
+	const own = Date.parse(from) + expiryDays * DAY_MS;
+	return toIso(signBy === undefined ? own : Math.min(own, (signBy + ESIGN_CLOCK_SKEW_SECONDS) * 1000));
 }
 
 /** Newlines in `text`; a canonical snapshot ends with one, so this is its number of lines. */
@@ -489,7 +506,7 @@ export async function sendEnvelope(
 			snapshot: { ids: chunks.map((c) => c.id), length: text.length },
 			signerIds: [signerId],
 			sentAt: ctx.now,
-			expiresAt: toIso(Date.parse(ctx.now) + ctx.expiryDays * DAY_MS),
+			expiresAt: expiryFrom(ctx.now, ctx.expiryDays, envelope.signBy),
 			updatedAt: ctx.now,
 		},
 		chunks,

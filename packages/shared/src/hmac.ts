@@ -92,6 +92,12 @@ export interface IntentPayload extends PayloadBase<"intent"> {
 	 * this signer, and never creates one. An older e-sign ignores it.
 	 */
 	readonly replace?: boolean;
+	/**
+	 * T153, optional: the last moment (Unix seconds, `> iat`) the booking wants this signed. E-sign caps the
+	 * envelope's expiry at `signBy` + the clock skew. Verification never looks at it: another value means
+	 * absent, and an older e-sign ignores it.
+	 */
+	readonly signBy?: number;
 }
 
 export type ReceiptStatus = "completed" | "declined" | "voided" | "expired";

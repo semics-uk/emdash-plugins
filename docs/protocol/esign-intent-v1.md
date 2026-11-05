@@ -144,10 +144,16 @@ Issued by Events for one signature, redeemed by e-sign at `public/envelopes/from
 | `returnUrl` | yes | string | ≤ 2048 characters (else `PAYLOAD_INVALID`); then the rules in §7 |
 | `resend` | no | boolean | `true`: email the open envelope's invitation again (§8.1). Other values mean absent |
 | `replace` | no | boolean | `true`: void the open envelope unless it names this signer; never create one (§8.1). Other values mean absent |
+| `signBy` | no | integer | `> iat`: the last moment the client wants this signed. Caps the envelope's expiry (§8.1). Other values mean absent |
 
 `resend` and `replace` were added after the first release of this version (T133). They are unknown fields to
 an older e-sign, which ignores them (§5): a `resend` intent then reuses the envelope without an invitation and a
 `replace` intent is handled as an ordinary one. Neither is in the vectors, which cover verification only.
+
+`signBy` was added the same way (T153). An older e-sign ignores it, and the envelope then runs on that e-sign's
+own expiry. Verification (§6) never looks at it, and a value that breaks its rule means absent rather than
+`PAYLOAD_INVALID`, so a verifier from before the field and one after it give the same result for every vector;
+the `signBy` vectors show exactly that, and that the signature covers the field.
 
 **Issuer rules (Events, R5).** These are Events obligations; e-sign cannot check them.
 
@@ -159,6 +165,13 @@ an older e-sign, which ignores them (§5): a `resend` intent then reuses the env
   `delivery: "email"`, with `signer` = that attendee. Events MUST NOT issue an intent in which one
   adult signs for another adult.
 - Waiver mode `buyer`: one intent, `ref = <bookingRef>`, `as: "buyer"`, `signer` = the buyer.
+- `signBy` (T153): an intent for a seat the booking waits on while its hold runs (`delivery: "inline"`,
+  booking `awaiting_signature`) sets `signBy = booking.holdExpiresAt`, so `exp ≤ signBy`, and each later step that
+  extends the hold re-issues the seats still to sign. An intent with `delivery: "email"` sets none: that signer
+  signs after the hold, on a confirmed booking, when nothing can reach e-sign to move a deadline. An inline intent
+  for a booking past that stage (the door, a Sign now once the booking is paying or confirmed) sets a `signBy`
+  beyond e-sign's longest own expiry (366 days from now), which lifts a deadline an earlier intent left on the
+  envelope.
 - A fresh nonce per intent. To retry a failed call, mint a new intent; idempotency on `(cid, ref)`
   (§8.1) returns the same envelope.
 - E-sign emails every `delivery: "email"` signer from the site, so an issuer bounds them (R48): Events
@@ -170,7 +183,7 @@ an older e-sign, which ignores them (§5): a `resend` intent then reuses the env
   10 emailed adults, and bounds both corrections and `resend` intents per seat.
 
 `exp` bounds only when the intent can be redeemed. The envelope it creates has its own expiry
-(e-sign setting), which for `delivery: "email"` is usually days.
+(e-sign setting), which for `delivery: "email"` is usually days, and which `signBy` caps (§8.1).
 
 ### 5.2 SignedReceipt (`esign-receipt/1`)
 
@@ -307,8 +320,18 @@ template (and `tplVersion`, if given) exists, is published and is available to i
 client mints a new intent).
 
 Idempotency on `(cid, ref)`: if an envelope for the pair exists and is in progress or `completed`,
-it is returned unchanged and the intent's other fields are ignored. If the existing envelope is
-`declined`, `voided` or `expired`, a new envelope is created, so a signer can try again.
+it is returned unchanged and the intent's other fields are ignored, except that `signBy` may extend it (below).
+If the existing envelope is `declined`, `voided` or `expired`, a new envelope is created, so a signer can try
+again.
+
+**Deadline** (`signBy`, T153). A new envelope expires at `min(sent + its own expiry setting, signBy + S)`, with `S`
+from §6.1. From then on e-sign refuses the signer on every path (`SIGNING_TOKEN_EXPIRED`), closes the envelope as
+`expired` at the first refusal or at the next expiry sweep, and issues the `expired` receipt (§5.2, §8.3). A later intent
+for the same `(cid, ref)` while the envelope is open moves its expiry to `min(sent + its own expiry setting, signBy + S)`
+only if that is later, so a re-issue extends the deadline and never shortens it; an intent without `signBy`
+changes nothing, and neither does one for an envelope that was created without a deadline and already runs on
+its own expiry. An envelope past its deadline that nothing has closed yet is still open, so a later `signBy` reopens it. A
+`replace` intent never moves a deadline.
 
 Response `{ "ok": true, "envelopeId", "status", "signingToken"? }`. `signingToken` is present only
 for `delivery: "inline"` while the envelope awaits this signer: for an existing envelope, the intent

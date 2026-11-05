@@ -354,6 +354,26 @@ async function retry(ctx: WaiverRequestContext, ids: SuiteIds): Promise<WaiverOu
 	return proceed(ctx, ids, ref, continued.data.next, [], accessToken);
 }
 
+/**
+ * T153: Pro's intents carry the hold as `signBy`, and a receipt extends the hold. Continue once more so
+ * the seats still to sign get intents with the new hold: e-sign moves each envelope's deadline and rotates
+ * its token. Refused (a lapsed licence, say), the next signer goes on with the token already held, whose
+ * envelope still runs to the hold it was issued for.
+ */
+async function nextSigner(ctx: WaiverRequestContext, ids: SuiteIds, ref: string, after: string[]) {
+	const keep = redirect(`${WAIVER_PATH}?ref=${ref}`, [flowCookie(ctx.url, ref, after)]);
+	const accessToken = ctx.cookie(retryCookieName(ref)) || ctx.cookie(bookingCookieName(ref));
+	if (!accessToken) return keep;
+	const call = { locals: ctx.locals, url: ctx.url, request: ctx.request };
+	const continued = await post<{ next?: { type?: unknown; url?: unknown; intents?: unknown } }>(
+		call,
+		ids.eventsPluginId,
+		"public/checkout/continue",
+		{ bookingRef: ref, accessToken },
+	);
+	return continued.ok ? proceed(ctx, ids, ref, continued.data.next, [], accessToken) : keep;
+}
+
 /** The receipt a finished ceremony hands back (the fragment of `ceremonyRedirect(view)`, §8.2). */
 function receiptOf(view: SignView): string | undefined {
 	const back = ceremonyRedirect(view) ?? (view.kind === "closed" ? view.returnUrl : undefined);
@@ -381,6 +401,14 @@ async function payOrLand(ctx: WaiverRequestContext, ids: SuiteIds, ref: string, 
 	const next = continued.ok ? continued.data.next : undefined;
 	return next?.type === "pay" && isPayUrl(next.url) ? next.url : landed;
 }
+
+/**
+ * T153: e-sign says the envelope's deadline passed while Events says the booking is still open (its hold was
+ * extended without the seat being re-issued). The retry mints fresh intents; a booking that has really
+ * ended never gets here, it stops on `ended` first.
+ */
+const lapsed = (view: SignView, booking: BookingAnswer | undefined) =>
+	booking !== undefined && view.kind === "error" && view.code === "SIGNING_TOKEN_EXPIRED";
 
 async function sign(
 	ctx: WaiverRequestContext,
@@ -424,6 +452,7 @@ async function sign(
 	if (form) {
 		const [token = "", ...after] = rest;
 		const view = await handleSign(signCtx, token, form);
+		if (lapsed(view, booking)) return retry(ctx, ids);
 		if (view.kind === "ready" || view.kind === "error") {
 			return { type: "render", ref, token, remaining: after.length, view, cookies: [], ...withBooking };
 		}
@@ -436,7 +465,7 @@ async function sign(
 				flowCookie(ctx.url, ref, []),
 				retryCookie(ctx.url, ref, undefined),
 			]);
-		return redirect(`${WAIVER_PATH}?ref=${ref}`, [flowCookie(ctx.url, ref, after)]);
+		return nextSigner(ctx, ids, ref, after);
 	}
 
 	// A GET only looks. An envelope closed meanwhile (signed in another tab) is forwarded and skipped.
@@ -444,6 +473,7 @@ async function sign(
 	while (rest.length > 0) {
 		const [token = "", ...after] = rest;
 		const view = await handleSign(signCtx, token, null);
+		if (lapsed(view, booking)) return retry(ctx, ids);
 		if (view.kind !== "closed") {
 			const cookies = rest.length === tokens.length ? [] : [flowCookie(ctx.url, ref, rest)];
 			return { type: "render", ref, token, remaining: after.length, view, cookies, ...withBooking };

@@ -68,7 +68,7 @@ import {
 } from "../domain/signing";
 import { canTransition, type EnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { downloadLink } from "./download";
-import { badRequest, fail, obj, stores } from "./envelopes";
+import { appendAudit, badRequest, fail, obj, stores } from "./envelopes";
 import { mintReceipt } from "./integration";
 
 interface RouteInput {
@@ -203,6 +203,20 @@ async function consentSettings(ctx: PluginContext, withMasterKey: boolean) {
 
 const isExpired = (envelope: EnvelopeDoc, now: string) => envelope.expiresAt !== null && envelope.expiresAt <= now;
 
+/**
+ * The refusal of a signer past the envelope's expiry. It also closes the envelope as the hourly `expire`
+ * job would (T153), so the `expired` receipt exists from now on and the next intent starts a fresh
+ * envelope. 3 calls; a sign, a sweep or an extension that got there first wins the guarded update.
+ */
+async function refuseExpired(ctx: PluginContext, id: string, envelope: EnvelopeDoc, now: string) {
+	const moved = await transitionEnvelope(stores(ctx).envelopes, id, envelope.status, "expired", {
+		closedAt: now,
+		updatedAt: now,
+	});
+	if (moved.ok) await appendAudit(ctx, id, moved.value, { type: "envelope.expired", at: now, actor: "system" });
+	return fail("SIGNING_TOKEN_EXPIRED");
+}
+
 /** The signer's order in an envelope with several signers (T090), else undefined (one signer: events as before). */
 const orderOf = (envelope: EnvelopeDoc, signer: SignerDoc) =>
 	envelope.signerIds.length > 1 ? signer.order : undefined;
@@ -277,7 +291,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		return { ...closed, pdf: "ready", download: await downloadLink(ctx, signer.data.envelopeId, Date.now()) };
 	}
 	const now = toIso();
-	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
+	if (isExpired(envelope, now)) return refuseExpired(ctx, signer.data.envelopeId, envelope, now);
 
 	// An uploaded PDF (Pro, T094) has no text snapshot to read.
 	const doc = envelope.document;
@@ -350,7 +364,7 @@ async function submit(routeCtx: RouteInput, ctx: PluginContext, several?: Severa
 	// An uploaded PDF (T094) is signed only by the edition that can show and stamp it; Free writes nothing.
 	if (envelope.status !== "in_progress" || (envelope.document && !several)) return fail("ENVELOPE_CLOSED");
 	const now = toIso();
-	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
+	if (isExpired(envelope, now)) return refuseExpired(ctx, envelopeId, envelope, now);
 	if (envelope.otp && !signer.data.otpVerifiedAt) return fail("OTP_REQUIRED");
 	// The signature binds to the document the signer saw; the snapshot is immutable after send.
 	if (envelope.docSha256 === null || fields.value.docSha256 !== envelope.docSha256) {
@@ -445,7 +459,7 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
 	if (!canTransition(envelope.status, "declined")) return fail("ENVELOPE_CLOSED");
 	const now = toIso();
-	if (isExpired(envelope, now)) return fail("SIGNING_TOKEN_EXPIRED");
+	if (isExpired(envelope, now)) return refuseExpired(ctx, envelopeId, envelope, now);
 
 	const moved = await transitionEnvelope(envelopes, envelopeId, envelope.status, "declined", {
 		closedAt: now,

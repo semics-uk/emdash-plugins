@@ -28,12 +28,14 @@ import {
 	type EnvelopeDoc,
 	envelopeIdForRef,
 	existingForRef,
+	expiryFrom,
 	pickTemplateVersion,
 	type SignerDoc,
 	sendEnvelope,
 	sentAuditEvent,
+	signByOf,
 } from "../domain/envelopes";
-import { transitionEnvelope } from "../domain/state";
+import { type EnvelopeStatus, transitionEnvelope } from "../domain/state";
 import { availableToIntegrations, versionDocId } from "../domain/templates";
 import { queueInvitation } from "../emails/outbox";
 import {
@@ -58,6 +60,8 @@ export interface FromIntentDeps {
 
 /** Envelopes read for one `(cid, ref)`: each retry after a terminal envelope adds one. */
 const REF_LIMIT = 100;
+/** A signer can still act on an envelope in these statuses. */
+const OPEN_STATUSES: EnvelopeStatus[] = ["sent", "in_progress"];
 
 function siteOrigin(ctx: PluginContext): string | undefined {
 	try {
@@ -71,8 +75,9 @@ function siteOrigin(ctx: PluginContext): string | undefined {
  * Bridge calls: settings + client (2), nonce (1), template (1), then the create-only envelope write
  * first (1), snapshot, signer and opening audit-event writes (3), plus the outbox put for email
  * delivery (1): 8 inline, 9 email. The existing-envelopes read happens only when the create-only
- * write loses: a replay is then 7 (inline reuse adds a token rotation), and a retry after a
- * declined, voided or expired envelope costs the read and a second create: 10 inline.
+ * write loses: a replay is then 7 (inline reuse adds a token rotation, a later `signBy` the one guarded
+ * write), and a retry after a declined, voided or expired envelope costs the read and a second create:
+ * 10 inline.
  */
 export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromIntentDeps = {}): Promise<unknown> {
 	const nowMs = (deps.now ?? Date.now)();
@@ -125,6 +130,10 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 			? (signerId: string, envelope: EnvelopeDoc, token: string) =>
 					queueInvitation(ctx, { signerId, envelope, token, senderSetting: settings.senderName, now: nowMs })
 			: undefined;
+	const days = expiryDays(settings.expiryDays);
+	const signBy = signByOf(intent);
+	const found = async (id: string, envelope: EnvelopeDoc, again?: typeof resend) =>
+		reuse(signers, id, await extendDeadline(envelopes, id, envelope, signBy, days, now), asked, deps.random, again);
 	const token = generateToken(deps.random);
 	const tokenHash = await hashToken(token);
 	const build = async (attempt: number) => {
@@ -132,7 +141,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		const sent = await sendEnvelope(id, draft.value, template.value, {
 			now,
 			tokenHash,
-			expiryDays: expiryDays(settings.expiryDays),
+			expiryDays: days,
 		});
 		return { id, sent };
 	};
@@ -151,7 +160,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		if (current) {
 			// A draft here is an email intent whose finishing task may never have been scheduled.
 			if (current.data.status === "draft") await scheduleIntentFinish(ctx.cron, current.id, nowMs);
-			return reuse(signers, current.id, current.data, asked, deps.random, resend);
+			return found(current.id, current.data, resend);
 		}
 		// Every earlier envelope for the pair was declined, voided or expired: start the next one.
 		const next = Math.max(previous.items.length, 1) + 1;
@@ -160,7 +169,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 			const draftId = await envelopeIdForRef(intent.cid, intent.ref, next);
 			if (!(await envelopes.compareAndSet(draftId, null, draft.value)).applied) {
 				const winner = await envelopes.get(draftId);
-				return winner ? reuse(signers, draftId, winner, asked, deps.random) : fail("INTERNAL");
+				return winner ? found(draftId, winner) : fail("INTERNAL");
 			}
 			await scheduleIntentFinish(ctx.cron, draftId, nowMs);
 			return response(draftId, draft.value, undefined);
@@ -170,7 +179,7 @@ export async function fromIntent(input: unknown, ctx: PluginContext, deps: FromI
 		created = await envelopes.compareAndSet(attempt.id, null, attempt.sent.value.envelope);
 		if (!created.applied) {
 			const winner = await envelopes.get(attempt.id);
-			return winner ? reuse(signers, attempt.id, winner, asked, deps.random) : fail("INTERNAL");
+			return winner ? found(attempt.id, winner) : fail("INTERNAL");
 		}
 	}
 	const { id, sent } = attempt;
@@ -219,6 +228,43 @@ function awaitsSigner(envelope: EnvelopeDoc, signer: IntentSigner): boolean {
 		stored.as === signer.as &&
 		(stored.participant?.name ?? null) === (signer.participant?.name ?? null)
 	);
+}
+
+/**
+ * A re-issued intent may only move an open envelope's deadline later (T153, §8.1), so an older intent or
+ * one without `signBy` changes nothing. The new expiry is still capped by e-sign's own, counted from the
+ * send, and an envelope already at that expiry stays put. The write's guard is the same rule in SQL, so
+ * two re-issues racing end on the later deadline. An envelope past its deadline that no refusal or sweep
+ * has closed yet counts as open: the client's signed intent says the booking still wants it. One call,
+ * only when it moves. A draft has no expiry yet: its `signBy` moves instead.
+ */
+async function extendDeadline(
+	envelopes: Collection<EnvelopeDoc>,
+	id: string,
+	envelope: EnvelopeDoc,
+	signBy: number | undefined,
+	days: number,
+	now: string,
+): Promise<EnvelopeDoc> {
+	if (signBy === undefined) return envelope;
+	let moved: { applied: true; data: EnvelopeDoc } | { applied: false } = { applied: false };
+	if (envelope.status === "draft") {
+		if (envelope.signBy !== undefined && envelope.signBy < signBy) {
+			moved = await envelopes.updateIf(id, {
+				where: { status: "draft", signBy: { lt: signBy } },
+				set: { signBy, updatedAt: now },
+			});
+		}
+	} else if (OPEN_STATUSES.includes(envelope.status) && envelope.sentAt && envelope.expiresAt) {
+		const expiresAt = expiryFrom(envelope.sentAt, days, signBy);
+		if (expiresAt > envelope.expiresAt) {
+			moved = await envelopes.updateIf(id, {
+				where: { status: { in: OPEN_STATUSES }, expiresAt: { lt: expiresAt } },
+				set: { expiresAt, signBy, updatedAt: now },
+			});
+		}
+	}
+	return moved.applied ? moved.data : envelope;
 }
 
 /**

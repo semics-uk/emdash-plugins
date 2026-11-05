@@ -32,7 +32,7 @@ automatic reminders/expiry, PDF templates, self-serve forms, bulk send, MCP (BUI
 - Signed PDF built **once** at completion, stored, `pdfSha256` recorded; download returns the stored
   bytes; a one-shot cron job finishes generation if it would exceed the CPU budget.
 - Integration protocol: `docs/protocol/esign-intent-v1.md` is binding (check order, error codes,
-  nonce rules, return-URL allowlist). 102 vectors in `docs/protocol/vectors.json`.
+  nonce rules, return-URL allowlist). 106 vectors in `docs/protocol/vectors.json`.
 - Client secrets: derived as `HMAC-SHA256(integrationMasterKey, "esign-client/1." + clientId)`; the master
   key is the one declared secret field. No dynamically named secrets (S8). Secrets need
   `EMDASH_ENCRYPTION_KEY`; show a banner when it is missing.
@@ -77,7 +77,15 @@ only, default off, toggle on both template forms); `availableToIntegrations(head
 `TEMPLATE_NOT_FOUND`, nonce already spent) and is what the T062 catalogue should list. `cron/nonce-sweep.ts`: hourly
 `nonce-sweep` deletes `nonces` with `expiresAt < now`, oldest first, 3 pages of 100 (query + `deleteMany` each), and
 schedules the one-shot `nonce-sweep-more` when a backlog remains (≤ 7 calls). `tests/from-intent.routes.test.ts` runs
-all 53 intent vectors through the route: payload times shifted to the real clock and re-signed with the derived secret.
+all 57 intent vectors through the route: payload times shifted to the real clock and re-signed with the derived secret.
+
+Deadlines (T153, protocol §8.1): an intent's optional `signBy` (`signByOf`: integer `> iat`, else absent; never
+checked by the verifier) is stored on the draft, and `sendEnvelope` caps `expiresAt` with `expiryFrom` (`min(own, signBy +
+60 s)`), so `cron/intent-finish.ts` applies it too. `extendDeadline` in `routes/from-intent.ts`: a later `signBy` moves an
+open envelope's expiry (or a draft's `signBy`) with one guarded write whose `where` is the same rule, never past
+`sentAt` + the setting. Every signing path reads `expiresAt`: `public/session`, `public/submit` and `public/decline` here
+(`refuseExpired` also closes the envelope, +3 calls, so the `expired` receipt exists at once), Pro's `public/otp/*`
+(refuses only; the sweep closes it), and the hourly `expire` sweep.
 
 Receipts (T062): `domain/receipts.ts` mints `esign-receipt/1` deterministically from the stored envelope (only terminal
 envelopes with `clientId` + `externalRef`; `at` = `completedAt`, else `closedAt` (decline and void write it), else
