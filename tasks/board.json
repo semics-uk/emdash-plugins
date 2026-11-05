@@ -3035,7 +3035,7 @@
 			"phase": 7,
 			"package": "esign",
 			"edition": "free",
-			"status": "review",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -3043,7 +3043,7 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "review"
+			"column": "done"
 		},
 		"T154": {
 			"file": "T154-quiet-catalog-request-on-free.md",
@@ -3067,9 +3067,7 @@
 		"backlog": [],
 		"ready": [],
 		"in-progress": [],
-		"review": [
-			"T153"
-		],
+		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -3204,6 +3202,7 @@
 			"T150",
 			"T151",
 			"T152",
+			"T153",
 			"T154"
 		],
 		"blocked": [
