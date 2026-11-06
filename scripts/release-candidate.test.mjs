@@ -22,6 +22,13 @@ test("R65 the three products are publishable and share one 1.0.0 release-candida
 	assert.equal(read("packages/shared/package.json").private, true, "the shared library is never published");
 });
 
+// A changeset naming only some products must still bump all three, or a release PR breaks the lockstep above (PR #3).
+test("R65 Changesets versions the three products together", () => {
+	const names = PRODUCTS.map((dir) => read(`packages/${dir}/package.json`).name).sort();
+	const fixed = read(".changeset/config.json").fixed.map((group) => [...group].sort());
+	assert.deepEqual(fixed, [names]);
+});
+
 test("R65 Changesets is in rc pre mode", () => {
 	assert.ok(existsSync(join(root, ".changeset/pre.json")));
 	const pre = read(".changeset/pre.json");
