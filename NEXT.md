@@ -7,11 +7,12 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
+- Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike): find out why, or report upstream to EmDash
 - lmsc-site PR #8 is on npm rc.2 (CI green); after Oli redeploys staging, recheck the LMSC flows against rc.2
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
-- Open PRs: `gh pr list` (PR #3 is the changesets release PR; merging it publishes)
+- Open PRs: `gh pr list` (the "version packages (rc)" PR is the release PR; merging it publishes; its CI needs Oli's approval per commit)
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Events backend size: 125 KiB budget, about 95 bytes of hotfix room after T151
@@ -21,10 +22,11 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
-- Publish rc.3 (T153, T154): merge https://github.com/semics-uk/emdash-plugins/pull/3, approve at releases.emdashcms.com if asked; then Pro rc.3 bump and release
 - Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-06 rc.3 published: npm (Free and Pro) and EmDash registry; registry checksums match the attested builds
+- 2026-11-06 Changesets versions the three products together; CI fetches the base branch so verify runs on PRs
 - 2026-11-05 T153 intents carry `signBy`: E-sign refuses inline signatures once the hold ends (emailed seats keep E-sign's own expiry)
 - 2026-11-04 T154 Free sites ask for esign/catalog-request once per process, not per Refresh
 - 2026-11-03 T140 cold-start test measures in a fresh Node process (Vitest's loader had tripled it)
