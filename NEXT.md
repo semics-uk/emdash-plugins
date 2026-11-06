@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T153 intent `signBy`: E-sign refuses signatures after the hold ends (agent running in a worktree; Oli said keep building 2026-11-05)
+- (none)
 
 ## Next
 - lmsc-site PR #8 is on npm rc.2 (CI green); after Oli redeploys staging, recheck the LMSC flows against rc.2
@@ -21,9 +21,11 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
+- Publish rc.3 (T153, T154): merge https://github.com/semics-uk/emdash-plugins/pull/3, approve at releases.emdashcms.com if asked; then Pro rc.3 bump and release
 - Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-05 T153 intents carry `signBy`: E-sign refuses inline signatures once the hold ends (emailed seats keep E-sign's own expiry)
 - 2026-11-04 T154 Free sites ask for esign/catalog-request once per process, not per Refresh
 - 2026-11-03 T140 cold-start test measures in a fresh Node process (Vitest's loader had tripled it)
 - 2026-11-02 rc.2 published: npm (Free and Pro) and EmDash registry (semics-events, semics-esign)
