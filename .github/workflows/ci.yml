@@ -29,6 +29,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # The changeset check diffs against the base branch, which a pull request's checkout has no local copy of.
+      - name: Fetch the base branch
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: git fetch --no-tags origin "$BASE_REF:$BASE_REF"
       - uses: pnpm/action-setup@v4
         with:
           version: 10.23.0
