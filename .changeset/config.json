@@ -2,7 +2,7 @@
 	"$schema": "https://unpkg.com/@changesets/config@3.1.1/schema.json",
 	"changelog": "@changesets/cli/changelog",
 	"commit": false,
-	"fixed": [],
+	"fixed": [["@semics-tech/emdash-esign", "@semics-tech/emdash-events", "@semics-tech/emdash-events-suite"]],
 	"linked": [],
 	"access": "public",
 	"baseBranch": "main",
