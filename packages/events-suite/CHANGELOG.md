@@ -1,5 +1,15 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.3
+
+### Patch Changes
+
+- 87ced14: An integration's signing intent can carry `signBy`. E-sign then stops taking a signature at that time plus the protocol's clock skew, closes the envelope and issues its `expired` receipt, with no call back to the integration. A later intent for the same signature can extend the deadline but never shorten it. The waiver page re-issues the seats still to sign when a signature extends the booking's hold.
+- 4c68a4b: On Free Events, `/_events/pair` asks for the Pro-only `esign/catalog-request` route once per site process instead of on every pairing and Refresh templates click, so the host logs one "Route not found" rather than one per click.
+- Updated dependencies [87ced14]
+  - @semics-tech/emdash-esign@1.0.0-rc.3
+  - @semics-tech/emdash-events@1.0.0-rc.3
+
 ## 1.0.0-rc.2
 
 ### Minor Changes
