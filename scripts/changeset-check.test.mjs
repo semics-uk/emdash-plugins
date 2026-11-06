@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
@@ -85,4 +85,12 @@ test("T106 in rc pre mode the changesets Changesets moved to .changeset/pre/ sti
 	const found = readChangesets(root);
 	assert.deepEqual(found.map((c) => c.file).sort(), ["new.md", "pre/old.md"]);
 	assert.equal(check(["packages/events/src/a.ts", "packages/esign/src/b.ts"], found).ok, true);
+});
+
+// A pull request's checkout has no local main, so `main...HEAD` could not be read and verify stopped here (PR #3).
+test("CI gives the changeset check a base branch on pull requests", () => {
+	const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
+	const verify = ci.slice(ci.indexOf("name: pnpm verify"), ci.indexOf("name: Playwright"));
+	assert.match(verify, /fetch-depth: 0/);
+	assert.match(verify, /git fetch --no-tags origin "\$BASE_REF:\$BASE_REF"/);
 });
