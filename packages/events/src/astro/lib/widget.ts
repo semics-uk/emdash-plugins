@@ -82,6 +82,8 @@ export interface BookingView {
 	declineReason?: string | null;
 	/** Declined, a price was due and no money was taken (`closeBooking`). */
 	notCharged?: boolean;
+	/** Expired, this means it ran out waiting for the organiser's decision (Pro: not one approved but left unpaid). */
+	undecided?: boolean;
 	/** `qr`: Events Pro's QR matrix of `code` (T082), drawn by `<TicketPass>`; Free sends none. */
 	attendees: Array<{ name: string; ticketTypeId?: string; status: string; code?: string; qr?: unknown }>;
 	canCancel: boolean;
@@ -311,9 +313,32 @@ export const statusLabel = (status: string, locale?: string) =>
 /** English status labels (the 1.0 API; components use `statusLabel`). */
 export const STATUS_LABELS: Record<string, string> = Object.fromEntries(STATUSES.map((s) => [s, statusLabel(s, "en")]));
 
+/**
+ * The booking as it stands at `now`: a hold past its deadline has lapsed even before the sweeper moves it (the core
+ * refuses anything on it, and the waiver page already says so), so the page shows it as expired.
+ */
+export function asOfNow<T extends Pick<BookingView, "status" | "holdExpiresAt" | "canCancel">>(
+	booking: T,
+	now: number,
+): T {
+	const until = booking.holdExpiresAt ? Date.parse(booking.holdExpiresAt) : Number.NaN;
+	if (!(until <= now)) return booking;
+	const { holdExpiresAt: _gone, ...rest } = booking;
+	return { ...rest, status: "expired", canCancel: false } as T;
+}
+
 /** What a booking that ended without going ahead should say beyond its status (declined, or lapsed). */
-export function endedNotes(booking: Pick<BookingView, "status" | "declineReason" | "notCharged">, locale?: string) {
-	if (booking.status === "expired") return [t(locale, "booking.lapsed")];
+export function endedNotes(
+	booking: Pick<BookingView, "status" | "declineReason" | "notCharged" | "undecided"> & {
+		totals?: BookingView["totals"];
+	},
+	locale?: string,
+) {
+	if (booking.status === "expired") {
+		if (booking.undecided) return [t(locale, "booking.undecided")];
+		// A paid one has the payment section's "This booking expired": only what that does not say.
+		return [t(locale, booking.totals?.totalMinor ? "booking.signAgain" : "booking.lapsed")];
+	}
 	if (booking.status !== "declined") return [];
 	return [
 		...(booking.declineReason ? [t(locale, "booking.declinedReason", { reason: booking.declineReason })] : []),

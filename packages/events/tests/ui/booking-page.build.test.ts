@@ -27,6 +27,14 @@ describe("booking page", () => {
 		expect(page).toContain("bookAgain={eventPageHref(booking.event?.slug, page.eventPath)}");
 	});
 
+	it("EV-FR-07 shows a hold past its deadline as lapsed, after reconciling", () => {
+		expect(page.indexOf("asOfNow(booking, Date.now())")).toBeGreaterThan(page.indexOf("reconcileWanted(booking)"));
+	});
+
+	it("forgets what the booking form kept", () => {
+		expect(page).toContain('import "../client/forget-form.ts"');
+	});
+
 	it("T133 says what to do when an invitation does not arrive", () => {
 		expect(read("AttendeeList.astro")).toContain('rows.some((r) => r.canResend) && <p class="semics-attendee-note"');
 	});

@@ -22,6 +22,7 @@ describe("page styles", () => {
 	it("passes the theme on to the signing form's own properties", () => {
 		expect(PAGE_CSS).toContain("--esign-accent:var(--events-accent, #0b57d0)");
 		expect(PAGE_CSS).toContain("--esign-fg:var(--events-fg, #1a1a1a)");
+		expect(PAGE_CSS).toContain("--esign-font:var(--events-font, system-ui, sans-serif)");
 	});
 
 	it("names no physical side (right to left pages mirror)", () => {
@@ -48,6 +49,9 @@ describe("page options", () => {
 		expect(() => checkPageOptions({ theme: { nope: "red" } as never })).toThrow("theme.nope");
 		expect(() => checkPageOptions({ stylesheet: "https://x.example/a.css" })).toThrow("stylesheet");
 		expect(() => checkPageOptions({ stylesheet: "//x.example/a.css" })).toThrow("stylesheet");
+		expect(() => checkPageOptions({ stylesheet: "/a.css; script-src *" })).toThrow("stylesheet");
+		expect(() => checkPageOptions({ stylesheet: "/a.css;script-src" })).toThrow("stylesheet");
+		expect(() => checkPageOptions({ stylesheet: "/a.css,/b.css" })).toThrow("stylesheet");
 		expect(() => checkPageOptions({ brand: { name: "" } })).toThrow("brand.name");
 		expect(() => checkPageOptions({ brand: { name: "A", logo: "javascript:x" } })).toThrow("brand.logo");
 		expect(() => checkPageOptions({ brand: { name: "A", href: "//x.example" } })).toThrow("brand.href");

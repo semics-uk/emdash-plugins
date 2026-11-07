@@ -99,7 +99,7 @@ export function confirmationEmail(i: BookingEmailInput): OutboxMessage {
 		list: i.attendees,
 		links: [
 			["View or cancel your booking", i.bookingUrl],
-			["Your tickets (check-in passes)", `${i.bookingUrl}#tickets`],
+			["Your check-in passes", `${i.bookingUrl}#tickets`],
 			["Add to calendar", i.calendarUrl],
 		],
 		closing: KEEP_PRIVATE,
@@ -115,7 +115,7 @@ export function cancellationEmail(i: Omit<BookingEmailInput, "bookingUrl"> & { b
  * expired) and to an admin (a new request or booking, with a link to the Bookings page: acting
  * needs an admin session, so the mail carries no token). Rendered at send time from the booking as it
  * is then: a request an admin has already approved reads "New booking" (nothing is left to decide),
- * and one that has already ended sends the admin nothing.
+ * and only one that has already ended sends the admin nothing.
  */
 export function approvalEmail(
 	{ kind, to }: Pick<OutboxDoc, "kind" | "to">,
@@ -127,7 +127,8 @@ export function approvalEmail(
 	const i = { to, buyerName: b.buyer.name, bookingRef: b.ref, event, siteName };
 	if (kind === "approval_admin") {
 		const waiting = b.status === "awaiting_approval";
-		if (!waiting && b.status !== "confirmed") return null;
+		// Ended (declined, cancelled, expired, refunded*): nothing new to tell. Anything else is still live.
+		if (/^(de|ca|ex|re)/.test(b.status)) return null;
 		const seats = b.lines.reduce((n, l) => n + l.qty, 0);
 		return compose(
 			{ ...i, buyerName: "organiser" },
@@ -135,14 +136,14 @@ export function approvalEmail(
 			[
 				`${b.buyer.name} (${b.email}) booked ${seats} for `,
 				waiting
-					? `. A decision is needed: approve or decline it by ${zoned(b.holdExpiresAt ?? "", event)}, or it expires.`
+					? `. Decision needed: approve or decline by ${zoned(b.holdExpiresAt ?? "", event)}, or it expires.`
 					: ".",
 			],
 			{ links: [["Open Bookings", adminUrl]], closing: "" },
 		);
 	}
 	const notice: Record<string, readonly [string, string]> = {
-		approval_requested: ["Booking request received", " awaits approval; we will email you the decision."],
+		approval_requested: ["Booking request received", " awaits approval; we will email you."],
 		approval_declined: ["Booking declined", ` was declined${b.declineReason ? `: ${b.declineReason}` : "."}`],
 		approval_expired: ["Booking request expired", " was not approved in time."],
 	};

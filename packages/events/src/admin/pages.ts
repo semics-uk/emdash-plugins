@@ -197,7 +197,10 @@ async function bookingsPage(
 		limit: BOOKINGS_PAGE,
 		...(filter.cursor ? { cursor: filter.cursor } : {}),
 	});
-	const configs = await deps.storage.event_configs.getMany(page.items.map((i) => (i.data as BookingDoc).eventId));
+	// Never lose a page (or an approval just made) to the names: without them the rows show event ids.
+	const configs = await deps.storage.event_configs
+		.getMany(page.items.map((i) => (i.data as BookingDoc).eventId))
+		.catch(() => new Map<string, unknown>());
 	return respond([
 		header("Bookings"),
 		...extra,
@@ -257,7 +260,7 @@ const REF_OR_EMAIL = "Booking reference or buyer email";
 
 const retentionBlocks = (): Block[] => [
 	header("Delete personal data"),
-	context("Erases a booking's or an email's personal data. Live bookings are kept."),
+	context("Erases a booking's or email's personal data. Live bookings stay."),
 	form({
 		fields: [textInput("target", REF_OR_EMAIL)],
 		submit: { label: "Find", actionId: "retention.preview" },

@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -74,6 +75,38 @@ describe("keeping a refused form", () => {
 		expect(by("attendee.3.minor")?.checked).toBe(false);
 		expect(by("idempotencyKey")?.value).toBe("secret-key");
 		expect(takeKept(s, "ev1", REFUSED, NOW + 2000)).toBeNull();
+	});
+
+	it("SX-FR-02 a date that has since gone is not chosen again, so the form asks for one (after SOLD_OUT)", () => {
+		const select = (disabled: boolean) => ({
+			...field("occurrenceId", "select-one", ""),
+			options: [
+				{ value: "", disabled: false },
+				{ value: "oc_2", disabled },
+			],
+		});
+		const gone = select(true);
+		applyFields([gone], { occurrenceId: "oc_2" });
+		expect(gone.value).toBe("");
+		const open = select(false);
+		applyFields([open], { occurrenceId: "oc_2" });
+		expect(open.value).toBe("oc_2");
+	});
+
+	it("SX-FR-02 Back to the refusal's URL after booking fills in nothing, and forgets", () => {
+		const s = memory();
+		saveKept(s, "ev1", FORM(), NOW);
+		expect(takeKept(s, "ev1", REFUSED, NOW + 1000, true)).toBeNull();
+		expect(s.data.has(keptKey("ev1"))).toBe(false);
+	});
+
+	it("SX-FR-02 storage access that throws cannot stop the picker's script, and the booking page uses the same key", () => {
+		const source = readFileSync(new URL("../src/astro/lib/keep-form.ts", import.meta.url), "utf8");
+		expect(source).toMatch(
+			/try \{\n\tif \(typeof document !== "undefined"\) keepWaiverForms\(document, sessionStorage/,
+		);
+		const forget = readFileSync(new URL("../../events/src/client/forget-form.ts", import.meta.url), "utf8");
+		expect(forget).toContain(`"${keptKey("")}"`);
 	});
 
 	it("SX-FR-02 any other visit discards them, as does a refusal of another widget or a stale entry", () => {

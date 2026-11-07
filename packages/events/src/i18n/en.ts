@@ -107,6 +107,9 @@ export const en = {
 	"booking.notCharged": "Your card was not charged.",
 	"booking.lapsed":
 		"This booking lapsed because it was not finished in time, so its places were released. To go ahead, start a new booking; if there is a waiver, you will sign it again.",
+	"booking.undecided":
+		"The organiser did not decide this request in time, so it lapsed and its places were released. To go ahead, start a new booking; if there is a waiver, you will sign it again.",
+	"booking.signAgain": "If there is a waiver, you will sign it again when you book.",
 	"booking.bookAgain": "Book again",
 	"booking.line": "{qty} × {name}",
 	"booking.total": "Total",
