@@ -1,8 +1,11 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
 	FLOW_STEPS,
 	flowCookieName,
 	handleWaiverRequest,
+	leavesSite,
 	retryCookieName,
 	type WaiverOutcome,
 } from "../src/astro/lib/flow";
@@ -590,6 +593,24 @@ describe("an ended booking's envelopes are voided from the waiver page (T152)", 
 			type: "error",
 			code: "BOOKING_EXPIRED",
 		});
+	});
+});
+
+describe("the signing page cannot redirect a post off the site (T155)", () => {
+	const site = new URL(`${ORIGIN}${WAIVER_PATH}?ref=${REF}`);
+	const page = readFileSync(resolve(import.meta.dirname, "../src/astro/WaiverPage.astro"), "utf8");
+
+	it("T155 a payment page leaves the site; the booking page does not", () => {
+		expect(leavesSite("https://checkout.stripe.com/c/pay/cs_test_1#abc", site)).toBe(true);
+		expect(leavesSite("http://site.example/booking", site)).toBe(true);
+		expect(leavesSite(`/booking?ref=${REF}&waiver=signed`, site)).toBe(false);
+		expect(leavesSite(`${ORIGIN}/booking?ref=${REF}`, site)).toBe(false);
+	});
+
+	it("T155 the page redirects only within the site, and sends a browser on to the payment page without a form", () => {
+		expect(page).toContain(`outcome.type === "redirect" && !leavesSite(outcome.location, Astro.url)`);
+		expect(page).toContain(`http-equiv="refresh" content={\`0;url=\${payment}\`}`);
+		expect(page).toContain(`href={payment}`);
 	});
 });
 

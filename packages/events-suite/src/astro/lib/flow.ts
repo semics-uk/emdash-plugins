@@ -100,6 +100,14 @@ export interface BookingAnswer {
 	waiver?: { refs: string[]; voids?: Record<string, string> };
 }
 
+/**
+ * Whether a redirect leaves this site (T155). A form on the signing page cannot be redirected there:
+ * its CSP's `form-action 'self'` also covers where the post redirects, so the browser stops on the page.
+ */
+export function leavesSite(location: string, site: URL): boolean {
+	return new URL(location, site).origin !== site.origin;
+}
+
 /** Booking statuses with nothing left to sign for: the places are gone (T151). */
 const ENDED = ["expired", "cancelled", "declined", "refunded", "refunded_unavailable"];
 

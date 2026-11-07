@@ -1657,7 +1657,8 @@
 				"EU-FR-09"
 			],
 			"unblocks": [
-				"T078"
+				"T078",
+				"T155"
 			],
 			"column": "done"
 		},
@@ -3061,6 +3062,23 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T155": {
+			"file": "T155-waiver-pay-redirect.md",
+			"id": "T155",
+			"title": "Waiver page: signing a paid booking reaches the payment page",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T077"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -3203,7 +3221,8 @@
 			"T151",
 			"T152",
 			"T153",
-			"T154"
+			"T154",
+			"T155"
 		],
 		"blocked": [
 			"T111"
