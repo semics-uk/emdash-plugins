@@ -34,10 +34,13 @@ seller, `LAUNCH40` not on the page, nothing visible saying the licence is unrevi
 - [x] Licence text identical in `apps/site/pro-licence.txt` and both Pro packages; changeset added.
 - [x] Brief Issue 4 covers research corrections 15 to 19.
 - [x] Site deployed (version 58a40bb2).
-- [ ] Licence Worker deployed: the owner runs `wrangler deploy` in the Pro repo's `packages/licence-worker`. Automated
-      deploy was refused. No migration is needed. No sales are open, so nothing is exposed until checkout.
+- [x] Licence Worker deployed (version 7a85e157), no migration.
 
 ## Open for the owner and lawyer
+- BLOCKER, found 2026-11-07: Paddle's email of 26 October 2026 ("Update on your Paddle account application for
+  semics.co.uk") says the domain review of semics.co.uk failed its Acceptable Use Policy and the account will not be
+  activated to take payments. It offers an appeal or a new application. Everything that names Paddle as seller rests on
+  this being resolved. The owner decides what to do next.
 - Prices assume USD and tax-exclusive in Paddle, checked against the site only: the Paddle session had logged out.
 - A further Paddle charge after a refund is refused by the Worker with no key and no notice. Check that a refund stops the
   next charge, or have the Worker cancel the subscription, before checkout opens.
