@@ -17,7 +17,15 @@ seller, `LAUNCH40` not on the page, nothing visible saying the licence is unrevi
 - /licence says visibly that the text is under legal review.
 
 ## Done when
-- [ ] Worker tests (`T156` in the Pro repo's `webhook.worker.test.ts`) and site tests pass.
-- [ ] Licence text identical in `apps/site/pro-licence.txt` and both Pro packages; changeset added.
-- [ ] Brief Issue 4 covers research corrections 15 to 19.
-- [ ] Site and licence Worker deployed.
+- [x] Worker tests (`T156` in the Pro repo's `webhook.worker.test.ts`) and site tests pass.
+- [x] Licence text identical in `apps/site/pro-licence.txt` and both Pro packages; changeset added.
+- [x] Brief Issue 4 covers research corrections 15 to 19.
+- [x] Site deployed (version 58a40bb2).
+- [ ] Licence Worker deployed: the owner runs `wrangler deploy` in the Pro repo's `packages/licence-worker`. Automated
+      deploy was refused. No migration is needed. No sales are open, so nothing is exposed until checkout.
+
+## Open for the owner and lawyer
+- Prices assume USD and tax-exclusive in Paddle, checked against the site only: the Paddle session had logged out.
+- A further Paddle charge after a refund is refused by the Worker with no key and no notice. Check that a refund stops the
+  next charge, or have the Worker cancel the subscription, before checkout opens.
+- The new licence text ships in the next Pro release (after 1.0.0-rc.4).
