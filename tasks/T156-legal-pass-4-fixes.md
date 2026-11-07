@@ -1,3 +1,16 @@
+---
+id: T156
+title: "Fix what legal research pass 4 found in the T146 changes"
+phase: 7
+package: site
+edition: free
+status: in-progress
+model: opus-5.5
+size: S
+depends_on: [T146]
+spec: []
+---
+
 # T156: Fix what legal research pass 4 found in the T146 changes
 
 Status: in progress (owner: orchestrator; owner approved the fixes and UK VAT-inclusive pricing, 2026-11-07)

@@ -2916,7 +2916,9 @@
 			"size": "S",
 			"depends_on": [],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T156"
+			],
 			"column": "done"
 		},
 		"T147": {
@@ -3079,12 +3081,31 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T156": {
+			"file": "T156-legal-pass-4-fixes.md",
+			"id": "T156",
+			"title": "Fix what legal research pass 4 found in the T146 changes",
+			"phase": 7,
+			"package": "site",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T146"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [],
-		"in-progress": [],
+		"in-progress": [
+			"T156"
+		],
 		"review": [],
 		"done": [
 			"T000",

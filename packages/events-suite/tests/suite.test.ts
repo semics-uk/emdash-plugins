@@ -36,11 +36,11 @@ function setUp(integration: { hooks: { "astro:config:setup": (args: never) => vo
 	return { routes, modules };
 }
 
-/** The exported constants of a generated virtual module (`export const name = <json>;`). */
+/** The ids a generated virtual module exports (`export const name = <json>;`); `page` has its own tests below. */
 function exportsOf(source: string | undefined): Record<string, unknown> {
 	const out: Record<string, unknown> = {};
 	for (const [, name, json] of (source ?? "").matchAll(/export const (\w+) = (.*?);$/gm)) {
-		out[name as string] = JSON.parse(json as string);
+		if (name !== "page") out[name as string] = JSON.parse(json as string);
 	}
 	return out;
 }
@@ -136,5 +136,20 @@ describe("eventsSuite() (SX-FR-01)", () => {
 			eventsPluginId: "r_a",
 			esignPluginId: "r_b",
 		});
+	});
+});
+
+describe("page options", () => {
+	it("reach both the booking page and the waiver page", () => {
+		const page = { theme: { accent: "#123456" }, eventPath: "/activities/{slug}" };
+		const suite = eventsSuite({ page });
+		const sources = suite.integrations.flatMap((i) => Object.values(setUp(i as never).modules));
+		const pages = sources.filter((s) => s.includes(`export const page = ${JSON.stringify(page)};`));
+		expect(pages).toHaveLength(2);
+	});
+
+	it("default to none", () => {
+		const sources = eventsSuite().integrations.flatMap((i) => Object.values(setUp(i as never).modules));
+		expect(sources.filter((s) => s.includes("export const page = {};"))).toHaveLength(2);
 	});
 });

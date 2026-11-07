@@ -3,7 +3,6 @@ import type { Messages } from "./index";
 /** Arabic (right to left). Plural forms follow `Intl.PluralRules("ar")`: zero, one, two, few, many, other. */
 export const ar: Messages = {
 	"money.free": "مجاني",
-	"time.utc": "{time} بالتوقيت العالمي",
 
 	"list.heading": "الفعاليات القادمة",
 	"list.error": "الفعاليات غير متاحة الآن.",
@@ -101,6 +100,11 @@ export const ar: Messages = {
 	"booking.status": "حالة الحجز",
 	"booking.reference": "الرقم المرجعي",
 	"booking.heldUntil": "تذاكرك محجوزة حتى {time}.",
+	"booking.declinedReason": "سبب المنظّم: {reason}",
+	"booking.notCharged": "لم يُخصم أي مبلغ من بطاقتك.",
+	"booking.lapsed":
+		"انتهت صلاحية هذا الحجز لأنه لم يكتمل في الوقت المحدد، لذا أُتيحت أماكنه للآخرين. للمتابعة، ابدأ حجزًا جديدًا؛ وإذا كان هناك إقرار تنازل فستوقّعه مرة أخرى.",
+	"booking.bookAgain": "احجز مرة أخرى",
 	"booking.decideBy": "سيوافق المنظّم على طلبك أو يرفضه بحلول {time}، وسنراسلك بالبريد الإلكتروني.",
 	"booking.line": "{qty} × {name}",
 	"booking.total": "المجموع",
@@ -133,6 +137,8 @@ export const ar: Messages = {
 	"booking.attendees.signed": "موقَّع",
 	"booking.attendees.waiting": "بانتظار التوقيع",
 	"booking.attendees.minor": "دون 18 عامًا: توقّع أنت بصفتك وليّ الأمر.",
+	"booking.attendees.notArrived":
+		"لم تصل الدعوة؟ تحقّق من العنوان وأعد إرسالها، أو استخدم التوقيع الآن. لا يمكننا رؤية الرسائل المرتجعة: تبقى هذه القائمة على حالة الانتظار حتى يوقّعوا.",
 	"booking.attendees.emailed": "أُرسلت دعوة بالبريد الإلكتروني إلى {email}.",
 	"booking.attendees.signNow": "وقّع الآن على هذا الجهاز",
 	"booking.attendees.resend": "أعد إرسال الدعوة",

@@ -9,7 +9,7 @@ export function minorUnitDigits(currency: string): number {
 }
 
 function assertInteger(minor: number): void {
-	if (!Number.isSafeInteger(minor)) throw new RangeError(`Minor-unit amount must be an integer: ${minor}`);
+	if (!Number.isSafeInteger(minor)) throw new RangeError(`Not an integer: ${minor}`);
 }
 
 /** Format minor units for display, e.g. `formatMoney(1999, "GBP")` is "£19.99". Default locale en-GB. */
@@ -36,9 +36,9 @@ export function fromMinor(minor: number, currency: string): string {
 export function toMinor(amount: string, currency: string): number {
 	const digits = minorUnitDigits(currency);
 	const m = /^(-?)(\d+)(?:\.(\d*))?$/.exec(amount.trim().replace(/,/g, ""));
-	if (!m) throw new RangeError(`Not a decimal amount: "${amount}"`);
+	if (!m) throw new RangeError(`Not decimal: ${amount}`);
 	const frac = m[3] ?? "";
-	if (frac.length > digits) throw new RangeError(`Too many decimal places for ${currency}: "${amount}"`);
+	if (frac.length > digits) throw new RangeError(`Too many decimals: ${amount}`);
 	const n = Number(`${m[2]}${frac.padEnd(digits, "0")}`);
 	assertInteger(n);
 	return m[1] ? -n : n;

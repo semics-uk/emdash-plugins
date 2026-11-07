@@ -4,4 +4,6 @@ declare module "virtual:semics-events-suite/config" {
 	export const eventsPluginId: string;
 	/** The E-sign core's plugin id on this site. */
 	export const esignPluginId: string;
+	/** How the site dresses the suite's page (`eventsSuite({ page })`); checked by Events' integration. */
+	export const page: import("@semics-tech/emdash-events/astro/lib/page").PageOptions;
 }

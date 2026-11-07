@@ -1,0 +1,108 @@
+// i18n-ignore-file: a stylesheet and its option names, no text for people.
+/**
+ * The look of the plugins' own full pages (`/booking`, the suite's `/_events/waiver`), which run outside the
+ * site's layout: a default stylesheet built only on the `--events-*` properties, and what a site sets through
+ * `eventsIntegration({ page })` / `eventsSuite({ page })`. It is one exact string so the signing page can allow
+ * it by hash (its CSP allows nothing else inline, `ceremonyCsp`). Web APIs only (R35).
+ *
+ * The site's own layout is deliberately not wrapped around these pages: an emailed link's one-time code is in the
+ * URL here, and a signing page's CSP would block the layout's scripts and styles anyway.
+ */
+
+/** A theme value by property: `accent` sets `--events-accent` (the signing form follows, see `PAGE_CSS`). */
+export const THEME_PROPERTIES = [
+	"fg",
+	"muted",
+	"bg",
+	"border",
+	"accent",
+	"accent-fg",
+	"error",
+	"success",
+	"radius",
+	"font",
+	"page-bg",
+	"heading-font",
+	"heading-fg",
+] as const;
+export type ThemeProperty = (typeof THEME_PROPERTIES)[number];
+export interface PageBrand {
+	/** The site's name: the link's text, or the logo's alternative text. */
+	name: string;
+	/** Where it links, a path on this site (default `/`). */
+	href?: string;
+	/** A logo, a path on this site. */
+	logo?: string;
+}
+
+export interface PageOptions {
+	/** Values for the pages' custom properties, for example `{ accent: "#1f3a2e", "page-bg": "#f6f1ea" }`. */
+	theme?: Partial<Record<ThemeProperty, string>>;
+	/** A stylesheet on this site, loaded after the defaults: for `@font-face`, or any further rules. */
+	stylesheet?: string;
+	/** The site's name or logo at the top of each page. */
+	brand?: PageBrand;
+	/** The event's page, where "Book again" goes: a path with `{slug}` (default `/events/{slug}`). */
+	eventPath?: string;
+}
+
+/** One line of CSS, nothing that could end the declaration, the rule or the `<style>` element. */
+const THEME_VALUE = /^[^;{}<>\\@]{1,200}$/;
+const SITE_PATH = /^\/(?!\/)[^\s"'<>\\]*$/;
+
+/** Checks a site's page options when the site's config loads; a bad value stops the build with its name. */
+export function checkPageOptions(page: PageOptions = {}): PageOptions {
+	const refuse = (what: string) => {
+		throw new Error(`page.${what} is not valid`); // i18n-ignore
+	};
+	for (const [name, value] of Object.entries(page.theme ?? {})) {
+		const known = (THEME_PROPERTIES as readonly string[]).includes(name);
+		if (!known || typeof value !== "string" || !THEME_VALUE.test(value) || /url\(/i.test(value))
+			refuse(`theme.${name}`);
+	}
+	const { brand, stylesheet, eventPath } = page;
+	if (stylesheet !== undefined && !SITE_PATH.test(stylesheet)) refuse("stylesheet");
+	if (eventPath !== undefined && !(SITE_PATH.test(eventPath) && eventPath.includes("{slug}"))) refuse("eventPath");
+	if (brand) {
+		if (typeof brand.name !== "string" || !brand.name.trim()) refuse("brand.name");
+		if (brand.href !== undefined && !SITE_PATH.test(brand.href)) refuse("brand.href");
+		if (brand.logo !== undefined && !SITE_PATH.test(brand.logo)) refuse("brand.logo");
+	}
+	return page;
+}
+
+/** The event's page for "Book again"; undefined when the booking does not know its slug. */
+export function eventPageHref(slug: string | null | undefined, eventPath?: string): string | undefined {
+	return slug ? (eventPath ?? "/events/{slug}").replace("{slug}", encodeURIComponent(slug)) : undefined;
+}
+
+/** Works with no site theme at all. Zero specificity on elements, so the components' own rules win. */
+export const PAGE_CSS = `*,*::before,*::after{box-sizing:border-box}
+html{color-scheme:light;-webkit-text-size-adjust:100%}
+body.semics-page{margin:0;min-block-size:100vh;background:var(--events-page-bg, #f5f4f0);color:var(--events-fg, #1a1a1a);font-family:var(--events-font, system-ui, sans-serif);font-size:1.0625rem;line-height:1.55;overflow-wrap:anywhere;
+--esign-fg:var(--events-fg, #1a1a1a);--esign-muted:var(--events-muted, #4a4a4a);--esign-bg:var(--events-bg, #ffffff);--esign-border:var(--events-border, #6b6b6b);--esign-accent:var(--events-accent, #0b57d0);--esign-accent-fg:var(--events-accent-fg, #ffffff);--esign-error:var(--events-error, #b3261e);--esign-radius:var(--events-radius, 6px)}
+.semics-page-brand{max-inline-size:38rem;margin-inline:auto;padding:1rem 1rem 0;font-family:var(--events-heading-font, inherit);font-weight:600}
+.semics-page-brand a{color:var(--events-heading-fg, inherit);text-decoration:none}
+.semics-page-brand img{display:block;block-size:2.5rem;inline-size:auto;max-inline-size:100%}
+.semics-page-main{max-inline-size:38rem;margin-inline:auto;padding:1.5rem 1rem 3rem}
+:where(.semics-page) :is(h1,h2,h3){margin:0 0 .75rem;font-family:var(--events-heading-font, inherit);color:var(--events-heading-fg, inherit);line-height:1.2}
+:where(.semics-page) h1{font-size:clamp(1.75rem,1.5rem + 1.5vw,2.25rem)}
+:where(.semics-page) h2{font-size:1.25rem}
+:where(.semics-page) h3{font-size:1.0625rem}
+:where(.semics-page) p{margin:0 0 .75rem}
+:where(.semics-page) a{color:var(--events-accent, #0b57d0);text-underline-offset:.2em}
+:where(.semics-page) :focus-visible{outline:3px solid var(--events-accent, #0b57d0);outline-offset:2px}
+:where(.semics-page-main) > section,:where(.semics-page-main) > form:not([hidden]){margin-block:0 1rem;padding:1rem 1.25rem;background:var(--events-bg, #ffffff);border:1px solid var(--events-border, #6b6b6b);border-radius:var(--events-radius, 6px);max-inline-size:none}
+:where(.semics-page) [role="alert"]{padding:.5rem .75rem;border:1px solid var(--events-error, #b3261e);border-radius:var(--events-radius, 6px);background:var(--events-bg, #ffffff);color:var(--events-error, #b3261e)}
+:where(.semics-page) :is(input:not([type="checkbox"],[type="radio"],[type="hidden"]),select,textarea){font:inherit;inline-size:100%;min-block-size:2.75rem;padding:.375rem .5rem;border:1px solid var(--events-border, #6b6b6b);border-radius:var(--events-radius, 6px);background:var(--events-bg, #ffffff);color:var(--events-fg, #1a1a1a)}
+:where(.semics-page) label{display:block}
+:where(.semics-page) fieldset{min-inline-size:0;margin:0 0 .75rem;padding:.5rem .75rem;border:1px solid var(--events-border, #6b6b6b);border-radius:var(--events-radius, 6px)}
+:where(.semics-page) button{font:inherit;min-block-size:2.75rem;padding:.5rem 1rem;border:0;border-radius:var(--events-radius, 6px);background:var(--events-accent, #0b57d0);color:var(--events-accent-fg, #ffffff);cursor:pointer}
+`;
+
+/** The stylesheet for a page: the defaults, then the site's theme. Exact: the signing page hashes this text. */
+export function pageCss(page: PageOptions = {}): string {
+	const set = Object.entries(page.theme ?? {}) as Array<[ThemeProperty, string]>;
+	if (set.length === 0) return PAGE_CSS;
+	return `${PAGE_CSS}:root{${set.map(([name, value]) => `--events-${name}:${value}`).join(";")}}\n`;
+}

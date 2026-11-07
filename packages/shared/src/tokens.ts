@@ -34,7 +34,7 @@ const EXP_PATTERN = /^\d{1,15}$/;
 /** A new 256-bit opaque token, URL-safe and unpadded (43 characters). */
 export function generateToken(random: RandomBytes = webCryptoRandom): string {
 	const bytes = random(TOKEN_BYTES);
-	if (bytes.length !== TOKEN_BYTES) throw new Error(`Random source must return ${TOKEN_BYTES} bytes.`);
+	if (bytes.length !== TOKEN_BYTES) throw new Error(`Random source: need ${TOKEN_BYTES} bytes.`);
 	return encodeBase64Url(bytes);
 }
 
@@ -92,7 +92,7 @@ export interface VerifyLinkInput {
 export type LinkError = "TOKEN_INVALID" | "TOKEN_EXPIRED";
 
 async function linkKey(secret: Uint8Array): Promise<CryptoKey> {
-	if (secret.length < LINK_SECRET_BYTES) throw new Error(`Link secret must be at least ${LINK_SECRET_BYTES} bytes.`);
+	if (secret.length < LINK_SECRET_BYTES) throw new Error(`Link secret under ${LINK_SECRET_BYTES} bytes.`);
 	return hmacSha256Key(secret);
 }
 
@@ -110,14 +110,13 @@ async function mac(key: CryptoKey, message: string): Promise<string> {
 export async function signLink(input: SignLinkInput): Promise<URLSearchParams> {
 	const { secret, purpose, params, now, ttlMs = DEFAULT_LINK_TTL_MS } = input;
 	const key = await linkKey(secret);
-	if (purpose.length === 0) throw new Error("Link purpose must not be empty.");
-	if (!Number.isFinite(now)) throw new Error("Link now must be a finite epoch time in milliseconds.");
+	if (purpose.length === 0) throw new Error("Link purpose is empty.");
+	if (!Number.isFinite(now)) throw new Error("Link now is not a time.");
 	if (!(ttlMs >= MIN_LINK_TTL_MS && ttlMs <= MAX_LINK_TTL_MS)) {
-		throw new Error(`Link ttl must be between ${MIN_LINK_TTL_MS} and ${MAX_LINK_TTL_MS} ms.`);
+		throw new Error("Link ttl out of range.");
 	}
 	const entries = Object.entries(params);
-	if (entries.some(([name]) => RESERVED.has(name)))
-		throw new Error("Link params must not use the reserved names exp or sig.");
+	if (entries.some(([name]) => RESERVED.has(name))) throw new Error("Link params: exp, sig are reserved.");
 	const exp = String(Math.floor((now + ttlMs) / 1000));
 	const query = new URLSearchParams(entries);
 	query.set("exp", exp);

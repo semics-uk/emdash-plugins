@@ -146,6 +146,26 @@ describe("bookings page (EV-US-7)", () => {
 		expect(json(out.blocks)).toContain("Ada Lovelace");
 	});
 
+	it("names each booking's event, and shows the id only for an event with no stored name", async () => {
+		const { deps, s } = world();
+		s.event_configs.set("ev1", {
+			...(s.event_configs.docs.get("ev1") as Doc),
+			info: { title: "Clay Shooting Session", startsAt: "2099-01-01T10:00:00Z" },
+		});
+		s.bookings.set("bk_2", { ...(s.bookings.docs.get("bk_1") as Doc), ref: "REF2", eventId: "ev_gone" });
+		meter.calls = 0;
+		const table = (await load(deps, "/bookings")).blocks.find(
+			(b) => (b as { type: string }).type === "table",
+		) as unknown as {
+			rows: Array<{ ref: string; event: string }>;
+			columns: Array<{ key: string; format?: string }>;
+		};
+		expect(meter.calls).toBeLessThanOrEqual(3);
+		expect(table.rows.find((r) => r.ref === "REF1")?.event).toBe("Clay Shooting Session");
+		expect(table.rows.find((r) => r.ref === "REF2")?.event).toBe("ev_gone");
+		expect(table.columns.find((c) => c.key === "event")?.format).toBeUndefined();
+	});
+
 	it("searches by reference or email and filters by status", async () => {
 		const { deps, s } = world();
 		s.bookings.set("bk_2", {

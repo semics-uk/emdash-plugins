@@ -1,4 +1,4 @@
-import { type OutboxMessage, pad2, utcOffsetMinutes, utcToZoned, validZone } from "@semics-tech/shared";
+import { type OutboxMessage, pad2, utcToZoned, validZone } from "@semics-tech/shared";
 
 import type { EventInfo } from "../domain/event-info";
 import type { BookingDoc, OutboxDoc } from "../storage/schema";
@@ -36,24 +36,22 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const pad = pad2;
 
 /**
- * "Sat 14 Nov 2026, 19:00 UTC+1 (Europe/London)" in the event's own zone (UTC when it has none or
- * it is invalid). Built from zone parts, not `Intl` names, so workerd and Node agree.
+ * "Sat 14 Nov 2026, 19:00 (Europe/London)": plain local time in the event's own zone (UTC when it has
+ * none or it is invalid). Built from zone parts, not `Intl` names, so workerd and Node agree.
  */
 export function formatWhen(event: Pick<EventInfo, "startsAt" | "timeZone">): string {
 	const zone = validZone(event.timeZone) ?? "UTC";
 	const t = utcToZoned(event.startsAt, zone);
 	const weekday = DAYS[new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay()];
-	const offset = utcOffsetMinutes(event.startsAt, zone);
-	const abs = Math.abs(offset);
-	const utc =
-		offset === 0 ? "UTC" : `UTC${offset < 0 ? "-" : "+"}${Math.floor(abs / 60)}${abs % 60 ? `:${pad(abs % 60)}` : ""}`;
-	return `${weekday} ${t.day} ${MONTHS[t.month - 1]} ${t.year}, ${pad(t.hour)}:${pad(t.minute)} ${utc} (${zone})`;
+	return `${weekday} ${t.day} ${MONTHS[t.month - 1]} ${t.year}, ${pad(t.hour)}:${pad(t.minute)} (${zone})`;
 }
 
 // Plain sentences (nothing to escape), in both the text and the HTML part.
-const KEEP_PRIVATE =
-	"The booking link opens your booking once on the device you use it from, so keep this email private.";
-const NOT_YOU = "If you did not ask for this, contact the organiser and quote the reference.";
+const KEEP_PRIVATE = "Keep this email private: its link opens your booking once.";
+const NOT_YOU = "Not you? Contact the organiser and quote the reference.";
+
+/** An instant (ISO), such as a deadline, in the event's own zone. */
+const zoned = (at: string, event: EventInfo) => formatWhen({ startsAt: Date.parse(at), timeZone: event.timeZone });
 
 const link = ([label, href]: readonly [string, string]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
 
@@ -115,7 +113,9 @@ export function cancellationEmail(i: Omit<BookingEmailInput, "bookingUrl"> & { b
 /**
  * The approval notices (T131): to the buyer (request received, declined with the admin's reason,
  * expired) and to an admin (a new request or booking, with a link to the Bookings page: acting
- * needs an admin session, so the mail carries no token).
+ * needs an admin session, so the mail carries no token). Rendered at send time from the booking as it
+ * is then: a request an admin has already approved reads "New booking" (nothing is left to decide),
+ * and one that has already ended sends the admin nothing.
  */
 export function approvalEmail(
 	{ kind, to }: Pick<OutboxDoc, "kind" | "to">,
@@ -127,21 +127,28 @@ export function approvalEmail(
 	const i = { to, buyerName: b.buyer.name, bookingRef: b.ref, event, siteName };
 	if (kind === "approval_admin") {
 		const waiting = b.status === "awaiting_approval";
+		if (!waiting && b.status !== "confirmed") return null;
 		const seats = b.lines.reduce((n, l) => n + l.qty, 0);
 		return compose(
 			{ ...i, buyerName: "organiser" },
 			waiting ? "Booking request" : "New booking",
-			[`${b.buyer.name} (${b.email}) booked ${seats} for `, waiting ? ". It needs your approval." : "."],
+			[
+				`${b.buyer.name} (${b.email}) booked ${seats} for `,
+				waiting
+					? `. A decision is needed: approve or decline it by ${zoned(b.holdExpiresAt ?? "", event)}, or it expires.`
+					: ".",
+			],
 			{ links: [["Open Bookings", adminUrl]], closing: "" },
 		);
 	}
 	const notice: Record<string, readonly [string, string]> = {
-		approval_requested: ["Booking request received", " is waiting for approval; we will email you the decision."],
+		approval_requested: ["Booking request received", " awaits approval; we will email you the decision."],
 		approval_declined: ["Booking declined", ` was declined${b.declineReason ? `: ${b.declineReason}` : "."}`],
 		approval_expired: ["Booking request expired", " was not approved in time."],
 	};
 	const n = notice[kind];
-	return n ? compose(i, n[0], ["Your booking request for ", n[1]], { closing: NOT_YOU }) : null;
+	const closing = `${b.notCharged ? "Your card was not charged. " : ""}${NOT_YOU}`;
+	return n ? compose(i, n[0], ["Your booking request for ", n[1]], { closing }) : null;
 }
 
 /** A waitlist offer (T081): the claim link holds a one-time code, valid until `expiresAt` (ISO). */
@@ -151,7 +158,7 @@ export function offerEmail(
 		expiresAt: string;
 	},
 ): OutboxMessage {
-	const held = `${i.seats} ticket${i.seats === 1 ? " is" : "s are"} held for you until ${i.expiresAt.slice(0, 16).replace("T", " ")} UTC.`;
+	const held = `${i.seats} ticket${i.seats === 1 ? " is" : "s are"} held for you until ${zoned(i.expiresAt, i.event)}.`;
 	return compose(i, "Tickets available", ["A place has come up for ", `: ${held}`], {
 		links: [["Claim your tickets", i.bookingUrl]],
 		closing: KEEP_PRIVATE,

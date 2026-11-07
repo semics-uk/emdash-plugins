@@ -2,7 +2,8 @@
 // <BookingStatus>: a booking's state, order and cancel button (EU-FR-06). Rendered by the
 // `/booking` page from the `public/booking` answer; the cancel form is a plain POST back to it.
 import { around, pickLocale, translator } from "../i18n/index";
-import { type BookingView, formatMoney, statusLabel } from "./lib/widget";
+import { zonedAt } from "./lib/list";
+import { type BookingView, endedNotes, formatMoney, statusLabel } from "./lib/widget";
 
 interface Props {
 	booking: BookingView;
@@ -12,10 +13,12 @@ interface Props {
 	cancelAction?: string;
 	/** Ticket type names by id, when the page knows them. */
 	ticketNames?: Record<string, string>;
+	/** A lapsed booking's way back: the event's page, when known. */
+	bookAgain?: string;
 	locale?: string;
 }
 
-const { booking, cancelled = false, cancelAction, ticketNames = {} } = Astro.props;
+const { booking, cancelled = false, cancelAction, ticketNames = {}, bookAgain } = Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, plural, lang, dir } = translator(locale);
 // A request awaiting approval (T131) holds its places until the organiser's deadline.
@@ -26,16 +29,8 @@ const [heldBefore, heldAfter] = around(
 const [cancelBefore, cancelAfter] = around(t("booking.cancelUntil"), "time");
 const tickets = booking.lines.reduce((n, line) => n + line.qty, 0);
 const status = cancelled ? "cancelled" : booking.status;
-const at = (iso: string) => {
-	try {
-		const time = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(
-			new Date(iso),
-		);
-		return t("time.utc", { time });
-	} catch {
-		return iso;
-	}
-};
+const at = (iso: string) => zonedAt(iso, booking.event?.timezone, locale);
+const notes = endedNotes({ ...booking, status }, locale);
 ---
 <section class="semics-events semics-booking-status" data-testid="booking-details" data-status={status} lang={lang} dir={dir} aria-labelledby="semics-booking-status-title">
 	<h2 id="semics-booking-status-title" class="semics-visually-hidden">{t("booking.status")}</h2>
@@ -52,6 +47,8 @@ const at = (iso: string) => {
 			</p>
 		)
 	}
+	{notes.map((note) => <p data-testid="booking-note">{note}</p>)}
+	{status === "expired" && bookAgain && <p><a href={bookAgain} data-testid="booking-book-again">{t("booking.bookAgain")}</a></p>}
 	<ul class="semics-lines" aria-label={plural("booking.lines", tickets)}>
 		{
 			booking.lines.map((line) => (

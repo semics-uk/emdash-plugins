@@ -1,0 +1,18 @@
+---
+// The site's name or logo at the top of the plugins' own pages (`/booking`, `/_events/waiver`), linking
+// home: those pages run outside the site's layout (`eventsIntegration({ page: { brand } })`).
+import type { PageBrand } from "./lib/page";
+
+interface Props {
+	brand?: PageBrand | undefined;
+}
+
+const { brand } = Astro.props;
+---
+{
+	brand && (
+		<header class="semics-page-brand">
+			<a href={brand.href ?? "/"}>{brand.logo ? <img src={brand.logo} alt={brand.name} /> : brand.name}</a>
+		</header>
+	)
+}

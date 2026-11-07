@@ -6,7 +6,6 @@
  */
 export const en = {
 	"money.free": "Free",
-	"time.utc": "{time} UTC",
 
 	"list.heading": "Upcoming events",
 	"list.error": "Events are unavailable right now.",
@@ -104,6 +103,11 @@ export const en = {
 	"booking.reference": "Reference",
 	"booking.heldUntil": "Your tickets are held until {time}.",
 	"booking.decideBy": "The organiser will approve or decline your request by {time}; we will email you.",
+	"booking.declinedReason": "The organiser's reason: {reason}",
+	"booking.notCharged": "Your card was not charged.",
+	"booking.lapsed":
+		"This booking lapsed because it was not finished in time, so its places were released. To go ahead, start a new booking; if there is a waiver, you will sign it again.",
+	"booking.bookAgain": "Book again",
 	"booking.line": "{qty} × {name}",
 	"booking.total": "Total",
 	"booking.cancelUntil": "You can cancel until {time}.",
@@ -138,6 +142,8 @@ export const en = {
 	"booking.attendees.waiting": "Waiting",
 	"booking.attendees.minor": "Under 18: you sign as their guardian.",
 	"booking.attendees.emailed": "Invited by email to {email}.",
+	"booking.attendees.notArrived":
+		"Invitation not arrived? Check the address and resend it, or use Sign now. We cannot see emails that bounce: this list stays on Waiting until they sign.",
 	"booking.attendees.signNow": "Sign now on this device",
 	"booking.attendees.resend": "Resend invitation",
 	"booking.attendees.edit": "Change attendee details",

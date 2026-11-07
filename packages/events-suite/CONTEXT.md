@@ -36,13 +36,16 @@ bundles nothing new into the cores; it calls them through their public routes in
    `/booking?ref=&waiver=…`. With an access cookie, every GET/POST first reads `public/booking` (`readBooking`): an
    expired/cancelled/declined/refunded booking, or a lapsed hold, is `error` `BOOKING_EXPIRED` (message, "Book again" link to
    `/events/<slug>` when `event.slug` is known, no ceremony, e-sign never asked, T151). The render outcome carries that answer
-   so `lib/slot.ts` (title and booked date, T148) reuses it: `event` from `public/booking`, else `public/event`. The page sends `ceremonyCsp()` and renders nothing else inline (no own styles).
+   so `lib/slot.ts` (title and booked date, T148) reuses it: `event` from `public/booking`, else `public/event`. The page sends `ceremonyCsp({ styles: [pageCss(page)], stylesheet })` and renders nothing else inline but Events' page stylesheet (`astro/lib/page.ts`, `eventsSuite({ page })`).
 
    After the last receipt (`waiver=signed`) `payOrLand` continues the booking again (no attendees) and follows a `pay` step (T077);
    anything else lands on `/booking`. The token for that comes from the `semics_waiver_access_<ref>` cookie (waiver path, set
    when the flow goes to sign, cleared when it leaves this page: last signer, a decline, or continue answering
    `done`/`pay`/only email signers, T119 F13). Return paths resolving to `//host` are refused (`safeReturnPath`, F11).
    A waiver refusal of the order (`WAIVER_EMAIL_REQUIRED`, `WAIVER_TOO_MANY_EMAILS`, R48) goes back to the widget with its message.
+   With Pro, `public/event` says `waiverEach` for a waiver signed per attendee; the form sends it and `checkWaiverSeats` (`lib/form.ts`, a copy of Pro's
+   `planWaiverIntents` rules) refuses before reserving, so the usual refusal leaves no booking and sends no "cancelled" email. A refusal that only continue finds still cancels.
+   `lib/keep-form.ts` keeps what was typed in `sessionStorage` over the refusal's redirect (never in the URL; restored before the picker reads the select).
 3. Retry (T066, `intent=retry`): E-sign refusing an intent leaves the booking held and sends the browser to
    `/_events/waiver?ref=&error=SIGNING_UNAVAILABLE`, which shows a "Try again" form. It continues the booking
    again with the `semics_booking_<ref>` cookie and no `attendees` (Events keeps the stored ones; Pro skips

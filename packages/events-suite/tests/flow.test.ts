@@ -9,7 +9,7 @@ import {
 	retryCookieName,
 	type WaiverOutcome,
 } from "../src/astro/lib/flow";
-import { seatField, WAIVER_MESSAGES, WAIVER_PATH } from "../src/astro/lib/form";
+import { checkWaiverSeats, seatField, WAIVER_MESSAGES, WAIVER_PATH } from "../src/astro/lib/form";
 
 // <BookingWithWaiver> end to end against a faked host (SX-FR-02, SX-FR-03): book → sign inline →
 // receipt → confirmed, through the real UI helpers of both products (`callPublicRoute`,
@@ -219,6 +219,35 @@ describe("booking (SX-FR-02)", () => {
 		const url = new URL(outcome.location, ORIGIN);
 		expect(url.searchParams.get("waiver_error")).toBe("WAIVER_EMAIL_REQUIRED");
 		expect(url.searchParams.get("waiver_fields")).toBe("attendees,attendee.3.name");
+	});
+
+	it("SX-FR-02 an order the waiver rules refuse never reserves: no booking left, no cancel, nothing typed in the URL", async () => {
+		const h = host({});
+		const { [seatField(2, "minor")]: _adult, ...order } = ORDER;
+		const form = {
+			...order,
+			[seatField(2, "name")]: "Grace Hopper",
+			[seatField(2, "email")]: "ADA@example.com",
+			waiverEach: "1",
+		};
+		const outcome = expectRedirect(await run(h, post(WAIVER_PATH, form)));
+		expect(h.calls).toEqual([]);
+		const url = new URL(outcome.location, ORIGIN);
+		expect(url.searchParams.get("waiver_error")).toBe("WAIVER_EMAIL_REQUIRED");
+		expect(url.searchParams.get("waiver_fields")).toContain("attendee.2.email");
+		expect(outcome.location).not.toContain("Grace");
+		expect(outcome.location).not.toContain("example.com");
+	});
+
+	it("SX-FR-02 without the event's word on it (Free, or a waiver the buyer signs alone) the core decides", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/checkout/continue`]: () =>
+				ok({ bookingRef: REF, status: "confirmed", next: { type: "done" } }),
+		});
+		const form = { ...ORDER, [seatField(2, "email")]: "ada@example.com" };
+		await run(h, post(WAIVER_PATH, form));
+		expect(h.calls[0]?.path).toBe("public/checkout/reserve");
 	});
 
 	it("SX-FR-02 a cross-site post is refused before anything runs", async () => {
@@ -850,5 +879,64 @@ describe("an event without a required waiver (T066, SX-FR-02)", () => {
 		expect(outcome.location).toBe(`/booking?ref=${REF}`);
 		expect(h.calls[0]?.body).toMatchObject({ lines: [{ ticketTypeId: "tt_adult", qty: 3 }] });
 		expect(h.calls[1]?.body).toEqual({ bookingRef: REF, accessToken: ACCESS });
+	});
+});
+
+describe("the waiver seat rules, before reserving", () => {
+	const order = (attendees: Array<{ name: string; email?: string; minor?: true }>) => ({
+		eventId: "ev",
+		buyer: { name: "Ada Lovelace", email: "ada@example.com" },
+		attendees: attendees.map((a) => ({ ticketTypeId: "tt", ...a })),
+		lines: [{ ticketTypeId: "tt", qty: attendees.length }],
+		rows: attendees.map((_, i) => i + 1),
+		idempotencyKey: "",
+	});
+
+	it("EV-FR-12 the buyer, once, under their own name; minors; other adults at their own address", () => {
+		expect(
+			checkWaiverSeats(
+				order([
+					{ name: " ada lovelace " },
+					{ name: "Byron", minor: true },
+					{ name: "Grace Hopper", email: "grace@example.com" },
+				]),
+			),
+		).toBeNull();
+	});
+
+	it("EV-FR-12 another adult with the buyer's address, or none, is refused at that row (PV52PKY5AK)", () => {
+		expect(checkWaiverSeats(order([{ name: "Ada Lovelace" }, { name: "Grace", email: "ADA@example.com" }]))).toEqual({
+			code: "WAIVER_EMAIL_REQUIRED",
+			fields: ["attendee.2.email"],
+		});
+		expect(checkWaiverSeats(order([{ name: "Grace" }]))).toEqual({
+			code: "WAIVER_EMAIL_REQUIRED",
+			fields: ["attendee.1.email"],
+		});
+		expect(checkWaiverSeats(order([{ name: "Ada Lovelace" }, { name: "Ada Lovelace" }]))?.fields).toEqual([
+			"attendee.2.email",
+		]);
+	});
+
+	it("EV-FR-12 at most 10 adults invited by email", () => {
+		const others = (n: number) => Array.from({ length: n }, (_, i) => ({ name: `G${i}`, email: `g${i}@example.com` }));
+		expect(checkWaiverSeats(order(others(10)))).toBeNull();
+		expect(checkWaiverSeats(order(others(11)))?.code).toBe("WAIVER_TOO_MANY_EMAILS");
+	});
+});
+
+describe("the waiver page's look", () => {
+	const page = readFileSync(resolve(import.meta.dirname, "../src/astro/WaiverPage.astro"), "utf8");
+
+	it("EU-NFR-05 uses Events' page stylesheet, allowed by the header by hash, and the site's brand and stylesheet", () => {
+		expect(page).toContain("const css = pageCss(page);");
+		expect(page).toContain("ceremonyCsp({ styles: [css], stylesheet })");
+		expect(page).toContain("<style is:inline set:html={css}></style>");
+		expect(page).toContain("<PageBrand brand={page.brand} />");
+		expect(page).not.toMatch(/^<style>/m);
+	});
+
+	it("T151 'Book again' follows the site's own event page", () => {
+		expect(page).toContain("eventPath: page.eventPath");
 	});
 });

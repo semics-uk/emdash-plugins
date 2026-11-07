@@ -102,3 +102,18 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		);
 	});
 });
+
+describe("eventsIntegration page options", () => {
+	it("hands the site's options to the pages, and none by default", async () => {
+		const load = async (options?: Parameters<typeof eventsIntegration>[0]) => {
+			const { plugins } = await setup(options as never);
+			return plugins[0]?.load(plugins[0]?.resolveId("virtual:semics-events/config") ?? "");
+		};
+		expect(await load()).toContain("export const page = {};");
+		expect(await load({ page: { theme: { accent: "#123456" } } })).toContain('{"theme":{"accent":"#123456"}}');
+	});
+
+	it("refuses a bad option when the site's config loads", () => {
+		expect(() => eventsIntegration({ page: { stylesheet: "https://x.example/a.css" } })).toThrow("page.stylesheet");
+	});
+});

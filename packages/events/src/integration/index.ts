@@ -1,4 +1,7 @@
 import { EVENTS_PLUGIN_ID } from "../astro/lib/call.ts";
+import { checkPageOptions, type PageOptions } from "../astro/lib/page.ts";
+
+export type { PageOptions };
 
 export interface EventsIntegrationOptions {
 	/**
@@ -17,6 +20,8 @@ export interface EventsIntegrationOptions {
 	 * for a booking waiting for signatures (the suite passes its own, T066). Without it nothing is reconciled.
 	 */
 	reconcile?: string;
+	/** How the plugin's own pages look on this site: theme, stylesheet, brand, event page path (`PageOptions`). */
+	page?: PageOptions;
 }
 
 const VIRTUAL = "virtual:semics-events/config";
@@ -46,6 +51,7 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 	const pluginId = options.pluginId ?? EVENTS_PLUGIN_ID;
 	const config = [
 		`export const pluginId = ${JSON.stringify(pluginId)};`,
+		`export const page = ${JSON.stringify(checkPageOptions(options.page))};`,
 		`export const esignPluginId = ${JSON.stringify(options.esignPluginId ?? null)};`,
 		options.reconcile
 			? `export { reconcileBooking as reconcile } from ${JSON.stringify(options.reconcile)};`

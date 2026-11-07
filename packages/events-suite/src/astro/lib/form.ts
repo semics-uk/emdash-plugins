@@ -120,6 +120,30 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 	};
 }
 
+/** Adults one order can have invited by email (Events Pro's `MAX_EMAIL_SIGNERS`). */
+const MAX_EMAIL_SIGNERS = 10;
+const norm = (value: string) => value.trim().toLowerCase();
+
+/**
+ * Events Pro's waiver rules for an event signed per attendee (`planWaiverIntents`), asked before anything is
+ * reserved: an adult with the buyer's address (or none) must be the buyer, once; other adults are invited by
+ * email, up to the limit; the buyer signs for minors. The core stays the authority: it checks again at continue.
+ */
+export function checkWaiverSeats(order: WaiverOrder): { code: string; fields: string[] } | null {
+	const fields: string[] = [];
+	let buyerSeated = false;
+	let emailed = 0;
+	for (const [i, a] of order.attendees.entries()) {
+		if (a.minor) continue;
+		if (norm(a.email ?? order.buyer.email) !== norm(order.buyer.email)) emailed++;
+		else if (buyerSeated || norm(a.name) !== norm(order.buyer.name))
+			fields.push(seatField(order.rows[i] ?? 0, "email"));
+		else buyerSeated = true;
+	}
+	if (fields.length > 0) return { code: "WAIVER_EMAIL_REQUIRED", fields };
+	return emailed > MAX_EMAIL_SIGNERS ? { code: "WAIVER_TOO_MANY_EMAILS", fields: [] } : null;
+}
+
 /** Messages for the codes a refused booking comes back with. */
 export const WAIVER_MESSAGES: Record<string, string> = {
 	BAD_REQUEST: "Please check the highlighted details.",
