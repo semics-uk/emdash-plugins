@@ -1,17 +1,18 @@
-# Legal research on the E-sign brief, Issue 3
+# Legal research on the E-sign brief, Issue 4
 
-> Not legal advice. Prepared by an AI research assistant on 2026-11-07 from brief Issue 3, for review by a qualified
+> Not legal advice. Prepared by an AI research assistant on 2026-11-07 from brief Issue 4, for review by a qualified
 > lawyer. Every view below is provisional.
 
-Notes on method. This is the fourth pass, and a narrow one: it reviews the T146 changes (brief Issue 3 §12, question 17
-and §14; the Pro licence; the /licence, /refunds, /pricing and /terms pages; the T146 Paddle notes) and re-checks
-time-sensitive law. Questions 1 to 16 are carried over from pass 3 unchanged and were not re-researched. Numbers in square
-brackets refer to the Sources list; sources 68 onwards are new. Limits this pass: Parliament's statutory instrument tracker
-refused the request again, so the status of the UK regulations rests on legislation.gov.uk [62][86] and one law firm note
-[83]. EUR-Lex opened this time, so the withdrawal function now rests on the Directive itself [72]. Web pages were read
-through a fetch tool that summarises, so short quotations should be checked against the source; the draft regulations
-and draft guidance PDFs were read directly, but only the pages named at [46] and [62]. The Breyer judgment and California's
-automatic-renewal law remain unopened.
+Notes on method. This is the fifth pass, and a narrow one: it reviews the T156 changes (`apps/site/pro-licence.txt`, the
+/pricing, /terms, /refunds, /licence and /contact pages, brief Issue 4 and the licence service) and takes in one new fact
+from the owner's mailbox: Paddle's refusal of 26 October 2026. Questions 1 to 16 are carried over unchanged and were not
+re-researched, apart from one clause in Q12. The lawyer's starting point is now [sign-off.md](sign-off.md). Numbers in
+square brackets refer to the Sources list; sources 87 onwards are new. Limits this pass: the date comes from the system
+clock (2026-11-07), while the instruction said 2026-11-13 or later, so time-sensitive checks speak as of the access date;
+the T156 commits are dated 2026-11-07. The Paddle email was not opened by this researcher; it is reported by the
+coordinator and in T156 [97]. Web pages were read through a fetch tool that summarises, so short quotations should be
+checked against the source. Parts of CMA209 were read directly from the PDF, only at the paragraphs named at [88]. The
+licence service was read, not run. The Breyer judgment and California's automatic-renewal law remain unopened.
 
 ## Summary table
 
@@ -33,28 +34,27 @@ automatic-renewal law remain unopened.
 | 14 | Mail-scanner prefetch | No legal requirement for a view event; the label should say what it records | High | Whether to log link fetches separately |
 | 15 | Excluded documents | Yes, warn; list headline categories, do not filter | High (warn), low (completeness) | List contents per region |
 | 16 | Uploaded PDFs | Original plus incremental update is good evidence; a conspicuous link plus an explicit tick is a recognised US pattern | Medium (format, US), low (UK/EU notice) | Whether "offered by link" is enough |
-| 17 | Site terms, refunds, privacy, Pro licence | The refund principle is workable, but licence §4 and §7 do not carry it out and the licence service treats a refunded renewal differently; pricing shows ex-tax prices and an unpriced discount to UK consumers; "email to buy" conflicts with Paddle as seller; Paddle's public terms cover more than T146 found, but not the annual second reminder or cooling-off notice | Medium (UK licence, pricing), low (MoR allocation, EU, US) | Refund and survival wording; business-only or VAT-inclusive pricing; "trader" under Paddle; launch gate; EU representative |
+| 17 | Site terms, refunds, privacy, Pro licence | The seller is unconfirmed: Paddle refused the account, so every Paddle statement is an assumption and the live pages need changing. T156 resolved most drafting and code findings; §7 works for the 14-day refund but is doubtful for faults; the UK price is improved, the EU price is not addressed, and a dollar total is unclear if checkout converts | Medium (UK licence, UK pricing), low (seller and trader, EU, US) | Seller and trader; live statements; refund rule for faults; total price; subscription duties; Art 27 |
 
 ## Changes since the last pass
 
-- **Brief.** Now Issue 3. §12 and §14 are accurate. Question 17 overstates in two places ("agree", "identical") and still
-  miscounts keys; see corrections 15 to 17.
-- **Licence §4 and §7.** The pass-3 conflict is resolved in principle but not in drafting: read literally, §7's survival
-  line takes away what §7 says a renewal refund keeps. New findings in Q17.
-- **Code checked against the new rule.** The licence service marks the whole licence `refunded` on a full refund of any
-  payment, including a renewal, and refuses re-issue and support [61]. That does not match "you keep the versions".
-- **Pricing.** The 40% line is new; assessed against DMCCA 2024, CMA207 and CMA209 [45][79][80][81] for the first time.
-- **Licence page claim.** True for rc.2, rc.3 and rc.4 as opened; false for rc.0, rc.1 and the npm `latest` placeholder
-  [85]. The rc.1 problem has been overtaken by later releases, but the old packages remain public.
-- **Paddle.** T146 reported nothing public on the EU function or UK rules. Paddle's Refund Policy, dated before that check,
-  describes an EU withdrawal button and a UK annual-renewal window [68]. Paddle's seller terms (6 October 2026) were read
-  for the first time and pass risk back to SEMICS [69].
-- **UK regime, re-checked 2026-11-07.** Regulations still draft and not found as made [62][86]; laid 19 October 2026 per a
-  law firm note [83]; start date 1 January 2027 unchanged; contracts made earlier are outside the regime [46]. No record of
-  approval votes was found, which is not evidence that none occurred.
-- **EU, re-checked.** Art 11a read in the Directive; applies from 19 June 2026 [72]. National transposition not surveyed.
-  Digital Fairness Act: search snippets suggest a proposal is imminent but no opened source confirms one; treat as unknown.
-- **Questions 1 to 16:** no change.
+- **New fact: the seller is unconfirmed.** Paddle's email of 26 October 2026 says it cannot activate the account to take
+  payments [97]. Passes 1 to 4 assumed an active account, and this file did not know. All of Q17's Paddle analysis is now
+  conditional. T146's question to Paddle (sent 2 November) came after the refusal. T146's "live account" discount does
+  not show the account can sell. Whether Paddle's seller terms bind SEMICS at all is unknown.
+- **Live pages.** New finding in Q17: the Paddle statements, "opens soon" and the priced offer raise DMCCA s.226 and Sch 20
+  para 5 [87][79][88].
+- **T156 reviewed.** Most pass-4 drafting and code findings are resolved; see the status table in Q17. The licence service
+  (version 7a85e157) is deployed; the licence text is not yet in a released package.
+- **New problems T156 left or introduced** (Q17): versions released before the term; §7 not surviving its own sentence; no
+  rule for a reversed chargeback [93][94]; refund email wording and a retry that loses the key [61]; the EU price; the
+  currency question.
+- **Upgraded.** "Paying for nothing after a refund" moved from a note to a launch fix: Paddle's policy treats cancelling as
+  separate from a refund [68].
+- **CMA209 full text** read in part for the first time [88]. It confirms the page can be an invitation before buying is possible.
+- **UK regime, re-checked.** Regulations still draft and not found as made [62][86]. Start date 1 January 2027 unchanged.
+- **Brief.** Issue 4 applies corrections 13 and 15 to 19. New corrections 20 to 22 below.
+- **Questions 1 to 16:** no change, apart from the Paddle clause in Q12.
 
 ## Q1. Consent wording for the US
 
@@ -312,7 +312,7 @@ processing is occasional and low-risk [58, Art 27(2)(a)].
 **Provisional view.** The site owner is the controller of signing data. The maker, supplying self-hosted software with no
 access, is probably neither controller nor processor of it. The revised §10 now correctly describes the maker as
 controller of licence-buyer data (email, hostnames, Paddle ids). Selling to EU buyers may bring SEMICS LTD within EU
-GDPR and Art 27, although Paddle, not SEMICS, is the seller (Q17).
+GDPR and Art 27, even if a reseller is the seller; who the seller will be is now unconfirmed (Q17).
 
 **Confidence and gaps.** Medium.
 
@@ -401,85 +401,139 @@ the record stronger. English and EU incorporation rules were not researched.
 
 ## Q17. The product site's terms, refunds, privacy and the Pro licence
 
-**Question.** Are the terms, refund policy, privacy policy and Pro licence, as changed by T146, fit for launch?
+**Question.** Are the terms, refund policy, privacy policy and Pro licence, as changed by T156, fit for launch, given that
+Paddle has not accepted SEMICS as a seller?
 
 **Law.**
 - **Consumer terms.** Ambiguous consumer terms take the meaning most favourable to the consumer [82]. A digital-content
-  term cannot make a statutory remedy subject to a restrictive or onerous condition [48, s.47(2)(b)].
+  term cannot make a statutory remedy subject to a restrictive or onerous condition, or allow a trader to put a person at
+  a disadvantage for pursuing it [48, s.47(2)(b), (c)].
 - **Prices and promotions (in force).** Unfair practices are prohibited; a trader includes one acting for business
-  purposes [76]. An invitation to purchase must give the total price, including necessary taxes; where it cannot be
-  calculated in advance, how to work it out, with equal prominence [45]. CMA: VAT belongs in the total price [81]; drip
-  pricing is prohibited; the responsible trader may not be the seller [80]. Banned: false limited-time claims, and not
-  disclosing known inability to supply at the price [79, paras 5, 7]; a true statement is "unlikely to be problematic" [80].
+  purposes [76]. False or misleading information relevant to a transactional decision is a misleading action [87]. An
+  invitation to purchase must give the total price, including necessary taxes; where it cannot be calculated in advance,
+  how to work it out, with equal prominence [45]. CMA: an invitation can exist before it is possible to buy, and the
+  trader making it answers for it even if not the seller [88, paras 2.3, 2.4, 2.10]; a price should be "realistic,
+  meaningful and attainable" [88, para 3.2]; VAT belongs in the total price [81]; drip pricing is prohibited; the
+  responsible trader may not be the seller [80]; who qualifies for an offer must be explicit [88, para 5.50]. Banned: false
+  limited-time claims; an invitation at a stated price where the trader has reasonable grounds to believe it cannot offer the
+  product or procure another trader to, undisclosed [79, paras 5, 7][88, note 20]; false claims of approval by a body
+  [79, para 4]; a true statement is "unlikely to be problematic" [80].
+- **Currency.** s.230 does not mention it [45]. The CMA's currency passage concerns local charges on products supplied abroad
+  [88, para 5.45]; it does not address a UK seller quoting dollars. The Price Marking Order treats sterling as the baseline but
+  covers goods, not services; its guidance does not mention digital content [90].
 - **UK subscriptions (draft).** Draft Regulations start on 1 January 2027 for contracts made from then [62, regs 1, 2]; they
   are not made [86]. A first-year discount is a concessionary period [78, s.254(3)]. An annual renewal is a relevant
-  renewal, with a 14-day cooling-off [63][46, §6.3]. An additional earlier reminder is added on top of the standard one, at
-  times stated in the key pre-contract information [64][46, §4.4]. A cooling-off notice must be given separately at the
-  start; if not, the period runs up to 12 more months [62, reg 6][46, §6.4]. An email address alone is not an adequate
-  online exit [46, §4.5.3]. Business contracts are outside [46, FAQ 3].
-- **EU.** Art 11a puts the labelled withdrawal function, confirmation step and durable acknowledgement on "the trader" [72].
-  Digital content loses withdrawal only with express consent, acknowledgement and confirmation [73, Art 16(m)]; after
-  withdrawal the consumer must stop using it [73, Art 14(2a)]. An intermediary and the principal may both be traders
-  [75]. Non-EU sellers to EU consumers should expect to be in scope [84, secondary].
-- **Paddle.** See "Paddle and who bears the duty" below [52][68][69][70][71].
+  renewal, with a 14-day cooling-off counted from the day after [63][46, §6.3]. An additional earlier reminder is added on top
+  of the standard one, at times stated in the key pre-contract information [64][46, §4.4]. A cooling-off notice must be given
+  separately at the start; if not, the period runs up to 12 more months [62, reg 6][46, §6.4]. An email address alone is not an
+  adequate online exit [46, §4.5.3]. Business contracts are outside [46, FAQ 3].
+- **EU.** An invitation to purchase must give the price inclusive of taxes or, if it cannot reasonably be calculated in
+  advance, the manner of calculation [89, Art 7(4)(c)]. Art 11a puts the labelled withdrawal function, confirmation step and
+  durable acknowledgement on "the trader" [72]. Digital content loses withdrawal only with express consent, acknowledgement
+  and confirmation [73, Art 16(m)]; after withdrawal the consumer must stop using it [73, Art 14(2a)]. An intermediary and the
+  principal may both be traders [75]. Non-EU sellers to EU consumers should expect to be in scope [84, secondary].
+- **Paddle.** See "Paddle and who bears the duty" below [52][68][69][70][71][91][92].
 
-**Provisional view: licence and refund clause.** The principle is coherent and probably enforceable: returning the price in
-exchange for ending the licence is unlikely to be unfair. Enforcement is by contract and copyright only, because the key
-cannot be switched off. The drafting does not carry it out:
-- **§4 against §7.** §4 says the perpetual right "does end if you take a refund", without limit; §7 then keeps earlier
-  years on a renewal refund.
-- **Survival.** §7 preserves §4 "except after a refund", so §4 falls away for the kept years too. §7 itself, §2 (the Update
-  Term) and §3 (copies, modification, contractors) are not listed as surviving. "Licence ends" also means mere lapse in
-  §6, /terms and /pricing, so a non-renewing buyer's §3 rights are unclear. Consumers would get the favourable reading [82];
-  SEMICS should not rely on the same reading against business buyers.
-- **Which key.** §2 issues a key on each renewal, and §7 says "remove the key" in the singular. A renewal refund needs the
-  earlier key restored and later versions rolled back; nothing says so.
-- **What counts as a refund.** The licence does not limit the rule to the 14-day refund. Applied to a defect refund, or
-  a statutory remedy, it may offend s.47(2) [48], subject to §8's saving. The worker also treats chargebacks like refunds
-  and ignores partial refunds [61]; the licence mentions neither.
-- **Code.** A full refund of a renewal marks the whole licence `refunded`, refuses re-issue, revokes the token, and support
-  refuses that key [61]. A buyer who lost the earlier key cannot use the versions the licence says they keep.
-- **Statutory cancellation.** Ending use fits Art 14(2a) in the EU [73]. The UK equivalent was not opened.
+**The seller: read first.** Paddle's email says it completed a domain review of semics.co.uk and is "not able to move forward"
+[97]. Paddle may reject products in its absolute discretion [69, cl 9.6(i)], and only approved domains may run live checkouts;
+subdomains need their own approval, and a mistaken rejection is contested by replying to the email [92]. Its policy bars
+"pure consulting" and "IT services" unrelated to a software offering, and crypto, adult and gambling offerings [91]; vehicle
+checks are not mentioned there. How the listed categories relate to plugins.semics.co.uk is unknown. Consequences:
+- **All Paddle analysis below is conditional** on activation. Nothing here shows the account is active or that a seller
+  agreement is in force [69]. If the seller is SEMICS or another Merchant of Record, the "who bears the duty" section does not
+  carry over, and SEMICS, if selling directly, is plainly the trader. `sign-off.md` sets out what changes in each case. Tax
+  consequences were not researched.
+- **Live pages: provisionally a problem, modest today.** /pricing, /terms, /refunds, /privacy, /contact and licence §1 state in
+  the present tense that Paddle is the Merchant of Record for all orders, and /pricing says "every sale goes through Paddle",
+  "online checkout opens soon" and "the code works once it does". The site was confirmed live with this text [61]. No sale can
+  occur, so harm is limited, but "buy links are coming" does not stop /pricing being an invitation [88, paras 2.3, 2.4]. Para 5
+  turns on whether SEMICS has reasonable grounds to believe it cannot offer the product at that price, itself or through another
+  trader, for a reasonable period [79][88, note 20]. An appeal and other routes are open, so that is not made out today. It
+  strengthens with time. Para 4 looks weak. s.226 is the likelier route [87]. Paddle's domain page asks for pricing and terms but
+  names no required Paddle wording [92], so corrected text should not by itself harm an appeal; check with Paddle.
 
-**Refunds page against licence.** They agree on the outcome but not the force: "you should remove" against "you must stop
-using ... and remove". The refunds page never says "stop using", and its sentence that the key "keeps working" invites
-the softer reading. /terms and /pricing state the refund but not its effect; both also say the key keeps working when a
-licence ends. Use one rule, in "must" wording, on all four pages.
+**Pass 4 findings against T156.**
 
-**Draft label.** Removing it was right; a draft note inside operative terms creates doubt about what binds. The concern
-is what it leaves. The only remaining marker is an HTML comment buyers do not see, while the page invites sales by email
-and a live discount exists. Nothing technical stops a sale on unreviewed text. It is not misleading unless SEMICS implies
-review. After review the text needs a new version number, since /terms keeps each buyer on the version in force for that
-year. Rc.1 and rc.4 are also both "Version 1.0" in substance, one marked draft.
+| Pass 4 finding | Status | Note |
+| --- | --- | --- |
+| §4 contradicts §7 on a renewal refund | Resolved | §4 now defers to §7 as "the only exceptions" |
+| Survival sentence takes away what §7 keeps | Mostly resolved | §3 to §9 continue after lapse and (b). Remainder below |
+| "Licence ends" also means lapse | Partly | §7 now says "Update Term ends without renewal"; §6, /terms and /pricing still say "ends" |
+| Which key after a renewal refund | Resolved in text | (b) replaces the key; the Worker emails one. See failure path below |
+| Rule reaches chargebacks and partial refunds | Resolved, new gap | Licence now says so; reversal not covered |
+| Rule reaches fault refunds (s.47) | Not resolved | Saving added, still ends the licence |
+| Worker closes whole licence on a renewal refund | Resolved | Rolls back a year, emails a key, closes to new keys; deployed |
+| Refunds page softer than licence | Resolved | Both "must"; /terms and /pricing defer. /refunds omits chargebacks and partial refunds |
+| Draft marker hidden | Partly | Visible on /licence only; "under legal review" is not yet accurate unless a lawyer has it |
+| "Same text ships in each package" | Resolved | Page says releases up to rc.4 carry earlier text; local files match |
+| Version number after review | Not resolved | Still "Version 1.0" |
+| UK ex-VAT and unpriced offer | Resolved for UK, subject to currency | Arithmetic checked; equal styling in `build.mjs`. Meta description and `editions.md` remain before-tax only |
+| `LAUNCH40` not on page | Resolved | Whether a refund returns a use remains unstated |
+| "Email to buy" | Resolved | Now depends on the seller |
+| Hostname gap on /pricing | Resolved | |
+| "Within 14 days" a day short | Not resolved | s.265(2)(b) counts from the day after [63] |
+| Trader, reminders, cooling-off notice | Not resolved | Overtaken by the seller issue |
+| Evaluators, s.164A, Art 27, business cap | Not resolved | T156 did not address them |
+| Key email install line | Not resolved | `latest` is still the deprecated placeholder [85] |
 
-**Licence page claim.** "The same text ships ... in each Pro package" is true for esign-pro rc.2 to rc.4 and events-pro
-rc.4 as opened, and the local files match [85][61]. It is false for rc.0 and rc.1 (draft text, no refund rule) and for
-the npm `latest` tag (a placeholder) [85]. Say "from 1.0.0-rc.2". The owner should confirm that no one bought under
-the earlier text.
+**Provisional view: licence §7 as now drafted.** (a) and (b) work for the 14-day refund. Points that remain or are new:
+- **Versions before the term (new).** §4 makes perpetual only versions "released during the Update Term", and (b) keeps those
+  "released during the earlier years". A version current at purchase was released before. /terms says "every version released
+  before its year of updates ended". They differ; a consumer gets the wider reading [82], but a business buyer may not. Use
+  "released before the end of".
+- **Survival (new).** After (a) or a breach ending, §§5, 6, 8 and 9 continue. The duties to stop using and delete sit in §7, which
+  is not listed. Copyright probably fills the gap, but add §7. §2 is also not listed after lapse, though §3(a) and §4 rely on it;
+  cosmetic.
+- **Fault refunds.** §7's opening sentence defines the 14-day refund, then (a) and (b) say "a refund" without limit. /refunds
+  promises a fault refund of the current year's fee, under the same "After a refund" rule. So a first-year buyer refunded for a fault
+  must stop using everything. The saving ("any other remedy") does not undo that. It may offend s.47(2)(b) or (c) [48]; that is
+  a judgement for the lawyer, and the ambiguity favours consumers [82]. Limiting (a) and (b) to the 14-day refund is the simple
+  answer.
+- **Chargebacks (new).** "A chargeback counts as a refund", but a contested chargeback can be reversed, returning the money
+  [93][94]. The Worker ignores `chargeback_reverse`, so a licence closed by a chargeback SEMICS later wins stays closed. It also
+  ignores `chargeback_warning`, under which the amount is refunded [93], and treats a partial chargeback as a full one [61]. The
+  licence is silent on each. Paddle's adjustment `type` defaults to partial [94], so a refund of everything issued by line
+  item would end nothing.
+- **Closing the licence on a renewal refund.** A buyer who uses a cooling-off right cannot renew that licence. Probably acceptable
+  as a new purchase remains open, but neither text says so. (b) covers any renewal while the Worker handles only the latest; since
+  windows do not overlap this should rarely matter.
+- **Paddle's policy.** It says access to the Product "will cease" on a refund [68, 1.6]. (b) keeps earlier versions. Probably
+  consistent, since that is the refunded product only; unclear.
+- **/terms.** "When a licence ends in any other way ... the key you already have keeps working" also catches a breach ending, which
+  /terms never mentions. Technically true, but it reads as permission.
 
-**Pricing line.**
-- **Total price: the main risk.** "$79 a year ... plus VAT or sales tax" with the total at checkout does not obviously meet
-  s.230 for UK consumers [45][81]. UK VAT can be calculated, and "where it applies" lets no one work it out. The
-  discount line adds a price with no figure: before tax, $47.40, $77.40 and $209.40. Renewal wording is clear and helpful.
-- **Scarcity.** A true cap of 100 is not a banned claim [79][80]. It becomes one if the offer stays up after exhaustion,
-  or the cap is not real. Remove the line the moment it is used up, and keep the count.
-- **Redemption.** The page promises the offer to the "first 100 customers", but Paddle holds a code, `LAUNCH40`, with 100
-  redemptions [T146]. The page shows no code, so a buyer could miss it; nor does it say how email buyers get it, or whether
-  refunded uses return. Apply it automatically, or say a code is needed.
-- **"Email to buy".** /terms and licence §1 say Paddle sells. If the owner takes payment directly on an emailed order, SEMICS
-  is the trader with every consumer duty, and those texts are wrong. Paddle's clause 10.1 bars SEMICS invoicing Paddle
-  buyers [69]; the worker has a manual-issue path [61]. Provisionally, the safe wording is "email us and we will send a
-  Paddle link".
-- **Subscription rules.** The line suits the concessionary-period rules if checkout gives the key information [46]. Contracts
-  made before 1 January 2027 are outside the regime; government suggests consistent protection as best practice [46, FAQ 2].
+**Code and email (read, not run).**
+- **Failure path (new).** `renewalRefunded` saves the rollback, then sends the email, then closes the licence. The mailer throws on
+  failure and Paddle retries, but the retry finds `lastTransactionId` already moved and returns `ignored`. So: no key, licence not
+  closed, token not revoked, against §7(b)'s "we will email you a key".
+- **Email text (new).** The refund email says "Your registry access token is unchanged" just before it is revoked, ends "Questions:
+  support" although (b) ends support, and gives the `npm install` line, which does not fetch the version the buyer may keep [85].
+- **Next charge.** Paddle's policy treats cancelling as the separate step that stops billing and does not say a refund does [68, 3.1.3,
+  3.5]; the developer pages are silent [93]. The Worker refuses a later charge with no key and no notice [61]. /refunds tells the buyer
+  to "cancel any renewal you do not want", implying a closed licence could renew. Fix before checkout: cancel on refund, then rewrite
+  the sentence.
 
-**Hostname.** /terms now matches the licence. The code confirms it: `www` and the bare domain are different, with an exact
-match [61]. The gap is /pricing: "per site" and "1 site" with no statement of what a site is, so a site answering on both
-names needs two places on a one-place plan unless one redirects. A custom staging domain also needs a place. Say so on
-/pricing.
+**Refunds page against licence.** They now agree. /refunds does not mention chargebacks or partial refunds, which is acceptable if the
+licence is shown before purchase.
 
-**Paddle and who bears the duty.** T146 is out of date on one point: Paddle's Refund Policy (31 March 2026) describes an
-online withdrawal button in the Customer Portal for EU consumers and, for UK annual subscriptions, a new 14-day window
+**Pricing.**
+- **UK.** Showing the total including VAT at the same size as the before-tax figure answers pass 4's main concern [45][81][88]; a
+  breakdown beside a total is not the partitioned pricing the CMA warns about. Figures are correct.
+- **Currency (new).** Paddle shows a country override, else an automatic local conversion, else the base price [95]. The page
+  warns it "may show the price in your currency". If a UK buyer sees sterling, $94.80 is not the price charged, and neither a rate nor
+  a sterling figure is given. Unclear whether this breaches s.230; it strains "attainable" [88, para 3.2]. Fix: a sterling price
+  set in the seller's catalogue and shown on the page, or a pinned dollar charge. Not checked: the actual Paddle set-up.
+- **EU (new).** T156 addressed UK only. EU buyers see "$79 before tax" and a UK VAT figure that does not apply to them. VAT varies
+  but can be worked out by country, so Art 7(4)(c) probably requires either inclusive prices or a clear method [89]. "Paddle adds VAT
+  ... where it applies" is neither. National implementation not surveyed. Simple options: a per-country table, a location-based preview
+  [95], or a rate and worked example.
+- **Other.** `editions.md` and the /pricing meta description give before-tax prices [61], and a minimal mention can still be an invitation
+  [88, para 2.5]. A true cap of 100 remains fine, if real [79][80]; see the live-pages point above on availability.
+
+**Hostname.** Resolved: /pricing, /terms, the licence and the code agree.
+
+**Paddle and who bears the duty (only if Paddle activates).** T146 is out of date on one point: Paddle's Refund Policy (31 March 2026)
+describes an online withdrawal button in the Customer Portal for EU consumers and, for UK annual subscriptions, a new 14-day window
 at each auto-renewal, with UK requests made by contacting Paddle [68]. T146's other points are partly supported:
 - **Reminders.** Paddle's 7-or-30-day reminder is confirmed, and a separate discount-end reminder exists [70][71]; T146
   omits the latter. But "every renewal gets a reminder" does not meet a rule requiring two for annual renewals [46]. Nothing
@@ -492,30 +546,29 @@ at each auto-renewal, with UK requests made by contacting Paddle [68]. T146's ot
 - **Who bears it.** Provisionally: Paddle is the seller, so probably the "trader" for the subscription contract and Art
   11a [52][69][68]. No public text says Paddle accepts the duty, and draft guidance in the pages read does not address
   resellers. Tiketa concerned an intermediary, so its fit is unclear and it is not English authority [75]. SEMICS stays
-  directly responsible for its own pages [80], probably for the licence it signs with the buyer, and for any direct sale.
-  Commercially the risk returns to SEMICS: it warrants legal compliance, indemnifies Paddle, and repays refunds with fees
+  directly responsible for its own pages [80][88, para 2.10], probably for the licence it signs with the buyer, and for any direct
+  sale. Commercially the risk returns to SEMICS: it warrants legal compliance, indemnifies Paddle, and repays refunds with fees
   [69, cl 10.4, 11.1, 11.2].
 - **If Paddle says no or stays unclear, settle before consumer checkout opens:** (1) EU: a SEMICS-run page meeting Art 11a(1)
   to (4) that forwards to Paddle, since email is not the function; (2) UK: SEMICS sends the earlier reminder and the
   cooling-off notice, and publishes the reminder window, which the licence service's Paddle data may allow; (3) or sell
-  to businesses only, with a real check; (4) written allocation with Paddle. Until then T146's "email or paddle.net is our
-  withdrawal route" should point EU buyers to Paddle's button, and that is not yet tested.
+  to businesses only, with a real check (rejected by the owner in T156, for the reason that it would turn consumers away); (4)
+  written allocation with Paddle. Until then T146's "email or paddle.net is our withdrawal route" should point EU buyers to Paddle's
+  button, and that is not yet tested.
 
-**Still open from pass 3.** §1 and §3(b) license only "the person ... that bought", so evaluators have no licence. The
-privacy page names the ICO but does not invite complaints to SEMICS first (s.164A [57]). EU representative unresolved.
-Business-buyer cap unresolved [50].
+**Still open from pass 3.** §1 and §3(b) license only "the person ... that bought", so evaluators have no licence; nor do holders of
+owner-issued keys (`issueManualLicence`, no sale) [61]. The privacy page names the ICO but does not invite complaints to SEMICS first
+(s.164A [57]). EU representative unresolved. Business-buyer cap unresolved [50].
 
-**Confidence and gaps.** Medium on licence drafting and UK pricing. Low on the MoR allocation, EU national law, Paddle's
-real behaviour (no answer yet; portal not tested) and US law. The Regulations may change before approval. Reg 20 and regs
-33 to 36 were read only through the guidance.
+**Confidence and gaps.** Medium on licence drafting and UK pricing. Low on the seller and trader, EU, Paddle's real behaviour (no
+answer yet; portal not tested) and US law. The Regulations may change before approval. Reg 20 and regs 33 to 36 were read only
+through the guidance. No source was found on a UK seller quoting a foreign-currency total to UK consumers.
 
-**Suggested change, if any.** Licence: "A refund within the 14 days ends your rights to versions first released in the
-period you were refunded. If you refund a renewal, sections 2, 3 and 4 continue for earlier versions, and you must return
-to one, using your earlier key. This does not affect your legal rights." Add chargebacks if wanted, and make the worker
-match. Show VAT-inclusive UK prices, or a clear rate and calculation, and the discounted prices.
+**Suggested change, if any.** Live pages now: "Pro is not on sale yet. We are still arranging who will handle checkout and cannot say
+when it will open. These are the prices we plan to charge." Licence: "released before the end of" in §4 and (b); limit (a) and (b) to
+the 14-day refund and chargebacks; add a reversed chargeback; add §7 to the survival list; new version number after review.
 
-**For the lawyer.** The refund and survival wording; whether the rule may reach non-14-day refunds; total-price treatment
-of a mixed business and consumer audience; who is the "trader"; whether to allow any sale before review; Art 27.
+**For the lawyer.** See [sign-off.md](sign-off.md), items 1 to 7.
 
 ## Corrections to the brief
 
@@ -524,30 +577,30 @@ Status of earlier corrections:
 1. §2, ESIGN §7001(c) scope: **applied** (pass 2).
 2. §12 reviewed Pro code: **applied.** §12 now says the Pro routing was described from Free seams and task notes, not code.
 3. "Simple" signature not an eIDAS term: **applied.**
-4. §10 licence service: **applied.**
+4. §10 licence service: **applied**, but see 21.
 5. Question 4 limitation rules: **applied and correct** [12]-[16].
 6. "Identity check" label: **applied.**
 7. Question 17 as new matter: **applied** in Issue 3's §14.
 8. Licence placeholder: **resolved.**
-9. D6 30 days: **resolved.** The D5 discount is now on the pricing page (see Q17 for its problems).
-10. Licence-end statements: **resolved**, but see 15 below for refunds.
-11. Issue number: **applied** (Issue 3).
-12. Refund wording in question 17: **applied**, but see 15.
-13. Key counting: **not fully applied**; see 17.
+9. D6 30 days: **resolved.** The D5 discount is now on the pricing page (see Q17).
+10. Licence-end statements: **resolved.**
+11. Issue number: **applied** (Issue 4).
+12. Refund wording in question 17: **applied.**
+13. Key counting: **applied.** Issue 4 says one key per plan.
 14. Question 17 omits §3(e) and the agency rights: **not applied.** It still lists only modification and no redistribution.
+15. Refunds page and licence "agree": **applied.** Issue 4 states the rule without the claim.
+16. "Identical" package text: **applied.** Issue 4 says releases after rc.4.
+17. "One key per production hostname": **applied.**
+18. Subscription bullet: **applied.**
+19. How the licence service handles a refund: **applied**, but see 22.
 
 New points:
 
-15. Question 17 says the refunds page and licence §7 "agree". They agree on the outcome, not its force or scope (Q17),
-    and the licence is internally inconsistent on a renewal refund.
-16. Question 17 says the LICENSE in each public package is "identical" to the site text. True from rc.2, not rc.0, rc.1 or
-    npm `latest` [85].
-17. Question 17 still says "one key per production hostname". An Agency key names up to 10; the licence and the code
-    both work on one key per plan, with places for hostnames.
-18. Question 17's subscription bullet is right on cooling-off but omits the additional earlier reminder, the separate
-    cooling-off notice and that contracts before 1 January 2027 are outside; add them, and say the regulations are still draft.
-19. Question 17 says the refund rule "ends the licence" but does not tell the lawyer how the licence service handles a
-    refunded renewal or a chargeback (Q17, [61]).
+20. Question 17 still has the old bullet "prices, which are now shown 'plus VAT or sales tax where it applies'". The page no longer
+    says that, and a later bullet describes the current display. Delete the old one.
+21. §10 and question 17 state Paddle's role as fact, and question 17 says only that Paddle "has been asked in writing". Neither
+    mentions the refusal of 26 October 2026 [97]. Sections 10 and 13 should say the seller is unconfirmed.
+22. Question 17 says the service "treats a chargeback as a refund" without saying that a reversal or warning is ignored (Q17, [61]).
 
 ## Also noticed
 
@@ -557,21 +610,20 @@ New points:
 - **No privacy-notice link on the signing page** (Q2, Art 13 [28a]).
 - **Florida-style statutory notices** need capitalised text at least 5 points larger [20]; templates should allow it.
 - **International transfers.** Hosting on a US provider may be a restricted transfer for UK/EU owners; not researched.
-- **Paying for nothing after a refund.** The licence service neither cancels the Paddle subscription on a refund (no such
-  call was found in its source) nor renews a refunded licence [61]. If Paddle keeps the subscription running, next year's
-  charge could produce no key. Paddle's behaviour was not checked; confirm it.
 - **Key email install line.** The key email says `npm install <package>` with no tag [61], which today resolves to the
   deprecated placeholder on `latest` [85]. It is a licence point as well as a support one, because that package does not
   carry this licence.
-- **Paddle FTC settlement.** Search results describe a 2025 FTC settlement with Paddle over merchant-of-record conduct; not
-  opened or relied on. The lawyer may want to read it before leaning on Paddle's compliance.
+- **Paddle FTC settlement.** Now opened, through Paddle's own FAQ only [96]: June 2025, $5 million, about two customers'
+  telemarketing upsells; Paddle must keep screening higher-risk sellers and ensure clear subscription terms, consent and
+  simple cancellation. The order itself was not read.
 - **US auto-renewal laws** (for example California) apply to US consumer buyers; not researched.
+- **Tax if selling directly.** UK VAT, EU VAT and US sales tax would fall on SEMICS; not researched, and a question for a tax adviser.
 
 ## Sources
 
-Sources 1 to 61 were first accessed on 2026-10-26 or earlier; sources 62 to 67 on 2026-11-02; sources 68 onwards on
-2026-11-07. Those marked "re-opened 2026-11-07" were checked again this pass; others were not, because nothing relying on
-them changed.
+Sources 1 to 61 were first accessed on 2026-10-26 or earlier; sources 62 to 67 on 2026-11-02; sources 68 to 86 on
+2026-11-07 (pass 4); sources 87 onwards on 2026-11-07 (pass 5). Those marked "pass 5" were checked again this pass; others
+were not, because nothing relying on them changed.
 
 1. 15 U.S.C. §7001, https://www.law.cornell.edu/uscode/text/15/7001, primary.
 2. 15 U.S.C. §7003, https://www.law.cornell.edu/uscode/text/15/7003, primary.
@@ -642,22 +694,21 @@ them changed.
 43. Berman v. Freedom Financial Network, LLC, 30 F.4th 849 (9th Cir. 2022),
     https://cdn.ca9.uscourts.gov/datastore/opinions/2022/04/05/20-16900.pdf, primary.
 44. Consumer Contracts (Information, Cancellation and Additional Charges) Regulations 2013 reg 37,
-    https://www.legislation.gov.uk/uksi/2013/3134/regulation/37, primary, re-opened 2026-11-07.
+    https://www.legislation.gov.uk/uksi/2013/3134/regulation/37, primary.
 45. Digital Markets, Competition and Consumers Act 2024 s.230,
-    https://www.legislation.gov.uk/ukpga/2024/13/section/230, primary, re-opened 2026-11-07.
+    https://www.legislation.gov.uk/ukpga/2024/13/section/230, primary, pass 5.
 46. Department for Business, Innovation, Science and Trade, Draft guidance on the Draft Consumer Subscription Contracts
     Regulations 2026 (October 2026),
     https://assets.publishing.service.gov.uk/media/6acf97da2de3184ccf8b814e/subscription-contracts-rules-guidance.pdf,
-    government guidance (draft). Re-opened 2026-11-07; PDF pages 1-11, 21-24, 26-27, 38-40, 48-49 and 59-61 read. Earlier
-    passes labelled the department differently.
+    government guidance (draft). PDF pages 1-11, 21-24, 26-27, 38-40, 48-49 and 59-61 read. Earlier passes labelled the
+    department differently.
 47. Wiggin LLP, DMCCA tracker, https://www.wiggin.co.uk/insight/digital-markets-competition-and-consumer-act-tracker/,
     secondary (superseded for commencement by [62]).
-48. Consumer Rights Act 2015 s.47, https://www.legislation.gov.uk/ukpga/2015/15/section/47, primary, re-opened 2026-11-07.
+48. Consumer Rights Act 2015 s.47, https://www.legislation.gov.uk/ukpga/2015/15/section/47, primary, pass 5.
 49. Consumer Rights Act 2015 Sch 2, https://www.legislation.gov.uk/ukpga/2015/15/schedule/2, primary.
 50. Unfair Contract Terms Act 1977 s.11, https://www.legislation.gov.uk/ukpga/1977/50/section/11, primary.
 51. Rome I Regulation Art 6 (UK retained version), https://www.legislation.gov.uk/eur/2008/593/article/6, primary.
-52. Paddle Buyer Terms (31 March 2026), https://www.paddle.com/legal/checkout-buyer-terms, primary (third-party terms),
-    re-opened 2026-11-07, unchanged.
+52. Paddle Buyer Terms (31 March 2026), https://www.paddle.com/legal/checkout-buyer-terms, primary (third-party terms).
 53. Paddle Privacy Notice (16 March 2026), https://www.paddle.com/legal/privacy, primary (third-party notice).
 54. Company, LLP and Business (Names and Trading Disclosures) Regulations 2015 reg 25,
     https://www.legislation.gov.uk/uksi/2015/17/regulation/25, primary.
@@ -671,18 +722,18 @@ them changed.
 60. ICO, What are identifiers and related factors?,
     https://ico.org.uk/for-organisations/uk-gdpr-guidance-and-resources/personal-information-what-is-it/what-is-personal-data/what-are-identifiers-and-related-factors/,
     regulator guidance.
-61. plugins.semics.co.uk, /licence and /pricing re-fetched 2026-11-07 and matching `apps/site/pages.mjs`; /refunds and
-    /terms read in source this pass. Primary (the text under review). Internal files read on 2026-11-07:
-    `apps/site/pro-licence.txt`, `emdash-plugins-pro/packages/{esign-pro,events-pro}/LICENSE` (read line by line and
-    matching the site text), `emdash-plugins-pro/packages/licence-worker/src/handlers.ts`,
-    `packages/shared/src/licence.ts`, `tasks/T146-licence-page-and-refund-wording.md`.
+61. plugins.semics.co.uk, /pricing re-fetched in pass 5 and matching `apps/site/pages.mjs`; other pages read in source. Primary
+    (the text under review). Internal files read in pass 5: `apps/site/pro-licence.txt`, `apps/site/pages.mjs`, `apps/site/build.mjs`
+    (styles), `apps/docs/pages/editions.md`, `emdash-plugins-pro/packages/licence-worker/src/{handlers,index,store,services}.ts` and
+    the T156 tests, `emdash-plugins-pro/packages/{esign-pro,events-pro}/LICENSE` (matched by search on the new §7 wording, not
+    line by line), `tasks/T146-licence-page-and-refund-wording.md`, `tasks/T156-legal-pass-4-fixes.md`.
 62. Draft Consumer Subscription Contracts (Cancellation and Information) Regulations 2026,
     https://www.legislation.gov.uk/ukdsi/2026/9780348287912, primary (draft instrument; reg 1(2) commencement 1 January
-    2027, subject to approval by both Houses). Re-opened 2026-11-07, still marked draft; PDF pages 1-14 read directly.
+    2027, subject to approval by both Houses). Pass 5: still marked draft. PDF pages 1-14 read directly in pass 4.
 63. Digital Markets, Competition and Consumers Act 2024 s.265 (renewal cooling-off period),
-    https://www.legislation.gov.uk/ukpga/2024/13/section/265, primary (prospective), re-opened 2026-11-07.
+    https://www.legislation.gov.uk/ukpga/2024/13/section/265, primary (prospective), pass 5.
 64. Digital Markets, Competition and Consumers Act 2024 s.259 (timing of reminder notices),
-    https://www.legislation.gov.uk/ukpga/2024/13/section/259, primary (prospective), re-opened 2026-11-07.
+    https://www.legislation.gov.uk/ukpga/2024/13/section/259, primary (prospective).
 65. CJEU press release 107/25, EDPS v SRB, C-413/23 P, 4 September 2025,
     https://curia.europa.eu/jcms/upload/docs/application/pdf/2025-09/cp250107en.pdf, primary (press release; judgment
     not opened).
@@ -692,9 +743,10 @@ them changed.
     https://www.iubenda.com/en/blog/the-new-online-withdrawal-function-what-eu-directive-2023-2673-means-for-your-business/,
     secondary (superseded by [72]).
 68. Paddle Refund Policy (31 March 2026), https://www.paddle.com/legal/refund-policy, primary (third-party terms; what it
-    says, not proof that the portal does it). Sections 1.1, 1.2, 1.6, 2.1, 2.2, 3.1, 7.1.
-69. Paddle seller terms (6 October 2026), https://www.paddle.com/legal/terms, primary (third-party terms). Clauses 2.1, 4.1,
-    10.1, 10.2, 10.4, 11.1, 11.2. Whether SEMICS's signed agreement differs was not checked.
+    says, not proof that the portal does it). Sections 1.1, 1.2, 1.6, 2.1, 2.2, 3.1, 3.5, 7.1. Pass 5.
+69. Paddle seller terms (Master Services Agreement, 6 October 2026), https://www.paddle.com/legal/terms, primary (third-party
+    terms). Clauses 2.1, 2.2, 4.1, 9.1, 9.3, 9.4, 9.6, 10.1, 10.2, 10.4, 11.1, 11.2. Pass 5. Whether any signed agreement is in
+    force or differs was not checked.
 70. Paddle help, enhanced billing notifications, location list,
     https://www.paddle.com/help/manage/your-customers/enhanced-billing-notifications-location-list, primary (third-party
     help page; undated).
@@ -717,13 +769,13 @@ them changed.
 78. Digital Markets, Competition and Consumers Act 2024 s.254, https://www.legislation.gov.uk/ukpga/2024/13/section/254,
     primary (prospective).
 79. Digital Markets, Competition and Consumers Act 2024 Sch 20, https://www.legislation.gov.uk/ukpga/2024/13/schedule/20,
-    primary.
+    primary, pass 5 (paras 1 to 7).
 80. CMA, Unfair commercial practices (CMA207),
     https://www.gov.uk/government/publications/unfair-commercial-practices-cma207/unfair-commercial-practices, regulator
     guidance. First 100,000 characters read.
 81. CMA, Providing clear and accurate information about prices: summary (CMA209),
     https://www.gov.uk/government/publications/price-transparency-cma209/providing-clear-and-accurate-information-about-prices-summary,
-    regulator guidance. Summary only; the full CMA209 was not read.
+    regulator guidance, pass 5. Full text now at [88].
 82. Consumer Rights Act 2015 s.69, https://www.legislation.gov.uk/ukpga/2015/15/section/69, primary.
 83. Freshfields, "Less than two months to go before tough new UK subscription rules bite", 2 November 2026,
     https://www.freshfields.com/en/our-thinking/blogs/risk-and-compliance/less-than-two-months-to-go-before-tough-new-uk-subscription-rules-bite-102o78a,
@@ -731,9 +783,35 @@ them changed.
 84. K&L Gates, "New EU Withdrawal Button Requirement", 8 July 2026,
     https://www.klgates.com/New-EU-Withdrawal-Button-Requirement-Practical-Implications-and-Recommendations-for-US-and-Global-Online-Sellers-7-8-2026,
     secondary.
-85. npm registry metadata, https://registry.npmjs.org/@semics-tech/emdash-esign-pro and
-    https://registry.npmjs.org/@semics-tech/emdash-events-pro; LICENSE files through the jsDelivr mirror,
-    https://cdn.jsdelivr.net/npm/@semics-tech/emdash-esign-pro@1.0.0-rc.4/LICENSE (and rc.0 to rc.3, bootstrap; events-pro
-    rc.1 and rc.4; events-pro rc.0, rc.2, rc.3 not opened). Primary (published packages, through a mirror).
+85. npm registry metadata, https://registry.npmjs.org/@semics-tech/emdash-esign-pro (pass 5: `latest` is the deprecated
+    0.0.0-bootstrap.0; `rc` is 1.0.0-rc.4) and https://registry.npmjs.org/@semics-tech/emdash-events-pro; LICENSE files through
+    the jsDelivr mirror, https://cdn.jsdelivr.net/npm/@semics-tech/emdash-esign-pro@1.0.0-rc.4/LICENSE (and rc.0 to rc.3,
+    bootstrap; events-pro rc.1 and rc.4; events-pro rc.0, rc.2, rc.3 not opened). Primary (published packages, through a mirror).
 86. legislation.gov.uk title search for 2026 UK statutory instruments, "consumer subscription", no results,
-    https://www.legislation.gov.uk/uksi/2026?title=consumer%20subscription, primary, weak (a title search on one day).
+    https://www.legislation.gov.uk/uksi/2026?title=consumer%20subscription, primary, weak (a title search on one day), pass 5.
+87. Digital Markets, Competition and Consumers Act 2024 s.226, https://www.legislation.gov.uk/ukpga/2024/13/section/226, primary.
+88. CMA, Price transparency (CMA209), full guidance,
+    https://assets.publishing.service.gov.uk/media/6a3a92e333bc5beefd3c47b0/CMA209_Unfair_commercial_practices__price_transparency_13.2.26__2_.pdf,
+    regulator guidance. Read directly: contents, paras 1.1-1.4, 2.3-2.12, 3.1-3.6 and note 20, 5.42-5.50. Chapter 4 and the rest of
+    chapter 5 not read.
+89. Directive 2005/29/EC (Unfair Commercial Practices), https://eur-lex.europa.eu/eli/dir/2005/29/oj/eng, primary. Arts 2(i),
+    7(4)(c). National implementation not surveyed.
+90. Price Marking Order 2004: government guidance,
+    https://www.gov.uk/government/publications/price-marking-order-2004-government-guidance/price-marking-order-2004-government-guidance,
+    government guidance.
+91. Paddle help, Understanding Paddle's Acceptable Use Policy,
+    https://www.paddle.com/help/start/intro-to-paddle/what-am-i-not-allowed-to-sell-on-paddle, primary (third-party help page).
+92. Paddle help, Domain Review, https://www.paddle.com/help/start/account-verification/what-is-domain-verification, primary
+    (third-party help page).
+93. Paddle developer docs, Refund or credit a transaction,
+    https://developer.paddle.com/build/transactions/create-transaction-adjustments, primary (third-party docs).
+94. Paddle API reference, List adjustments, https://developer.paddle.com/api-reference/adjustments/list-adjustments, primary
+    (third-party docs).
+95. Paddle developer docs, Localize prices, https://developer.paddle.com/build/products/offer-localized-pricing/, primary
+    (third-party docs; does not state whether automatic conversion is on by default).
+96. Paddle, FTC settlement FAQ, https://www.paddle.com/ftc-agreement-faq, secondary (a party's own account; the order not opened).
+97. Paddle email to the owner, 26 October 2026, subject "Update on your Paddle account application for semics.co.uk". Primary, but
+    NOT opened by this researcher: quoted from the coordinator's report, which read it directly, and `tasks/T156-legal-pass-4-fixes.md`.
+    Reported categories: IT services or software development; digital content/marketplaces; vehicle checks and reports; crypto
+    trading/signals; adult-only content/gambling; consulting or advisory. Offers an appeal or a new application. The lawyer should
+    see the original.
