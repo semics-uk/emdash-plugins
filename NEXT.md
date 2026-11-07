@@ -23,9 +23,9 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
-- Staging: in E-sign → Integrations, revoke the hand-made "Events" client (cl_wvaue3o4nlndih26) and keep "Events on this site"
 
 ## Done
+- 2026-11-07 Staging: hand-made E-sign client cl_wvaue3o4nlndih26 revoked by D1 update; "Events on this site" kept
 - 2026-11-07 lmsc-site moved to npm rc.3 (PR #8, 3960249) and deployed to staging
 - 2026-11-06 rc.3 published: npm (Free and Pro) and EmDash registry; registry checksums match the attested builds
 - 2026-11-06 Changesets versions the three products together; CI fetches the base branch so verify runs on PRs
@@ -35,4 +35,3 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - 2026-11-02 rc.2 published: npm (Free and Pro) and EmDash registry (semics-events, semics-esign)
 - 2026-11-02 T152 ended waiver bookings void their unsigned envelopes (Pro; on next booking/waiver page visit)
 - 2026-11-02 T151 waiver page handles expired bookings and draft events
-- 2026-11-02 T149/T150 pairing status; templates load when you pair; one-step Refresh
