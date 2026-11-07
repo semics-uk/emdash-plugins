@@ -176,7 +176,6 @@ describe("what happens when a licence ends (the licence Worker's header: keys ve
 describe("prices and tax (DMCCA s.230)", () => {
 	test("the pricing page says the total including tax is shown at checkout before you pay", () => {
 		const body = text("/pricing");
-		expect(body).not.toMatch(/before tax/);
 		expect(body).toMatch(/total price, including any VAT or sales tax, is shown at checkout before you pay/);
 	});
 
@@ -315,18 +314,16 @@ describe("T146: the Pro licence is published before you buy", () => {
 
 	test("a refund ends the licence for that purchase, on the refunds page and in the licence", () => {
 		expect(text("/refunds")).toMatch(/you no longer have a licence to use it/);
-		const licence = text("/licence");
-		expect(licence).toMatch(/A refund ends this licence for the purchase you were refunded/);
-		expect(licence).toMatch(/Sections 4 \(except after a refund or after we end this licence under this section\)/);
+		expect(text("/refunds")).toMatch(/you must stop using Pro and remove the key/);
+		expect(text("/refunds")).not.toMatch(/you should remove/);
+		expect(text("/licence")).toMatch(/refund of your first purchase ends this licence/);
 	});
 
 	test("refunding a renewal keeps the versions from the years you paid for", () => {
-		expect(text("/refunds")).toMatch(
-			/If you refund a renewal, you keep the versions released during the years you paid for/,
-		);
-		expect(text("/licence")).toMatch(
-			/If you refund a renewal, you keep the versions released during the years you paid for/,
-		);
+		for (const path of ["/refunds", "/licence"]) {
+			expect(text(path)).toMatch(/refund of a renewal ends only the refunded year/);
+			expect(text(path)).toMatch(/keep the versions released during the earlier years you paid for/);
+		}
 	});
 });
 
@@ -341,5 +338,67 @@ describe("T146: the D5 first-year discount is on the pricing page", () => {
 		expect(body).toMatch(/40% off your first year/);
 		expect(body).toMatch(/first 100 customers/);
 		expect(body).toMatch(/renews at the full price/);
+	});
+});
+
+describe("T156: pass 4 of the legal research", () => {
+	/** Plan -> [a year including UK VAT, first year before tax, first year including UK VAT]. */
+	const OFFER = {
+		"Events Pro": ["$94.80", "$47.40", "$56.88"],
+		"E-sign Pro": ["$94.80", "$47.40", "$56.88"],
+		"Suite Pro": ["$154.80", "$77.40", "$92.88"],
+		Agency: ["$418.80", "$209.40", "$251.28"],
+	};
+
+	test.each(Object.keys(OFFER))("%s shows the price including UK VAT and the offer price, with and without", (plan) => {
+		const [incVat, offer, offerIncVat] = OFFER[plan];
+		const body = text("/pricing");
+		expect(body).toContain(`${incVat} a year including UK VAT`);
+		expect(body).toContain(`${plan}: ${offer} before tax, ${offerIncVat} including UK VAT`);
+	});
+
+	test("the price including VAT is as prominent as the price before tax", () => {
+		expect(read("/pricing")).toMatch(
+			/<p class="price">\$79 a year before tax<\/p>\s*<p class="price">\$94\.80 a year including UK VAT<\/p>/,
+		);
+	});
+
+	test("the offer says how to get it and that it goes when the 100 are used", () => {
+		const body = text("/pricing");
+		expect(body).toContain("LAUNCH40");
+		expect(body).toMatch(/remove this offer when all 100 have been used/);
+	});
+
+	test("nobody is invited to buy by email: every sale goes through Paddle", () => {
+		const body = text("/pricing");
+		expect(body).not.toMatch(/email [^.]* to buy/i);
+		expect(body).toMatch(/We do not take payment by email: every sale goes through Paddle/);
+		expect(text("/contact")).not.toMatch(/buying a licence, refunds/);
+	});
+
+	test("the pricing page says what a site is", () => {
+		const body = text("/pricing");
+		expect(body).toMatch(/A site is one production hostname/);
+		expect(body).toMatch(/count as two unless one redirects/);
+	});
+
+	test("the licence page says it is under legal review and which releases carry this text", () => {
+		const body = text("/licence");
+		expect(body).toMatch(/under legal review/);
+		expect(body).toMatch(/Releases up to 1\.0\.0-rc\.4 carry earlier text/);
+		expect(body).not.toMatch(/The same text ships/);
+	});
+
+	test("the licence keeps the earlier versions alive after a renewal refund and says what counts", () => {
+		const body = text("/licence");
+		expect(body).toMatch(/sections 3 to 9 continue for the versions you keep/);
+		expect(body).toMatch(/A partial refund, such as a tax correction, ends nothing/);
+		expect(body).toMatch(/chargeback counts as a refund/);
+		expect(body).not.toMatch(/except after a refund/);
+	});
+
+	test("the terms and pricing state what a refund does", () => {
+		expect(text("/terms")).toMatch(/A refund ends the licence as set out in our refund policy/);
+		expect(text("/pricing")).toMatch(/A refund ends the licence/);
 	});
 });

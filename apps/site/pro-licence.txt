@@ -43,9 +43,9 @@ Copyright (c) 2026 SEMICS LTD. All rights reserved.
    support.
 
    Your right to use each version released during the Update Term is perpetual: it does not end when the
-   Update Term ends, when you cancel, or when you stop renewing. It does end if you take a refund (section
-   7). A version released after your Update Term ends needs a renewed key; the key you already have does not
-   unlock it.
+   Update Term ends, when you cancel, or when you stop renewing. Section 7 sets out the only exceptions: a
+   refund, and our ending this licence for a serious breach. A version released after your Update Term ends
+   needs a renewed key; the key you already have does not unlock it.
 
    The key is checked offline on your site. We cannot switch it off remotely, and your site never needs to
    contact us for the Software to keep working.
@@ -74,16 +74,24 @@ Copyright (c) 2026 SEMICS LTD. All rights reserved.
 7. Refunds and ending this licence
 
    You may have a full refund within 14 days of a purchase or renewal, for any reason (see
-   https://plugins.semics.co.uk/refunds). A refund ends this licence for the purchase you were refunded: we
-   issue no new keys, updates or support for it, and you must stop using the Software it gave you and remove
-   the key from your site. If you refund a renewal, you keep the versions released during the years you paid
-   for and were not refunded.
+   https://plugins.semics.co.uk/refunds). What a full refund does depends on the payment refunded:
+
+   (a) A refund of your first purchase ends this licence. You must stop using the Software and remove the
+       key from your site.
+   (b) A refund of a renewal ends only the refunded year. You keep the versions released during the earlier
+       years you paid for, and we will email you a key for them. You must stop using versions released only
+       during the refunded year and replace the key issued for it. We issue no further keys or updates and
+       give no further support for this licence.
+
+   A chargeback counts as a refund of the payment charged back. A partial refund, such as a tax correction,
+   ends nothing. If we refund you because the Software was faulty, you keep any other remedy the law gives
+   you.
 
    If you seriously break section 5 and do not put it right within 30 days of our written notice, we may end
    this licence. You must then stop using the Software and delete your copies.
 
-   Sections 4 (except after a refund or after we end this licence under this section), 5, 6, 8 and 9
-   continue after this licence ends.
+   When your Update Term ends without renewal, and after (b), sections 3 to 9 continue for the versions you
+   keep. After (a), or after we end this licence for a breach, sections 5, 6, 8 and 9 continue.
 
 8. Our responsibility
 
