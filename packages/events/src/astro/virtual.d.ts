@@ -1,6 +1,8 @@
 // Provided by the integration's Vite plugin (`eventsIntegration({ pluginId })`).
 declare module "virtual:semics-events/config" {
 	export const pluginId: string;
+	/** How the site dresses the plugin's own pages (`eventsIntegration({ page })`). */
+	export const page: import("./lib/page").PageOptions;
 	/** The e-sign core's plugin id, or `null` when e-sign is not configured (`eventsIntegration({ esignPluginId })`). */
 	export const esignPluginId: string | null;
 	/**

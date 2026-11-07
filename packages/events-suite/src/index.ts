@@ -2,7 +2,7 @@ import esignCore from "@semics-tech/emdash-esign";
 import { esignIntegration } from "@semics-tech/emdash-esign/integration";
 import { esignUi } from "@semics-tech/emdash-esign/ui";
 import eventsCore from "@semics-tech/emdash-events";
-import { eventsIntegration } from "@semics-tech/emdash-events/integration";
+import { eventsIntegration, type PageOptions } from "@semics-tech/emdash-events/integration";
 import { eventsUi } from "@semics-tech/emdash-events/ui";
 import type { PluginDescriptor } from "emdash";
 
@@ -18,6 +18,8 @@ export interface EventsSuiteOptions {
 	events?: SuiteCore;
 	/** Default: the Free E-sign core of `@semics-tech/emdash-esign`. */
 	esign?: SuiteCore;
+	/** How `/booking` and `/_events/waiver` look on this site: theme, stylesheet, brand, event page path. */
+	page?: PageOptions;
 }
 
 /** The slice of Astro's integration API the injected pages need (no `astro` dependency). */
@@ -69,10 +71,14 @@ const RECONCILE_MODULE = "@semics-tech/emdash-events-suite/astro/lib/reconcile";
  * Injects `/_events/waiver` (the booking and signing steps of `<BookingWithWaiver>`) and gives it,
  * through a virtual module, the id of each core. `eventsSuite()` adds it for you.
  */
-export function suiteIntegration(ids: { eventsPluginId: string; esignPluginId: string }): SuiteAstroIntegration {
+export function suiteIntegration(
+	ids: { eventsPluginId: string; esignPluginId: string },
+	page: PageOptions = {},
+): SuiteAstroIntegration {
 	const config = [
 		`export const eventsPluginId = ${JSON.stringify(ids.eventsPluginId)};`,
 		`export const esignPluginId = ${JSON.stringify(ids.esignPluginId)};`,
+		`export const page = ${JSON.stringify(page)};`,
 	].join("\n");
 	return {
 		name: "semics-events-suite",
@@ -127,9 +133,14 @@ export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 		sandboxed: [events.descriptor, esign.descriptor].filter((d): d is PluginDescriptor => d !== undefined),
 		plugins: [eventsUi(), esignUi()],
 		integrations: [
-			eventsIntegration({ pluginId: events.id, esignPluginId: esign.id, reconcile: RECONCILE_MODULE }),
+			eventsIntegration({
+				pluginId: events.id,
+				esignPluginId: esign.id,
+				reconcile: RECONCILE_MODULE,
+				...(options.page ? { page: options.page } : {}),
+			}),
 			esignIntegration({ pluginId: esign.id }),
-			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id }),
+			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id }, options.page),
 		],
 		pluginIds: { events: events.id, esign: esign.id },
 	};

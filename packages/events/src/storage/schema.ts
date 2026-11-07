@@ -232,6 +232,8 @@ export interface BookingDoc {
 	approval?: { until: string };
 	/** Why an admin declined the booking (T131), shown in the email to the buyer. */
 	declineReason?: string | null;
+	/** Declined with a price and no money taken: a held card was released or never charged (`closeBooking`). */
+	notCharged?: boolean;
 	/** SHA-256 of the access token; the token itself is never stored. */
 	accessTokenHash: string;
 	/**

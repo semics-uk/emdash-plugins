@@ -6,6 +6,7 @@
 // and emails of attendees who have not signed, until the cutoff. Rows come from `signingRows`.
 import { around, pickLocale, translator } from "../i18n/index";
 import type { SigningRow } from "./lib/attendees";
+import { zonedAt } from "./lib/list";
 
 interface Props {
 	rows: SigningRow[];
@@ -13,25 +14,18 @@ interface Props {
 	action: string;
 	/** While names may be changed: the deadline (ISO). */
 	editUntil?: string;
+	/** The event's time zone, for that deadline. */
+	zone?: string | null;
 	locale?: string;
 }
 
-const { rows, action, editUntil } = Astro.props;
+const { rows, action, editUntil, zone } = Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, lang, dir } = translator(locale);
 const editable = rows.filter((r) => r.canEdit);
 const [untilBefore, untilAfter] = around(t("booking.attendees.editUntil"), "time");
 const [emailedBefore, emailedAfter] = around(t("booking.attendees.emailed"), "email");
-const at = (iso: string) => {
-	try {
-		const time = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" }).format(
-			new Date(iso),
-		);
-		return t("time.utc", { time });
-	} catch {
-		return iso;
-	}
-};
+const at = (iso: string) => zonedAt(iso, zone, locale);
 ---
 <section class="semics-events semics-attendee-list" data-testid="attendee-list" lang={lang} dir={dir} aria-labelledby="semics-attendees-title">
 	<h2 id="semics-attendees-title">{t("booking.attendees.title")}</h2>
@@ -73,6 +67,7 @@ const at = (iso: string) => {
 			))
 		}
 	</ul>
+	{rows.some((r) => r.canResend) && <p class="semics-attendee-note" data-testid="attendee-not-arrived">{t("booking.attendees.notArrived")}</p>}
 	{
 		editable.length > 0 && (
 			<form method="post" action={action} class="semics-attendee-edit" data-testid="attendee-edit">

@@ -17,22 +17,37 @@ export async function cspSource(text: string): Promise<string> {
 
 let cached: Promise<string> | undefined;
 
-/** The header value for any page that renders <SigningCeremony> and nothing else inline. */
-export function ceremonyCsp(): Promise<string> {
-	cached ??= Promise.all([cspSource(CEREMONY_SCRIPT), cspSource(PAD_SCRIPT), cspSource(CEREMONY_CSS)]).then(
-		([script, pad, style]) =>
-			[
-				"default-src 'none'",
-				`script-src ${script} ${pad}`,
-				`style-src ${style}`,
-				"img-src 'self' data:",
-				"connect-src 'self'",
-				"form-action 'self'",
-				"base-uri 'none'",
-				"frame-ancestors 'none'",
-			].join("; "),
-	);
+/** What a host page adds to the ceremony's own: its exact inline stylesheets, and one linked stylesheet (absolute URL). */
+export interface CeremonyCspExtras {
+	styles?: readonly string[];
+	stylesheet?: string | undefined;
+}
+
+/**
+ * The header value for any page that renders <SigningCeremony> and nothing else inline but `extras`. A linked
+ * stylesheet is allowed by its exact URL, with `font-src 'self'` for the fonts it may name; scripts never change.
+ */
+export function ceremonyCsp(extras?: CeremonyCspExtras): Promise<string> {
+	if (extras) return ceremonyCspFor(extras);
+	cached ??= ceremonyCspFor({});
 	return cached;
+}
+
+async function ceremonyCspFor({ styles = [], stylesheet }: CeremonyCspExtras): Promise<string> {
+	const [script, pad, ...sources] = await Promise.all(
+		[CEREMONY_SCRIPT, PAD_SCRIPT, CEREMONY_CSS, ...styles].map(cspSource),
+	);
+	return [
+		"default-src 'none'",
+		`script-src ${script} ${pad}`,
+		`style-src ${[...sources, ...(stylesheet ? [stylesheet] : [])].join(" ")}`,
+		"img-src 'self' data:",
+		...(stylesheet ? ["font-src 'self'"] : []),
+		"connect-src 'self'",
+		"form-action 'self'",
+		"base-uri 'none'",
+		"frame-ancestors 'none'",
+	].join("; ");
 }
 
 let cachedVerify: Promise<string> | undefined;

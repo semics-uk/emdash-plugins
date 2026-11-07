@@ -47,7 +47,7 @@ export const planRefusal = (e: CheckoutError, path: string) =>
 export const httpFetch =
 	(ctx: Pick<PluginContext, "http">): TurnstileFetch =>
 	(url, init) => {
-		if (!ctx.http) throw new Error("network:request is not granted");
+		if (!ctx.http) throw new Error("no network");
 		return ctx.http.fetch(url, init);
 	};
 

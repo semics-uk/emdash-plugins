@@ -68,7 +68,9 @@ describe("events UI client budget and escaping (EU-NFR-02, T055 escaping)", () =
 	it("never renders user content as HTML: no set:html in components, no HTML sinks in the client", () => {
 		const astro = files(resolve(root, "src/astro"), ".astro");
 		expect(astro.length).toBeGreaterThanOrEqual(5);
-		for (const file of astro) expect(readFileSync(file, "utf8"), file).not.toMatch(/set:html|innerHTML/);
+		// The one exception is no user content: the page stylesheet, whose site values `checkPageOptions` vets at build.
+		const own = (file: string) => readFileSync(file, "utf8").replace("set:html={pageCss(page)}", "");
+		for (const file of astro) expect(own(file), file).not.toMatch(/set:html|innerHTML/);
 		const client = readFileSync(CLIENT, "utf8");
 		expect(client).not.toMatch(/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function/);
 	});

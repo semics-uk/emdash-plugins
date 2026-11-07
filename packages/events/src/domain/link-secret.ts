@@ -25,6 +25,6 @@ export async function linkSecret(kv: LinkKv): Promise<Uint8Array> {
 	const fresh = crypto.getRandomValues(new Uint8Array(LINK_SECRET_BYTES));
 	if ((await kv.compareAndSet(LINK_KEY, null, toHex(fresh))).applied) return fresh;
 	const winner = decodeKey(await kv.get<string>(LINK_KEY));
-	if (!winner) throw new Error("link key unavailable");
+	if (!winner) throw new Error("no link key");
 	return winner;
 }

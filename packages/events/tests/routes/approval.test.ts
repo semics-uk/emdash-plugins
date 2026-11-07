@@ -291,10 +291,10 @@ describe("T131 approval emails through the outbox", () => {
 		const admin = sent.find((m) => m.to === "boss@example.com");
 		const buyer = sent.find((m) => m.to === "ada@example.com");
 		expect(buyer?.subject).toContain("Pottery class");
-		expect(buyer?.text).toMatch(/waiting for approval/i);
+		expect(buyer?.text).toMatch(/awaits approval/i);
 		expect(admin?.text).toContain("Ada Lovelace");
 		expect(admin?.text).toContain("https://site.test/_emdash/admin/plugins/r_abc/bookings");
-		expect(admin?.text).toMatch(/needs your approval/i);
+		expect(admin?.text).toMatch(/decision is needed/i);
 		for (const m of sent) expect(m.text).not.toMatch(/[?&]k=|accessToken/);
 	});
 
@@ -338,5 +338,86 @@ describe("T131 approval emails through the outbox", () => {
 		expect(sent[0]?.subject).toMatch(/declined/i);
 		expect(sent[0]?.text).toContain("No <b>dogs</b>");
 		expect(sent[0]?.html).toContain("No &lt;b&gt;dogs&lt;/b&gt;");
+	});
+});
+
+describe("what a decline records about the money", () => {
+	const released: RefundStep = { calls: () => 3, run: async () => ({ ok: true }) };
+	const refunded: RefundStep = {
+		calls: () => 3,
+		run: async () => ({ ok: true, mail: { kind: "booking_refunded", payload: { reason: "cancelled" } } }),
+	};
+	const priced = (w: Awaited<ReturnType<typeof world>>) => {
+		const b = w.storage.bookings.docs.get(ID) as Doc;
+		w.storage.bookings.set(ID, { ...b, totals: { ...(b.totals as Doc), totalMinor: 4000 } });
+	};
+
+	it("T132 a held card given back: not charged", async () => {
+		const w = await world({ status: "awaiting_approval", paid: true });
+		priced(w);
+		await declineBooking(w.deps(T0, { refund: released }), ID, "Full");
+		expect(w.booking()).toMatchObject({ status: "declined", declineReason: "Full", notCharged: true });
+	});
+
+	it("T132 a payment an approve had captured first and the step refunded: never 'not charged'", async () => {
+		const w = await world({ status: "awaiting_approval", paid: true });
+		priced(w);
+		await declineBooking(w.deps(T0, { refund: refunded }), ID, "Full");
+		expect(w.booking()).toMatchObject({ status: "declined", notCharged: false });
+	});
+
+	it("T131 a free booking has no card to mention", async () => {
+		const w = await world({ status: "awaiting_approval" });
+		await declineBooking(w.deps(T0), ID, "");
+		expect(w.booking()).toMatchObject({ status: "declined", notCharged: false });
+	});
+
+	it("T132 a release Stripe refused leaves the booking waiting, with no claim about the card", async () => {
+		const w = await world({ status: "awaiting_approval", paid: true });
+		priced(w);
+		const failing: RefundStep = { calls: () => 3, run: async () => ({ ok: false }) };
+		expect(await declineBooking(w.deps(T0, { refund: failing }), ID, "Full")).toMatchObject({ ok: false });
+		expect(w.booking().status).toBe("awaiting_approval");
+		expect(w.booking().notCharged).toBeUndefined();
+	});
+});
+
+describe("notices rendered after the decision", () => {
+	const drained = async (w: Awaited<ReturnType<typeof world>>, now: number) => {
+		const sent: Array<{ to: string; subject: string; text: string }> = [];
+		await drainEventsOutbox({
+			storage: w.storage as never,
+			outbox: w.storage.outbox as never,
+			settings: { list: async () => [] },
+			content: { get: async () => null },
+			email: { send: async (m: never) => void sent.push(m) },
+			origin: "https://site.test",
+			pluginId: "semics-events",
+			siteName: "Town Hall",
+			now,
+		});
+		return sent;
+	};
+	const queue = (w: Awaited<ReturnType<typeof world>>, id: string, kind: string) =>
+		w.storage.outbox.set(id, {
+			kind,
+			to: "ada@example.com",
+			payload: { bookingId: ID, bookingRef: REF },
+			attempts: 0,
+			nextAttemptAt: at(0),
+			status: "pending",
+		});
+
+	it("T131 'we received your request' is dropped once the request has been approved (the tick came second)", async () => {
+		const w = await world({ status: "confirmed" });
+		queue(w, `request-${ID}`, "approval_requested");
+		expect(await drained(w, T0 + HOUR)).toEqual([]);
+	});
+
+	it("T131 it still goes out while the request waits", async () => {
+		const w = await world({ status: "awaiting_approval" });
+		queue(w, `request-${ID}`, "approval_requested");
+		const sent = await drained(w, T0 + HOUR);
+		expect(sent.map((m) => m.subject)).toEqual(["Booking request received: Pottery class"]);
 	});
 });

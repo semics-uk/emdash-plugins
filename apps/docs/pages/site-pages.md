@@ -98,4 +98,30 @@ change in a minor release. The defaults meet WCAG AA contrast with each other; k
 | `--events-success` | | Confirmations | `#146c2e` |
 | `--events-radius` | `--esign-radius` | Corner radius | `6px` |
 | `--events-font` | | Font family | `system-ui, sans-serif` |
+| `--events-page-bg` | | Page background of `/booking` and `/_events/waiver` | `#f5f4f0` |
+| `--events-heading-font` | | Headings of those pages | `inherit` |
+| `--events-heading-fg` | | Heading colour of those pages | `inherit` |
 | | `--esign-paper` | The document being signed | `#fafafa` |
+
+### The booking and signing pages
+
+`/booking` and `/_events/waiver` are whole pages the plugins serve, outside your site's layout, so properties set
+in your own stylesheet do not reach them. They have a plain default look. To match your site, pass `page` to
+`eventsSuite()` (or `eventsIntegration()`):
+
+```js
+import { eventsSuite } from "@semics-tech/emdash-events-suite";
+
+const suite = eventsSuite({
+	page: {
+		theme: { accent: "#1f3a2e", "accent-fg": "#ffffff", "page-bg": "#f6f1ea", font: "system-ui, sans-serif" },
+		brand: { name: "My Club", logo: "/brand/logo.png" }, // a link home at the top of each page
+		stylesheet: "/events-theme.css", // optional: a file of yours, for @font-face or further rules
+		eventPath: "/activities/{slug}", // where "Book again" goes; default /events/{slug}
+	},
+});
+```
+
+`theme` takes the properties in the table above, without `--events-`. Paths must be on your site. The signing page
+allows only these styles and fonts from your own origin. It does not use your site's layout, because its security
+policy would block your layout's scripts, and an emailed booking link's one-time code is in the URL of `/booking`.

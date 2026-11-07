@@ -36,6 +36,8 @@ export interface PublicEvent {
 	turnstileSiteKey?: string;
 	/** True when the event requires a signed waiver (T066): the booking form then asks for attendees. */
 	waiver?: boolean;
+	/** Events Pro: that waiver is signed per attendee, so its seat rules can be checked before reserving. */
+	waiverEach?: boolean;
 	/** True when the core takes promo codes (Events Pro, T078): the widget then shows a code field. */
 	promoCodes?: boolean;
 	/** True when a sold-out event takes a waitlist (T081): the widget then shows a "Join the waitlist" form. */
@@ -74,6 +76,12 @@ export interface BookingView {
 	lines: Array<{ ticketTypeId: string; qty: number }>;
 	totals: { totalMinor: number; currency: string };
 	holdExpiresAt?: string;
+	/** The event's public info (`timezone` for times on the page, `slug` for "Book again"). */
+	event?: { title?: string; startsAt?: string; timezone?: string | null; slug?: string | null };
+	/** Why the organiser declined (`status: "declined"`), when they said. */
+	declineReason?: string | null;
+	/** Declined, a price was due and no money was taken (`closeBooking`). */
+	notCharged?: boolean;
 	/** `qr`: Events Pro's QR matrix of `code` (T082), drawn by `<TicketPass>`; Free sends none. */
 	attendees: Array<{ name: string; ticketTypeId?: string; status: string; code?: string; qr?: unknown }>;
 	canCancel: boolean;
@@ -302,3 +310,13 @@ export const statusLabel = (status: string, locale?: string) =>
 
 /** English status labels (the 1.0 API; components use `statusLabel`). */
 export const STATUS_LABELS: Record<string, string> = Object.fromEntries(STATUSES.map((s) => [s, statusLabel(s, "en")]));
+
+/** What a booking that ended without going ahead should say beyond its status (declined, or lapsed). */
+export function endedNotes(booking: Pick<BookingView, "status" | "declineReason" | "notCharged">, locale?: string) {
+	if (booking.status === "expired") return [t(locale, "booking.lapsed")];
+	if (booking.status !== "declined") return [];
+	return [
+		...(booking.declineReason ? [t(locale, "booking.declinedReason", { reason: booking.declineReason })] : []),
+		...(booking.notCharged ? [t(locale, "booking.notCharged")] : []),
+	];
+}

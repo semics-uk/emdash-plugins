@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { cardView, eventHref, listView, type PublicEventSummary } from "../../src/astro/lib/list";
+import { cardView, eventHref, listView, type PublicEventSummary, zonedAt } from "../../src/astro/lib/list";
 
 const base: PublicEventSummary = {
 	eventId: "e1",
@@ -59,5 +59,18 @@ describe("event list view (EU-FR-03, EU-US-4)", () => {
 		expect(eventHref({ ...base, slug: "london-meetup" })).toBe("/events/london-meetup");
 		expect(eventHref({ ...base, slug: "a b/c" })).toBe("/events/a%20b%2Fc");
 		expect(eventHref(base)).toBeUndefined();
+	});
+});
+
+describe("zonedAt", () => {
+	it("EV-FR-08 shows a deadline in the event's zone, in winter and in summer", () => {
+		expect(zonedAt("2026-11-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe("9 Nov 2026, 15:09 (Europe/London)");
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe("9 Jul 2026, 16:09 (Europe/London)");
+	});
+
+	it("EV-FR-08 UTC, saying so, for a missing or unknown zone; a value that is no date is shown as it is", () => {
+		expect(zonedAt("2026-07-09T15:09:00.000Z", null, "en-GB")).toBe("9 Jul 2026, 15:09 (UTC)");
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Not/AZone", "en-GB")).toBe("9 Jul 2026, 15:09 (UTC)");
+		expect(zonedAt("soon", "Europe/London", "en-GB")).toBe("soon");
 	});
 });

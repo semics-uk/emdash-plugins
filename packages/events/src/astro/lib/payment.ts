@@ -5,6 +5,7 @@
  * way" are told apart by asking the core, never by a query parameter.
  */
 import { type MessageKey, t } from "../../i18n/index";
+import { zonedAt } from "./list";
 import type { BookingView } from "./widget";
 
 export type PaymentState = "confirmed" | "pending" | "expired" | "cancelled" | "refunded" | "refunded_unavailable";
@@ -18,15 +19,6 @@ export interface PaymentView {
 	/** Offer "Pay now": the seats are still held and the payment has not been confirmed. */
 	resume: boolean;
 }
-
-const utc = (iso: string, locale: string) => {
-	try {
-		const at = new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
-		return t(locale, "time.utc", { time: at.format(new Date(iso)) });
-	} catch {
-		return iso;
-	}
-};
 
 /** The provider's payment page is followed only when it is an `https:` URL (never `javascript:` or `//host`). */
 export function isPayUrl(value: unknown): value is string {
@@ -55,7 +47,9 @@ export function paymentView(booking: BookingView, locale = "en-GB"): PaymentView
 				state: "pending",
 				heading: t(locale, "payment.pending.heading"),
 				body: booking.holdExpiresAt
-					? t(locale, "payment.pending.bodyUntil", { time: utc(booking.holdExpiresAt, locale) })
+					? t(locale, "payment.pending.bodyUntil", {
+							time: zonedAt(booking.holdExpiresAt, booking.event?.timezone, locale),
+						})
 					: t(locale, "payment.pending.body"),
 				poll: true,
 				resume: true,

@@ -346,7 +346,8 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 /**
  * Approval notices (T131), rendered from the booking as it is now. The expiry notice is queued for the
  * deadline: while the request is still waiting (the sweeper has not run yet) it fails and is retried;
- * a request decided in time sends nothing.
+ * a request decided in time sends nothing. So does "we received your request" once it has been decided:
+ * the outbox runs once a minute, and an admin can be quicker.
  */
 async function renderApproval(d: DrainDeps, tick: Tick, doc: OutboxDoc, bookingId: string) {
 	const b = await loadBooking(d, tick, bookingId);
@@ -355,6 +356,7 @@ async function renderApproval(d: DrainDeps, tick: Tick, doc: OutboxDoc, bookingI
 		if (waiting) throw new Error("not expired yet");
 		return null;
 	}
+	if (doc.kind === "approval_requested" && !waiting) return null;
 	return approvalEmail(
 		doc,
 		b,

@@ -8,11 +8,12 @@
 // `src/client/receipt.ts` clears the fragment and posts the receipt here, which forwards it to the
 // core's `signatures/receipt` (no access token needed: the receipt is HMAC-signed) and redirects to
 // `?ref=&waiver=<outcome>`.
-import { esignPluginId, pluginId, reconcile } from "virtual:semics-events/config";
+import { esignPluginId, page, pluginId, reconcile } from "virtual:semics-events/config";
 
 import { type MessageKey, pickLocale, translator } from "../i18n/index";
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
+import PageBrand from "./PageBrand.astro";
 import PaymentReturn from "./PaymentReturn.astro";
 import { callPublicRoute } from "./lib/call";
 import {
@@ -28,6 +29,7 @@ import {
 } from "./lib/checkout-form";
 import AttendeeList from "./AttendeeList.astro";
 import { handleAttendeeAction, signingRows } from "./lib/attendees";
+import { eventPageHref, pageCss } from "./lib/page";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
 import { type BookingView, type PublicEvent, reconcileWanted, ticketNames } from "./lib/widget";
@@ -177,9 +179,12 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
 		<title>{t("booking.title")}</title>
+		<style is:inline set:html={pageCss(page)}></style>
+		{page.stylesheet && <link rel="stylesheet" href={page.stylesheet} />}
 	</head>
-	<body>
-		<main class="semics-booking" data-testid="booking-page">
+	<body class="semics-page">
+		<PageBrand brand={page.brand} />
+		<main class="semics-booking semics-page-main" data-testid="booking-page">
 			<h1>{t("booking.title")}</h1>
 			<form method="post" action={ref ? `/booking?ref=${ref}` : "/booking"} data-semics-fragment="receipt" hidden>
 				<input type="hidden" name="intent" value="receipt" />
@@ -196,13 +201,14 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 					</form>
 				) : booking ? (
 					<>
-						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} ticketNames={names} locale={locale} />
+						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} ticketNames={names} bookAgain={eventPageHref(booking.event?.slug, page.eventPath)} locale={locale} />
 						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} locale={locale} />}
 						{signingList && (
 							<AttendeeList
 								rows={signingList}
 								action={`/booking?ref=${ref}`}
 								editUntil={booking.signingList?.editable ? booking.signingList.editUntil : undefined}
+								zone={booking.event?.timezone}
 								locale={locale}
 							/>
 						)}

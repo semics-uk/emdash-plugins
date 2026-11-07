@@ -143,8 +143,8 @@ function vtimezone(timeZone: string, eventStart: number): string[] {
 }
 
 function eventLines(e: IcsEvent): string[] {
-	if (!(e.end > e.start)) throw new RangeError(`Event ${e.uid}: end must be after start`);
-	if (e.timeZone && !isValidTimeZone(e.timeZone)) throw new RangeError(`Invalid time zone: ${e.timeZone}`);
+	if (!(e.end > e.start)) throw new RangeError("Event ends before it starts");
+	if (e.timeZone && !isValidTimeZone(e.timeZone)) throw new RangeError(`Bad zone: ${e.timeZone}`);
 	const lines = ["BEGIN:VEVENT", `UID:${e.uid}`, `DTSTAMP:${utcStamp(e.stamp)}`];
 	if (e.allDay) {
 		lines.push(`DTSTART;VALUE=DATE:${dateStamp(e.start)}`, `DTEND;VALUE=DATE:${dateStamp(e.end)}`);
@@ -177,7 +177,7 @@ export function buildCalendar(cal: IcsCalendar): string {
 		if (e.timeZone && !e.allDay && !zones.has(e.timeZone)) zones.set(e.timeZone, e.start);
 	}
 	for (const [zone, start] of zones) {
-		if (!isValidTimeZone(zone)) throw new RangeError(`Invalid time zone: ${zone}`);
+		if (!isValidTimeZone(zone)) throw new RangeError(`Bad zone: ${zone}`);
 		lines.push(...vtimezone(zone, start));
 	}
 	for (const e of cal.events) lines.push(...eventLines(e));

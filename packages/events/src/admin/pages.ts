@@ -53,7 +53,7 @@ export type AdminStorage = AttendeeStorage &
 	ConfigStorage &
 	RetentionStorage & {
 		bookings: { query: Query };
-		event_configs: { query: Query };
+		event_configs: { query: Query; getMany(ids: string[]): Promise<Map<string, unknown>> };
 		attendees: { query: Query };
 	};
 
@@ -158,7 +158,7 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 
 // --- bookings ---------------------------------------------------------------------------------
 
-function bookingRows(items: Page["items"]) {
+function bookingRows(items: Page["items"], configs: Map<string, unknown>) {
 	return items.map(({ id, data }) => {
 		const b = data as BookingDoc;
 		const waiting = b.status === "awaiting_approval";
@@ -172,7 +172,8 @@ function bookingRows(items: Page["items"]) {
 			email: b.email,
 			status: b.status,
 			total: b.totals ? formatMoney(b.totals.totalMinor, b.totals.currency) : "",
-			event: b.eventId,
+			// The name; the id only for an event with no stored info (deleted, or older than the copy).
+			event: (configs.get(b.eventId) as EventConfigDoc | undefined)?.info?.title ?? b.eventId,
 			created: b.createdAt,
 			id,
 		};
@@ -196,6 +197,7 @@ async function bookingsPage(
 		limit: BOOKINGS_PAGE,
 		...(filter.cursor ? { cursor: filter.cursor } : {}),
 	});
+	const configs = await deps.storage.event_configs.getMany(page.items.map((i) => (i.data as BookingDoc).eventId));
 	return respond([
 		header("Bookings"),
 		...extra,
@@ -215,12 +217,12 @@ async function bookingsPage(
 				column("email", "Email"),
 				column("status", "Status", "badge"),
 				column("total", "Total"),
-				column("event", "Event", "code"),
+				column("event", "Event"),
 				column("created", "Booked", "relative_time"),
 				column("approve", "", "element"),
 				column("decline", "", "element"),
 			],
-			rows: bookingRows(page.items),
+			rows: bookingRows(page.items, configs),
 			pageActionId: `bookings.page:${status}`,
 			...(page.hasMore && page.cursor && !q ? { nextCursor: page.cursor } : {}),
 			emptyText: "No bookings match.",
@@ -233,11 +235,11 @@ async function bookingsPage(
 
 const approvalDeps = (deps: AdminDeps) => deps as unknown as ApprovalDeps;
 
-/** Approve or decline, then the waiting bookings with the outcome (the list is one more call). */
+/** Approve or decline, then the waiting bookings with the outcome (the list and its event names are two more calls). */
 async function decide(deps: AdminDeps, id: string, reason?: string): Promise<AdminResponse> {
 	const out = (await (reason === undefined
 		? approveBooking(approvalDeps(deps), id)
-		: declineBooking(approvalDeps(deps), id, reason, 1))) as {
+		: declineBooking(approvalDeps(deps), id, reason, 2))) as {
 		ok: boolean;
 		bookingRef?: string;
 		status?: string;

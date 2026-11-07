@@ -34,6 +34,15 @@ describe("BookingWithWaiver slot picker (T143)", () => {
 		expect(pickerParam("a b")).toBe(`${PICKER_PARAM}.a_b`);
 	});
 
+	it("SX-FR-02 restores kept values before the picker reads the select, so the chosen date and time show", () => {
+		expect(source.indexOf('import "./lib/keep-form"')).toBeGreaterThan(-1);
+		expect(source.indexOf('import "./lib/keep-form"')).toBeLessThan(
+			source.indexOf('import "@semics-tech/emdash-events/client/picker"'),
+		);
+		expect(source).toContain("data-keep-values");
+		expect(source).toContain('data?.waiverEach && <input type="hidden" name="waiverEach"');
+	});
+
 	it("EV-FR-17 uses the same picker rule as the widget (one source of truth)", () => {
 		expect(widget).toContain("usesPicker(data");
 		expect(usesPicker({ slots: true, occurrences: [] })).toBe(true);

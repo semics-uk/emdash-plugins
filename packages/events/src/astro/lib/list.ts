@@ -62,6 +62,27 @@ const WHEN: Intl.DateTimeFormatOptions = {
 	timeZoneName: "short",
 };
 
+const AT: Intl.DateTimeFormatOptions = {
+	day: "numeric",
+	month: "short",
+	year: "numeric",
+	hour: "2-digit",
+	minute: "2-digit",
+	hourCycle: "h23",
+};
+
+/**
+ * A deadline on a customer page: local time in the event's own zone, named as the emails name it
+ * ("9 Nov 2026, 15:09 (Europe/London)", not workerd's "GMT+0"). UTC for a missing or unknown zone; the raw value
+ * for one that is not a date.
+ */
+export function zonedAt(iso: string, timezone: string | null | undefined, locale: string): string {
+	const ms = Date.parse(iso);
+	if (!Number.isFinite(ms)) return iso;
+	const zone = timezone && isValidTimeZone(timezone) ? timezone : "UTC";
+	return `${formatInZone(ms, zone, locale, AT)} (${zone})`;
+}
+
 const BADGES = { cancelled: "list.badge.cancelled", closed: "list.badge.closed", paused: "list.badge.paused" } as const;
 
 /** The start in the event's own zone; a missing or unknown zone shows UTC rather than failing. */

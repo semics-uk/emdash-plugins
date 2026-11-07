@@ -26,12 +26,13 @@ import {
 	bookingCookieOptions,
 	isCrossSiteRequest,
 } from "@semics-tech/emdash-events/astro/lib/checkout-form";
-import { eventHref } from "@semics-tech/emdash-events/astro/lib/list";
+import { eventPageHref } from "@semics-tech/emdash-events/astro/lib/page";
 import { isPayUrl } from "@semics-tech/emdash-events/astro/lib/payment";
 import { forwardReceipt } from "@semics-tech/emdash-events/astro/lib/receipt";
 import { newIdempotencyKey } from "@semics-tech/emdash-events/astro/lib/widget";
 
 import {
+	checkWaiverSeats,
 	readWaiverForm,
 	type SeatPart,
 	safeReturnPath,
@@ -48,6 +49,8 @@ export const FLOW_STEPS = ["book", "sign", "pay", "done"] as const;
 export interface SuiteIds {
 	eventsPluginId: string;
 	esignPluginId: string;
+	/** The site's event page for "Book again" (`page.eventPath`); default `/events/{slug}`. */
+	eventPath?: string;
 }
 
 export interface WaiverRequestContext {
@@ -262,6 +265,11 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 	const read = readWaiverForm(form);
 	if (!read.ok) return refuse(read.code, read.fields);
 	const order = read.order;
+	// An order the waiver rules refuse never reserves: no booking is left behind, and no "cancelled" email sent.
+	if (form.get("waiverEach") === "1") {
+		const seats = checkWaiverSeats(order);
+		if (seats) return refuse(seats.code, seats.fields);
+	}
 
 	const reserved = await post<{ bookingRef?: string; accessToken?: string }>(
 		call,
@@ -447,7 +455,7 @@ async function sign(
 				esignPluginId: ids.esignPluginId,
 			});
 		}
-		const href = booking.event?.slug ? eventHref({ slug: booking.event.slug }) : undefined;
+		const href = eventPageHref(booking.event?.slug, ids.eventPath);
 		return { type: "error", ref, code: "BOOKING_EXPIRED", ...(href ? { href } : {}) };
 	}
 	const withBooking = booking ? { booking } : {};

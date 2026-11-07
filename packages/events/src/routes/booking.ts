@@ -171,7 +171,11 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	// JavaScript, tab closed) is recorded on the buyer's next visit (T119 F5).
 	const confirmed = b.status === "confirmed";
 	const pending = confirmed ? items.filter((i) => (i.data as { status?: string }).status === "pending") : items;
-	const refs = b.waiver && (confirmed || b.status === "awaiting_signature") ? waitingRefs(b, pending) : [];
+	// Also while the organiser decides: guests can sign meanwhile, and only the buyer's visits record it.
+	const refs =
+		b.waiver && (confirmed || b.status === "awaiting_signature" || b.status === "awaiting_approval")
+			? waitingRefs(b, pending)
+			: [];
 	const lookups =
 		refs.length > 0 && deps.lookups
 			? await deps.lookups(refs, confirmed ? decision.settings : await readSettings(deps))
@@ -193,6 +197,8 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 		buyer: b.buyer,
 		lines: b.lines,
 		totals: b.totals,
+		declineReason: b.declineReason,
+		notCharged: b.notCharged,
 		...(b.holdExpiresAt !== undefined && HOLD_STATUSES.includes(b.status) ? { holdExpiresAt: b.holdExpiresAt } : {}),
 		attendees: items.map((i) => {
 			const a = i.data as { name: string; ticketTypeId: string; status: string; code?: string };
@@ -282,7 +288,13 @@ export async function closeBooking(
 
 	const moved = await storage.bookings.updateIf(id, {
 		where: { status: b.status, releaseClaimedAt: claim },
-		set: { status: to, cancelledAt: claim, ...(decline ? { declineReason: decline.reason } : {}) },
+		set: {
+			status: to,
+			cancelledAt: claim,
+			// A refund step's mail means money was taken and returned. Without one a held card was released (the
+			// step refuses if Stripe says otherwise) or never charged, or no step ran: there was no payment.
+			...(decline && { declineReason: decline.reason, notCharged: b.totals.totalMinor > 0 && !mail }),
+		},
 	});
 	if (!moved.applied) return fail("INTERNAL");
 	// A declined buyer is told it was declined (a refund's own notice kind is for cancels, T075).

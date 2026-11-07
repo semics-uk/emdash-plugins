@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { handleAttendeeAction, readAttendeeEdits, signingRows } from "../../src/astro/lib/attendees";
 import type { BookingView } from "../../src/astro/lib/widget";
+import { t } from "../../src/i18n/index";
 
 // T133 (R95, R48): the booking page's attendee signing list (Suite Pro). Events Pro's `public/booking`
 // describes each seat of a waiver booking (`seat`, `signing`, `signs`) and whether the names may still
@@ -240,5 +241,39 @@ describe("T133 R95 the booking page's attendee actions", () => {
 		);
 		expect(out).toEqual({ location: "/booking?ref=ABCDEFGHJK&error=ESIGN_NOT_CONFIGURED" });
 		expect(h.seen).toEqual([]);
+	});
+});
+
+describe("the list while the organiser decides", () => {
+	const booking = (status: string) =>
+		({
+			bookingRef: "ABCDEFGHJK",
+			status,
+			lines: [],
+			totals: { totalMinor: 0, currency: "GBP" },
+			canCancel: true,
+			signingList: { editable: true },
+			attendees: [
+				{ name: "Ada", status: "valid", seat: "1", signing: "signed", signs: "inline" },
+				{ name: "Grace", status: "pending", seat: "2", signing: "waiting", signs: "email", email: "g@example.com" },
+			],
+		}) as unknown as BookingView;
+
+	it("T133 shows on a booking awaiting approval: signed or waiting, and sign, resend and edit stay open", () => {
+		const rows = signingRows(booking("awaiting_approval"));
+		expect(rows?.map((r) => [r.name, r.signed, r.canSign, r.canResend, r.canEdit])).toEqual([
+			["Ada", true, false, false, false],
+			["Grace", false, true, true, true],
+		]);
+	});
+
+	it("T133 offers nothing to do once the booking has ended", () => {
+		for (const status of ["declined", "expired", "cancelled"]) {
+			expect(signingRows(booking(status))?.some((r) => r.canSign || r.canResend || r.canEdit)).toBe(false);
+		}
+	});
+
+	it("T133 says what to do when an invitation does not arrive, since bounces cannot be seen here", () => {
+		expect(t("en", "booking.attendees.notArrived")).toContain("cannot see emails that bounce");
 	});
 });

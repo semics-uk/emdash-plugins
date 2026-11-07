@@ -94,12 +94,13 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 		!onSale ? (
 			<p data-testid="booking-unavailable">Booking is not available for this event right now.</p>
 		) : (
-			<form method="post" action={WAIVER_PATH}>
+			<form method="post" action={WAIVER_PATH} data-keep-values>
 				<p class="semics-form-alert" role="alert" data-testid="waiver-alert" hidden={!alert}>{alert}</p>
 				<input type="hidden" name="intent" value="book" />
 				<input type="hidden" name="eventId" value={eventId} />
 				<input type="hidden" name="returnTo" value={returnTo} />
 				<input type="hidden" name="idempotencyKey" value={newIdempotencyKey()} />
+				{data?.waiverEach && <input type="hidden" name="waiverEach" value="1" />}
 
 				{picker && (
 					<div class="semics-field semics-picker-field">
@@ -301,6 +302,8 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 </section>
 
 <script>
+	// In this order: the kept values go back first, then the picker shows the date the select holds.
+	import "./lib/keep-form";
 	import "@semics-tech/emdash-events/client/picker";
 </script>
 

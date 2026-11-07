@@ -29,7 +29,7 @@ function formatter(timeZone: string): Intl.DateTimeFormat {
 				second: "numeric",
 			});
 		} catch {
-			throw new RangeError(`Invalid time zone: ${timeZone}`);
+			throw new RangeError(`Bad zone: ${timeZone}`);
 		}
 		formatters.set(timeZone, f);
 	}

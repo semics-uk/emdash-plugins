@@ -100,6 +100,19 @@ describe("strict CSP: only the package's hashed script (SU-NFR-02)", () => {
 		expect(await cspSource("alert(1)")).toBe("'sha256-bhHHL3z2vDgxUt0W3dWQOrprscmda2Y5pLsLg4GF+pI='");
 	});
 
+	it("SU-NFR-02 a host page adds its exact stylesheet by hash and one linked file; scripts never change", async () => {
+		const plain = await ceremonyCsp();
+		expect(plain).not.toContain("font-src");
+		const header = await ceremonyCsp({ styles: ["a{}"], stylesheet: "https://site.example/theme.css" });
+		expect(header).toContain(
+			`style-src ${await cspSource(CEREMONY_CSS)} ${await cspSource("a{}")} https://site.example/theme.css;`,
+		);
+		expect(header).toContain("font-src 'self'");
+		const scripts = (h: string) => h.split("; ").find((d) => d.startsWith("script-src"));
+		expect(scripts(header)).toBe(scripts(plain));
+		expect(await ceremonyCsp({ styles: ["a{}"] })).not.toContain("font-src");
+	});
+
 	it("SU-NFR-02 the header allows only the inlined script and style, by hash, and nothing inline", async () => {
 		const header = await ceremonyCsp();
 		const directives = Object.fromEntries(

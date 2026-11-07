@@ -2,13 +2,15 @@
 // Injected at `/_events/waiver` by the suite (SX-FR-02, SX-FR-03): the booking post of
 // <BookingWithWaiver> and the inline waiver ceremony, one signer after another, on one page.
 // Signing tokens live only in an HttpOnly cookie scoped to this path and in POST bodies to E-sign;
-// receipts are forwarded to Events in-process. The page renders E-sign's <SigningCeremony> and
-// nothing else inline, so it sends E-sign's `ceremonyCsp()` (hashes of the ceremony's own script,
-// pad and stylesheet), `Referrer-Policy: no-referrer` and `no-store`.
-import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
+// receipts are forwarded to Events in-process. The page renders E-sign's <SigningCeremony> and, inline,
+// only Events' page stylesheet, so it sends E-sign's `ceremonyCsp()` (hashes of the ceremony's own script,
+// pad and stylesheet, and of the page's), `Referrer-Policy: no-referrer` and `no-store`.
+import { esignPluginId, eventsPluginId, page } from "virtual:semics-events-suite/config";
 import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
 import { ceremonyCsp } from "@semics-tech/emdash-esign/astro/lib/csp";
+import PageBrand from "@semics-tech/emdash-events/astro/PageBrand.astro";
 import { crossSiteResponse } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { pageCss } from "@semics-tech/emdash-events/astro/lib/page";
 
 import { handleWaiverRequest, leavesSite } from "./lib/flow";
 import { WAIVER_MESSAGES, WAIVER_PATH } from "./lib/form";
@@ -18,7 +20,7 @@ export const prerender = false;
 
 const outcome = await handleWaiverRequest(
 	{ locals: Astro.locals, url: Astro.url, request: Astro.request, cookie: (name) => Astro.cookies.get(name)?.value },
-	{ eventsPluginId, esignPluginId },
+	{ eventsPluginId, esignPluginId, ...(page.eventPath ? { eventPath: page.eventPath } : {}) },
 );
 if (outcome.type === "forbidden") return crossSiteResponse();
 const cookies = outcome.type === "redirect" || outcome.type === "render" ? outcome.cookies : [];
@@ -29,7 +31,9 @@ const payment = outcome.type === "redirect" ? outcome.location : undefined;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
-Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
+const css = pageCss(page);
+const stylesheet = page.stylesheet ? new URL(page.stylesheet, Astro.url).href : undefined;
+Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp({ styles: [css], stylesheet }));
 
 const render = outcome.type === "render" ? outcome : undefined;
 const ref = outcome.type === "render" || outcome.type === "error" ? (outcome.ref ?? "") : "";
@@ -58,15 +62,18 @@ const signer = render?.view.kind === "ready" ? render.view.session.signer : unde
 		<meta name="referrer" content="no-referrer" />
 		<title>{payment ? "Continue to payment" : "Sign the waiver"}</title>
 		{payment && <meta http-equiv="refresh" content={`0;url=${payment}`} data-testid="waiver-pay-refresh" />}
+		<style is:inline set:html={css}></style>
+		{page.stylesheet && <link rel="stylesheet" href={page.stylesheet} />}
 	</head>
-	<body>
+	<body class="semics-page">
+		<PageBrand brand={page.brand} />
 		{payment ? (
-			<main class="semics-esign semics-sign" data-testid="waiver-page" data-step="pay">
+			<main class="semics-esign semics-sign semics-page-main" data-testid="waiver-page" data-step="pay">
 				<h1>Continue to payment</h1>
 				<p><a href={payment} data-testid="waiver-pay-link">Go to the payment page</a></p>
 			</main>
 		) : (
-		<main class="semics-esign semics-sign" data-testid="waiver-page" data-step={render ? "sign" : "error"}>
+		<main class="semics-esign semics-sign semics-page-main" data-testid="waiver-page" data-step={render ? "sign" : "error"}>
 			<h1>Sign the waiver</h1>
 			{error && <p role="alert" data-testid="waiver-error">{error}</p>}
 			{expired && eventLink && <p><a href={eventLink} data-testid="waiver-book-again">Book again</a></p>}

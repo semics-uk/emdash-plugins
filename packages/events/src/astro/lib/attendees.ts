@@ -52,8 +52,8 @@ export interface AttendeeEdit {
 	email?: string;
 }
 
-/** Statuses in which a waiver can still be signed: the hold's, and a confirmed booking's pending seats. */
-const OPEN = ["awaiting_signature", "awaiting_payment", "confirmed"];
+/** Statuses in which a waiver can still be signed: the holds', and a confirmed booking's pending seats. */
+const OPEN = ["awaiting_signature", "awaiting_payment", "awaiting_approval", "confirmed"];
 const SEAT = /^[0-9]{1,3}$/;
 const CODE = /^[A-Z_]{1,40}$/;
 const MAX_TEXT = 254;
