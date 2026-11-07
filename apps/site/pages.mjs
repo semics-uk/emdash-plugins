@@ -47,6 +47,12 @@ const PLANS = [
 	},
 ];
 
+/** Dollars with two decimals, from whole cents, so no rounding creeps in. */
+const dollars = (cents) => `$${(cents / 100).toFixed(2)}`;
+const withUkVat = (usd) => dollars(usd * 120);
+const offerBeforeTax = (usd) => dollars(usd * 60);
+const offerWithUkVat = (usd) => dollars(usd * 72);
+
 const home = {
 	path: "/",
 	file: "index.html",
@@ -82,19 +88,19 @@ const pricing = {
 	path: "/pricing",
 	file: "pricing.html",
 	title: "Pricing: semics plugins for EmDash",
-	description: "Events Pro $79, E-sign Pro $79, Suite Pro $129 and Agency $349 a year. Free is free.",
+	description: "Events Pro $79, E-sign Pro $79, Suite Pro $129 and Agency $349 a year before tax. Free is free.",
 	body: `
 <h1>Pricing</h1>
-<p class="lead">Pro licences are per site, per year. Each includes a year of updates and email support.</p>
+<p class="lead">Pro licences are per site, per year. Each includes a year of updates and email support. A site is one production hostname: <code>www.example.com</code> and <code>example.com</code> count as two unless one redirects, and a staging site on your own domain needs a place too. Local and preview hosts need no key.</p>
 <div class="cards">
 <section class="card"><h2>Free</h2><p class="price">$0</p><p>Events and E-sign, MIT licensed, for any number of sites.</p><p><a href="${docsPage("install.md")}">Install</a></p></section>
 ${PLANS.map(
 	(p) =>
-		`<section class="card"><h2>${p.name}</h2><p class="price">$${p.usd} a year <small>${p.sites}, plus VAT or sales tax where it applies</small></p><p>${p.what}</p></section>`,
+		`<section class="card"><h2>${p.name}</h2><p class="price">$${p.usd} a year before tax</p><p class="price">${withUkVat(p.usd)} a year including UK VAT</p><p>${p.sites}. ${p.what}</p></section>`,
 ).join("\n")}
 </div>
-<p class="note"><strong>Launch offer:</strong> 40% off your first year for our first 100 customers. Your licence then renews at the full price shown above.</p>
-<p class="note"><strong>Buy links are coming.</strong> Online checkout opens soon. Until then, email ${mail} to buy a licence or ask a question.</p>
+<p class="note"><strong>Launch offer:</strong> enter code <code>LAUNCH40</code> at checkout for 40% off your first year, for the first 100 customers who use it. ${PLANS.map((p) => `${p.name}: ${offerBeforeTax(p.usd)} before tax, ${offerWithUkVat(p.usd)} including UK VAT`).join("; ")}. Your licence then renews at the full price shown above. We remove this offer when all 100 have been used.</p>
+<p class="note"><strong>Buy links are coming.</strong> Online checkout opens soon, and the code works once it does. We do not take payment by email: every sale goes through Paddle. Until then, email ${mail} with any question.</p>
 <h2>How it works</h2>
 <ul>
 <li>Prices are in US dollars. Paddle adds VAT or sales tax where it applies and may show the price in your currency: the total price, including any VAT or sales tax, is shown at checkout before you pay.</li>
@@ -103,7 +109,7 @@ ${PLANS.map(
 <li>A licence renews each year until you cancel. You can cancel at any time and keep Pro until the end of the year you paid for.</li>
 <li>Versions released while your licence was current keep working after it ends: the key is checked offline and never switched off. Newer versions need a renewed key. See <a href="${docsPage("editions.md")}">how Pro works</a>.</li>
 <li>Pro is used under our <a href="/licence">Pro licence</a>. Please read it before you buy.</li>
-<li>Changed your mind? You can have a full refund within 14 days, no questions asked. See <a href="/refunds">Refunds</a>.</li>
+<li>Changed your mind? You can have a full refund within 14 days, no questions asked. A refund ends the licence for what you refunded. See <a href="/refunds">Refunds</a>.</li>
 </ul>
 `,
 };
@@ -131,7 +137,7 @@ const terms = {
 <p>Prices are on the <a href="/pricing">pricing page</a>. The total price, including any VAT or sales tax, is shown at checkout before you pay.</p>
 <h2 id="renewal">Renewal and cancelling</h2>
 <p>A licence renews each year and Paddle charges you for the next year unless you cancel. You can cancel at any time from the link in your Paddle receipt or by emailing ${mail}. Cancelling stops the next renewal; you keep Pro features and updates until the end of the year you paid for.</p>
-<p>When a licence ends, we issue no new keys for it. The key you already have keeps working, offline, with every version released before its year of updates ended: we cannot switch it off, and nothing is deleted. Versions released later need a renewed key. If you install one without it, Pro features stop taking new work (work in progress carries on) until you renew or go back to an earlier version.</p>
+<p>A refund ends the licence as set out in our <a href="/refunds#after">refund policy</a>. When a licence ends in any other way, we issue no new keys for it. The key you already have keeps working, offline, with every version released before its year of updates ended: we cannot switch it off, and nothing is deleted. Versions released later need a renewed key. If you install one without it, Pro features stop taking new work (work in progress carries on) until you renew or go back to an earlier version.</p>
 <h2 id="refunds">Refunds</h2>
 <p>You can have a full refund within 14 days of a purchase or renewal, for any reason. See our <a href="/refunds">refund policy</a>. If you are a consumer, this does not affect your legal rights.</p>
 <h2 id="use">Your use of the plugins</h2>
@@ -161,12 +167,13 @@ const refunds = {
 <p class="lead">If you are not happy, you can have a full refund within 14 days of a purchase or renewal, no questions asked.</p>
 <h2 id="how">How to ask</h2>
 <ul>
-<li>Email ${mail} with your order number or the email address you bought with, or</li>
+<li>Email ${mail} with your order number or the email address you bought with, and we will arrange it with Paddle, or</li>
 <li>Ask Paddle directly at <a href="https://paddle.net">paddle.net</a>, using the details on your receipt.</li>
 </ul>
 <p>${MOR} Paddle sends the refund to the card or account you paid with. Banks usually take 5 to 10 working days to show it.</p>
 <h2 id="after">After a refund</h2>
-<p>The licence ends when the refund is made: we issue no new keys for it and give no further updates or support, and you should remove the licence key from your site. Keys are checked offline on your site and we cannot switch them off, so the key you already have keeps working with versions released before its year of updates ends, but you no longer have a licence to use it. If you refund a renewal, you keep the versions released during the years you paid for and were not refunded. Your data stays where it is.</p>
+<p>A refund of your first purchase ends the licence: you must stop using Pro and remove the key from your site. A refund of a renewal ends only the refunded year: you keep the versions released during the earlier years you paid for, and we email you a key for them; you must stop using versions released only in the refunded year and replace that year's key.</p>
+<p>Either way we issue no new keys or updates and give no further support for that licence, so cancel any renewal you do not want. Keys are checked offline on your site and we cannot switch them off, so the key you already have keeps working with versions released before its year of updates ends, but you no longer have a licence to use it for what you refunded. Your data stays where it is.</p>
 <h2 id="later">After 14 days</h2>
 <p>After 14 days we do not usually refund, but you can cancel at any time so that your licence does not renew. If a Pro feature does not work as described and we cannot fix it, we will refund the current year's fee. If you are a consumer, this policy does not affect your legal rights.</p>
 `,
@@ -221,7 +228,7 @@ const contact = {
 	description: "Support, sales and company details for the semics plugins for EmDash.",
 	body: `
 <h1>Contact</h1>
-<p>For support, buying a licence, refunds or privacy questions, email ${mail}.</p>
+<p>For support, questions before you buy, refunds or privacy questions, email ${mail}.</p>
 <p>Bugs and feature requests for the free plugins are welcome on <a href="${repo}/issues">GitHub</a>. Please report security issues privately as described in our <a href="${repo}/blob/main/SECURITY.md">security policy</a>.</p>
 <h2 id="company">Company details</h2>
 <p>${company.name} is a company registered in England and Wales, company number ${company.number}.<br>Registered office: ${company.office}.<br>Website: <a href="https://semics.co.uk">semics.co.uk</a>.</p>
@@ -240,7 +247,8 @@ const licence = {
 	description: "The commercial licence for the semics Pro plugins for EmDash: what you may do, updates, refunds.",
 	body: `
 <h1>Pro licence</h1>
-<p class="lead">The licence you agree to when you buy Events Pro, E-sign Pro, Suite Pro or Agency. The same text ships as the <code>LICENSE</code> file in each Pro package.</p>
+<p class="lead">The licence you agree to when you buy Events Pro, E-sign Pro, Suite Pro or Agency.</p>
+<p class="note">This licence is under legal review and may change before online checkout opens. Each Pro package also ships its licence as a <code>LICENSE</code> file. Releases up to 1.0.0-rc.4 carry earlier text.</p>
 <pre class="licence">${escapeHtml(readFileSync(new URL("./pro-licence.txt", import.meta.url), "utf8"))}</pre>
 `,
 };

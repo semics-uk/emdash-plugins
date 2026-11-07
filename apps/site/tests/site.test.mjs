@@ -176,7 +176,6 @@ describe("what happens when a licence ends (the licence Worker's header: keys ve
 describe("prices and tax (DMCCA s.230)", () => {
 	test("the pricing page says the total including tax is shown at checkout before you pay", () => {
 		const body = text("/pricing");
-		expect(body).not.toMatch(/before tax/);
 		expect(body).toMatch(/total price, including any VAT or sales tax, is shown at checkout before you pay/);
 	});
 

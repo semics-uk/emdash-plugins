@@ -1,6 +1,6 @@
 # E-sign: brief for legal review of consent, evidence and retention
 
-Issue 3 (2 November 2026). Prepared from the code of `packages/esign` (the E-sign plugin) and the Events integration protocol as they stand
+Issue 4 (7 November 2026). Prepared from the code of `packages/esign` (the E-sign plugin) and the Events integration protocol as they stand
 in this repository. Numbers in square brackets, such as [C3], point to the code list at the end. Where a project document
 and the code disagree, this brief follows the code and says so (section 12).
 
@@ -450,9 +450,10 @@ people; the integration tokens are signed with keys derived per client, never st
     and `apps/site/pro-licence.txt`.
     Paddle.com is the Merchant of Record and reseller, and the terms use Paddle's reseller wording. The terms grant use
     of Pro under the commercial licence shipped in each public Pro npm package (`packages/events-pro/LICENSE` and
-    `packages/esign-pro/LICENSE` in the Pro repo, identical to `apps/site/pro-licence.txt`): written by the build agents
-    for SEMICS LTD following BUILD-PLAN D6 and R90 (one key per production hostname, which the site's terms and pricing
-    call a "site", local and preview hosts free, a year of updates, perpetual
+    `packages/esign-pro/LICENSE` in the Pro repo; releases after 1.0.0-rc.4 carry the same text as
+    `apps/site/pro-licence.txt`, earlier releases carry earlier text): written by the build agents for SEMICS LTD
+    following BUILD-PLAN D6 and R90 (one key per plan, naming one production hostname, or up to 10 for Agency; the site
+    calls each hostname a "site"; local and preview hosts free, a year of updates, perpetual
     use of versions released in that year, modification for own use, no redistribution). Please check in particular:
     - the Pro licence text, including its termination clause and that it defers liability to the terms of sale;
     - the liability limits (capped at the year's fee; unforeseeable and business losses excluded), for business buyers
@@ -461,15 +462,28 @@ people; the integration tokens are signed with keys derived per client, never st
       the 30 days in D6, so the site, D6, the licence and the docs now agree; whether 14 days is right;
     - consumer rights for UK and EU buyers of a yearly renewing licence, including the UK subscription contract rules
       expected from 1 January 2027 (pre-contract information, reminder notices, easy exit, a 14-day cooling-off after
-      each renewal and after a discounted first year, D5), and whether Paddle's reminders and exit route meet them;
+      each renewal and after a discounted first year, D5), and whether Paddle's reminders and exit route meet them. The
+      regulations were still draft at 7 November 2026, and contracts made earlier are outside them. Paddle's public pages
+      show one reminder 7 or 30 days before renewal, a discount-end reminder, a new 14-day window for UK annual renewals
+      and an EU withdrawal button in its portal; they do not show the additional earlier reminder or the separate
+      cooling-off notice. Paddle has been asked in writing and has not yet answered;
     - prices, which are now shown "plus VAT or sales tax where it applies", with the total shown at checkout before
       payment (DMCCA s.230);
     - what the site says happens when a licence ends or is refunded: an issued key keeps verifying offline and cannot
       be switched off (`licence-worker/src/handlers.ts`), so the site says no new keys or updates are issued and newer
-      versions need a renewed key; a refund ends the licence for the refunded purchase (refunds page and licence
-      section 7 agree, T146), while refunding a renewal keeps the versions from the years paid for;
-    - the 40%-off first year for the first 100 customers (D5), now shown on the pricing page with renewal at the full
-      price;
+      versions need a renewed key; a refund of a first purchase ends the licence, and a refund of a renewal ends only that year, keeping
+      the versions from earlier years (licence sections 4 and 7, and the refunds page, T156). The licence service acts
+      on this: on a full refund of the latest renewal it moves the update term back a year, emails a key for the kept
+      versions, and closes the licence to further keys; on a refund of the first purchase it closes the licence and
+      issues no more keys; it treats a chargeback as a refund, ignores a partial refund, and leaves a refund of an
+      older renewal to support. Is this rule fair and enforceable, given that a key cannot be switched off and that the
+      rule also catches refunds for faults, where a statutory remedy may not be made conditional (CRA 2015 s.47)?
+    - the 40%-off first year for the first 100 customers (D5), code `LAUNCH40`, shown on the pricing page with its
+      prices and renewal at the full price; the line is to be removed when the 100 are used;
+    - prices shown in US dollars both before tax and including UK VAT at 20%, with equal prominence: does this meet
+      DMCCA s.230 for UK consumers, given that Paddle may charge in another currency, and what is needed for EU buyers?
+    - who is the trader for these duties when Paddle is the seller, and how far Paddle's seller terms pass the risk back
+      to SEMICS (warranty, indemnity, refund fees);
     - governing law (England and Wales);
     - the privacy policy: Paddle as an independent controller, legitimate interests for website logs and support
       email, the rights listed (including portability and objection), whether an EU representative is needed (Art 27),
@@ -478,6 +492,11 @@ people; the integration tokens are signed with keys derived per client, never st
       defaults the owner has not yet confirmed.
 
 ## 14. Changes since last review
+
+Issue 4 follows the fourth round of AI-assisted research (`docs/legal/research.md`, not legal advice): question 17 now
+says how the licence service treats a refunded renewal and a chargeback, states the redrafted refund rule, asks about
+VAT-inclusive pricing and who the trader is under Paddle, gives the status of the UK regulations and what Paddle's pages
+show, and corrects the number of hostnames per key and which releases carry the current licence text (T156).
 
 Issue 3 follows the third round of AI-assisted research (`docs/legal/research.md`, not legal advice): section 12 says
 the Pro routing for several signers was not reviewed as code; question 17 now covers the published licence page, the
