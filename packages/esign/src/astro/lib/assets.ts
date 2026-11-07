@@ -77,7 +77,7 @@ export const CEREMONY_CSS = `.semics-ceremony {
 	max-width: 44rem;
 	color: var(--_fg);
 	background: var(--_bg);
-	font: 1rem/1.5 system-ui, sans-serif;
+	font: 1rem/1.5 var(--esign-font, system-ui, sans-serif);
 	overflow-wrap: anywhere;
 }
 .semics-ceremony *, .semics-ceremony *::before, .semics-ceremony *::after { box-sizing: inherit; }

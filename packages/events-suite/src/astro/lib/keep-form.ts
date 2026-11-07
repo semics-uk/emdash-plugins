@@ -12,9 +12,12 @@ export interface KeptField {
 	type: string;
 	value: string;
 	checked?: boolean;
+	/** A select's choices: one that has since gone (sold out) is not chosen again. */
+	options?: Iterable<{ value: string; disabled: boolean }>;
 }
 
-export const KEPT_MS = 15 * 60_000;
+/** A refusal comes straight back; anything older is someone returning later. */
+export const KEPT_MS = 5 * 60_000;
 export const keptKey = (eventId: string) => `semics-waiver-form:${eventId}`;
 
 type Stored = Pick<Storage, "getItem" | "setItem" | "removeItem">;
@@ -36,7 +39,9 @@ export function applyFields(fields: Iterable<KeptField>, kept: Record<string, st
 		const value = kept[f.name];
 		if (value === undefined || f.type === "hidden") continue;
 		if (f.type === "checkbox") f.checked = value === true;
-		else if (typeof value === "string") f.value = value;
+		else if (typeof value === "string" && ![...(f.options ?? [])].some((o) => o.value === value && o.disabled)) {
+			f.value = value;
+		}
 	}
 }
 
@@ -48,12 +53,16 @@ export function saveKept(storage: Stored, eventId: string, fields: Iterable<Kept
 	}
 }
 
-/** The values to restore: only after a refusal of this event's form, once, and only while fresh. */
-export function takeKept(storage: Stored, eventId: string, search: URLSearchParams, now: number) {
+/**
+ * The values to restore: only straight after a refusal of this event's form, once, and only while fresh. A visit
+ * through the browser's history (`fromHistory`, Back to the refusal's URL) is not that, and on a shared device could
+ * be someone else, so it gets nothing.
+ */
+export function takeKept(storage: Stored, eventId: string, search: URLSearchParams, now: number, fromHistory = false) {
 	try {
 		const raw = storage.getItem(keptKey(eventId));
 		storage.removeItem(keptKey(eventId));
-		if (!raw || !search.get("waiver_error") || search.get("waiver_event") !== eventId) return null;
+		if (!raw || fromHistory || !search.get("waiver_error") || search.get("waiver_event") !== eventId) return null;
 		const { at, values } = JSON.parse(raw) as { at: number; values: Record<string, string | boolean> };
 		return now - at <= KEPT_MS ? values : null;
 	} catch {
@@ -61,17 +70,34 @@ export function takeKept(storage: Stored, eventId: string, search: URLSearchPara
 	}
 }
 
+/** Whether this page load came from the browser's Back or Forward. */
+const fromHistory = () =>
+	(performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type === "back_forward";
+
 /** Wires every booking form on the page. Run before the picker's script, which shows the date the select holds. */
 export function keepWaiverForms(doc: Document, storage: Stored, url: URL): void {
 	for (const form of doc.querySelectorAll<HTMLFormElement>("form[data-keep-values]")) {
 		const eventId = (form.elements.namedItem("eventId") as HTMLInputElement | null)?.value ?? "";
 		const fields = () => [...form.elements] as unknown as HTMLInputElement[];
-		const kept = takeKept(storage, eventId, url.searchParams, Date.now());
+		const kept = takeKept(storage, eventId, url.searchParams, Date.now(), fromHistory());
 		if (kept) applyFields(fields(), kept);
-		form.addEventListener("submit", () => saveKept(storage, eventId, fields(), Date.now()));
+		let submitted = false;
+		form.addEventListener("submit", () => {
+			submitted = true;
+			saveKept(storage, eventId, fields(), Date.now());
+		});
+		// Back to this very page from the browser's memory, typed details and all: start it afresh.
+		addEventListener("pageshow", (event) => {
+			if (!event.persisted || !submitted) return;
+			takeKept(storage, eventId, url.searchParams, Date.now(), true);
+			location.reload();
+		});
 	}
 }
 
-if (typeof document !== "undefined" && typeof sessionStorage !== "undefined") {
-	keepWaiverForms(document, sessionStorage, new URL(location.href));
+// Never in the way of the picker's script, which runs after this: storage access itself can throw.
+try {
+	if (typeof document !== "undefined") keepWaiverForms(document, sessionStorage, new URL(location.href));
+} catch {
+	// Storage is blocked: the form just comes back empty.
 }

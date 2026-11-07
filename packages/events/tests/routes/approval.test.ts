@@ -294,7 +294,7 @@ describe("T131 approval emails through the outbox", () => {
 		expect(buyer?.text).toMatch(/awaits approval/i);
 		expect(admin?.text).toContain("Ada Lovelace");
 		expect(admin?.text).toContain("https://site.test/_emdash/admin/plugins/r_abc/bookings");
-		expect(admin?.text).toMatch(/decision is needed/i);
+		expect(admin?.text).toMatch(/decision needed/i);
 		for (const m of sent) expect(m.text).not.toMatch(/[?&]k=|accessToken/);
 	});
 
@@ -419,5 +419,20 @@ describe("notices rendered after the decision", () => {
 		queue(w, `request-${ID}`, "approval_requested");
 		const sent = await drained(w, T0 + HOUR);
 		expect(sent.map((m) => m.subject)).toEqual(["Booking request received: Pottery class"]);
+	});
+});
+
+describe("approving within the bridge limit", () => {
+	it("T131 counts at most the counters the call limit leaves, event first, on a booking with many ticket types", async () => {
+		const w = await world({ status: "awaiting_approval" });
+		const types = ["tt_a", "tt_b", "tt_c", "tt_d", "tt_e", "tt_f"];
+		for (const t of types) w.storage.ticket_types.set(t, { eventId: "ev1", capacity: 10, reserved: 1, sold: 0 });
+		w.storage.event_configs.set("ev1", { ...(w.storage.event_configs.docs.get("ev1") as Doc), reserved: 6 });
+		const b = w.storage.bookings.docs.get(ID) as Doc;
+		w.storage.bookings.set(ID, { ...b, lines: types.map((t) => ({ ticketTypeId: t, qty: 1, unitPriceMinor: 0 })) });
+		const { body, calls } = await metered(() => approveBooking(w.deps(T0), ID));
+		expect(body).toMatchObject({ ok: true, status: "confirmed" });
+		expect(calls).toBeLessThanOrEqual(BOOKING_MAX_CALLS - 2);
+		expect(w.counter("event_configs", "ev1")).toMatchObject({ sold: 6 });
 	});
 });

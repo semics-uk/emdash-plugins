@@ -80,7 +80,13 @@ export function zonedAt(iso: string, timezone: string | null | undefined, locale
 	const ms = Date.parse(iso);
 	if (!Number.isFinite(ms)) return iso;
 	const zone = timezone && isValidTimeZone(timezone) ? timezone : "UTC";
-	return `${formatInZone(ms, zone, locale, AT)} (${zone})`;
+	let time: string;
+	try {
+		time = formatInZone(ms, zone, locale, AT);
+	} catch {
+		time = formatInZone(ms, zone, "en-GB", AT); // A locale `Intl` refuses, such as `en_GB`.
+	}
+	return `${time} (${zone})`;
 }
 
 const BADGES = { cancelled: "list.badge.cancelled", closed: "list.badge.closed", paused: "list.badge.paused" } as const;

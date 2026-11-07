@@ -166,6 +166,19 @@ describe("bookings page (EV-US-7)", () => {
 		expect(table.columns.find((c) => c.key === "event")?.format).toBeUndefined();
 	});
 
+	it("still lists the bookings, with ids, when the names cannot be read", async () => {
+		const { deps } = world();
+		deps.storage.event_configs.getMany = async () => {
+			throw new Error("too many calls");
+		};
+		const table = (await load(deps, "/bookings")).blocks.find(
+			(b) => (b as { type: string }).type === "table",
+		) as unknown as {
+			rows: Array<{ event: string }>;
+		};
+		expect(table.rows[0]?.event).toBe("ev1");
+	});
+
 	it("searches by reference or email and filters by status", async () => {
 		const { deps, s } = world();
 		s.bookings.set("bk_2", {

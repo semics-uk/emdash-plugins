@@ -41,6 +41,8 @@ const final = (state: PaymentState, locale: string): PaymentView => ({
 /** The payment section for a booking, or `null` when there is nothing to say about money. */
 export function paymentView(booking: BookingView, locale = "en-GB"): PaymentView | null {
 	const paid = booking.totals.totalMinor > 0;
+	// Ran out waiting for the organiser: not about a payment (`endedNotes` says what happened).
+	if (booking.status === "expired" && booking.undecided) return null;
 	switch (booking.status) {
 		case "awaiting_payment":
 			return {

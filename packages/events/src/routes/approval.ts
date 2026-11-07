@@ -16,7 +16,8 @@ import { fail } from "./reply";
  *   so it loses to an expirer or a decline; then counts the sale and queues the confirmation (with its
  *   ICS link). A second approve answers ok (and queues the confirmation if the first died before it).
  *   After the deadline it is refused (`HOLD_EXPIRED`) even before the sweeper has run.
- *   Calls: get, updateIf, one per counter, outbox: 3 + counters (6 for an occurrence booking).
+ *   Calls: get, updateIf, one per counter, outbox: 3 + counters, and the Bookings page after it is 2 more, so at most
+ *   `APPROVE_COUNTERS` counters are counted, event and date first.
  * - **decline**: `closeBooking` (the cancel protocol: claim, refund a paid booking through the
  *   edition's `RefundStep`, release, move to `declined`, queue `decline-<id>`). Get + 4 + counters.
  * - A request whose payment is held (`payment` set: Pro's card authorisation or saved card, T132, R98)
@@ -32,6 +33,9 @@ export interface ApprovalDeps extends BookingDeps {
 		outbox: { get(id: string): Promise<unknown> };
 	};
 }
+
+/** Bridge calls left for counters when an approve is followed by the Bookings page (R22: hard limit 10). */
+export const APPROVE_COUNTERS = 5;
 
 const answer = (b: BookingDoc, status: string) => ({ ok: true, bookingRef: b.ref, status });
 
@@ -55,7 +59,8 @@ export async function approveBooking(deps: ApprovalDeps, id: string): Promise<un
 		set: { status: "confirmed", confirmedAt: iso(now) },
 	});
 	if (!applied) return fail("HOLD_EXPIRED");
-	await confirmSold(storage, countersForBooking(b)).catch(() => undefined);
+	// What fits under the limit once the page's list and names are counted; drift repair settles the rest.
+	await confirmSold(storage, countersForBooking(b).reverse().slice(0, APPROVE_COUNTERS)).catch(() => undefined);
 	await storage.outbox.put(confirmationOutboxId(id), confirmationMessage(id, b, now));
 	return answer(b, "confirmed");
 }
