@@ -4,7 +4,13 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { expireBookings, planExpiries } from "../../src/domain/holds";
 import { drainEventsOutbox } from "../../src/emails/outbox";
 import { type ApprovalDeps, approveBooking, declineBooking } from "../../src/routes/approval";
-import { BOOKING_MAX_CALLS, type BookingRouteStorage, cancelBooking, type RefundStep } from "../../src/routes/booking";
+import {
+	BOOKING_MAX_CALLS,
+	type BookingRouteStorage,
+	bookingStatus,
+	cancelBooking,
+	type RefundStep,
+} from "../../src/routes/booking";
 import { CONTINUE_MAX_CALLS, type ContinueStorage, continueCheckout } from "../../src/routes/checkout-continue";
 import { makeStore, meter } from "../domain/fake-storage";
 
@@ -83,7 +89,7 @@ async function world({
 		now,
 	});
 	const booking = () => storage.bookings.docs.get(ID) as Doc;
-	const counter = (c: "ticket_types" | "event_configs", id: string) =>
+	const counter = (c: "ticket_types" | "event_configs" | "occurrences", id: string) =>
 		storage[c].docs.get(id) as { reserved: number; sold: number };
 	return {
 		storage,
@@ -423,16 +429,60 @@ describe("notices rendered after the decision", () => {
 });
 
 describe("approving within the bridge limit", () => {
-	it("T131 counts at most the counters the call limit leaves, event first, on a booking with many ticket types", async () => {
+	async function many() {
 		const w = await world({ status: "awaiting_approval" });
 		const types = ["tt_a", "tt_b", "tt_c", "tt_d", "tt_e", "tt_f"];
 		for (const t of types) w.storage.ticket_types.set(t, { eventId: "ev1", capacity: 10, reserved: 1, sold: 0 });
+		w.storage.occurrences.set("oc1", { eventId: "ev1", capacity: 10, reserved: 6, sold: 0 });
 		w.storage.event_configs.set("ev1", { ...(w.storage.event_configs.docs.get("ev1") as Doc), reserved: 6 });
 		const b = w.storage.bookings.docs.get(ID) as Doc;
-		w.storage.bookings.set(ID, { ...b, lines: types.map((t) => ({ ticketTypeId: t, qty: 1, unitPriceMinor: 0 })) });
+		w.storage.bookings.set(ID, {
+			...b,
+			occurrenceId: "oc1",
+			lines: types.map((t) => ({ ticketTypeId: t, qty: 1, unitPriceMinor: 0 })),
+		});
+		return w;
+	}
+
+	it("T131 leaves room for the Bookings page after it", async () => {
+		const w = await many();
 		const { body, calls } = await metered(() => approveBooking(w.deps(T0), ID));
 		expect(body).toMatchObject({ ok: true, status: "confirmed" });
 		expect(calls).toBeLessThanOrEqual(BOOKING_MAX_CALLS - 2);
+	});
+
+	it("T131 counts event and date first; the ticket types that do not fit wait for drift repair", async () => {
+		const w = await many();
+		await approveBooking(w.deps(T0), ID);
 		expect(w.counter("event_configs", "ev1")).toMatchObject({ sold: 6 });
+		expect(w.counter("occurrences", "oc1")).toMatchObject({ sold: 6 });
+		const sold = ["tt_a", "tt_b", "tt_c", "tt_d", "tt_e", "tt_f"].map((t) => w.counter("ticket_types", t).sold);
+		expect(sold).toEqual([0, 0, 0, 1, 1, 1]);
+	});
+});
+
+describe("public/booking on a request that ran out", () => {
+	const until = at(48);
+	const read = async (booking: Doc) => {
+		const w = await world({ status: "expired" });
+		const token = "T".repeat(43);
+		w.storage.bookings.set(ID, {
+			...(w.storage.bookings.docs.get(ID) as Doc),
+			accessTokenHash: await hashToken(token),
+			...booking,
+		});
+		return (await bookingStatus(w.deps(T0), { bookingRef: REF, accessToken: token })) as { undecided?: boolean };
+	};
+
+	it("T131 undecided when the hold had become the approval's deadline", async () => {
+		expect((await read({ holdExpiresAt: until, approval: { until } })).undecided).toBe(true);
+	});
+
+	it("T131 not when it lapsed before reaching the organiser", async () => {
+		expect((await read({ holdExpiresAt: at(0.25), approval: { until } })).undecided).toBe(false);
+	});
+
+	it("T132 not when the organiser approved and only the payment was left (Pay now keeps the deadline)", async () => {
+		expect((await read({ holdExpiresAt: until, approval: { until, approvedAt: at(1) } })).undecided).toBe(false);
 	});
 });

@@ -51,7 +51,10 @@ const KEEP_PRIVATE = "Keep this email private: its link opens your booking once.
 const NOT_YOU = "Not you? Contact the organiser and quote the reference.";
 
 /** An instant (ISO), such as a deadline, in the event's own zone. */
-const zoned = (at: string, event: EventInfo) => formatWhen({ startsAt: Date.parse(at), timeZone: event.timeZone });
+const zoned = (at: string, event: EventInfo) => {
+	const startsAt = Date.parse(at);
+	return startsAt ? formatWhen({ startsAt, timeZone: event.timeZone }) : at; // `at` is a stored value: never lose the mail
+};
 
 const link = ([label, href]: readonly [string, string]) => `<a href="${escapeHtml(href)}">${escapeHtml(label)}</a>`;
 
