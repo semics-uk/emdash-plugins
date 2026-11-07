@@ -97,7 +97,7 @@ change in a minor release. The defaults meet WCAG AA contrast with each other; k
 | `--events-error` | `--esign-error` | Error messages and invalid fields | `#b3261e` |
 | `--events-success` | | Confirmations | `#146c2e` |
 | `--events-radius` | `--esign-radius` | Corner radius | `6px` |
-| `--events-font` | | Font family | `system-ui, sans-serif` |
+| `--events-font` | `--esign-font` | Font family | `system-ui, sans-serif` |
 | `--events-page-bg` | | Page background of `/booking` and `/_events/waiver` | `#f5f4f0` |
 | `--events-heading-font` | | Headings of those pages | `inherit` |
 | `--events-heading-fg` | | Heading colour of those pages | `inherit` |

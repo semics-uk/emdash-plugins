@@ -199,6 +199,8 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 		totals: b.totals,
 		declineReason: b.declineReason,
 		notCharged: b.notCharged,
+		// The hold became the approval's deadline (`settle`): an expired booking here lapsed waiting for the organiser.
+		undecided: b.holdExpiresAt === b.approval?.until,
 		...(b.holdExpiresAt !== undefined && HOLD_STATUSES.includes(b.status) ? { holdExpiresAt: b.holdExpiresAt } : {}),
 		attendees: items.map((i) => {
 			const a = i.data as { name: string; ticketTypeId: string; status: string; code?: string };

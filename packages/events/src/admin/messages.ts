@@ -17,7 +17,7 @@ const ISSUE_MESSAGES: Record<string, string> = {
 	UNKNOWN_ID: "An item changed meanwhile. Reload and try again.",
 	TOO_MANY: "Too many items for one event.",
 	TOO_MANY_CHANGES: "Save fewer changes at a time.",
-	WAIVER_TEMPLATE_REQUIRED: "A required waiver needs a template id (letters, digits, - and _).",
+	WAIVER_TEMPLATE_REQUIRED: "A required waiver needs a valid template id.",
 };
 
 export function issueMessage(code: string, path = ""): string {

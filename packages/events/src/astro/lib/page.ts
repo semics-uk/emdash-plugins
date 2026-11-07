@@ -48,7 +48,8 @@ export interface PageOptions {
 
 /** One line of CSS, nothing that could end the declaration, the rule or the `<style>` element. */
 const THEME_VALUE = /^[^;{}<>\\@]{1,200}$/;
-const SITE_PATH = /^\/(?!\/)[^\s"'<>\\]*$/;
+/** A path on this site; `;` and `,` would end a source in the signing page's CSP header. */
+const SITE_PATH = /^\/(?!\/)[^\s"'<>\\;,]*$/;
 
 /** Checks a site's page options when the site's config loads; a bad value stops the build with its name. */
 export function checkPageOptions(page: PageOptions = {}): PageOptions {
@@ -80,7 +81,7 @@ export function eventPageHref(slug: string | null | undefined, eventPath?: strin
 export const PAGE_CSS = `*,*::before,*::after{box-sizing:border-box}
 html{color-scheme:light;-webkit-text-size-adjust:100%}
 body.semics-page{margin:0;min-block-size:100vh;background:var(--events-page-bg, #f5f4f0);color:var(--events-fg, #1a1a1a);font-family:var(--events-font, system-ui, sans-serif);font-size:1.0625rem;line-height:1.55;overflow-wrap:anywhere;
---esign-fg:var(--events-fg, #1a1a1a);--esign-muted:var(--events-muted, #4a4a4a);--esign-bg:var(--events-bg, #ffffff);--esign-border:var(--events-border, #6b6b6b);--esign-accent:var(--events-accent, #0b57d0);--esign-accent-fg:var(--events-accent-fg, #ffffff);--esign-error:var(--events-error, #b3261e);--esign-radius:var(--events-radius, 6px)}
+--esign-fg:var(--events-fg, #1a1a1a);--esign-muted:var(--events-muted, #4a4a4a);--esign-bg:var(--events-bg, #ffffff);--esign-border:var(--events-border, #6b6b6b);--esign-accent:var(--events-accent, #0b57d0);--esign-accent-fg:var(--events-accent-fg, #ffffff);--esign-error:var(--events-error, #b3261e);--esign-radius:var(--events-radius, 6px);--esign-font:var(--events-font, system-ui, sans-serif)}
 .semics-page-brand{max-inline-size:38rem;margin-inline:auto;padding:1rem 1rem 0;font-family:var(--events-heading-font, inherit);font-weight:600}
 .semics-page-brand a{color:var(--events-heading-fg, inherit);text-decoration:none}
 .semics-page-brand img{display:block;block-size:2.5rem;inline-size:auto;max-inline-size:100%}

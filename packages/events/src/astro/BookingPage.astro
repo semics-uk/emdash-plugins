@@ -32,7 +32,7 @@ import { handleAttendeeAction, signingRows } from "./lib/attendees";
 import { eventPageHref, pageCss } from "./lib/page";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
-import { type BookingView, type PublicEvent, reconcileWanted, ticketNames } from "./lib/widget";
+import { asOfNow, type BookingView, type PublicEvent, reconcileWanted, ticketNames } from "./lib/widget";
 import TicketPass from "./TicketPass.astro";
 
 export const prerender = false;
@@ -156,6 +156,7 @@ if (ref && token) {
 } else if (ref && !opening) {
 	missing = true;
 }
+if (booking) booking = asOfNow(booking, Date.now());
 // The attendee signing list's forms (T133): Sign now, Resend and Save, against the fresh answer.
 if (booking && form && ref && token) {
 	const done = await handleAttendeeAction(ctx, form, { ref, token }, { pluginId, esignPluginId }, booking);
@@ -232,6 +233,7 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 		<script>
 			import "../client/receipt.ts";
 			import "../client/payment.ts";
+			import "../client/forget-form.ts";
 		</script>
 	</body>
 </html>

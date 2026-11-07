@@ -67,7 +67,7 @@ describe("EV-FR-08 confirmation email", () => {
 			- Grace Hopper
 
 			View or cancel your booking: https://site.test/booking?ref=ABCDEFGHJK&k=one-time-code_-x
-			Your tickets (check-in passes): https://site.test/booking?ref=ABCDEFGHJK&k=one-time-code_-x#tickets
+			Your check-in passes: https://site.test/booking?ref=ABCDEFGHJK&k=one-time-code_-x#tickets
 			Add to calendar: https://site.test/_emdash/api/plugins/r_abc/public/event/ics?eventId=ev1
 
 			Keep this email private: its link opens your booking once.
@@ -137,22 +137,28 @@ describe("approval notices (T131)", () => {
 	it("T131 a booking still waiting: 'Booking request', a decision is needed, by the deadline in the event's zone", () => {
 		const m = send("approval_admin", booking({}));
 		expect(m?.subject).toBe("Booking request: Winter Concert");
-		expect(m?.text).toContain("A decision is needed: approve or decline it by Thu 2 Jul 2026, 12:00 (Europe/London)");
+		expect(m?.text).toContain("Decision needed: approve or decline by Thu 2 Jul 2026, 12:00 (Europe/London)");
 		expect(m?.text).toContain("or it expires");
-		expect(m?.html).toContain("A decision is needed");
+		expect(m?.html).toContain("Decision needed");
 		expect(m?.text).toContain("Open Bookings: https://site.test/admin");
 	});
 
 	it("T131 approved before the mail went out (CZR3RFJKQ5): 'New booking', nothing asked of the organiser", () => {
 		const m = send("approval_admin", booking({ status: "confirmed" }));
 		expect(m?.subject).toBe("New booking: Winter Concert");
-		expect(m?.text).not.toContain("decision");
+		expect(m?.text).not.toContain("Decision");
 	});
 
 	it("T131 ended before the mail went out: the organiser is not told of a 'new booking'", () => {
-		for (const status of ["declined", "expired", "cancelled"] as const) {
+		for (const status of ["declined", "expired", "cancelled", "refunded", "refunded_unavailable"] as const) {
 			expect(send("approval_admin", booking({ status }))).toBeNull();
 		}
+	});
+
+	it("T132 approved with a refused card, so waiting for payment: a second admin's queued notice still goes", () => {
+		expect(send("approval_admin", booking({ status: "awaiting_payment" }))?.subject).toBe(
+			"New booking: Winter Concert",
+		);
 	});
 
 	it("T131 a decline gives the reason, and says the card was not charged only when the booking says so", () => {

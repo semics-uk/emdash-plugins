@@ -68,6 +68,10 @@ describe("zonedAt", () => {
 		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe("9 Jul 2026, 16:09 (Europe/London)");
 	});
 
+	it("EV-FR-08 a locale Intl refuses never breaks the page", () => {
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en_GB")).toBe("9 Jul 2026, 16:09 (Europe/London)");
+	});
+
 	it("EV-FR-08 UTC, saying so, for a missing or unknown zone; a value that is no date is shown as it is", () => {
 		expect(zonedAt("2026-07-09T15:09:00.000Z", null, "en-GB")).toBe("9 Jul 2026, 15:09 (UTC)");
 		expect(zonedAt("2026-07-09T15:09:00.000Z", "Not/AZone", "en-GB")).toBe("9 Jul 2026, 15:09 (UTC)");
