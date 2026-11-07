@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.4
+
+### Patch Changes
+
+- 8adc1b1: Signing the last waiver of a paid booking now reaches the payment page. The signing page's CSP stopped the browser following the redirect to the payment provider, leaving the signer on a disabled "Sign document" button: the page now sends them on with a meta refresh and a link.
+- @semics-tech/emdash-esign@1.0.0-rc.4
+  - @semics-tech/emdash-events@1.0.0-rc.4
+
 ## 1.0.0-rc.3
 
 ### Patch Changes
