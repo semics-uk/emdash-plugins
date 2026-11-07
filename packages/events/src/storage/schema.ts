@@ -229,7 +229,7 @@ export interface BookingDoc {
 	 */
 	waiver?: BookingWaiver;
 	/** The event required approval when the booking was made (T131): decided by `until`, else it expires. */
-	approval?: { until: string };
+	approval?: { until: string; approvedAt?: string };
 	/** Why an admin declined the booking (T131), shown in the email to the buyer. */
 	declineReason?: string | null;
 	/** Declined with a price and no money taken: a held card was released or never charged (`closeBooking`). */

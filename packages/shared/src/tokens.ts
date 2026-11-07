@@ -34,7 +34,7 @@ const EXP_PATTERN = /^\d{1,15}$/;
 /** A new 256-bit opaque token, URL-safe and unpadded (43 characters). */
 export function generateToken(random: RandomBytes = webCryptoRandom): string {
 	const bytes = random(TOKEN_BYTES);
-	if (bytes.length !== TOKEN_BYTES) throw new Error(`Random source: need ${TOKEN_BYTES} bytes.`);
+	if (bytes.length !== TOKEN_BYTES) throw new Error(`Need ${TOKEN_BYTES} bytes.`);
 	return encodeBase64Url(bytes);
 }
 
@@ -110,13 +110,13 @@ async function mac(key: CryptoKey, message: string): Promise<string> {
 export async function signLink(input: SignLinkInput): Promise<URLSearchParams> {
 	const { secret, purpose, params, now, ttlMs = DEFAULT_LINK_TTL_MS } = input;
 	const key = await linkKey(secret);
-	if (purpose.length === 0) throw new Error("Link purpose is empty.");
-	if (!Number.isFinite(now)) throw new Error("Link now is not a time.");
+	if (purpose.length === 0) throw new Error("No link purpose.");
+	if (!Number.isFinite(now)) throw new Error("Bad link now.");
 	if (!(ttlMs >= MIN_LINK_TTL_MS && ttlMs <= MAX_LINK_TTL_MS)) {
-		throw new Error("Link ttl out of range.");
+		throw new Error("Bad link ttl.");
 	}
 	const entries = Object.entries(params);
-	if (entries.some(([name]) => RESERVED.has(name))) throw new Error("Link params: exp, sig are reserved.");
+	if (entries.some(([name]) => RESERVED.has(name))) throw new Error("Link params: exp, sig reserved.");
 	const exp = String(Math.floor((now + ttlMs) / 1000));
 	const query = new URLSearchParams(entries);
 	query.set("exp", exp);

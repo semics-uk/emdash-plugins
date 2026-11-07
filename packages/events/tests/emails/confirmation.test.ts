@@ -117,6 +117,8 @@ describe("email times are plain local time in the event's zone", () => {
 		const m = offerEmail({ ...base, event: event("Europe/London"), seats: 1, expiresAt: "2026-07-02T11:00:00.000Z" });
 		expect(m.text).toContain("held for you until Thu 2 Jul 2026, 12:00 (Europe/London).");
 		expect(m.text).not.toContain("UTC");
+		const odd = offerEmail({ ...base, event: event("Europe/London"), seats: 1, expiresAt: "soon" });
+		expect(odd.text).toContain("held for you until soon.");
 	});
 });
 
@@ -141,6 +143,12 @@ describe("approval notices (T131)", () => {
 		expect(m?.text).toContain("or it expires");
 		expect(m?.html).toContain("Decision needed");
 		expect(m?.text).toContain("Open Bookings: https://site.test/admin");
+	});
+
+	it("T131 a deadline that is no date cannot lose the mail: shown as stored", () => {
+		expect(send("approval_admin", booking({ holdExpiresAt: "soon" }))?.text).toContain(
+			"decline by soon, or it expires",
+		);
 	});
 
 	it("T131 approved before the mail went out (CZR3RFJKQ5): 'New booking', nothing asked of the organiser", () => {

@@ -143,7 +143,7 @@ function vtimezone(timeZone: string, eventStart: number): string[] {
 }
 
 function eventLines(e: IcsEvent): string[] {
-	if (!(e.end > e.start)) throw new RangeError("Event ends before it starts");
+	if (!(e.end > e.start)) throw new RangeError("Event ends before start");
 	if (e.timeZone && !isValidTimeZone(e.timeZone)) throw new RangeError(`Bad zone: ${e.timeZone}`);
 	const lines = ["BEGIN:VEVENT", `UID:${e.uid}`, `DTSTAMP:${utcStamp(e.stamp)}`];
 	if (e.allDay) {
