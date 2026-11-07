@@ -49,8 +49,12 @@ Legal research pass 3 (`docs/legal/research.md`) found:
   - Subscription emails carry a cancel / manage-subscription link to Paddle's customer portal; cancelling keeps the
     licence to the end of the paid year.
   - Our 14-day refund on every renewal covers the UK renewal cooling-off.
-  - Not found: anything on the EU withdrawal function (Directive 2023/2673, in force 19 June 2026) or on the UK DMCC
-    rules by name. Ask Paddle support whether the portal meets the withdrawal-function rules; until answered, the
+  - CORRECTED 2026-11-07: this check missed Paddle's Refund Policy (paddle.com/legal/refund-policy, 31 March 2026
+    version), which describes an online withdrawal button in the Customer Portal for EU consumers (s.3.1.1) and a new
+    14-day window at each annual auto-renewal for UK buyers (s.2.2.3). Also, one reminder per renewal may not meet a
+    rule requiring two for annual renewals (`docs/legal/research.md` Q17).
+  - Originally written: nothing found on the EU withdrawal function (Directive 2023/2673, in force 19 June 2026) or on
+    the UK DMCC rules by name. Ask Paddle support whether the portal meets the withdrawal-function rules; until answered, the
     refunds page (email, or paddle.net) is our withdrawal route.
   - Sources: paddle.com/help/manage/your-customers/enhanced-billing-notifications-location-list,
     .../which-emails-will-customers-receive-on-paddle-billing, developer.paddle.com/build/subscriptions/cancel-subscriptions/
