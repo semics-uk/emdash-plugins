@@ -7,8 +7,8 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
-- Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike): find out why, or report upstream to EmDash
-- LMSC staging is on rc.3 (version 36748163, previous 55286306): run a real booking and signing in a browser (T153 past a hold is still untested)
+- Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike; rc.4's run passed): find out why, or report upstream to EmDash
+- LMSC staging is on rc.3 (version 36748163, previous 55286306), rc.4 adds T155: move it to rc.4 when Oli OKs a redeploy, then run a real booking and signing in a browser (T153 past a hold is still untested)
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
@@ -25,6 +25,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-07 rc.4 published (T155): npm (Free and Pro) and EmDash registry
 - 2026-11-07 Staging: hand-made E-sign client cl_wvaue3o4nlndih26 revoked by D1 update; "Events on this site" kept
 - 2026-11-07 lmsc-site moved to npm rc.3 (PR #8, 3960249) and deployed to staging
 - 2026-11-06 rc.3 published: npm (Free and Pro) and EmDash registry; registry checksums match the attested builds
@@ -34,4 +35,3 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - 2026-11-03 T140 cold-start test measures in a fresh Node process (Vitest's loader had tripled it)
 - 2026-11-02 rc.2 published: npm (Free and Pro) and EmDash registry (semics-events, semics-esign)
 - 2026-11-02 T152 ended waiver bookings void their unsigned envelopes (Pro; on next booking/waiver page visit)
-- 2026-11-02 T151 waiver page handles expired bookings and draft events
