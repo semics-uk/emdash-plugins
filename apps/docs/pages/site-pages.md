@@ -101,7 +101,11 @@ change in a minor release. The defaults meet WCAG AA contrast with each other; k
 | `--events-page-bg` | | Page background of `/booking` and `/_events/waiver` | `#f5f4f0` |
 | `--events-heading-font` | | Headings of those pages | `inherit` |
 | `--events-heading-fg` | | Heading colour of those pages | `inherit` |
+| `--events-widget-max` | | Widest the booking widgets (`<BookingWidget>`, `<BookingWithWaiver>`) grow; they fill their column up to it | `none` |
 | | `--esign-paper` | The document being signed | `#fafafa` |
+
+The booking widgets fill the column you put them in. To keep one narrower in a wide column, set
+`--events-widget-max` on it or on an element around it (for example `.booking { --events-widget-max: 40rem; }`).
 
 ### The booking and signing pages
 

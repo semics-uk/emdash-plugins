@@ -49,6 +49,8 @@ bundles nothing new into the cores; it calls them through their public routes in
    restores: the bundler may run Events' picker (a chunk shared with `<BookingWidget>`) first, so the picker follows its select's `change` (T157).
    T157 layout: one card; one attendee row, the rest behind "Add another person" (`lib/rows.ts`, after keep-form in the same script; without
    JavaScript a `<details>` "Add more people", open when the server marked one of its rows); a summary (people, total) above Book.
+   T158: the card fills its host column up to `--events-widget-max`; Turnstile is light and compact only when the form is under
+   300 px (same inline script as Events' widget); hover is a tint and ring, distinct from the filled chosen day or time.
 3. Retry (T066, `intent=retry`): E-sign refusing an intent leaves the booking held and sends the browser to
    `/_events/waiver?ref=&error=SIGNING_UNAVAILABLE`, which shows a "Try again" form. It continues the booking
    again with the `semics_booking_<ref>` cookie and no `attendees` (Events keeps the stored ones; Pro skips
