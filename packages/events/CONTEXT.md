@@ -323,6 +323,15 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   cookie's token and redeems the minted intents with e-sign (`esignPluginId`): Sign now through `startDoorSigning` (→ `/sign/<token>`),
   the rest in order (`replace` before the new invitation). Outcomes are `?attendees=saved|resent` or `?error=<CODE>`, never typed
   values. Free sends no list. The Free backend gained nothing.
+- Booking UI design pass (T157, UI only; the backend gained nothing): `<BookingWidget>` is one card (no fieldset boxes, roomier
+  calendar). `src/client/picker.ts` also follows a `change` on its select (a restore by another script). `PAGE_CSS` (`lib/page.ts`) makes
+  each `main > section` and the e-sign ceremony a card and carries the print rules (no brand bar, buttons, forms or calendar link; the
+  organiser kept). `<BookingStatus>` leads with `event.title`, `event.startsAt` (`zonedAt`: the widget's full date and short time in the
+  event's zone, no zone label; "(UTC)" only for a missing zone) and `event.venue`, then status, reference, lines, "Who is coming" (two or
+  more different names; off when the signing list shows) and the total. `/booking` ends with "Add to calendar", "Print or save as PDF"
+  (`data-print`, hidden until `src/client/print.ts` shows it), `<CancelBooking>` (a `<details>` confirmation; `<BookingStatus
+  cancelAction>` still renders it inside the card for other callers) and `<PageOrganiser>` (`page.brand.name`, optional one-line
+  `page.brand.address`). `/e2e/booking-view` in the playground is a fixed-data copy for layout, print and screenshot checks.
 ## Where things live
 
 `src/domain` pure logic (90% line coverage) · `src/routes` thin adapters · `src/storage/schema.ts`

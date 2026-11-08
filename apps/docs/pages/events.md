@@ -58,12 +58,16 @@ and a change to the manifest needs a new plugin release.
 
 Holds expire on their own. A job every 5 minutes releases expired holds and puts the seats back on sale.
 
+A confirmed booking on `/booking` leads with the event, its date and time in the event's time zone, and the place.
+Below the tickets are "Add to calendar" and "Print or save as PDF" (shown when JavaScript runs; the browser's own
+Print uses the same layout: no buttons or brand bar, the organiser's name and address kept).
+
 The calendar link on the booking page is a signed link valid for 15 minutes. The plugin also serves a public
 calendar file for each event on sale.
 
 ### Cancelling
 
-Buyers cancel from `/booking`. A confirmed booking can be cancelled until **Self-service cancel cutoff** hours
+Buyers cancel from `/booking`: "Cancel booking", at the foot of the page, opens a confirmation. A confirmed booking can be cancelled until **Self-service cancel cutoff** hours
 before the start (default 24). After that the page says "This booking can no longer be cancelled online".
 Seats go back on sale and a cancellation email is sent. In Free, a paid booking cannot be cancelled online;
 Events Pro refunds it in full first.

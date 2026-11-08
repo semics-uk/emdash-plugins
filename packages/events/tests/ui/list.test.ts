@@ -63,18 +63,35 @@ describe("event list view (EU-FR-03, EU-US-4)", () => {
 });
 
 describe("zonedAt", () => {
-	it("EV-FR-08 shows a deadline in the event's zone, in winter and in summer", () => {
-		expect(zonedAt("2026-11-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe("9 Nov 2026, 15:09 (Europe/London)");
-		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe("9 Jul 2026, 16:09 (Europe/London)");
+	// T157 (LMSC rc.6): a deadline reads like the session's own time line ("Monday 9 November 2026 at 15:09", the
+	// widget's and the waiver page's full date and short time), not "9 Nov 2026, 15:09 (Europe/London)".
+	const session = (iso: string, timeZone: string) =>
+		new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone }).format(new Date(iso));
+
+	it("EV-FR-08 shows a deadline in the event's zone, in winter and in summer, as the session time reads", () => {
+		expect(zonedAt("2026-11-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe(
+			session("2026-11-09T15:09:00.000Z", "Europe/London"),
+		);
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en-GB")).toBe(
+			session("2026-07-09T15:09:00.000Z", "Europe/London"),
+		);
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en-GB")).toMatch(/9 July 2026 at 16:09$/);
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en-GB")).not.toContain("Europe/London");
 	});
 
 	it("EV-FR-08 a locale Intl refuses never breaks the page", () => {
-		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en_GB")).toBe("9 Jul 2026, 16:09 (Europe/London)");
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Europe/London", "en_GB")).toBe(
+			session("2026-07-09T15:09:00.000Z", "Europe/London"),
+		);
 	});
 
 	it("EV-FR-08 UTC, saying so, for a missing or unknown zone; a value that is no date is shown as it is", () => {
-		expect(zonedAt("2026-07-09T15:09:00.000Z", null, "en-GB")).toBe("9 Jul 2026, 15:09 (UTC)");
-		expect(zonedAt("2026-07-09T15:09:00.000Z", "Not/AZone", "en-GB")).toBe("9 Jul 2026, 15:09 (UTC)");
+		expect(zonedAt("2026-07-09T15:09:00.000Z", null, "en-GB")).toBe(
+			`${session("2026-07-09T15:09:00.000Z", "UTC")} (UTC)`,
+		);
+		expect(zonedAt("2026-07-09T15:09:00.000Z", "Not/AZone", "en-GB")).toBe(
+			`${session("2026-07-09T15:09:00.000Z", "UTC")} (UTC)`,
+		);
 		expect(zonedAt("soon", "Europe/London", "en-GB")).toBe("soon");
 	});
 });

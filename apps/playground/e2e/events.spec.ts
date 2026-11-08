@@ -170,7 +170,9 @@ test("Phase 2 journey: list → book → email (captured) → open from the emai
 	await again.context.close();
 
 	// Cancel from the email's device; the cancellation is emailed too.
-	await reader.page.getByRole("button", { name: "Cancel booking" }).click();
+	// T157: "Cancel booking" only opens its confirmation.
+	await reader.page.getByTestId("booking-cancel").getByText("Cancel booking").click();
+	await reader.page.getByRole("button", { name: "Yes, cancel this booking" }).click();
 	await expect(reader.page.getByTestId("booking-status")).toHaveAttribute("data-status", "cancelled");
 	await reader.context.close();
 	const cancelled = await mailTo(request, email, /^Booking cancelled: London Community Meetup$/);
@@ -183,7 +185,7 @@ const ZONES = [
 		slug: "london-meetup",
 		ticket: /General admission/,
 		title: "London Community Meetup",
-		when: "Thu 14 Mar 2030, 18:30 UTC (Europe/London)",
+		when: "Thu 14 Mar 2030, 18:30 (Europe/London)",
 		dtstart: "DTSTART;TZID=Europe/London:20300314T183000",
 		dtend: "DTEND;TZID=Europe/London:20300314T210000",
 	},
@@ -191,7 +193,7 @@ const ZONES = [
 		slug: "nyc-workshop",
 		ticket: /Standby/,
 		title: "New York Design Workshop",
-		when: "Thu 20 Jun 2030, 10:00 UTC-4 (America/New_York)",
+		when: "Thu 20 Jun 2030, 10:00 (America/New_York)",
 		dtstart: "DTSTART;TZID=America/New_York:20300620T100000",
 		dtend: "DTEND;TZID=America/New_York:20300620T140000",
 	},
@@ -199,7 +201,7 @@ const ZONES = [
 		slug: "sydney-conference",
 		ticket: /Conference pass/,
 		title: "Sydney Summit",
-		when: "Wed 6 Nov 2030, 09:00 UTC+11 (Australia/Sydney)",
+		when: "Wed 6 Nov 2030, 09:00 (Australia/Sydney)",
 		dtstart: "DTSTART;TZID=Australia/Sydney:20301106T090000",
 		dtend: "DTEND;TZID=Australia/Sydney:20301106T190000",
 	},

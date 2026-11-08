@@ -45,7 +45,10 @@ bundles nothing new into the cores; it calls them through their public routes in
    A waiver refusal of the order (`WAIVER_EMAIL_REQUIRED`, `WAIVER_TOO_MANY_EMAILS`, R48) goes back to the widget with its message.
    With Pro, `public/event` says `waiverEach` for a waiver signed per attendee; the form sends it and `checkWaiverSeats` (`lib/form.ts`, a copy of Pro's
    `planWaiverIntents` rules) refuses before reserving, so the usual refusal leaves no booking and sends no "cancelled" email. A refusal that only continue finds still cancels.
-   `lib/keep-form.ts` keeps what was typed in `sessionStorage` over the refusal's redirect (never in the URL; restored before the picker reads the select).
+   `lib/keep-form.ts` keeps what was typed in `sessionStorage` over the refusal's redirect (never in the URL), and fires `change` on what it
+   restores: the bundler may run Events' picker (a chunk shared with `<BookingWidget>`) first, so the picker follows its select's `change` (T157).
+   T157 layout: one card; one attendee row, the rest behind "Add another person" (`lib/rows.ts`, after keep-form in the same script; without
+   JavaScript a `<details>` "Add more people", open when the server marked one of its rows); a summary (people, total) above Book.
 3. Retry (T066, `intent=retry`): E-sign refusing an intent leaves the booking held and sends the browser to
    `/_events/waiver?ref=&error=SIGNING_UNAVAILABLE`, which shows a "Try again" form. It continues the booking
    again with the `semics_booking_<ref>` cookie and no `attendees` (Events keeps the stored ones; Pro skips

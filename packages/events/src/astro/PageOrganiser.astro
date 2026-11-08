@@ -1,0 +1,22 @@
+---
+// The organiser at the foot of the plugins' own pages (T157): the site's name and, when the site gives one,
+// its address (`page.brand.address`). It stays on a printed booking, where the brand bar is hidden.
+import { pickLocale, translator } from "../i18n/index";
+import type { PageBrand } from "./lib/page";
+
+interface Props {
+	brand?: PageBrand | undefined;
+	locale?: string;
+}
+
+const { brand } = Astro.props;
+const { t } = translator(pickLocale(Astro.props.locale, Astro.currentLocale));
+---
+{
+	brand && (
+		<footer class="semics-page-organiser" data-testid="page-organiser">
+			<p>{t("booking.organiser", { name: brand.name })}</p>
+			{brand.address && <address>{brand.address}</address>}
+		</footer>
+	)
+}

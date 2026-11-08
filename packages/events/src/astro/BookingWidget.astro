@@ -181,7 +181,7 @@ const when = (iso: string) => {
 							aria-invalid={invalid("occurrence")}
 							aria-describedby={errId("occurrence")}
 						>
-							<legend>{t("widget.date")}</legend>
+							<legend class="semics-visually-hidden">{t("widget.date")}</legend>
 							<table role="grid" class="semics-calendar" aria-labelledby={monthId}>
 								<thead>
 									<tr>
@@ -510,23 +510,30 @@ const when = (iso: string) => {
 	import "../client/picker.ts";
 </script>
 
+
 <style>
+	/* One card with even, generous padding; groups read as sections with small headings, not boxes (T157). */
 	.semics-booking-widget {
 		--_fg: var(--events-fg, #1a1a1a);
 		--_muted: var(--events-muted, #4a4a4a);
 		--_bg: var(--events-bg, #ffffff);
 		--_border: var(--events-border, #6b6b6b);
+		--_line: color-mix(in srgb, var(--_border) 30%, transparent);
+		--_tint: color-mix(in srgb, var(--_accent) 7%, var(--_bg));
 		--_accent: var(--events-accent, #0b57d0);
 		--_accent-fg: var(--events-accent-fg, #ffffff);
 		--_error: var(--events-error, #b3261e);
 		--_radius: var(--events-radius, 6px);
+		--_pad: clamp(1.25rem, 0.75rem + 2.5vw, 2rem);
 		box-sizing: border-box;
-		max-inline-size: 36rem;
-		padding: 1rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
+		max-inline-size: 38rem;
+		padding: var(--_pad);
+		border: 1px solid var(--_line);
+		border-radius: calc(var(--_radius) + 6px);
 		background: var(--_bg);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 24px rgb(0 0 0 / 0.06);
 		color: var(--_fg);
+		line-height: 1.5;
 		overflow-wrap: anywhere;
 	}
 	.semics-booking-widget *,
@@ -535,37 +542,40 @@ const when = (iso: string) => {
 		box-sizing: border-box;
 	}
 	.semics-booking-widget h2 {
-		margin: 0 0 0.75rem;
-		font-size: 1.25rem;
+		margin: 0 0 1.25rem;
+		font-size: 1.375rem;
+		line-height: 1.25;
 	}
 	.semics-booking-widget form {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 0.75rem;
+		gap: 1.25rem;
 	}
 	.semics-booking-widget .semics-waitlist {
-		margin-block-start: 1.25rem;
-		padding-block-start: 1rem;
-		border-block-start: 1px solid var(--_border);
+		margin-block-start: 1.5rem;
+		padding-block-start: 1.5rem;
+		border-block-start: 1px solid var(--_line);
 	}
 	.semics-waitlist h3,
 	.semics-waitlist p {
 		margin: 0;
 	}
-	.semics-tickets {
-		margin: 0;
-		padding: 0.5rem 0.75rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
-		min-inline-size: 0;
+	.semics-booking-widget legend {
+		margin: 0 0 0.5rem;
+		padding: 0;
+		font-size: 0.8125rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--_muted);
 	}
+	.semics-tickets,
 	.semics-questions {
 		display: grid;
 		gap: 0.75rem;
 		margin: 0;
-		padding: 0.5rem 0.75rem 0.75rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
+		padding: 0;
+		border: 0;
 		min-inline-size: 0;
 	}
 	.semics-check {
@@ -580,51 +590,68 @@ const when = (iso: string) => {
 		min-block-size: 1.25rem;
 		inline-size: 1.25rem;
 		margin: 0;
+		accent-color: var(--_accent);
 	}
 	.semics-hint {
 		color: var(--_muted);
 	}
+	.semics-picker-field {
+		gap: 0.75rem;
+	}
 	.semics-picker-nav {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 0.25rem 1rem;
+		align-items: center;
+		gap: 0.5rem;
 	}
 	.semics-picker-month {
 		margin: 0;
 		margin-inline-end: auto;
-		font-weight: 600;
+		font-size: 1.125rem;
+		font-weight: 700;
 	}
 	.semics-picker-nav a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 2.25rem;
+		padding: 0.25rem 0.875rem;
+		border: 1px solid var(--_line);
+		border-radius: 999px;
 		color: var(--_accent);
-		min-block-size: 1.5rem;
+		font-size: 0.9375rem;
+		text-decoration: none;
+	}
+	.semics-picker-nav a:hover {
+		border-color: var(--_accent);
 	}
 	.semics-picker {
 		display: grid;
-		gap: 0.5rem;
+		gap: 1rem;
 		margin: 0;
-		padding: 0.5rem 0.75rem 0.75rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
+		padding: 0;
+		border: 0;
 		min-inline-size: 0;
 	}
 	.semics-picker p {
 		margin: 0;
 	}
+	/* Room between the days: cells 6px apart, buttons at least 44px tall. */
 	.semics-calendar {
-		inline-size: 100%;
-		border-collapse: collapse;
+		inline-size: calc(100% + 0.75rem);
+		margin: -0.375rem;
+		border-collapse: separate;
+		border-spacing: 0.375rem;
 		table-layout: fixed;
 		text-align: center;
 	}
 	.semics-calendar th {
-		padding-block: 0.25rem;
-		font-weight: 400;
-		font-size: 0.875rem;
+		padding-block: 0 0.25rem;
+		font-weight: 600;
+		font-size: 0.8125rem;
 		color: var(--_muted);
 	}
 	.semics-calendar td {
-		padding: 1px;
+		padding: 0;
 	}
 	.semics-booking-widget .semics-calendar button,
 	.semics-booking-widget .semics-times button {
@@ -633,11 +660,20 @@ const when = (iso: string) => {
 		border: 1px solid var(--_accent);
 		background: var(--_bg);
 		color: var(--_accent);
+		font-weight: 600;
+	}
+	.semics-booking-widget .semics-calendar button {
+		block-size: clamp(2.75rem, 2rem + 2vw, 3.25rem);
+	}
+	.semics-booking-widget .semics-calendar button:not([aria-pressed="true"]):hover,
+	.semics-booking-widget .semics-times button:not([aria-disabled="true"], [aria-checked="true"]):hover {
+		background: var(--_tint);
 	}
 	.semics-booking-widget .semics-calendar button.semics-day-full,
 	.semics-booking-widget .semics-times button[aria-disabled="true"] {
-		border-color: var(--_border);
+		border-color: var(--_line);
 		color: var(--_muted);
+		font-weight: 400;
 		text-decoration: line-through;
 	}
 	.semics-booking-widget .semics-times button[aria-disabled="true"] {
@@ -649,36 +685,46 @@ const when = (iso: string) => {
 		color: var(--_accent-fg);
 	}
 	.semics-day-none {
-		display: block;
-		padding-block: 0.75rem;
+		display: grid;
+		place-items: center;
+		block-size: clamp(2.75rem, 2rem + 2vw, 3.25rem);
 		color: var(--_muted);
 	}
 	.semics-times {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
 		gap: 0.5rem;
 	}
 	.semics-booking-widget .semics-times button {
 		display: grid;
 		justify-items: center;
+		padding: 0.5rem;
 	}
 	.semics-places {
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
+		font-weight: 400;
 	}
 	.semics-ticket {
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
 		justify-content: space-between;
-		gap: 0.5rem;
-		padding-block: 0.25rem;
+		gap: 0.5rem 1rem;
+		padding-block: 0.5rem;
+		border-block-end: 1px solid var(--_line);
+	}
+	.semics-ticket:last-of-type {
+		border-block-end: 0;
 	}
 	.semics-ticket label {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 0 0.5rem;
+		gap: 0 0.75rem;
 		flex: 1 1 10rem;
 		min-inline-size: 0;
+	}
+	.semics-ticket-name {
+		font-weight: 600;
 	}
 	.semics-ticket-price,
 	.semics-ticket-soldout {
@@ -690,7 +736,10 @@ const when = (iso: string) => {
 	.semics-field {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 0.25rem;
+		gap: 0.375rem;
+	}
+	.semics-field > label {
+		font-weight: 500;
 	}
 	.semics-field select {
 		inline-size: 100%;
@@ -704,7 +753,7 @@ const when = (iso: string) => {
 	}
 	.semics-booking-widget input,
 	.semics-booking-widget select {
-		padding: 0.375rem 0.5rem;
+		padding: 0.5rem 0.75rem;
 		border: 1px solid var(--_border);
 		border-radius: var(--_radius);
 		background: var(--_bg);
@@ -723,7 +772,7 @@ const when = (iso: string) => {
 		display: none;
 	}
 	.semics-form-alert {
-		padding: 0.5rem 0.75rem;
+		padding: 0.75rem 1rem;
 		border: 1px solid var(--_error);
 		border-radius: var(--_radius);
 	}
@@ -731,16 +780,28 @@ const when = (iso: string) => {
 		margin: 0;
 		font-weight: 600;
 	}
+	/* The summary above Book. */
 	.semics-total {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.25rem 1rem;
 		margin: 0;
+		padding: 1rem 1.25rem;
+		border-radius: var(--_radius);
+		background: var(--_tint);
+	}
+	.semics-total strong {
+		font-size: 1.125rem;
 	}
 	.semics-booking-widget button {
 		justify-self: start;
-		padding: 0.5rem 1.5rem;
+		padding: 0.75rem 2rem;
 		border: 0;
 		border-radius: var(--_radius);
 		background: var(--_accent);
 		color: var(--_accent-fg);
+		font-weight: 600;
 		cursor: pointer;
 	}
 	.semics-promo-row {
@@ -769,6 +830,14 @@ const when = (iso: string) => {
 	.semics-booking-widget :focus-visible {
 		outline: 3px solid var(--_accent);
 		outline-offset: 2px;
+	}
+	.semics-visually-hidden {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
 	}
 	[hidden] {
 		display: none !important;

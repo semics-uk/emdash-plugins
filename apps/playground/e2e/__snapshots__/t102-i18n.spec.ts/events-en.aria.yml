@@ -58,28 +58,24 @@
       - button "Join the waitlist"
   - region "Booking status":
     - heading "Booking status" [level=2]
+    - paragraph: Waiting for payment
     - paragraph:
       - text: Reference
       - strong: ABCDEFGHJK
-    - paragraph: Waiting for payment
     - paragraph:
       - text: Your tickets are held until
-      - time: /\d+ Mar \d+, \d+:\d+ UTC/
+      - time: /Thursday, \d+ March \d+ at \d+:\d+ \(UTC\)/
       - text: .
     - list "2 tickets":
       - listitem: 2 × Standard
     - paragraph:
       - text: Total
       - strong: /£\d+\.\d+/
-    - paragraph:
-      - text: You can cancel until
-      - time: /\d+ Mar \d+, \d+:\d+ UTC/
-      - text: .
-    - button "Cancel booking"
+    - group: Cancel booking
   - region "Waiting for your payment":
     - heading "Waiting for your payment" [level=2]
     - status:
-      - paragraph: /If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed\. If you left the payment page, your tickets are held until \d+ Mar \d+, \d+:\d+ UTC and you can pay now\./
+      - paragraph: /If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed\. If you left the payment page, your tickets are held until Thursday, \d+ March \d+ at \d+:\d+ \(UTC\) and you can pay now\./
       - paragraph
     - button "Pay now"
     - link "Check again":

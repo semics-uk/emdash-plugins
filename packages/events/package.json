@@ -26,6 +26,8 @@
 		"./client/*": "./src/client/*.ts",
 		"./astro/BookingPage.astro": "./src/astro/BookingPage.astro",
 		"./astro/PageBrand.astro": "./src/astro/PageBrand.astro",
+		"./astro/PageOrganiser.astro": "./src/astro/PageOrganiser.astro",
+		"./astro/CancelBooking.astro": "./src/astro/CancelBooking.astro",
 		"./astro/DoorSignPage.astro": "./src/astro/DoorSignPage.astro",
 		"./astro/CheckIn.astro": "./src/astro/CheckIn.astro",
 		"./astro/OptOutPage.astro": "./src/astro/OptOutPage.astro",

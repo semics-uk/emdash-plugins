@@ -42,6 +42,19 @@ describe("events UI client budget and escaping (EU-NFR-02, T055 escaping)", () =
 		expect(widget).toContain("../client/picker.ts");
 	});
 
+	it("T157 the booking page's print script is self-contained, tiny, and has no HTML sinks or text", () => {
+		const source = readFileSync(resolve(root, "src/client/print.ts"), "utf8");
+		expect(source).not.toMatch(/^\s*import\s/m);
+		expect(source).not.toMatch(
+			/innerHTML|outerHTML|insertAdjacentHTML|document\.write|eval\(|new Function|textContent/,
+		);
+		expect(source).toContain("window.print()");
+		const js = ts.transpileModule(source, {
+			compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext, removeComments: true },
+		}).outputText;
+		expect(gzipSync(js).length).toBeLessThanOrEqual(512);
+	});
+
 	it("EV-FR-11 the check-in screen's script is self-contained, small, and has no HTML sinks (T082)", () => {
 		const source = readFileSync(resolve(root, "src/client/checkin.ts"), "utf8");
 		expect(source).not.toMatch(/^\s*import\s/m);

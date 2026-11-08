@@ -80,7 +80,14 @@ export function keepWaiverForms(doc: Document, storage: Stored, url: URL): void 
 		const eventId = (form.elements.namedItem("eventId") as HTMLInputElement | null)?.value ?? "";
 		const fields = () => [...form.elements] as unknown as HTMLInputElement[];
 		const kept = takeKept(storage, eventId, url.searchParams, Date.now(), fromHistory());
-		if (kept) applyFields(fields(), kept);
+		if (kept) {
+			applyFields(fields(), kept);
+			// Say so: the picker (whose shared script may have run first) then shows the kept day and time (T157).
+			for (const f of form.elements) {
+				const name = (f as HTMLInputElement).name;
+				if (name && Object.hasOwn(kept, name)) f.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+		}
 		let submitted = false;
 		form.addEventListener("submit", () => {
 			submitted = true;

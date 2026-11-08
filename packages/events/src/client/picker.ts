@@ -60,10 +60,14 @@ export function enhancePicker(picker: HTMLElement): void {
 	const radios = (group: HTMLElement) => Array.from(group.querySelectorAll<HTMLButtonElement>('[role="radio"]'));
 	const isOpen = (b: HTMLElement) => b.getAttribute("aria-disabled") !== "true";
 
+	// The picker's own changes, which `showSelected` (below) need not follow.
+	let own = false;
 	const setSelect = (value: string) => {
 		if (select.value === value) return;
 		select.value = value;
+		own = true;
 		select.dispatchEvent(new Event("change", { bubbles: true }));
+		own = false;
 	};
 
 	const chooseTime = (button: HTMLButtonElement, focus: boolean) => {
@@ -127,15 +131,22 @@ export function enhancePicker(picker: HTMLElement): void {
 		}
 	}
 
-	// A value the browser kept (back/forward, a failed submit): show its day and time.
-	const kept =
-		select.value && picker.querySelector<HTMLButtonElement>(`[data-occurrence="${CSS.escape(select.value)}"]`);
-	const keptDay =
-		kept && dayButtons.find((b) => b.dataset.day === kept.closest<HTMLElement>("[data-times]")?.dataset.times);
-	if (kept && keptDay) {
-		showDay(keptDay, false);
-		chooseTime(kept, false);
-	}
+	// A value the browser kept (back/forward, a failed submit): show its day and time. Also when a script sets
+	// the select later and says so with `change` (the suite's refused-form restore, whose script may run after
+	// this one, T157); the picker's own changes are skipped.
+	const showSelected = () => {
+		if (own) return;
+		const kept =
+			select.value && picker.querySelector<HTMLButtonElement>(`[data-occurrence="${CSS.escape(select.value)}"]`);
+		const keptDay =
+			kept && dayButtons.find((b) => b.dataset.day === kept.closest<HTMLElement>("[data-times]")?.dataset.times);
+		if (kept && keptDay) {
+			showDay(keptDay, false);
+			chooseTime(kept, false);
+		}
+	};
+	select.addEventListener("change", showSelected);
+	showSelected();
 }
 
 if (typeof document !== "undefined") {

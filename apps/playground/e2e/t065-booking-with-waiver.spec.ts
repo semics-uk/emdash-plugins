@@ -109,6 +109,11 @@ test("SX-FR-03 the waiver page embeds the ceremony under its CSP and forwards th
 	]);
 	const urls: string[] = [];
 	page.on("request", (r) => urls.push(r.url()));
+	// T157: the page's own stylesheet (by hash) and nothing else inline: the browser refuses nothing.
+	const refused: string[] = [];
+	page.on("console", (m) => {
+		if (/Content Security Policy/i.test(m.text())) refused.push(m.text());
+	});
 	const response = await page.goto(`/_events/waiver?ref=${ref}`);
 	const csp = response?.headers()["content-security-policy"] ?? "";
 	expect(csp).toMatch(/script-src 'sha256-[A-Za-z0-9+/=]+' 'sha256-/);
@@ -119,6 +124,13 @@ test("SX-FR-03 the waiver page embeds the ceremony under its CSP and forwards th
 	// T148: the slot block comes from the booking; this ref has no Events booking, so nothing extra shows
 	// and the ceremony is unaffected (the slot's text is covered by packages/events-suite/tests/slot.test.ts).
 	await expect(page.getByTestId("waiver-slot")).toHaveCount(0);
+	// T157: the ceremony is a card like the page's other sections, the "Signing as" line inside it.
+	const ceremony = page.getByTestId("signing-ceremony");
+	expect(await ceremony.evaluate((el) => Number.parseFloat(getComputedStyle(el).paddingInlineStart))).toBeGreaterThanOrEqual(20);
+	expect(refused).toEqual([]);
+	if (process.env.T157_SHOTS === "1") {
+		await page.screenshot({ path: `${process.cwd()}/../../tasks/evidence/T157/waiver-page-desktop.png`, fullPage: true });
+	}
 
 	await page.getByLabel("Type your full name to sign").fill("Ada Lovelace");
 	await page.getByLabel(/electronic records and an electronic signature/).check();
