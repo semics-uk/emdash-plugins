@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T157 booking UI design pass (Oli's feedback, plus the three rc.6 test fixes): PR open
+- (none)
 
 ## Next
 - Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike; rc.4's run passed): find out why, or report upstream to EmDash
@@ -29,6 +29,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-08 rc.7 published (T157 booking UI design pass and the three rc.6 fixes): npm Free and Pro, EmDash registry; LMSC told
 - 2026-11-08 LMSC staging on rc.6 (worker 4f7d7d7b): approve, decline, refused form, attendee edit, themed pages and UK times passed; signing after a lapsed hold still pending there
 - 2026-11-08 rc.6 published (LMSC staging fixes, Pro #1, T156 licence redraft): npm Free and Pro, EmDash registry; Pro skipped rc.5
 - 2026-11-07 LMSC staging on rc.4: card hold, approve, decline, checkout expiry and attendee list passed in Stripe's sandbox
@@ -38,4 +39,3 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - 2026-11-07 lmsc-site moved to npm rc.3 (PR #8, 3960249) and deployed to staging
 - 2026-11-06 rc.3 published: npm (Free and Pro) and EmDash registry; registry checksums match the attested builds
 - 2026-11-06 Changesets versions the three products together; CI fetches the base branch so verify runs on PRs
-- 2026-11-05 T153 intents carry `signBy`: E-sign refuses inline signatures once the hold ends (emailed seats keep E-sign's own expiry)
