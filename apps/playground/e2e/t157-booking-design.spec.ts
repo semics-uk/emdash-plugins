@@ -50,6 +50,22 @@ test("T157 the waiver widget is one card: groups have no boxes, the calendar has
 	}
 });
 
+test("T157 Events' booking widget is one card too: no boxed groups, a roomy calendar", async ({ browser }) => {
+	for (const [label, viewport] of [["desktop", DESKTOP], ["375", MOBILE]] as const) {
+		const { context, page } = await open(browser, "/e2e/picker", viewport);
+		const widget = page.getByTestId("booking-widget").first();
+		const padding = await widget.evaluate((el) => Number.parseFloat(getComputedStyle(el).paddingInlineStart));
+		expect(padding).toBeGreaterThanOrEqual(20);
+		await expect(widget.locator("fieldset.semics-tickets")).toHaveCSS("border-top-width", "0px");
+		expect((await widget.locator("button[data-day]").first().boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
+		expect(await noSideways(page)).toBeLessThanOrEqual(0);
+		await widget.locator("button[data-day]").first().click();
+		await widget.locator("[data-times]:visible").getByRole("radio").first().click();
+		await shot(page, `events-widget-${label}`);
+		await context.close();
+	}
+});
+
 test("T157 one attendee row, then Add another person up to the limit; the summary sits above Book", async ({ page }) => {
 	await page.goto(WAIVER);
 	const widget = page.getByTestId("booking-with-waiver");
