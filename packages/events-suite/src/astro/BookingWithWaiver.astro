@@ -302,7 +302,8 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 </section>
 
 <script>
-	// In this order: the kept values go back first, then the picker shows the date the select holds.
+	// The kept values go back, then the picker shows the date the select holds. The bundler may run the picker's
+	// shared chunk first, so keep-form fires `change` on what it restores and the picker follows it (T157).
 	import "./lib/keep-form";
 	import "@semics-tech/emdash-events/client/picker";
 </script>
