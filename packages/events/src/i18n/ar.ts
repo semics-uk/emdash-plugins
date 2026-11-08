@@ -170,6 +170,7 @@ export const ar: Messages = {
 
 	"pass.qr": "رمز QR لرمز تسجيل الحضور",
 	"pass.code": "رمز تسجيل الحضور",
+	"pass.codeShow": "إظهار الرمز لكتابته يدويًا",
 	"pass.status.pending": "بانتظار توقيع إقرار التنازل",
 	"pass.status.cancelled": "ملغاة",
 	"calendar.add": "أضف إلى التقويم",

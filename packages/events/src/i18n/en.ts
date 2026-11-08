@@ -174,6 +174,7 @@ export const en = {
 
 	"pass.qr": "QR code of the check-in code",
 	"pass.code": "Check-in code",
+	"pass.codeShow": "Show the code to type in",
 	"pass.status.pending": "Waiting for a signed waiver",
 	"pass.status.cancelled": "Cancelled",
 	"calendar.add": "Add to calendar",

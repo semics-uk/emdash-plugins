@@ -439,9 +439,9 @@ const when = (iso: string) => {
 
 				{siteKey && (
 					<>
-						<div class="cf-turnstile" data-sitekey={siteKey}></div>
-						{/* Turnstile is 300 px wide; in a narrower widget use its compact size so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
-						<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
+						<div class="cf-turnstile" data-sitekey={siteKey} data-theme="light"></div>
+						{/* Turnstile is 300 px wide: compact when the form has less room, so a 320 px screen never scrolls sideways (WCAG 1.4.10). The form is measured, not the empty box; a form not laid out yet (0 px) falls back to the screen less the card's padding (T158). Light, like the card. */}
+						<script is:inline>(function (s) { var t = s && s.previousElementSibling, f = t && t.closest("form"), w = f ? f.clientWidth : 0; if (!w) w = document.documentElement.clientWidth - 48; if (t && w < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						<noscript>
 							<p class="semics-needs-js" data-testid="booking-needs-js">{t("widget.needsJs")}</p>
 						</noscript>
@@ -493,8 +493,8 @@ const when = (iso: string) => {
 					</div>
 					{siteKey && (
 						<>
-							<div class="cf-turnstile" data-sitekey={siteKey}></div>
-							<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
+							<div class="cf-turnstile" data-sitekey={siteKey} data-theme="light"></div>
+							<script is:inline>(function (s) { var t = s && s.previousElementSibling, f = t && t.closest("form"), w = f ? f.clientWidth : 0; if (!w) w = document.documentElement.clientWidth - 48; if (t && w < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						</>
 					)}
 					<button type="submit" class="semics-secondary">{t("waitlist.button")}</button>
@@ -526,7 +526,8 @@ const when = (iso: string) => {
 		--_radius: var(--events-radius, 6px);
 		--_pad: clamp(1.25rem, 0.75rem + 2.5vw, 2rem);
 		box-sizing: border-box;
-		max-inline-size: 38rem;
+		/* The host sets the width: the widget fills its column, up to `--events-widget-max` when set (T158). */
+		max-inline-size: var(--events-widget-max, none);
 		padding: var(--_pad);
 		border: 1px solid var(--_line);
 		border-radius: calc(var(--_radius) + 6px);
@@ -665,9 +666,13 @@ const when = (iso: string) => {
 	.semics-booking-widget .semics-calendar button {
 		block-size: clamp(2.75rem, 2rem + 2vw, 3.25rem);
 	}
-	.semics-booking-widget .semics-calendar button:not([aria-pressed="true"]):hover,
+	/* Hover is its own, lighter state: a tint and a ring, the text stays the accent; only the chosen day or time
+	   is filled (T158). */
+	.semics-booking-widget .semics-calendar button:not([aria-pressed="true"], .semics-day-full):hover,
 	.semics-booking-widget .semics-times button:not([aria-disabled="true"], [aria-checked="true"]):hover {
 		background: var(--_tint);
+		box-shadow: inset 0 0 0 1px var(--_accent);
+		color: var(--_accent);
 	}
 	.semics-booking-widget .semics-calendar button.semics-day-full,
 	.semics-booking-widget .semics-times button[aria-disabled="true"] {
@@ -683,6 +688,7 @@ const when = (iso: string) => {
 	.semics-booking-widget .semics-times button[aria-checked="true"] {
 		background: var(--_accent);
 		color: var(--_accent-fg);
+		box-shadow: none;
 	}
 	.semics-day-none {
 		display: grid;

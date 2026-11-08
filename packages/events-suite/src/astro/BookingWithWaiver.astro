@@ -323,9 +323,9 @@ const currency = data?.currency ?? "GBP";
 
 				{siteKey && (
 					<>
-						<div class="cf-turnstile" data-sitekey={siteKey}></div>
-						{/* Compact below 300 px so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
-						<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
+						<div class="cf-turnstile" data-sitekey={siteKey} data-theme="light"></div>
+						{/* Compact when the form has under 300 px, so a 320 px screen never scrolls sideways (WCAG 1.4.10); a form not laid out yet falls back to the screen less the card's padding (T158). Light, like the card. */}
+						<script is:inline>(function (s) { var t = s && s.previousElementSibling, f = t && t.closest("form"), w = f ? f.clientWidth : 0; if (!w) w = document.documentElement.clientWidth - 48; if (t && w < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 						<noscript><p class="semics-note">This form uses a security check that needs JavaScript.</p></noscript>
 						<script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 					</>
@@ -360,7 +360,8 @@ const currency = data?.currency ?? "GBP";
 		--_radius: var(--events-radius, 6px);
 		--_pad: clamp(1.25rem, 0.75rem + 2.5vw, 2rem);
 		box-sizing: border-box;
-		max-inline-size: 38rem;
+		/* The host sets the width: the widget fills its column, up to `--events-widget-max` when set (T158). */
+		max-inline-size: var(--events-widget-max, none);
 		padding: var(--_pad);
 		border: 1px solid var(--_line);
 		border-radius: calc(var(--_radius) + 6px);
@@ -554,9 +555,13 @@ const currency = data?.currency ?? "GBP";
 	.semics-waiver-widget .semics-calendar button {
 		block-size: clamp(2.75rem, 2rem + 2vw, 3.25rem);
 	}
-	.semics-waiver-widget .semics-calendar button:not([aria-pressed="true"]):hover,
+	/* Hover is its own, lighter state: a tint and a ring, the text stays the accent; only the chosen day or time
+	   is filled (T158). */
+	.semics-waiver-widget .semics-calendar button:not([aria-pressed="true"], .semics-day-full):hover,
 	.semics-waiver-widget .semics-times button:not([aria-disabled="true"], [aria-checked="true"]):hover {
 		background: var(--_tint);
+		box-shadow: inset 0 0 0 1px var(--_accent);
+		color: var(--_accent);
 	}
 	.semics-waiver-widget .semics-calendar button.semics-day-full,
 	.semics-waiver-widget .semics-times button[aria-disabled="true"] {
@@ -572,6 +577,7 @@ const currency = data?.currency ?? "GBP";
 	.semics-waiver-widget .semics-times button[aria-checked="true"] {
 		background: var(--_accent);
 		color: var(--_accent-fg);
+		box-shadow: none;
 	}
 	.semics-day-none {
 		display: grid;

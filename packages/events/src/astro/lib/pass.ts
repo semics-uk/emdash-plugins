@@ -33,3 +33,12 @@ export function qrPath(qr: unknown): QrPath | null {
 	}
 	return { size, d };
 }
+
+/**
+ * A check-in code in groups of four for reading (T158): the pass draws each group as its own span, spaced by CSS, so
+ * the text (and a copy of it) stays the exact value door check-in takes. A short code (12 or fewer) stays whole.
+ */
+export function codeGroups(code: string): string[] {
+	if (code.length <= 12) return code ? [code] : [];
+	return code.match(/.{1,4}/gsu) ?? [];
+}
