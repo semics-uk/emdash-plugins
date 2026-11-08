@@ -20,7 +20,7 @@ exports[`UI text in en and ar (EU-NFR-04 snapshots) > EU-NFR-04 Arabic 1`] = `
   "field": "أدخل بريدًا إلكترونيًا صحيحًا.",
   "free": "مجاني",
   "payment": {
-    "body": "إذا كنت قد دفعت للتو، فستتحدث هذه الصفحة تلقائيًا خلال دقيقة وسنراسلك بالبريد الإلكتروني فور تأكيد الدفع. إذا غادرت صفحة الدفع، فتذاكرك محجوزة حتى 14 مارس 2030، 18:30 (UTC) ويمكنك الدفع الآن.",
+    "body": "إذا كنت قد دفعت للتو، فستتحدث هذه الصفحة تلقائيًا خلال دقيقة وسنراسلك بالبريد الإلكتروني فور تأكيد الدفع. إذا غادرت صفحة الدفع، فتذاكرك محجوزة حتى الخميس، 14 مارس 2030 في 6:30 م (UTC) ويمكنك الدفع الآن.",
     "heading": "بانتظار دفعتك",
     "poll": true,
     "resume": true,
@@ -65,7 +65,7 @@ exports[`UI text in en and ar (EU-NFR-04 snapshots) > EU-NFR-04 English 1`] = `
   "field": "Enter a valid email address.",
   "free": "Free",
   "payment": {
-    "body": "If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed. If you left the payment page, your tickets are held until 14 Mar 2030, 18:30 (UTC) and you can pay now.",
+    "body": "If you have just paid, this page updates by itself within a minute and we will email you once the payment is confirmed. If you left the payment page, your tickets are held until Thursday, 14 March 2030 at 18:30 (UTC) and you can pay now.",
     "heading": "Waiting for your payment",
     "poll": true,
     "resume": true,

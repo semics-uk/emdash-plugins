@@ -62,31 +62,26 @@ const WHEN: Intl.DateTimeFormatOptions = {
 	timeZoneName: "short",
 };
 
-const AT: Intl.DateTimeFormatOptions = {
-	day: "numeric",
-	month: "short",
-	year: "numeric",
-	hour: "2-digit",
-	minute: "2-digit",
-	hourCycle: "h23",
-};
+/** The booking widget's and the waiver page's date format: full date, short time. */
+const AT: Intl.DateTimeFormatOptions = { dateStyle: "full", timeStyle: "short" };
 
 /**
- * A deadline on a customer page: local time in the event's own zone, named as the emails name it
- * ("9 Nov 2026, 15:09 (Europe/London)", not workerd's "GMT+0"). UTC for a missing or unknown zone; the raw value
- * for one that is not a date.
+ * A time on a customer page (a deadline, a hold, the booked session): local time in the event's own zone, as the
+ * session's time line reads ("Monday 9 November 2026 at 15:09", T157), without the zone's name. A missing or
+ * unknown zone shows UTC and says so; a value that is not a date is shown as it is.
  */
 export function zonedAt(iso: string, timezone: string | null | undefined, locale: string): string {
 	const ms = Date.parse(iso);
 	if (!Number.isFinite(ms)) return iso;
-	const zone = timezone && isValidTimeZone(timezone) ? timezone : "UTC";
+	const known = Boolean(timezone && isValidTimeZone(timezone));
+	const zone = known ? (timezone as string) : "UTC";
 	let time: string;
 	try {
 		time = formatInZone(ms, zone, locale, AT);
 	} catch {
 		time = formatInZone(ms, zone, "en-GB", AT); // A locale `Intl` refuses, such as `en_GB`.
 	}
-	return `${time} (${zone})`;
+	return known ? time : `${time} (UTC)`;
 }
 
 const BADGES = { cancelled: "list.badge.cancelled", closed: "list.badge.closed", paused: "list.badge.paused" } as const;
