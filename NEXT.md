@@ -29,6 +29,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-08 rc.6 published (LMSC staging fixes, Pro #1, T156 licence redraft): npm Free and Pro, EmDash registry; Pro skipped rc.5
 - 2026-11-07 LMSC staging on rc.4: card hold, approve, decline, checkout expiry and attendee list passed in Stripe's sandbox
 - 2026-11-07 lmsc-site staging moved to Pro rc.4 (Free rc.4 was already deployed from another session)
 - 2026-11-07 rc.4 published (T155): npm (Free and Pro) and EmDash registry
@@ -38,4 +39,3 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - 2026-11-06 Changesets versions the three products together; CI fetches the base branch so verify runs on PRs
 - 2026-11-05 T153 intents carry `signBy`: E-sign refuses inline signatures once the hold ends (emailed seats keep E-sign's own expiry)
 - 2026-11-04 T154 Free sites ask for esign/catalog-request once per process, not per Refresh
-- 2026-11-03 T140 cold-start test measures in a fresh Node process (Vitest's loader had tripled it)
