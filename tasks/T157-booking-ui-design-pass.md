@@ -4,7 +4,7 @@ title: "Booking UI design pass: one card, roomy calendar, confirmed page leads w
 phase: 7
 package: events-suite
 edition: free
-status: in-progress
+status: review
 model: opus-5.5
 size: M
 depends_on: [T155]
@@ -42,29 +42,51 @@ Also from the rc.6 test (2026-11-08):
 
 ## Acceptance criteria
 
-- [ ] Widget: one card with even, generous inner padding; no fieldset borders (legends become small headings);
+- [x] Widget: one card with even, generous inner padding; no fieldset borders (legends become small headings);
       calendar cells and gaps roomier and the month header uncramped, on desktop and at 375px.
-- [ ] Attendees: one attendee row shows, plus an "Add another person" button up to the limit; works without
+- [x] Attendees: one attendee row shows, plus an "Add another person" button up to the limit; works without
       JavaScript (the no-JS form still lets you book more than one place); refused-form restore still fills
       every row.
-- [ ] A summary and price line sits above Book.
-- [ ] Full pages: one summary card with a clear hierarchy and consistent spacing; the waiver "Signing as" strip
+- [x] A summary and price line sits above Book.
+- [x] Full pages: one summary card with a clear hierarchy and consistent spacing; the waiver "Signing as" strip
       lines up with the card; "Cancel booking" becomes a quiet secondary action lower down, still behind its
       confirmation.
-- [ ] The confirmed page leads with the session date, time (event's zone, same format as 7) and place.
-- [ ] "Print or save as PDF" button on the confirmed page (`window.print()`), with a print stylesheet: it hides
+- [x] The confirmed page leads with the session date, time (event's zone, same format as 7) and place.
+- [x] "Print or save as PDF" button on the confirmed page (`window.print()`), with a print stylesheet: it hides
       buttons and the brand bar, and keeps the reference, date and time, attendees, total, QR tickets and the
       organiser's name and address where known. The check-in code is smaller, or shown only beside its QR.
-- [ ] Items 5, 6 and 7 fixed, each with a test that fails first.
-- [ ] `eventsSuite({ page: { theme, brand, stylesheet, eventPath } })` and the `--events-*` properties keep
+- [x] Items 5, 6 and 7 fixed, each with a test that fails first.
+- [x] `eventsSuite({ page: { theme, brand, stylesheet, eventPath } })` and the `--events-*` properties keep
       working; the signing page CSP still allows the stylesheet (hash) and no new inline script without its hash.
-- [ ] Events backend bundle stays within budget (about 63 bytes of room): keep this to Astro components and
+- [x] Events backend bundle stays within budget (about 63 bytes of room): keep this to Astro components and
       their CSS, not the sandboxed backend. Bundle-size test passes.
-- [ ] Changeset (patch) for each package changed; `pnpm verify` passes.
-- [ ] Screenshots (desktop and 375px) of the widget, the confirmed page and its print preview, attached in the
+- [x] Changeset (patch) for each package changed; `pnpm verify` passes.
+- [x] Screenshots (desktop and 375px) of the widget, the confirmed page and its print preview, attached in the
       report.
 
 ## Notes
 
 - LMSC handles the page around the widget (column width and spacing on the activity page) in lmsc-site.
 - Pro composes these components; check that Events Pro's waiver steps still render after the markup change.
+
+### Done (agent, 2026-11-08)
+
+- Item 5's cause: Events' picker script is a chunk shared with `<BookingWidget>`, so the bundler runs it before
+  keep-form's inlined code (the import order in the `<script>` did not hold). keep-form now fires `change` on what it
+  restores and the picker follows its select's `change` (skipping its own). Test: `e2e/t143-waiver-picker.spec.ts`
+  "T157 after a refused form...", seen failing (aria-pressed stayed "false") before the fix.
+- Item 6: "Email (needed for adults)" (`tests/widget-markup.test.ts`). Item 7: `zonedAt` now uses the widget's full date
+  and short time ("Tuesday, 10 November 2026 at 12:47") with no zone name; a missing or unknown zone still says "(UTC)"
+  (`tests/ui/list.test.ts`). Emails are unchanged (backend budget): they still read "10 Nov 2026, 12:47 (Europe/London)".
+- Attendee rows: rows 2..`seats` (default 4, unchanged) sit in a `<details>` "Add more people (up to 4 in all)" without
+  JavaScript, opened by the server when it marked one of them; with JavaScript `lib/rows.ts` shows one row and "Add
+  another person", and shows every row a kept, refused form filled. It also fills the summary (date, people, total) above Book.
+- `/booking`: `<BookingStatus>` leads with title, session (`event.startsAt` in the event's zone) and `event.venue` (already in
+  `public/booking`'s `event`; only the UI type gained `venue`). "Who is coming" lists names when at least two differ. The print
+  button, `<CancelBooking>` (a `<details>` confirmation, no JS needed) and `<PageOrganiser>` are new; `page.brand.address`
+  (one line) is a new, optional page option. There was no cancel confirmation before; this adds one.
+- Waiver page: the session and "signing for" lines are one card; the ceremony is a card (PAGE_CSS), so "Signing as" sits inside
+  it. No new inline style or script: the CSP hash covers PAGE_CSS as before (`e2e/t065` now also checks no CSP refusals).
+- Also fixed: `e2e/events.spec.ts`'s 3-zone email expectations were stale since PR #7 (the emails dropped "UTC±n").
+- Screenshots: `tasks/evidence/T157/` (`T157_SHOTS=1` with `e2e/t157-booking-design.spec.ts` and `t065` rewrites them).
+  `/e2e/booking-view` is a fixed-data copy of a confirmed booking with a brand, address and Pro QR passes.
