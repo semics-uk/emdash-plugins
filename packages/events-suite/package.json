@@ -1,6 +1,6 @@
 {
 	"name": "@semics-tech/emdash-events-suite",
-	"version": "1.0.0-rc.7",
+	"version": "1.0.0-rc.8",
 	"type": "module",
 	"description": "Links semics Events and E-sign on one EmDash site: one config call and a booking flow with inline waiver signing",
 	"license": "MIT",
