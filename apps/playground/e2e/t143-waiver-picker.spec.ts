@@ -62,3 +62,32 @@ test("T143 fits a 320 px screen and has no accessibility violations", async ({ b
 	expect(results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([]);
 	await context.close();
 });
+
+test("T157 after a refused form the calendar shows the chosen day and its times again", async ({ page }) => {
+	await page.goto(PAGE);
+	const widget = page.getByTestId("booking-with-waiver");
+	const picker = widget.getByTestId("booking-picker");
+	await picker.locator("button[data-day]").first().click();
+	await picker.locator("[data-times]:visible").getByRole("radio").nth(1).click();
+	await widget.getByLabel("Your name").fill("Ada Lovelace");
+	await widget.getByLabel("Your email").fill("ada@example.com");
+	await widget.getByLabel("Attendee 1 Name").fill("Ada Lovelace");
+
+	// The refusal: back to the widget with codes only, as `/_events/waiver` answers one.
+	await page.route("**/_events/waiver", (route) =>
+		route.fulfill({
+			status: 303,
+			headers: { location: `${PAGE}?waiver_error=WAIVER_EMAIL_REQUIRED&waiver_event=e2e-waiver-picker` },
+		}),
+	);
+	await widget.getByRole("button", { name: "Book", exact: true }).click();
+	await expect(widget.getByTestId("waiver-alert")).toBeVisible();
+
+	await expect(widget.locator('select[name="occurrenceId"]')).toHaveValue("s-e2e-0-1");
+	await expect(picker.locator("button[data-day]").first()).toHaveAttribute("aria-pressed", "true");
+	await expect(picker.locator("[data-picker-hint]")).toBeHidden();
+	const shown = picker.locator("[data-times]:visible").getByRole("radio");
+	await expect(shown).toHaveCount(3);
+	await expect(shown.nth(1)).toHaveAttribute("aria-checked", "true");
+	await expect(widget.getByLabel("Attendee 1 Name")).toHaveValue("Ada Lovelace");
+});
