@@ -30,6 +30,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-08 rc.8 published (T158 polish): npm Free and Pro, EmDash registry; LMSC told
 - 2026-11-08 T158 booking UI polish merged (#15): Turnstile size and theme, hover, host width, card edges, check-in code display
 - 2026-11-08 rc.7 published (T157 booking UI design pass and the three rc.6 fixes): npm Free and Pro, EmDash registry; LMSC told
 - 2026-11-08 LMSC staging on rc.6 (worker 4f7d7d7b): approve, decline, refused form, attendee edit, themed pages and UK times passed; signing after a lapsed hold still pending there
@@ -39,4 +40,3 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - 2026-11-07 rc.4 published (T155): npm (Free and Pro) and EmDash registry
 - 2026-11-07 Staging: hand-made E-sign client cl_wvaue3o4nlndih26 revoked by D1 update; "Events on this site" kept
 - 2026-11-07 lmsc-site moved to npm rc.3 (PR #8, 3960249) and deployed to staging
-- 2026-11-06 rc.3 published: npm (Free and Pro) and EmDash registry; registry checksums match the attested builds
