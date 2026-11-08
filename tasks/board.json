@@ -3115,15 +3115,35 @@
 				"T155"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T158"
+			],
 			"column": "done"
+		},
+		"T158": {
+			"file": "T158-booking-ui-polish.md",
+			"id": "T158",
+			"title": "Booking UI polish after rc.7: Turnstile size and theme, hover, width, card edges, check-in code",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T157"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [],
 		"in-progress": [
-			"T156"
+			"T156",
+			"T158"
 		],
 		"review": [],
 		"done": [
