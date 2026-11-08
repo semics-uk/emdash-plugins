@@ -4,10 +4,9 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- (none)
+- T157 booking UI design pass (Oli's feedback, plus the three rc.6 test fixes): agent running in a worktree
 
 ## Next
-- LMSC rc.6 test fixes (2026-11-08, suite/Events): after a refused form (?waiver_error=) the calendar forgets the chosen day though the select keeps the slot, so show the day and its slots again; attendee email says "Email (optional)" but adults other than the booker need one, so relabel it (e.g. "Email (needed for adults)"); deadlines and holds read "10 Nov 2026, 12:47 (Europe/London)", so say "UK time" or drop the zone label for UK sites
 - Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike; rc.4's run passed): find out why, or report upstream to EmDash
 - "Publish to the EmDash registry" showed as skipped in the Release run for #5, though Done says rc.4 reached the registry: check which is right
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval

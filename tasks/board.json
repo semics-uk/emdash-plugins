@@ -3079,7 +3079,9 @@
 				"T077"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T157"
+			],
 			"column": "done"
 		},
 		"T156": {
@@ -3098,13 +3100,31 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "in-progress"
+		},
+		"T157": {
+			"file": "T157-booking-ui-design-pass.md",
+			"id": "T157",
+			"title": "Booking UI design pass: one card, roomy calendar, confirmed page leads with the session, print or save",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T155"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [],
 		"in-progress": [
-			"T156"
+			"T156",
+			"T157"
 		],
 		"review": [],
 		"done": [
