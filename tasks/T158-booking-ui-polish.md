@@ -4,7 +4,7 @@ title: "Booking UI polish after rc.7: Turnstile size and theme, hover, width, ca
 phase: 7
 package: events-suite
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T157]
