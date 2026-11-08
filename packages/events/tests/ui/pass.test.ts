@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { qrPath } from "../../src/astro/lib/pass";
+import { codeGroups, qrPath } from "../../src/astro/lib/pass";
 
 /** A matrix in the shape Pro's `public/booking` sends: row-major, four modules per hex digit. */
 function matrix(dark: (x: number, y: number) => boolean, size = 21) {
@@ -40,5 +40,22 @@ describe("ticket pass QR (EV-FR-11, T082)", () => {
 		]) {
 			expect(qrPath(bad), JSON.stringify(bad)).toBeNull();
 		}
+	});
+});
+
+describe("check-in code display (T158)", () => {
+	const code = "q3M8vXbT1kR0wZ9pLc2YhN5sGd7uJf4aEo6iKyB_x-Q";
+
+	it("T158 groups the code in fours for reading, and the groups join back to the exact value", () => {
+		const groups = codeGroups(code);
+		expect(groups).toHaveLength(11);
+		expect(groups[0]).toBe("q3M8");
+		expect(groups.at(-1)).toBe("x-Q");
+		expect(groups.join("")).toBe(code);
+	});
+
+	it("T158 keeps a short or odd code whole, and an empty one empty", () => {
+		expect(codeGroups("K7Q2-M9XD")).toEqual(["K7Q2-M9XD"]);
+		expect(codeGroups("")).toEqual([]);
 	});
 });

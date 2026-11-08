@@ -306,7 +306,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 
 - Accessibility (T101, R56): the playground's `e2e/t101-accessibility.spec.ts` requires zero WCAG 2.2 A/AA axe violations on
   every public page (1280 and 320 px), a visible focus ring on every control, and no sideways scroll at 320 px. Each Turnstile
-  box is followed by a one-line inline script that switches it to `data-size=compact` in a container under 300 px.
+  box is followed by a one-line inline script that switches it to `data-size=compact` when its form is under 300 px wide
+  (a form not laid out yet counts as the screen less 48 px, T158); every box is `data-theme="light"`.
 
 - Translations (T102, R58): every text of the UI half comes from `src/i18n/` (`en.ts` is the source, `ar.ts` the first
   right-to-left language; `t`, `translator`, `clientMessages`, `segments`, `pickLocale`). Components take `locale`, else
@@ -332,6 +333,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   (`data-print`, hidden until `src/client/print.ts` shows it), `<CancelBooking>` (a `<details>` confirmation; `<BookingStatus
   cancelAction>` still renders it inside the card for other callers) and `<PageOrganiser>` (`page.brand.name`, optional one-line
   `page.brand.address`). `/e2e/booking-view` in the playground is a fixed-data copy for layout, print and screenshot checks.
+- Booking UI polish (T158, UI only): both widgets fill their host column, capped by `--events-widget-max` (default `none`;
+  was 38rem). Hovered days and times are a tint plus an inset ring; only the chosen one is filled. `PAGE_CSS`'s card rule
+  is `.semics-page-main > :is(section,form:not([hidden]),.semics-ceremony)` (0,2,1), so it outranks a component's own box
+  (`.semics-payment`, `.semics-attendee-list`, both 0,2,0 with Astro's scope attribute) and every card has the same edges.
+  Check-in codes are `generateToken()` (43 base64url characters); `checkin/code` (Pro) and the Attendees page's "Check in by
+  code" match the stored value exactly, so `<TicketPass>` never shortens it: with a QR the face shows none ("Show the code to
+  type in" `<details>`, plus a print-only one-line copy under the QR, `ticket-code-print`), without one it shows in full,
+  grouped in fours by `codeGroups` (`lib/pass.ts`) as spaced spans, so the text stays the exact value.
 ## Where things live
 
 `src/domain` pure logic (90% line coverage) · `src/routes` thin adapters · `src/storage/schema.ts`

@@ -22,8 +22,9 @@ works without it) and the Pro check-in screen (staff can use the Attendees page 
 
 ## Turnstile on narrow screens
 
-Cloudflare's Turnstile box is 300 px wide. Where its container is narrower, a one-line script switches it to
-Turnstile's compact size, so it fits at 320 px.
+Cloudflare's Turnstile box is 300 px wide. Where the booking form has less room, a one-line script switches it to
+Turnstile's compact size, so it fits at 320 px; on a wider form it keeps its full size. It always uses Turnstile's
+light theme, to match the widget's card.
 
 ## Out of scope
 

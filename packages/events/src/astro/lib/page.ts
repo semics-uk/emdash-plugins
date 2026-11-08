@@ -90,7 +90,11 @@ export function eventPageHref(slug: string | null | undefined, eventPath?: strin
 	return slug ? (eventPath ?? "/events/{slug}").replace("{slug}", encodeURIComponent(slug)) : undefined;
 }
 
-/** Works with no site theme at all. Zero specificity on elements, so the components' own rules win. */
+/**
+ * Works with no site theme at all. Zero specificity on elements, so the components' own rules win; except the card
+ * rule for `main`'s sections, which outranks a component's own box (`.semics-payment`, `.semics-attendee-list`) so
+ * every card has the same edges, width and look (T158).
+ */
 export const PAGE_CSS = `*,*::before,*::after{box-sizing:border-box}
 html{color-scheme:light;-webkit-text-size-adjust:100%}
 body.semics-page{margin:0;min-block-size:100vh;background:var(--events-page-bg, #f5f4f0);color:var(--events-fg, #1a1a1a);font-family:var(--events-font, system-ui, sans-serif);font-size:1.0625rem;line-height:1.55;overflow-wrap:anywhere;
@@ -106,7 +110,7 @@ body.semics-page{margin:0;min-block-size:100vh;background:var(--events-page-bg, 
 :where(.semics-page) p{margin:0 0 .75rem}
 :where(.semics-page) a{color:var(--events-accent, #0b57d0);text-underline-offset:.2em}
 :where(.semics-page) :focus-visible{outline:3px solid var(--events-accent, #0b57d0);outline-offset:2px}
-:where(.semics-page-main > section,.semics-page-main > form:not([hidden]),.semics-page-main > .semics-ceremony){margin-block:0 1.25rem;padding:clamp(1.25rem,.9rem + 1.8vw,1.75rem);background:var(--events-bg, #ffffff);border:1px solid color-mix(in srgb,var(--events-border, #6b6b6b) 30%,transparent);border-radius:calc(var(--events-radius, 6px) + 6px);box-shadow:0 1px 2px rgb(0 0 0 / .04),0 6px 24px rgb(0 0 0 / .05);max-inline-size:none}
+.semics-page-main > :is(section,form:not([hidden]),.semics-ceremony){margin-block:0 1.25rem;padding:clamp(1.25rem,.9rem + 1.8vw,1.75rem);background:var(--events-bg, #ffffff);border:1px solid color-mix(in srgb,var(--events-border, #6b6b6b) 30%,transparent);border-radius:calc(var(--events-radius, 6px) + 6px);box-shadow:0 1px 2px rgb(0 0 0 / .04),0 6px 24px rgb(0 0 0 / .05);max-inline-size:none}
 :where(.semics-page-main > section,.semics-page-main > form,.semics-page-main > .semics-ceremony) > :last-child{margin-block-end:0}
 :where(.semics-page) [role="alert"]{padding:.75rem 1rem;border:1px solid var(--events-error, #b3261e);border-radius:var(--events-radius, 6px);background:var(--events-bg, #ffffff);color:var(--events-error, #b3261e)}
 :where(.semics-page) :is(input:not([type="checkbox"],[type="radio"],[type="hidden"]),select,textarea){font:inherit;inline-size:100%;min-block-size:2.75rem;padding:.5rem .75rem;border:1px solid var(--events-border, #6b6b6b);border-radius:var(--events-radius, 6px);background:var(--events-bg, #ffffff);color:var(--events-fg, #1a1a1a)}
@@ -124,7 +128,7 @@ body.semics-page{margin:0;min-block-size:100vh;background:var(--events-page-bg, 
 body.semics-page{min-block-size:0;background:#ffffff;color:#000000;font-size:11pt}
 .semics-page-brand,.semics-page-actions,.semics-page-main form,.semics-page-main button,.semics-page-main details,.semics-add-to-calendar,[data-semics-payment-live]{display:none !important}
 .semics-page-main{max-inline-size:none;padding:0}
-:where(.semics-page-main > section,.semics-page-main > .semics-ceremony){box-shadow:none;border-color:#999999;break-inside:avoid}
+.semics-page-main > :is(section,form:not([hidden]),.semics-ceremony){box-shadow:none;border-color:#999999;break-inside:avoid}
 .semics-ticket-pass{break-inside:avoid}
 .semics-page-organiser{max-inline-size:none;padding:1rem 0 0;color:#000000}
 }

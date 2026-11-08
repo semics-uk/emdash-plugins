@@ -1,6 +1,8 @@
 ---
 // e2e-only page (T143): the suite's <BookingWithWaiver> for a slot schedule, fixed data as on /e2e/picker
 // (three sessions a day on the first nine days of next month, UTC; day 3 fully booked).
+// T158: `?turnstile=1` turns Turnstile on (Cloudflare's always-pass test key); `?host=wide` puts the widget in a
+// 60rem host column, `?host=capped` also sets `--events-widget-max: 30rem` on it.
 import BookingWithWaiver from "@semics-tech/emdash-events-suite/astro/BookingWithWaiver.astro";
 
 export const prerender = false;
@@ -22,7 +24,11 @@ const data = {
 	waiver: true,
 	ticketTypes: [{ id: "tt_e2e_lane", name: "Lane", priceMinor: 0, available: 50, maxPerOrder: 4 }],
 	occurrences,
+	...(Astro.url.searchParams.get("turnstile") === "1" ? { turnstileSiteKey: "1x00000000000000000000AA" } : {}),
 };
+const host = Astro.url.searchParams.get("host");
+const hostStyle =
+	host === "wide" ? "inline-size:min(100%,60rem)" : host === "capped" ? "inline-size:min(100%,60rem);--events-widget-max:30rem" : undefined;
 ---
 <!doctype html>
 <html lang="en">
@@ -35,7 +41,9 @@ const data = {
 	<body>
 		<main>
 			<h1>Waiver booking with the day and time picker</h1>
-			<BookingWithWaiver event="e2e-waiver-picker" data={data} />
+			<div data-testid="host-column" style={hostStyle}>
+				<BookingWithWaiver event="e2e-waiver-picker" data={data} />
+			</div>
 		</main>
 	</body>
 </html>

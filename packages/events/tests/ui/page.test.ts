@@ -31,7 +31,7 @@ describe("page styles", () => {
 
 	it("T157 makes each section, and the signing ceremony, one card with the same padding", () => {
 		expect(PAGE_CSS).toContain(
-			":where(.semics-page-main > section,.semics-page-main > form:not([hidden]),.semics-page-main > .semics-ceremony){",
+			".semics-page-main > :is(section,form:not([hidden]),.semics-ceremony){margin-block:0 1.25rem;",
 		);
 		expect(PAGE_CSS).toContain("padding:clamp(1.25rem,.9rem + 1.8vw,1.75rem)");
 	});
