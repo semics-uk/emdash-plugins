@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T157 booking UI design pass (Oli's feedback, plus the three rc.6 test fixes): agent running in a worktree
+- T157 booking UI design pass (Oli's feedback, plus the three rc.6 test fixes): PR open
 
 ## Next
 - Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike; rc.4's run passed): find out why, or report upstream to EmDash
