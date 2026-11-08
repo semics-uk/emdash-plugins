@@ -7,6 +7,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
+- From the rc.7 browser check on LMSC staging (2026-11-08): the widget's Turnstile is in its compact size (150x140) even on desktop, leaving a tall gap above Book, since `clientWidth < 300` is read before the box has a width; hovering a calendar day looks the same as choosing it. Not checked: the confirmed page, print, and the waiver page (no booking past Turnstile)
 - Release workflow reports failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3 alike; rc.4's run passed): find out why, or report upstream to EmDash
 - "Publish to the EmDash registry" showed as skipped in the Release run for #5, though Done says rc.4 reached the registry: check which is right
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
