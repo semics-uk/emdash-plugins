@@ -273,7 +273,7 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 							<input id={`${id}-${n}-name`} name={seatField(n, "name")} type="text" maxlength="200" required={n === 1 || undefined} aria-invalid={bad(seatField(n, "name"))} />
 						</div>
 						<div class="semics-field">
-							<label for={`${id}-${n}-email`}><span class="semics-sr">Attendee {n} </span>Email (optional)</label>
+							<label for={`${id}-${n}-email`}><span class="semics-sr">Attendee {n} </span>Email (needed for adults)</label>
 							<input id={`${id}-${n}-email`} name={seatField(n, "email")} type="email" maxlength="254" aria-invalid={bad(seatField(n, "email"))} />
 						</div>
 						<div class="semics-check">

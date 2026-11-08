@@ -66,7 +66,7 @@ async function bookParty(page: Page, who: Party): Promise<string> {
 	await widget.getByLabel("Your email").fill(who.buyer);
 	await widget.getByLabel("Attendee 1 Name").fill("Ada Lovelace");
 	await widget.getByLabel("Attendee 2 Name").fill("Charles Babage");
-	await widget.getByLabel("Attendee 2 Email (optional)").fill(who.adult);
+	await widget.getByLabel("Attendee 2 Email (needed for adults)").fill(who.adult);
 	await widget.getByLabel("Attendee 3 Name").fill("Lucy Lovelace");
 	await widget.getByLabel("Attendee 3 is Under 18").check();
 	await widget.getByRole("button", { name: "Book" }).click();
