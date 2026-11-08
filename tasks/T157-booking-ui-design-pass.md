@@ -4,7 +4,7 @@ title: "Booking UI design pass: one card, roomy calendar, confirmed page leads w
 phase: 7
 package: events-suite
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T155]
