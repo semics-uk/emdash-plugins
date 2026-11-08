@@ -13,7 +13,9 @@ import { esignPluginId, page, pluginId, reconcile } from "virtual:semics-events/
 import { type MessageKey, pickLocale, translator } from "../i18n/index";
 import AddToCalendar from "./AddToCalendar.astro";
 import BookingStatus from "./BookingStatus.astro";
+import CancelBooking from "./CancelBooking.astro";
 import PageBrand from "./PageBrand.astro";
+import PageOrganiser from "./PageOrganiser.astro";
 import PaymentReturn from "./PaymentReturn.astro";
 import { callPublicRoute } from "./lib/call";
 import {
@@ -170,7 +172,8 @@ if (booking?.eventId) {
 }
 const signingList = booking && !cancelled ? signingRows(booking) : null;
 const payment = booking && !cancelled ? paymentView(booking, locale) : null;
-const passes = booking && !cancelled && booking.status === "confirmed" ? booking.attendees.filter((a) => a.code) : [];
+const confirmed = Boolean(booking && !cancelled && booking.status === "confirmed");
+const passes = booking && confirmed ? booking.attendees.filter((a) => a.code) : [];
 ---
 <!doctype html>
 <html lang={lang} dir={dir}>
@@ -202,7 +205,7 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 					</form>
 				) : booking ? (
 					<>
-						<BookingStatus booking={booking} cancelled={cancelled} cancelAction={`/booking?ref=${ref}`} ticketNames={names} bookAgain={eventPageHref(booking.event?.slug, page.eventPath)} locale={locale} />
+						<BookingStatus booking={booking} cancelled={cancelled} ticketNames={names} bookAgain={eventPageHref(booking.event?.slug, page.eventPath)} showAttendees={!signingList} locale={locale} />
 						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} locale={locale} />}
 						{signingList && (
 							<AttendeeList
@@ -221,7 +224,15 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 								))}
 							</section>
 						)}
-						{!cancelled && booking.status === "confirmed" && <AddToCalendar signedQuery={booking.calendar?.query} locale={locale} />}
+						{confirmed && (
+							<div class="semics-page-actions" data-testid="booking-actions">
+								<AddToCalendar signedQuery={booking.calendar?.query} locale={locale} />
+								<button type="button" class="semics-print" data-print data-testid="booking-print" hidden>{t("booking.print")}</button>
+							</div>
+						)}
+						{booking.canCancel && !cancelled && (
+							<CancelBooking action={`/booking?ref=${ref}`} cancelBy={booking.cancelBy} zone={booking.event?.timezone} locale={locale} />
+						)}
 					</>
 				) : missing ? (
 					<p data-testid="booking-missing">{t("booking.missing")}</p>
@@ -230,10 +241,12 @@ const passes = booking && !cancelled && booking.status === "confirmed" ? booking
 				) : null
 			}
 		</main>
+		<PageOrganiser brand={page.brand} locale={locale} />
 		<script>
 			import "../client/receipt.ts";
 			import "../client/payment.ts";
 			import "../client/forget-form.ts";
+			import "../client/print.ts";
 		</script>
 	</body>
 </html>

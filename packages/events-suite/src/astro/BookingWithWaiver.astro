@@ -6,6 +6,8 @@
 // One row per attendee, each with an "under 18" control: the buyer signs for themselves and, as
 // guardian, for every attendee under 18; other adults sign their own waiver from an email. Without
 // Events Pro (waivers are Pro) the same form makes a plain booking. All text is rendered as text.
+// One card (T157): the first row shows, the others behind "Add another person" (`lib/rows.ts`; without
+// JavaScript a `<details>`), and a summary of the people and the total sits above Book.
 import { eventsPluginId } from "virtual:semics-events-suite/config";
 import { callPublicRoute } from "@semics-tech/emdash-events/astro/lib/call";
 import {
@@ -87,6 +89,11 @@ const when = (iso: string) => {
 const needsWaiver = data?.waiver === true;
 const rows = needsWaiver ? Array.from({ length: seats }, (_, i) => i + 1) : [];
 const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
+// The first row shows; the others wait behind "Add another person" (T157). Without JavaScript they sit in a
+// `<details>`, open when the server marked one of them.
+const [firstRow, ...moreRows] = rows;
+const moreOpen = state.fields.some((f) => /^attendee\.([2-9]|10)\./.test(f));
+const currency = data?.currency ?? "GBP";
 ---
 <section id={id} class="semics-events semics-waiver-widget" aria-labelledby={`${id}-title`} data-testid="booking-with-waiver">
 	<h2 id={`${id}-title`}>{heading}</h2>
@@ -139,7 +146,7 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 							aria-invalid={bad("occurrence")}
 							aria-describedby={errId}
 						>
-							<legend>{t("widget.date")}</legend>
+							<legend class="semics-sr">{t("widget.date")}</legend>
 							<table role="grid" class="semics-calendar" aria-labelledby={monthId}>
 								<thead>
 									<tr>
@@ -214,76 +221,105 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 					</div>
 				)}
 
-				<fieldset>
+				<fieldset class="semics-group">
 					<legend>You</legend>
-					<div class="semics-field">
-						<label for={`${id}-name`}>Your name</label>
-						<input id={`${id}-name`} name="name" type="text" autocomplete="name" required maxlength="200" aria-invalid={bad("name")} />
-					</div>
-					<div class="semics-field">
-						<label for={`${id}-email`}>Your email</label>
-						<input id={`${id}-email`} name="email" type="email" autocomplete="email" required maxlength="254" aria-invalid={bad("email")} />
+					<div class="semics-pair">
+						<div class="semics-field">
+							<label for={`${id}-name`}>Your name</label>
+							<input id={`${id}-name`} name="name" type="text" autocomplete="name" required maxlength="200" aria-invalid={bad("name")} />
+						</div>
+						<div class="semics-field">
+							<label for={`${id}-email`}>Your email</label>
+							<input id={`${id}-email`} name="email" type="email" autocomplete="email" required maxlength="254" aria-invalid={bad("email")} />
+						</div>
 					</div>
 				</fieldset>
 
 				{!needsWaiver && (
-					<fieldset data-testid="waiver-plain">
+					<fieldset class="semics-group" data-testid="waiver-plain">
 						<legend>Tickets</legend>
 						<input type="hidden" name="plain" value="1" />
-						<div class="semics-field">
-							<label for={`${id}-plain-type`}>Ticket</label>
-							<select id={`${id}-plain-type`} name="ticketTypeId" aria-invalid={bad("tickets")}>
-								{ticketTypes.map((t) => (
-									<option value={t.id}>{t.name} ({price(t.priceMinor)})</option>
-								))}
-							</select>
-						</div>
-						<div class="semics-field">
-							<label for={`${id}-plain-qty`}>How many</label>
-							<input id={`${id}-plain-qty`} name="qty" type="number" min="1" max={MAX_SEATS} value="1" required aria-invalid={bad("tickets")} />
+						<div class="semics-pair">
+							<div class="semics-field">
+								<label for={`${id}-plain-type`}>Ticket</label>
+								<select id={`${id}-plain-type`} name="ticketTypeId" aria-invalid={bad("tickets")}>
+									{ticketTypes.map((t) => (
+										<option value={t.id} data-price-minor={String(t.priceMinor)}>{t.name} ({price(t.priceMinor)})</option>
+									))}
+								</select>
+							</div>
+							<div class="semics-field">
+								<label for={`${id}-plain-qty`}>How many</label>
+								<input id={`${id}-plain-qty`} name="qty" type="number" min="1" max={MAX_SEATS} value="1" required aria-invalid={bad("tickets")} />
+							</div>
 						</div>
 					</fieldset>
 				)}
 
 				{needsWaiver && (
-					<p class="semics-note" id={`${id}-who`}>
-						List everyone attending, including you if you are going. You sign the waiver now, for yourself and
-						for anyone under 18. Other adults need their own email address: they are sent their waiver to sign.
-					</p>
-				)}
-				{bad("attendees") && <p class="semics-field-error" data-testid="waiver-attendees-error">Add at least one attendee, and an email for each other adult.</p>}
-
-				{rows.map((n) => (
-					<fieldset class="semics-attendee" data-testid="waiver-attendee" aria-describedby={`${id}-who`}>
-						<legend>Attendee {n}</legend>
-						{single ? (
-							<input type="hidden" name={seatField(n, "ticketTypeId")} value={single.id} />
-						) : (
-							<div class="semics-field">
-								<label for={`${id}-${n}-type`}><span class="semics-sr">Attendee {n} </span>Ticket</label>
-								<select id={`${id}-${n}-type`} name={seatField(n, "ticketTypeId")} aria-invalid={bad(seatField(n, "ticketTypeId"))}>
-									{ticketTypes.map((t) => (
-										<option value={t.id}>{t.name} ({price(t.priceMinor)})</option>
-									))}
-								</select>
-							</div>
+					<div class="semics-group semics-attendees">
+						<h3 class="semics-group-title">Who is coming</h3>
+						<p class="semics-note" id={`${id}-who`}>
+							List everyone attending, including you if you are going. You sign the waiver now, for yourself and
+							for anyone under 18. Other adults need their own email address: they are sent their waiver to sign.
+						</p>
+						{bad("attendees") && <p class="semics-field-error" data-testid="waiver-attendees-error">Add at least one attendee, and an email for each other adult.</p>}
+						{[firstRow === undefined ? [] : [firstRow], moreRows].map((group, g) => {
+							const list = group.map((n) => (
+								<fieldset class="semics-attendee" data-attendee={String(n)} data-testid="waiver-attendee" aria-describedby={`${id}-who`}>
+									<legend>Attendee {n}</legend>
+									{single ? (
+										<input type="hidden" name={seatField(n, "ticketTypeId")} value={single.id} />
+									) : (
+										<div class="semics-field">
+											<label for={`${id}-${n}-type`}><span class="semics-sr">Attendee {n} </span>Ticket</label>
+											<select id={`${id}-${n}-type`} name={seatField(n, "ticketTypeId")} aria-invalid={bad(seatField(n, "ticketTypeId"))}>
+												{ticketTypes.map((t) => (
+													<option value={t.id} data-price-minor={String(t.priceMinor)}>{t.name} ({price(t.priceMinor)})</option>
+												))}
+											</select>
+										</div>
+									)}
+									<div class="semics-pair">
+										<div class="semics-field">
+											<label for={`${id}-${n}-name`}><span class="semics-sr">Attendee {n} </span>Name</label>
+											<input id={`${id}-${n}-name`} name={seatField(n, "name")} type="text" maxlength="200" required={n === 1 || undefined} aria-invalid={bad(seatField(n, "name"))} />
+										</div>
+										<div class="semics-field">
+											<label for={`${id}-${n}-email`}><span class="semics-sr">Attendee {n} </span>Email (needed for adults)</label>
+											<input id={`${id}-${n}-email`} name={seatField(n, "email")} type="email" maxlength="254" aria-invalid={bad(seatField(n, "email"))} />
+										</div>
+									</div>
+									<div class="semics-check">
+										<input id={`${id}-${n}-minor`} name={seatField(n, "minor")} type="checkbox" />
+										<label for={`${id}-${n}-minor`}><span class="semics-sr">Attendee {n} is </span>Under 18</label>
+									</div>
+								</fieldset>
+							));
+							return g === 0
+								? list
+								: group.length > 0 && (
+										<details class="semics-more" data-more open={moreOpen || undefined} data-testid="waiver-more">
+											<summary>Add more people (up to {rows.length} in all)</summary>
+											<div class="semics-more-rows">{list}</div>
+										</details>
+									);
+						})}
+						{moreRows.length > 0 && (
+							<button type="button" class="semics-add" data-add-attendee data-testid="waiver-add-attendee" hidden>
+								Add another person
+							</button>
 						)}
-						<div class="semics-field">
-							<label for={`${id}-${n}-name`}><span class="semics-sr">Attendee {n} </span>Name</label>
-							<input id={`${id}-${n}-name`} name={seatField(n, "name")} type="text" maxlength="200" required={n === 1 || undefined} aria-invalid={bad(seatField(n, "name"))} />
-						</div>
-						<div class="semics-field">
-							<label for={`${id}-${n}-email`}><span class="semics-sr">Attendee {n} </span>Email (needed for adults)</label>
-							<input id={`${id}-${n}-email`} name={seatField(n, "email")} type="email" maxlength="254" aria-invalid={bad(seatField(n, "email"))} />
-						</div>
-						<div class="semics-check">
-							<input id={`${id}-${n}-minor`} name={seatField(n, "minor")} type="checkbox" />
-							<label for={`${id}-${n}-minor`}><span class="semics-sr">Attendee {n} is </span>Under 18</label>
-						</div>
-					</fieldset>
-				))}
+					</div>
+				)}
 
-				{needsWaiver && single && <p class="semics-note">{single.name}: {price(single.priceMinor)} per attendee.</p>}
+				<div class="semics-summary" data-summary data-currency={currency} data-locale={locale} data-price-minor={single ? String(single.priceMinor) : undefined} data-one="{n} person" data-many="{n} people" data-free={formatMoney(0, currency, locale)} aria-live="polite" data-testid="waiver-summary">
+					<p class="semics-summary-when" data-summary-when hidden></p>
+					<p class="semics-summary-total">
+						<span data-summary-line>{single ? `${single.name}, per ${needsWaiver ? "attendee" : "ticket"}` : "Total"}</span>
+						<strong data-summary-total>{single ? price(single.priceMinor) : ""}</strong>
+					</p>
+				</div>
 
 				{siteKey && (
 					<>
@@ -295,7 +331,7 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 					</>
 				)}
 
-				<button type="submit">Book</button>
+				<button type="submit" class="semics-book">Book</button>
 			</form>
 		)
 	}
@@ -303,9 +339,11 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 
 <script>
 	// The kept values go back, then the picker shows the date the select holds. The bundler may run the picker's
-	// shared chunk first, so keep-form fires `change` on what it restores and the picker follows it (T157).
+	// shared chunk first, so keep-form fires `change` on what it restores and the picker follows it (T157). The
+	// attendee rows and the summary come last: they show every row the kept values filled.
 	import "./lib/keep-form";
 	import "@semics-tech/emdash-events/client/picker";
+	import "./lib/rows";
 </script>
 
 <style>
@@ -314,17 +352,22 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 		--_muted: var(--events-muted, #4a4a4a);
 		--_bg: var(--events-bg, #ffffff);
 		--_border: var(--events-border, #6b6b6b);
+		--_line: color-mix(in srgb, var(--_border) 30%, transparent);
+		--_tint: color-mix(in srgb, var(--_accent) 7%, var(--_bg));
 		--_accent: var(--events-accent, #0b57d0);
 		--_accent-fg: var(--events-accent-fg, #ffffff);
 		--_error: var(--events-error, #b3261e);
 		--_radius: var(--events-radius, 6px);
+		--_pad: clamp(1.25rem, 0.75rem + 2.5vw, 2rem);
 		box-sizing: border-box;
-		max-inline-size: 36rem;
-		padding: 1rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
+		max-inline-size: 38rem;
+		padding: var(--_pad);
+		border: 1px solid var(--_line);
+		border-radius: calc(var(--_radius) + 6px);
 		background: var(--_bg);
+		box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 24px rgb(0 0 0 / 0.06);
 		color: var(--_fg);
+		line-height: 1.5;
 		overflow-wrap: anywhere;
 	}
 	.semics-waiver-widget *,
@@ -333,26 +376,77 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 		box-sizing: border-box;
 	}
 	.semics-waiver-widget h2 {
-		margin: 0 0 0.75rem;
-		font-size: 1.25rem;
+		margin: 0 0 1.25rem;
+		font-size: 1.375rem;
+		line-height: 1.25;
 	}
 	.semics-waiver-widget form {
 		display: grid;
 		grid-template-columns: minmax(0, 1fr);
-		gap: 0.75rem;
+		gap: 1.5rem;
 	}
+	/* Groups read as sections of one card: a small heading, no box (T157). */
 	.semics-waiver-widget fieldset {
 		display: grid;
-		gap: 0.5rem;
+		gap: 0.75rem;
 		margin: 0;
-		padding: 0.5rem 0.75rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
+		padding: 0;
+		border: 0;
 		min-inline-size: 0;
+	}
+	.semics-waiver-widget legend,
+	.semics-group-title {
+		margin: 0 0 0.75rem;
+		padding: 0;
+		font-size: 0.8125rem;
+		font-weight: 700;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--_muted);
+	}
+	.semics-group {
+		display: grid;
+		gap: 0.75rem;
+		min-inline-size: 0;
+	}
+	.semics-group-title {
+		margin: 0;
+	}
+	.semics-pair {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
+		gap: 0.75rem 1rem;
+	}
+	.semics-attendee {
+		padding-block-start: 1rem;
+		border-block-start: 1px solid var(--_line);
+	}
+	.semics-waiver-widget .semics-attendee legend {
+		margin: 0 0 0.75rem;
+		font-size: 0.9375rem;
+		letter-spacing: 0;
+		text-transform: none;
+		color: var(--_fg);
+	}
+	.semics-more,
+	.semics-more-rows {
+		display: grid;
+		gap: 0.75rem;
+	}
+	.semics-more > summary {
+		inline-size: fit-content;
+		min-block-size: 2.75rem;
+		padding-block: 0.5rem;
+		color: var(--_accent);
+		font-weight: 600;
+		cursor: pointer;
 	}
 	.semics-field {
 		display: grid;
-		gap: 0.25rem;
+		gap: 0.375rem;
+	}
+	.semics-field > label {
+		font-weight: 500;
 	}
 	.semics-check {
 		display: flex;
@@ -369,7 +463,7 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 	.semics-waiver-widget input:not([type="checkbox"]),
 	.semics-waiver-widget select {
 		inline-size: 100%;
-		padding: 0.375rem 0.5rem;
+		padding: 0.5rem 0.75rem;
 		border: 1px solid var(--_border);
 		border-radius: var(--_radius);
 		background: var(--_bg);
@@ -378,6 +472,8 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 	.semics-waiver-widget input[type="checkbox"] {
 		inline-size: 1.25rem;
 		block-size: 1.25rem;
+		margin: 0;
+		accent-color: var(--_accent);
 	}
 	.semics-waiver-widget [aria-invalid="true"] {
 		border-color: var(--_error);
@@ -386,60 +482,87 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 	.semics-hint {
 		color: var(--_muted);
 	}
+	.semics-picker-field {
+		gap: 0.75rem;
+	}
 	.semics-picker-nav {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: baseline;
-		gap: 0.25rem 1rem;
+		align-items: center;
+		gap: 0.5rem;
 	}
 	.semics-picker-month {
 		margin: 0;
 		margin-inline-end: auto;
-		font-weight: 600;
+		font-size: 1.125rem;
+		font-weight: 700;
 	}
 	.semics-picker-nav a {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 2.25rem;
+		padding: 0.25rem 0.875rem;
+		border: 1px solid var(--_line);
+		border-radius: 999px;
 		color: var(--_accent);
-		min-block-size: 1.5rem;
+		font-size: 0.9375rem;
+		text-decoration: none;
+	}
+	.semics-picker-nav a:hover {
+		border-color: var(--_accent);
 	}
 	.semics-picker {
 		display: grid;
-		gap: 0.5rem;
+		gap: 1rem;
 		margin: 0;
-		padding: 0.5rem 0.75rem 0.75rem;
-		border: 1px solid var(--_border);
-		border-radius: var(--_radius);
+		padding: 0;
+		border: 0;
 		min-inline-size: 0;
 	}
 	.semics-picker p {
 		margin: 0;
 	}
+	/* Room between the days (T157): cells 6px apart, square-ish buttons of at least 44px. */
 	.semics-calendar {
-		inline-size: 100%;
-		border-collapse: collapse;
+		inline-size: calc(100% + 0.75rem);
+		margin: -0.375rem;
+		border-collapse: separate;
+		border-spacing: 0.375rem;
 		table-layout: fixed;
 		text-align: center;
 	}
 	.semics-calendar th {
-		padding-block: 0.25rem;
-		font-weight: 400;
-		font-size: 0.875rem;
+		padding-block: 0 0.25rem;
+		font-weight: 600;
+		font-size: 0.8125rem;
 		color: var(--_muted);
 	}
 	.semics-calendar td {
-		padding: 1px;
+		padding: 0;
 	}
 	.semics-waiver-widget .semics-calendar button,
 	.semics-waiver-widget .semics-times button {
 		inline-size: 100%;
 		padding: 0.25rem;
 		border: 1px solid var(--_accent);
+		border-radius: var(--_radius);
 		background: var(--_bg);
 		color: var(--_accent);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.semics-waiver-widget .semics-calendar button {
+		block-size: clamp(2.75rem, 2rem + 2vw, 3.25rem);
+	}
+	.semics-waiver-widget .semics-calendar button:not([aria-pressed="true"]):hover,
+	.semics-waiver-widget .semics-times button:not([aria-disabled="true"], [aria-checked="true"]):hover {
+		background: var(--_tint);
 	}
 	.semics-waiver-widget .semics-calendar button.semics-day-full,
 	.semics-waiver-widget .semics-times button[aria-disabled="true"] {
-		border-color: var(--_border);
+		border-color: var(--_line);
 		color: var(--_muted);
+		font-weight: 400;
 		text-decoration: line-through;
 	}
 	.semics-waiver-widget .semics-times button[aria-disabled="true"] {
@@ -451,21 +574,24 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 		color: var(--_accent-fg);
 	}
 	.semics-day-none {
-		display: block;
-		padding-block: 0.75rem;
+		display: grid;
+		place-items: center;
+		block-size: clamp(2.75rem, 2rem + 2vw, 3.25rem);
 		color: var(--_muted);
 	}
 	.semics-times {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+		grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
 		gap: 0.5rem;
 	}
 	.semics-waiver-widget .semics-times button {
 		display: grid;
 		justify-items: center;
+		padding: 0.5rem;
 	}
 	.semics-places {
-		font-size: 0.875rem;
+		font-size: 0.8125rem;
+		font-weight: 400;
 	}
 	.semics-note {
 		margin: 0;
@@ -477,9 +603,31 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 		color: var(--_error);
 	}
 	.semics-form-alert {
-		padding: 0.5rem 0.75rem;
+		padding: 0.75rem 1rem;
 		border: 1px solid var(--_error);
 		border-radius: var(--_radius);
+	}
+	.semics-summary {
+		display: grid;
+		gap: 0.25rem;
+		padding: 1rem 1.25rem;
+		border-radius: var(--_radius);
+		background: var(--_tint);
+	}
+	.semics-summary p {
+		margin: 0;
+	}
+	.semics-summary-when {
+		font-weight: 600;
+	}
+	.semics-summary-total {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.25rem 1rem;
+	}
+	.semics-summary-total strong {
+		font-size: 1.125rem;
 	}
 	.semics-sr {
 		position: absolute;
@@ -489,13 +637,25 @@ const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 		clip-path: inset(50%);
 		white-space: nowrap;
 	}
-	.semics-waiver-widget button {
+	.semics-waiver-widget button.semics-book {
 		justify-self: start;
-		padding: 0.5rem 1.5rem;
+		min-inline-size: min(100%, 12rem);
+		padding: 0.75rem 2rem;
 		border: 0;
 		border-radius: var(--_radius);
 		background: var(--_accent);
 		color: var(--_accent-fg);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.semics-waiver-widget button.semics-add {
+		justify-self: start;
+		padding: 0.5rem 1rem;
+		border: 1px dashed var(--_accent);
+		border-radius: var(--_radius);
+		background: transparent;
+		color: var(--_accent);
+		font-weight: 600;
 		cursor: pointer;
 	}
 	.semics-waiver-widget :focus-visible {

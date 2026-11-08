@@ -1,7 +1,10 @@
 ---
-// <BookingStatus>: a booking's state, order and cancel button (EU-FR-06). Rendered by the
-// `/booking` page from the `public/booking` answer; the cancel form is a plain POST back to it.
+// <BookingStatus>: a booking's summary card (EU-FR-06). Rendered by the `/booking` page from the
+// `public/booking` answer. It leads with the event and the booked session, in the event's zone, and the
+// place (T157), then the state, the order and its total. With `cancelAction` it ends with the quiet cancel
+// action (`<CancelBooking>`); the booking page instead puts that at its foot.
 import { around, pickLocale, translator } from "../i18n/index";
+import CancelBooking from "./CancelBooking.astro";
 import { zonedAt } from "./lib/list";
 import { type BookingView, endedNotes, formatMoney, statusLabel } from "./lib/widget";
 
@@ -9,16 +12,18 @@ interface Props {
 	booking: BookingView;
 	/** Shown as cancelled (the page just cancelled it). */
 	cancelled?: boolean;
-	/** Where the cancel form posts. */
+	/** Where the cancel form posts; without it the card has no cancel action. */
 	cancelAction?: string;
 	/** Ticket type names by id, when the page knows them. */
 	ticketNames?: Record<string, string>;
 	/** A lapsed booking's way back: the event's page, when known. */
 	bookAgain?: string;
+	/** List the attendees' names (the page turns it off when Events Pro's signing list shows them). */
+	showAttendees?: boolean;
 	locale?: string;
 }
 
-const { booking, cancelled = false, cancelAction, ticketNames = {}, bookAgain } = Astro.props;
+const { booking, cancelled = false, cancelAction, ticketNames = {}, bookAgain, showAttendees = true } = Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, plural, lang, dir } = translator(locale);
 // A request awaiting approval (T131) holds its places until the organiser's deadline.
@@ -26,52 +31,69 @@ const [heldBefore, heldAfter] = around(
 	t(booking.status === "awaiting_approval" ? "booking.decideBy" : "booking.heldUntil"),
 	"time",
 );
-const [cancelBefore, cancelAfter] = around(t("booking.cancelUntil"), "time");
 const tickets = booking.lines.reduce((n, line) => n + line.qty, 0);
 const status = cancelled ? "cancelled" : booking.status;
-const at = (iso: string) => zonedAt(iso, booking.event?.timezone, locale);
+const zone = booking.event?.timezone;
+const at = (iso: string) => zonedAt(iso, zone, locale);
 const notes = endedNotes({ ...booking, status }, locale);
+const event = booking.event;
+const startsAt = event?.startsAt && Number.isFinite(Date.parse(event.startsAt)) ? event.startsAt : undefined;
+// Who is coming, when the booking names different people (a plain booking puts every seat in the buyer's name).
+const named = booking.attendees.map((a) => a.name).filter(Boolean);
+const names = showAttendees && new Set(named).size > 1 ? named : [];
 ---
 <section class="semics-events semics-booking-status" data-testid="booking-details" data-status={status} lang={lang} dir={dir} aria-labelledby="semics-booking-status-title">
-	<h2 id="semics-booking-status-title" class="semics-visually-hidden">{t("booking.status")}</h2>
-	<p>
-		{t("booking.reference")} <strong data-testid="booking-ref">{booking.bookingRef}</strong>
-	</p>
-	<p class="semics-status" data-testid="booking-status" data-status={status}>
-		<span class="semics-status-badge">{statusLabel(status, locale)}</span>
-	</p>
+	{event?.title ? (
+		<h2 id="semics-booking-status-title" class="semics-booking-event" data-testid="booking-event">{event.title}</h2>
+	) : (
+		<h2 id="semics-booking-status-title" class="semics-visually-hidden">{t("booking.status")}</h2>
+	)}
+	{(startsAt || event?.venue) && (
+		<div class="semics-booking-session" data-testid="booking-session">
+			{startsAt && <p class="semics-booking-when"><time datetime={startsAt} data-testid="booking-when">{at(startsAt)}</time></p>}
+			{event?.venue && <p class="semics-booking-venue" data-testid="booking-venue">{event.venue}</p>}
+		</div>
+	)}
+	<div class="semics-booking-meta">
+		<p class="semics-status" data-testid="booking-status" data-status={status}>
+			<span class="semics-status-badge">{statusLabel(status, locale)}</span>
+		</p>
+		<p class="semics-booking-ref">
+			{t("booking.reference")} <strong data-testid="booking-ref">{booking.bookingRef}</strong>
+		</p>
+	</div>
 	{
 		!cancelled && booking.holdExpiresAt && (
-			<p data-testid="booking-hold">
+			<p class="semics-booking-note" data-testid="booking-hold">
 				{heldBefore}<time datetime={booking.holdExpiresAt}>{at(booking.holdExpiresAt)}</time>{heldAfter}
 			</p>
 		)
 	}
-	{notes.map((note) => <p data-testid="booking-note">{note}</p>)}
+	{notes.map((note) => <p class="semics-booking-note" data-testid="booking-note">{note}</p>)}
 	{status === "expired" && bookAgain && <p><a href={bookAgain} data-testid="booking-book-again">{t("booking.bookAgain")}</a></p>}
-	<ul class="semics-lines" aria-label={plural("booking.lines", tickets)}>
-		{
-			booking.lines.map((line) => (
-				<li>
-					{ticketNames[line.ticketTypeId]
-						? t("booking.line", { qty: new Intl.NumberFormat(locale).format(line.qty), name: ticketNames[line.ticketTypeId] })
-						: plural("booking.lines", line.qty)}
-				</li>
-			))
-		}
-	</ul>
-	<p>{t("booking.total")} <strong>{formatMoney(booking.totals.totalMinor, booking.totals.currency, locale)}</strong></p>
+	<div class="semics-booking-order">
+		<ul class="semics-lines" aria-label={plural("booking.lines", tickets)}>
+			{
+				booking.lines.map((line) => (
+					<li>
+						{ticketNames[line.ticketTypeId]
+							? t("booking.line", { qty: new Intl.NumberFormat(locale).format(line.qty), name: ticketNames[line.ticketTypeId] })
+							: plural("booking.lines", line.qty)}
+					</li>
+				))
+			}
+		</ul>
+		{names.length > 0 && (
+			<div class="semics-booking-people" data-testid="booking-attendees">
+				<h3>{t("booking.attendeesHeading")}</h3>
+				<ul>{names.map((name) => <li>{name}</li>)}</ul>
+			</div>
+		)}
+		<p class="semics-booking-total">{t("booking.total")} <strong>{formatMoney(booking.totals.totalMinor, booking.totals.currency, locale)}</strong></p>
+	</div>
 	{
 		booking.canCancel && !cancelled && cancelAction && (
-			<form method="post" action={cancelAction}>
-				<input type="hidden" name="intent" value="cancel" />
-				{booking.cancelBy && (
-					<p>
-						{cancelBefore}<time datetime={booking.cancelBy}>{at(booking.cancelBy)}</time>{cancelAfter}
-					</p>
-				)}
-				<button type="submit">{t("booking.cancel")}</button>
-			</form>
+			<CancelBooking action={cancelAction} cancelBy={booking.cancelBy} zone={zone} locale={locale} />
 		)
 	}
 </section>
@@ -79,24 +101,95 @@ const notes = endedNotes({ ...booking, status }, locale);
 <style>
 	.semics-booking-status {
 		box-sizing: border-box;
-		max-inline-size: 36rem;
 		color: var(--events-fg, #1a1a1a);
 		overflow-wrap: anywhere;
 	}
+	.semics-booking-status p {
+		margin: 0 0 0.5rem;
+	}
+	.semics-booking-status .semics-booking-event {
+		margin: 0 0 0.5rem;
+		font-size: clamp(1.375rem, 1.2rem + 0.8vw, 1.75rem);
+		line-height: 1.2;
+	}
+	.semics-booking-session {
+		margin-block-end: 1.25rem;
+	}
+	.semics-booking-status .semics-booking-when {
+		margin: 0;
+		font-size: 1.125rem;
+		font-weight: 600;
+	}
+	.semics-booking-status .semics-booking-venue {
+		margin: 0;
+		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-booking-meta {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5rem 1rem;
+		margin-block-end: 0.75rem;
+	}
+	.semics-booking-meta p {
+		margin: 0;
+	}
+	.semics-booking-ref {
+		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-booking-ref strong {
+		color: var(--events-fg, #1a1a1a);
+		letter-spacing: 0.04em;
+	}
 	.semics-status-badge {
 		display: inline-block;
-		padding: 0.125rem 0.5rem;
+		padding: 0.125rem 0.625rem;
 		border: 1px solid currentColor;
-		border-radius: var(--events-radius, 6px);
+		border-radius: 999px;
+		font-size: 0.875rem;
 		font-weight: 600;
 	}
 	.semics-booking-status[data-status="confirmed"] .semics-status-badge {
 		color: var(--events-success, #146c2e);
 	}
-	.semics-booking-status button {
-		font: inherit;
-		min-block-size: 2.75rem;
-		padding: 0.5rem 1rem;
+	.semics-booking-note {
+		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-booking-order {
+		margin-block-start: 1.25rem;
+		padding-block-start: 1rem;
+		border-block-start: 1px solid color-mix(in srgb, var(--events-border, #6b6b6b) 30%, transparent);
+	}
+	.semics-lines {
+		margin: 0 0 0.75rem;
+		padding: 0;
+		list-style: none;
+	}
+	.semics-lines li + li {
+		margin-block-start: 0.25rem;
+	}
+	.semics-booking-people h3 {
+		margin: 0 0 0.25rem;
+		font-size: 0.8125rem;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-booking-people ul {
+		margin: 0 0 0.75rem;
+		padding-inline-start: 1.25rem;
+	}
+	.semics-booking-status .semics-booking-total {
+		display: flex;
+		justify-content: space-between;
+		gap: 1rem;
+		margin: 0;
+		padding-block-start: 0.75rem;
+		border-block-start: 1px solid color-mix(in srgb, var(--events-border, #6b6b6b) 30%, transparent);
+		font-weight: 600;
+	}
+	.semics-booking-total strong {
+		font-size: 1.125rem;
 	}
 	.semics-visually-hidden {
 		position: absolute;

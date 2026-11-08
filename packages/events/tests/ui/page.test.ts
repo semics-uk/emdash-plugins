@@ -28,6 +28,28 @@ describe("page styles", () => {
 	it("names no physical side (right to left pages mirror)", () => {
 		expect(PAGE_CSS).not.toMatch(/\b(left|right)\b/);
 	});
+
+	it("T157 makes each section, and the signing ceremony, one card with the same padding", () => {
+		expect(PAGE_CSS).toContain(
+			":where(.semics-page-main > section,.semics-page-main > form:not([hidden]),.semics-page-main > .semics-ceremony){",
+		);
+		expect(PAGE_CSS).toContain("padding:clamp(1.25rem,.9rem + 1.8vw,1.75rem)");
+	});
+
+	it("T157 prints a record: no buttons, forms, calendar link or brand bar; the organiser stays", () => {
+		const print = PAGE_CSS.slice(PAGE_CSS.indexOf("@media print{"));
+		expect(print).toContain(".semics-page-brand,");
+		for (const hidden of [
+			".semics-page-actions",
+			".semics-page-main form",
+			".semics-page-main button",
+			".semics-add-to-calendar",
+		]) {
+			expect(print.split("{display:none")[0]).toContain(hidden);
+		}
+		expect(print).toContain(".semics-page-organiser{");
+		expect(print).toContain(".semics-ticket-pass{break-inside:avoid}");
+	});
 });
 
 describe("page options", () => {
@@ -56,6 +78,14 @@ describe("page options", () => {
 		expect(() => checkPageOptions({ brand: { name: "A", logo: "javascript:x" } })).toThrow("brand.logo");
 		expect(() => checkPageOptions({ brand: { name: "A", href: "//x.example" } })).toThrow("brand.href");
 		expect(() => checkPageOptions({ eventPath: "/activities" })).toThrow("eventPath");
+	});
+
+	it("T157 takes the organiser's address as one line of text", () => {
+		const brand = { name: "Lea Marston Shooting Club", address: "Haunton Road, Lea Marston, B76 0DE" };
+		expect(checkPageOptions({ brand })).toEqual({ brand });
+		for (const address of ["", "   ", "Line one\nLine two", "x".repeat(301), 42 as unknown as string]) {
+			expect(() => checkPageOptions({ brand: { name: "A", address } })).toThrow("brand.address");
+		}
 	});
 });
 

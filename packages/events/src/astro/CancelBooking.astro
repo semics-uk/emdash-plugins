@@ -1,0 +1,80 @@
+---
+// <CancelBooking>: the quiet "Cancel booking" action at the foot of the booking page (T157). The button only
+// opens a confirmation (a `<details>`, no JavaScript needed); the form posts `intent=cancel` back to the page.
+import { around, pickLocale, translator } from "../i18n/index";
+import { zonedAt } from "./lib/list";
+
+interface Props {
+	/** Where the cancel form posts. */
+	action: string;
+	/** The last moment to cancel, when there is one. */
+	cancelBy?: string | undefined;
+	/** The event's zone, for `cancelBy`. */
+	zone?: string | null | undefined;
+	locale?: string;
+}
+
+const { action, cancelBy, zone } = Astro.props;
+const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
+const { t, lang, dir } = translator(locale);
+const [cancelBefore, cancelAfter] = around(t("booking.cancelUntil"), "time");
+---
+<details class="semics-events semics-cancel" lang={lang} dir={dir} data-testid="booking-cancel">
+	<summary>{t("booking.cancel")}</summary>
+	<form method="post" action={action}>
+		<input type="hidden" name="intent" value="cancel" />
+		{cancelBy && (
+			<p>
+				{cancelBefore}<time datetime={cancelBy}>{zonedAt(cancelBy, zone, locale)}</time>{cancelAfter}
+			</p>
+		)}
+		<p>{t("booking.cancelConfirm")}</p>
+		<button type="submit">{t("booking.cancelYes")}</button>
+	</form>
+</details>
+
+<style>
+	.semics-cancel {
+		margin-block: 1.5rem 0;
+		color: var(--events-fg, #1a1a1a);
+	}
+	.semics-cancel summary {
+		display: inline-flex;
+		align-items: center;
+		min-block-size: 2.75rem;
+		color: var(--events-muted, #4a4a4a);
+		text-decoration: underline;
+		text-underline-offset: 0.2em;
+		cursor: pointer;
+	}
+	.semics-cancel form {
+		margin-block-start: 0.5rem;
+		padding: 1rem 1.25rem;
+		border: 1px solid var(--events-error, #b3261e);
+		border-radius: var(--events-radius, 6px);
+		background: var(--events-bg, #ffffff);
+	}
+	.semics-cancel p {
+		margin: 0 0 0.75rem;
+	}
+	.semics-cancel button {
+		font: inherit;
+		min-block-size: 2.75rem;
+		padding: 0.5rem 1.25rem;
+		border: 1px solid var(--events-error, #b3261e);
+		border-radius: var(--events-radius, 6px);
+		background: var(--events-bg, #ffffff);
+		color: var(--events-error, #b3261e);
+		font-weight: 600;
+		cursor: pointer;
+	}
+	.semics-cancel :focus-visible {
+		outline: 3px solid var(--events-accent, #0b57d0);
+		outline-offset: 2px;
+	}
+	@media print {
+		.semics-cancel {
+			display: none;
+		}
+	}
+</style>

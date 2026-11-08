@@ -81,7 +81,7 @@ export function zonedAt(iso: string, timezone: string | null | undefined, locale
 	} catch {
 		time = formatInZone(ms, zone, "en-GB", AT); // A locale `Intl` refuses, such as `en_GB`.
 	}
-	return known ? time : `${time} (UTC)`;
+	return known ? time : `${time} (${zone})`;
 }
 
 const BADGES = { cancelled: "list.badge.cancelled", closed: "list.badge.closed", paused: "list.badge.paused" } as const;

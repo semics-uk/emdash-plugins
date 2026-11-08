@@ -170,7 +170,9 @@ test("Phase 2 journey: list → book → email (captured) → open from the emai
 	await again.context.close();
 
 	// Cancel from the email's device; the cancellation is emailed too.
-	await reader.page.getByRole("button", { name: "Cancel booking" }).click();
+	// T157: "Cancel booking" only opens its confirmation.
+	await reader.page.getByTestId("booking-cancel").getByText("Cancel booking").click();
+	await reader.page.getByRole("button", { name: "Yes, cancel this booking" }).click();
 	await expect(reader.page.getByTestId("booking-status")).toHaveAttribute("data-status", "cancelled");
 	await reader.context.close();
 	const cancelled = await mailTo(request, email, /^Booking cancelled: London Community Meetup$/);

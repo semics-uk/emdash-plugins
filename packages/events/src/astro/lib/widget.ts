@@ -76,8 +76,8 @@ export interface BookingView {
 	lines: Array<{ ticketTypeId: string; qty: number }>;
 	totals: { totalMinor: number; currency: string };
 	holdExpiresAt?: string;
-	/** The event's public info (`timezone` for times on the page, `slug` for "Book again"). */
-	event?: { title?: string; startsAt?: string; timezone?: string | null; slug?: string | null };
+	/** The event's public info: the booked session (`startsAt`, in `timezone`) and `venue` lead the page (T157); `slug` for "Book again". */
+	event?: { title?: string; startsAt?: string; timezone?: string | null; venue?: string | null; slug?: string | null };
 	/** Why the organiser declined (`status: "declined"`), when they said. */
 	declineReason?: string | null;
 	/** Declined, a price was due and no money was taken (`closeBooking`). */

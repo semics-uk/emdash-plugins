@@ -9,6 +9,7 @@ import { esignPluginId, eventsPluginId, page } from "virtual:semics-events-suite
 import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
 import { ceremonyCsp } from "@semics-tech/emdash-esign/astro/lib/csp";
 import PageBrand from "@semics-tech/emdash-events/astro/PageBrand.astro";
+import PageOrganiser from "@semics-tech/emdash-events/astro/PageOrganiser.astro";
 import { crossSiteResponse } from "@semics-tech/emdash-events/astro/lib/checkout-form";
 import { pageCss } from "@semics-tech/emdash-events/astro/lib/page";
 
@@ -87,18 +88,22 @@ const signer = render?.view.kind === "ready" ? render.view.session.signer : unde
 			}
 			{render && (
 				<>
-					{slot && (
-						<p data-testid="waiver-slot">
-							{slot.title && <strong data-testid="waiver-event">{slot.title}</strong>}
-							{slot.title && slot.when && <br />}
-							{slot.when && <time datetime={slot.startsAt} data-testid="waiver-when">{slot.when}</time>}
-						</p>
-					)}
-					{signer?.participant && <p data-testid="waiver-for">Signing as guardian for <strong>{signer.participant}</strong>.</p>}
-					{render.remaining > 0 && (
-						<p data-testid="waiver-remaining">
-							{render.remaining === 1 ? "One more waiver follows this one." : `${render.remaining} more waivers follow this one.`}
-						</p>
+					{(slot || signer?.participant || render.remaining > 0) && (
+						<section class="semics-waiver-summary" aria-label="Your booking" data-testid="waiver-summary">
+							{slot && (
+								<p data-testid="waiver-slot">
+									{slot.title && <strong data-testid="waiver-event">{slot.title}</strong>}
+									{slot.title && slot.when && <br />}
+									{slot.when && <time datetime={slot.startsAt} data-testid="waiver-when">{slot.when}</time>}
+								</p>
+							)}
+							{signer?.participant && <p data-testid="waiver-for">Signing as guardian for <strong>{signer.participant}</strong>.</p>}
+							{render.remaining > 0 && (
+								<p data-testid="waiver-remaining">
+									{render.remaining === 1 ? "One more waiver follows this one." : `${render.remaining} more waivers follow this one.`}
+								</p>
+							)}
+						</section>
 					)}
 					<SigningCeremony view={render.view} action={`${WAIVER_PATH}?ref=${ref}`} token={render.token} pluginId={esignPluginId} />
 				</>
@@ -106,5 +111,6 @@ const signer = render?.view.kind === "ready" ? render.view.session.signer : unde
 			{ref && <p><a href={`/booking?ref=${ref}`}>Back to your booking</a></p>}
 		</main>
 		)}
+		<PageOrganiser brand={page.brand} locale="en-GB" />
 	</body>
 </html>

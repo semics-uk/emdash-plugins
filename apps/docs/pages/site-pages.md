@@ -115,7 +115,8 @@ import { eventsSuite } from "@semics-tech/emdash-events-suite";
 const suite = eventsSuite({
 	page: {
 		theme: { accent: "#1f3a2e", "accent-fg": "#ffffff", "page-bg": "#f6f1ea", font: "system-ui, sans-serif" },
-		brand: { name: "My Club", logo: "/brand/logo.png" }, // a link home at the top of each page
+		// A link home at the top of each page; the name and address also sit at the foot and on a printed booking.
+		brand: { name: "My Club", logo: "/brand/logo.png", address: "1 Range Road, Town AB1 2CD" },
 		stylesheet: "/events-theme.css", // optional: a file of yours, for @font-face or further rules
 		eventPath: "/activities/{slug}", // where "Book again" goes; default /events/{slug}
 	},

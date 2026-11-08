@@ -18,7 +18,9 @@ describe("booking page", () => {
 
 	it("gives times in the event's zone, on every block", () => {
 		expect(page).toContain("zone={booking.event?.timezone}");
-		expect(read("BookingStatus.astro")).toContain("zonedAt(iso, booking.event?.timezone, locale)");
+		expect(read("BookingStatus.astro")).toContain("const zone = booking.event?.timezone;");
+		expect(read("BookingStatus.astro")).toContain("zonedAt(iso, zone, locale)");
+		expect(read("CancelBooking.astro")).toContain("zonedAt(cancelBy, zone, locale)");
 		expect(read("AttendeeList.astro")).toContain("zonedAt(iso, zone, locale)");
 	});
 
@@ -37,5 +39,35 @@ describe("booking page", () => {
 
 	it("T133 says what to do when an invitation does not arrive", () => {
 		expect(read("AttendeeList.astro")).toContain('rows.some((r) => r.canResend) && <p class="semics-attendee-note"');
+	});
+
+	it("T157 leads with the event, the booked session in its zone, and the place", () => {
+		const status = read("BookingStatus.astro");
+		const order = [
+			'data-testid="booking-event"',
+			'data-testid="booking-when"',
+			'data-testid="booking-venue"',
+			'data-testid="booking-ref"',
+		];
+		const at = order.map((s) => status.indexOf(s));
+		expect(at.every((i) => i > 0)).toBe(true);
+		expect([...at].sort((a, b) => a - b)).toEqual(at);
+		expect(status).toContain("const at = (iso: string) => zonedAt(iso, zone, locale);");
+	});
+
+	it("T157 offers Print or save as PDF on a confirmed booking, wired by a script, and the organiser at the foot", () => {
+		expect(page).toMatch(
+			/<button type="button" class="semics-print" data-print[^>]* hidden>\{t\("booking.print"\)\}<\/button>/,
+		);
+		expect(page).toContain('import "../client/print.ts"');
+		expect(page).toContain("<PageOrganiser brand={page.brand} locale={locale} />");
+	});
+
+	it("T157 puts Cancel booking at the foot, behind a confirmation", () => {
+		expect(page).not.toContain("cancelAction={");
+		expect(page.indexOf("<CancelBooking")).toBeGreaterThan(page.indexOf("<TicketPass"));
+		const cancel = read("CancelBooking.astro");
+		expect(cancel).toMatch(/<details[^>]*>\s*<summary>\{t\("booking.cancel"\)\}<\/summary>\s*<form method="post"/);
+		expect(cancel).toContain('{t("booking.cancelYes")}');
 	});
 });
