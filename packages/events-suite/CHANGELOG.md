@@ -1,5 +1,16 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.8
+
+### Patch Changes
+
+- 65c2868: Booking UI polish after rc.7 (T158). `<BookingWithWaiver>` fills its host column (it was capped at 38rem); set
+  `--events-widget-max` to cap it. Its Turnstile box keeps its full size whenever the form has room and uses the light
+  theme, and hovering a day or a time shows a light tint and ring rather than looking chosen.
+- Updated dependencies [65c2868]
+  - @semics-tech/emdash-events@1.0.0-rc.8
+  - @semics-tech/emdash-esign@1.0.0-rc.8
+
 ## 1.0.0-rc.7
 
 ### Patch Changes
