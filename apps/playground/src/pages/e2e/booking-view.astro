@@ -2,13 +2,18 @@
 // e2e-only page (T157): a confirmed booking as `/booking` lays it out, with fixed data the Free playground
 // cannot reach: a site brand and address (`page.brand`), Events Pro's QR passes and two attendees. Built from
 // the same components and page stylesheet as the real page, for the layout, print and screenshot checks.
+// T158: `?sections=all` adds the "Payment received" box and Events Pro's attendee signing list, as a paid waiver
+// booking shows them; `?qr=off` drops the QR, as Free sends its passes. The codes are the 43-character kind the core issues (the QR stays the fixed sample).
 import AddToCalendar from "@semics-tech/emdash-events/astro/AddToCalendar.astro";
+import AttendeeList from "@semics-tech/emdash-events/astro/AttendeeList.astro";
 import BookingStatus from "@semics-tech/emdash-events/astro/BookingStatus.astro";
 import CancelBooking from "@semics-tech/emdash-events/astro/CancelBooking.astro";
 import PageBrand from "@semics-tech/emdash-events/astro/PageBrand.astro";
 import PageOrganiser from "@semics-tech/emdash-events/astro/PageOrganiser.astro";
+import PaymentReturn from "@semics-tech/emdash-events/astro/PaymentReturn.astro";
 import TicketPass from "@semics-tech/emdash-events/astro/TicketPass.astro";
 import { pageCss } from "@semics-tech/emdash-events/astro/lib/page";
+import { paymentView } from "@semics-tech/emdash-events/astro/lib/payment";
 
 export const prerender = false;
 
@@ -35,14 +40,27 @@ const booking = {
 		venue: "Lea Marston Shooting Ground",
 	},
 	attendees: [
-		{ name: "Ada Lovelace", status: "valid", code: "K7Q2-M9XD", qr },
-		{ name: "Byron Lovelace", status: "valid", code: "K7Q2-M9XD", qr },
+		{ name: "Ada Lovelace", status: "valid", code: "q3M8vXbT1kR0wZ9pLc2YhN5sGd7uJf4aEo6iKyB_x-Q", qr },
+		{ name: "Byron Lovelace", status: "valid", code: "Wm2Rk7Tz0bH5nV9cXq4LpJ8sDf1gYa3eUo6iNt_yE-K", qr },
 	],
 	canCancel: true,
 	cancelBy: "2030-03-13T13:30:00.000Z",
 	calendar: { query: new URLSearchParams({ ref: "PV52PKY5AK", exp: String(exp), sig: "e2e-signature" }).toString() },
 };
 const names = { tt_clay: "Clay shooting session (30 shots)" };
+const all = Astro.url.searchParams.get("sections") === "all";
+const withQr = Astro.url.searchParams.get("qr") !== "off";
+const payment = all ? paymentView(booking, "en-GB") : null;
+const rows = booking.attendees.map((a, i) => ({
+	seat: String(i + 1),
+	name: a.name,
+	email: i === 0 ? "ada@example.com" : "",
+	minor: i > 0,
+	signed: true,
+	canSign: false,
+	canResend: false,
+	canEdit: false,
+}));
 ---
 <!doctype html>
 <html lang="en">
@@ -57,10 +75,12 @@ const names = { tt_clay: "Clay shooting session (30 shots)" };
 		<PageBrand brand={page.brand} />
 		<main class="semics-booking semics-page-main" data-testid="booking-page">
 			<h1>Your booking</h1>
-			<BookingStatus booking={booking} ticketNames={names} locale="en-GB" />
+			<BookingStatus booking={booking} ticketNames={names} showAttendees={!all} locale="en-GB" />
+			{payment && <PaymentReturn view={payment} bookingRef={booking.bookingRef} action="/e2e/booking-view" locale="en-GB" />}
+			{all && <AttendeeList rows={rows} action="/e2e/booking-view" zone="Europe/London" locale="en-GB" />}
 			<section aria-labelledby="semics-passes-title">
 				<h2 id="semics-passes-title">Tickets</h2>
-				{booking.attendees.map((a) => <TicketPass name={a.name} code={a.code} status={a.status} qr={a.qr} locale="en-GB" />)}
+				{booking.attendees.map((a) => <TicketPass name={a.name} code={a.code} status={a.status} qr={withQr ? a.qr : undefined} locale="en-GB" />)}
 			</section>
 			<div class="semics-page-actions" data-testid="booking-actions">
 				<AddToCalendar signedQuery={booking.calendar.query} locale="en-GB" />
