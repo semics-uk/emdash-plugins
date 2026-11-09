@@ -68,9 +68,10 @@ jobs:
       - name: Detect Playwright config
         id: playwright
         run: |
-          if ls playwright.config.* apps/playground/playwright.config.* >/dev/null 2>&1; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          fi
+          # Either location is enough: `ls a b` fails when one of them is missing, which skipped e2e on every run.
+          for f in playwright.config.* apps/playground/playwright.config.*; do
+            if [ -e "$f" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; break; fi
+          done
       # The playground suite uses the runner's system Chrome (`channel: "chrome"`), so no browser download.
       # `pnpm --filter playground e2e` builds the packages and the site, seeds, serves and runs Playwright.
       - name: Run end-to-end tests

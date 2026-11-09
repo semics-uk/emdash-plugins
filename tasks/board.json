@@ -3134,6 +3134,25 @@
 				"T157"
 			],
 			"spec": [],
+			"unblocks": [
+				"T159"
+			],
+			"column": "done"
+		},
+		"T159": {
+			"file": "T159-calendar-esign-turnstile-booking-journey.md",
+			"id": "T159",
+			"title": "Calendar in wide columns, E-sign self-serve Turnstile, and an end-to-end booking journey test with a real PDF",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T158"
+			],
+			"spec": [],
 			"unblocks": [],
 			"column": "done"
 		}
@@ -3283,7 +3302,8 @@
 			"T154",
 			"T155",
 			"T157",
-			"T158"
+			"T158",
+			"T159"
 		],
 		"blocked": [
 			"T111"

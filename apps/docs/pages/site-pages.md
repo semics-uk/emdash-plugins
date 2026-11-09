@@ -102,10 +102,13 @@ change in a minor release. The defaults meet WCAG AA contrast with each other; k
 | `--events-heading-font` | | Headings of those pages | `inherit` |
 | `--events-heading-fg` | | Heading colour of those pages | `inherit` |
 | `--events-widget-max` | | Widest the booking widgets (`<BookingWidget>`, `<BookingWithWaiver>`) grow; they fill their column up to it | `none` |
+| `--events-calendar-max` | | Widest the day calendar of a slot schedule grows, so its days stay a sensible size in a wide column | `26rem` |
 | | `--esign-paper` | The document being signed | `#fafafa` |
 
 The booking widgets fill the column you put them in. To keep one narrower in a wide column, set
 `--events-widget-max` on it or on an element around it (for example `.booking { --events-widget-max: 40rem; }`).
+The day calendar inside stays at most `--events-calendar-max` wide (26rem, days of about 54px) and takes the whole form
+on a phone.
 
 ### The booking and signing pages
 
