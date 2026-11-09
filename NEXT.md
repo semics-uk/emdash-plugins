@@ -7,7 +7,8 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
-- Leftovers from T158: E-sign's SelfServeBlock still has the old Turnstile size script and no theme; the calendar's day buttons stretch in a very wide column
+- Publish rc.9 (T159) when Oli approves the version PR
+- With Pro linked, t135-attendee-list's "no JavaScript" test clicks "Add another person", which only exists with JavaScript since T157: fix the test. CI runs Free only, so it never sees Pro specs
 - Release workflow reported failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3): not seen since rc.4; the rc.8 run (42513475168) passed in full. Drop this if rc.9 is clean too
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
 - Still untested on staging: guest invitation reaching a real inbox and its link (Stackmail rejects + addresses, needs a second address), save-card path, approval deadline passing, attendee edit, T153 past a hold
@@ -29,6 +30,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-09 T159 merged (#18): calendar capped by --events-calendar-max, e-sign self-serve Turnstile sized and light, end-to-end booking journey with an A4 PDF. CI's Playwright job had skipped e2e on every run since T001 (config check); fixed, 143 pass on Linux
 - 2026-11-09 Registry job check: it is skipped on Release runs that publish nothing (e.g. #5) and runs on the version-PR merge (rc.8 published both packages); no fault
 - 2026-11-08 rc.8 published (T158 polish): npm Free and Pro, EmDash registry; LMSC told
 - 2026-11-08 T158 booking UI polish merged (#15): Turnstile size and theme, hover, host width, card edges, check-in code display
