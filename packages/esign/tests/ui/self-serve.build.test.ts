@@ -61,7 +61,8 @@ describe("the esign-request block ships as source (SU-FR-12)", () => {
 			expect(size(0, 272, 320)).toBe("compact");
 			expect(size(0, 0, 320)).toBe("compact");
 			expect(size(0, 300, 375)).toBeUndefined();
-			expect(size(0, 0, 375)).toBe("compact");
+			expect(size(0, 0, 340)).toBe("compact");
+			expect(size(0, 0, 375)).toBeUndefined();
 		});
 
 		it("T159 is the booking widgets' script, character for character", () => {

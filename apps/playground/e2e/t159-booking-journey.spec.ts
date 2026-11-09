@@ -67,6 +67,10 @@ async function visitor(browser: Browser, token = TURNSTILE_PASS) {
 			if (url.href.startsWith("https://challenges.cloudflare.com/turnstile/v0/api.js")) {
 				return route.fulfill({ status: 200, contentType: "text/javascript", body: turnstileStub(token) });
 			}
+			// The fake Checkout page: the spec plays the buyer's part at Stripe (finishCheckout).
+			if (url.href.startsWith(`${CHECKOUT_HOST}/c/`)) {
+				return route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Checkout (fake)</title>" });
+			}
 			return route.abort();
 		},
 	);
@@ -138,7 +142,8 @@ test.beforeAll(async ({ request, baseURL }) => {
 	await createEvent(request, {
 		slug: PRO_SLUG,
 		title: "Clay Shooting Taster",
-		startsAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
+		// Two weeks ahead, 10:00 UTC.
+		startsAt: new Date(Math.floor(Date.now() / 86_400_000 + 14) * 86_400_000 + 10 * 3_600_000).toISOString(),
 		config: {
 			status: "on_sale",
 			capacity: 20,
@@ -194,7 +199,7 @@ async function fillAndBook(page: Page, email: string) {
 	} else {
 		await widget.getByLabel("How many").fill("2");
 	}
-	await shot(page, "journey-widget-desktop");
+	await shot(page, `${pro ? "pro" : "free"}-journey-widget-desktop`);
 	await widget.getByRole("button", { name: "Book", exact: true }).click();
 }
 
@@ -269,7 +274,7 @@ test("T159 the booking journey: Turnstile, book, sign, pay, confirmed; the page 
 		await expect(pass.getByTestId("ticket-qr")).toBeVisible();
 		await expect(pass.getByTestId("ticket-code")).toBeHidden();
 	}
-	await shot(page, "confirmed-desktop");
+	await shot(page, `${pro ? "pro" : "free"}-confirmed-desktop`);
 	if (pro) {
 		await pass.getByText("Show the code to type in").click();
 	}
@@ -283,7 +288,7 @@ test("T159 the booking journey: Turnstile, book, sign, pay, confirmed; the page 
 	await page.setViewportSize(MOBILE);
 	expect(await noSideways(page), "no sideways scroll at 375 px").toBeLessThanOrEqual(0);
 	await same("375");
-	await shot(page, "confirmed-375");
+	await shot(page, `${pro ? "pro" : "free"}-confirmed-375`);
 
 	// --- print: A4 width, then the PDF itself
 	await page.setViewportSize({ width: A4_CONTENT, height: 1000 });
@@ -304,7 +309,7 @@ test("T159 the booking journey: Turnstile, book, sign, pay, confirmed; the page 
 	await expect(printed).toBeVisible();
 	expect(await printed.textContent()).toBe(value);
 	expect(await lines(printed), "the check-in code on one line in print").toBe(1);
-	await shot(page, "confirmed-print-a4");
+	await shot(page, `${pro ? "pro" : "free"}-confirmed-print-a4`);
 
 	const pdf = await page.pdf({ format: "A4", printBackground: true });
 	const text = pdf.toString("latin1");
