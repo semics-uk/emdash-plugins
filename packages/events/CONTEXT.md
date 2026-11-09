@@ -347,6 +347,8 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 collection names and shapes · `src/admin` Block Kit · `src/cron` jobs · `tests/` (vitest projects:
 `core` in workerd, plus node projects for build checks).
 
+- Calendar width (T159, CSS only): `.semics-calendar` and `.semics-picker-nav` are capped at `--events-calendar-max`
+  (default 26rem, days about 54px), so a wide host column no longer stretches the days; on a phone the calendar fills the form.
 - Security review (T100, R61, R62, `tasks/reviews/security.md`): without a Turnstile secret the IP salt is the random
   undeclared `ipSalt` setting (`botCheck` in `src/routes/reply.ts` stores it on the first public write, in the Turnstile
   call's place), never the plugin id. The retention pass starts by sweeping ended `rl:` counters (3 a tick). Every route

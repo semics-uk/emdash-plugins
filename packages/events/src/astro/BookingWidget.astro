@@ -600,6 +600,7 @@ const when = (iso: string) => {
 		gap: 0.75rem;
 	}
 	.semics-picker-nav {
+		max-inline-size: var(--events-calendar-max, 26rem);
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
@@ -636,9 +637,10 @@ const when = (iso: string) => {
 	.semics-picker p {
 		margin: 0;
 	}
-	/* Room between the days: cells 6px apart, buttons at least 44px tall. */
+	/* Room between the days: cells 6px apart, buttons at least 44px tall. The calendar keeps its size in a wide host column:
+	   at most `--events-calendar-max` (26rem, days about 54px) while the rest of the widget fills the column (T159). */
 	.semics-calendar {
-		inline-size: calc(100% + 0.75rem);
+		inline-size: calc(min(100%, var(--events-calendar-max, 26rem)) + 0.75rem);
 		margin: -0.375rem;
 		border-collapse: separate;
 		border-spacing: 0.375rem;

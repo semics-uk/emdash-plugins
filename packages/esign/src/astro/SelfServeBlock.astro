@@ -65,9 +65,9 @@ const id = anchorOf(templateId || "none");
 						</p>
 						{view.turnstileSiteKey && (
 							<>
-								<div class="cf-turnstile" data-sitekey={view.turnstileSiteKey} />
-								{/* Compact below 300 px so a 320 px screen never scrolls sideways (WCAG 1.4.10). */}
-								<script is:inline>(function (s) { var t = s && s.previousElementSibling; if (t && t.clientWidth < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
+								<div class="cf-turnstile" data-sitekey={view.turnstileSiteKey} data-theme="light"></div>
+								{/* Turnstile is 300 px wide: compact when the form has less room, so a 320 px screen never scrolls sideways (WCAG 1.4.10). The form is measured, not the empty box; a form not laid out yet (0 px) falls back to the screen less 48 px. The same script as the booking widgets (T158, T159). Light, like the form. */}
+								<script is:inline>(function (s) { var t = s && s.previousElementSibling, f = t && t.closest("form"), w = f ? f.clientWidth : 0; if (!w) w = document.documentElement.clientWidth - 48; if (t && w < 300) t.setAttribute("data-size", "compact"); })(document.currentScript);</script>
 								<noscript>
 									<p>{t("selfServe.needsJs")}</p>
 								</noscript>

@@ -213,7 +213,8 @@ Accessibility (T101, R56): while the code is required the step (`#esign-otp`) sh
 `id=esign-error`, not at the top), both its forms post to `<action>#esign-otp`, the code box is described by its hint and the
 refusal and is `aria-invalid` for `OTP_INVALID`/`OTP_EXPIRED`/`OTP_LOCKED`/`OTP_REQUIRED`; a sign-form field to fix is
 `aria-describedby="esign-error"`. Every Turnstile box is followed by a one-line inline script that sets `data-size=compact` under
-300 px (WCAG 1.4.10). The playground's `e2e/t101-accessibility.spec.ts` must stay at zero WCAG A/AA axe violations.
+300 px (WCAG 1.4.10). T159: the `esign-request` block's script is Events' widget script (it measures the form, falling back to
+the screen less 48 px when the form has no layout yet; the box's own width is 0 before layout) and its box is `data-theme="light"`. The playground's `e2e/t101-accessibility.spec.ts` must stay at zero WCAG A/AA axe violations.
 
 Self-serve block (T093, ES-FR-18, SU-FR-12, R50; the route is Pro, the block is MIT source and ships in Free). The `esign-request` Portable
 Text block (`src/astro/SelfServeBlock.astro`, `lib/self-serve.ts`; descriptor field `template` = template id) calls
