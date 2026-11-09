@@ -28,6 +28,9 @@ export default defineConfig({
 			HOST: "127.0.0.1",
 			EMDASH_TRUSTED_PROXY_HEADERS: "x-forwarded-for",
 			E2E_STRIPE_URL: `http://127.0.0.1:${STRIPE_PORT}`,
+			// T159: the server answers Turnstile's siteverify itself (e2e/harness/stripe-preload.mjs), so a spec can
+			// turn Turnstile on without the network. Inert until a spec saves a Turnstile secret.
+			E2E_FAKE_TURNSTILE: "1",
 		},
 		reuseExistingServer: false,
 		gracefulShutdown: { signal: "SIGTERM", timeout: 5000 },
