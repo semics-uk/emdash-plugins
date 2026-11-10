@@ -7,7 +7,6 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
-- With Pro linked, t135-attendee-list's "no JavaScript" test clicks "Add another person", which only exists with JavaScript since T157: fix the test. CI runs Free only, so it never sees Pro specs
 - Release workflow reported failure after a good registry publish (RELEASE_CONFLICT, rc.2 and rc.3): not seen since rc.4; the rc.8 run (42513475168) passed in full. Drop this if rc.9 is clean too
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
 - Still untested on staging: guest invitation reaching a real inbox and its link (Stackmail rejects + addresses, needs a second address), save-card path, approval deadline passing, attendee edit, T153 past a hold
@@ -29,6 +28,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-10 t135 no-JavaScript test now opens the "Add more people" details instead of clicking the JS-only button (lint-checked only: CI has no Pro, not run against Pro)
 - 2026-11-09 LMSC staging on rc.9 (worker 9c03a23f, previous 78d98aca), deployed from lmsc-site PR #20's branch; wrangler now needs CLOUDFLARE_ACCOUNT_ID=48311ca3… (two accounts on this Mac)
 - 2026-11-09 rc.9 published (T159): npm Free and Pro, EmDash registry
 - 2026-11-09 T159 merged (#18): calendar capped by --events-calendar-max, e-sign self-serve Turnstile sized and light, end-to-end booking journey with an A4 PDF. CI's Playwright job had skipped e2e on every run since T001 (config check); fixed, 143 pass on Linux

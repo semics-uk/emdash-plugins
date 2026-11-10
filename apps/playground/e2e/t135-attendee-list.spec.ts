@@ -59,15 +59,20 @@ interface Party {
 }
 
 /** Books the buyer, another adult (signs by email) and a child; returns the booking ref. */
-async function bookParty(page: Page, who: Party): Promise<string> {
+async function bookParty(page: Page, who: Party, javaScript = true): Promise<string> {
 	await page.goto(WAIVER_PAGE);
 	const widget = page.getByTestId("booking-with-waiver");
 	await widget.getByLabel("Your name").fill("Ada Lovelace");
 	await widget.getByLabel("Your email").fill(who.buyer);
 	await widget.getByLabel("Attendee 1 Name").fill("Ada Lovelace");
-	// T157: one row shows; each further person is one "Add another person" away.
-	await widget.getByRole("button", { name: "Add another person" }).click();
-	await widget.getByRole("button", { name: "Add another person" }).click();
+	if (javaScript) {
+		// T157: one row shows; each further person is one "Add another person" away.
+		await widget.getByRole("button", { name: "Add another person" }).click();
+		await widget.getByRole("button", { name: "Add another person" }).click();
+	} else {
+		// Without JavaScript the other rows sit in a <details>, which opens natively.
+		await widget.getByText("Add more people").click();
+	}
 	await widget.getByLabel("Attendee 2 Name").fill("Charles Babage");
 	await widget.getByLabel("Attendee 2 Email (needed for adults)").fill(who.adult);
 	await widget.getByLabel("Attendee 3 Name").fill("Lucy Lovelace");
@@ -202,7 +207,7 @@ test("R95 no JavaScript: the list, Sign now and Resend are plain forms; the rece
 	await requirePro(request);
 	const who = { buyer: address("ada"), adult: address("charles") };
 	const { context, page } = await visitor(browser, false);
-	const ref = await bookParty(page, who);
+	const ref = await bookParty(page, who, false);
 	await page.goto(`/booking?ref=${ref}`);
 	await expect(page.getByTestId("attendee-row")).toHaveCount(3);
 	await expect(page.locator('[data-signing="waiting"]')).toHaveCount(3);
