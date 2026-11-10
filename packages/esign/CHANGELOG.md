@@ -1,5 +1,13 @@
 # @semics-tech/emdash-esign
 
+## 1.0.0-rc.10
+
+### Minor Changes
+
+- 154c99b: An integration can say a document must be signed: an intent with `noDecline: true` (esign-intent/1, optional,
+  ignored by older versions) creates an envelope whose signing page has no Decline button, and `public/decline`
+  refuses it with `DECLINE_NOT_ALLOWED` (T160).
+
 ## 1.0.0-rc.9
 
 ### Patch Changes
