@@ -4,7 +4,7 @@ title: "Configurable waiver order: sign before payment (default), after payment,
 phase: 7
 package: events-suite
 edition: free
-status: in-progress
+status: done
 model: opus-5.5
 size: L
 depends_on: [T159]
@@ -49,12 +49,12 @@ refund, not turned away).
 
 ## Acceptance criteria
 
-- [ ] Settings with documented keys; default unchanged.
-- [ ] After-payment journey: book, pay, sign; confirmed with "Waiver pending" before signing, Signed after; link on the
+- [x] Settings with documented keys; default unchanged.
+- [x] After-payment journey: book, pay, sign; confirmed with "Waiver pending" before signing, Signed after; link on the
       confirmed page and in the email; staff see pending in attendee list and check-in.
-- [ ] Decline off: no Decline button, no way past without a signature (server-side too, not just hidden).
-- [ ] Step numbers and wording follow the order.
-- [ ] Bundle within budget; changesets; `pnpm verify` and e2e pass.
+- [x] Decline off: no Decline button, no way past without a signature (server-side too, not just hidden).
+- [x] Step numbers and wording follow the order.
+- [x] Bundle within budget; changesets; `pnpm verify` and e2e pass.
 
 ## Notes
 
@@ -81,3 +81,60 @@ in Pro, with no change to the Events backend:
 Free tickets with after-payment: sign first (as before-payment), because there is no payment to go first and signing
 before confirming keeps the free place tied to a signature; documented. Waivers signed once per booking (`buyer` mode)
 keep before-payment (Sign now and the signing list are per attendee). Budget: Events backend stays at 123,871 bytes.
+
+### Done (agent, 2026-11-10)
+
+**Config keys** (Events Pro settings, site defaults; documented in `apps/docs/pages/waivers.md`, "Sign before or
+after paying, and declining"):
+
+| Key | Values | Default |
+| --- | --- | --- |
+| `waiverTiming` | `before-payment`, `after-payment`, `off` | `before-payment` |
+| `waiverAllowDecline` | boolean | `true` |
+
+Per event: the ticket panel (and the Event editor page) gets a **Waiver order** form (`waiverOrder.save`) that
+stores `waiverTiming` (`""` = site default) and `waiverAllowDecline` (`on` / `off` / `""`) on the event config, like
+the questions. Reserve stamps the result on the booking (`waiver.after`, `waiver.noDecline`; `off` leaves no
+waiver), so a later change never moves a booking already made.
+
+**What changed**
+
+- Events backend: nothing. `packages/events/dist/plugin.mjs` is 123,871 bytes, unchanged.
+- Pro (`emdash-plugins-pro`, branch `pro-t160-waiver-order`): `src/waivers/order.ts` (resolver, reserve /
+  `public/event` / continue wrappers, panel form), `src/waivers/pending.ts` (confirmation email line, Attendees
+  table "Waiver pending"), `public/booking/attendees/sign` with no `seat` mints every unsigned seat's intent of a
+  paid after-payment booking (a new route would have changed the frozen trust contract), `public/booking` answers
+  `waiverAfter`, `mintIntents` takes `noDecline` (checkout step, Sign now, door link), `pro.json` settings. Events
+  Pro `plugin.mjs` 249,833 bytes.
+- E-sign: intent field `noDecline` (protocol doc §5.1, §8.1): kept on the envelope at creation, the session answers
+  it, the ceremony hides Decline, `handleSign` and `public/decline` refuse (`DECLINE_NOT_ALLOWED`, 403, in the
+  shared registry). E-sign `plugin.mjs` 112,705 to 112,904 bytes.
+- Events UI (Astro, not the backend): the booking page leads with "Last step: sign the waiver" (`waiverStep`,
+  `intent=sign-waiver`: email intents redeemed first, idempotent at e-sign, then the next inline seat on e-sign's
+  signing page); unsigned seats read "Waiver pending" on an after-payment booking; "invited" notice.
+- Suite: `<BookingWithWaiver>` note and numbered steps (Book, Pay, Sign the waiver) from `waiverCopy`, only when
+  `public/event` says `waiverAfter` and a ticket has a price. Before-payment text is unchanged, with no steps.
+
+**Decisions**
+
+- Free tickets with `after-payment` sign first (nothing to pay first). Buyer-mode waivers too.
+- Paid but never signed: stays confirmed, seats `pending`; check-in refuses with the door-signing link (existing).
+- Emailed adults on an after-payment booking are invited when the buyer presses the step's button (no server path
+  can call e-sign); until then staff use the door link. The confirmation email says the waiver is still to sign.
+- "Waiver pending" in the Attendees table and the email apply only to after-payment bookings, so existing sites look
+  the same (emailed adults of a before-payment booking still show "Not checked in").
+- Step numbers: the widget had none; numbered steps appear only in the after-payment order.
+
+**Tests** (red first: public `ab61f91`, Pro `1559e14`). E-sign route and UI tests, Events UI `attendees.test.ts`,
+suite `widget-markup.test.ts`, Pro `waiver-order.unit` and `waiver-order.editions` (workerd, real bundles, Stripe
+faked). Playwright: `t159-booking-journey.spec.ts` gains the T160 journey (Pro): widget steps, book → Stripe with no
+ceremony → confirmed, both seats Waiver pending (page, stored, email, check-in refusal) → Sign the waiver twice on
+e-sign's page with no Decline → Signed. Its guardian assertion was corrected after the first green run (the ceremony
+names the guardian, not the minor). `pnpm verify` passes in both repos. E2E: Free build 143 passed, 12 skipped (the Pro
+specs). Pro build (`EMDASH_PRO_DIR` = the Pro worktree, linked to this worktree): 149 passed, 4 failed, all Free-only or
+fresh-site assertions that do not hold on a Pro build after earlier Pro specs (payments "Free event page has no promo
+field", "Free answers a webhook with 503", t065 "Free Events has nowhere to cache", t145 "fresh site reaches paired",
+which finds the site already paired by t135); none touches T160 code.
+
+**Left out**: the suite's `/_events/waiver` page is not used after payment (signing runs on e-sign's own page from
+the booking page); no per-ticket-type setting; PDF/i18n of the suite widget stay English as before.

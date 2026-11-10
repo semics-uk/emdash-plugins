@@ -430,7 +430,7 @@ test("T160 the waiver after payment: book, pay, then sign; Waiver pending until 
 			await page.waitForURL(/\/sign\/[A-Za-z0-9_-]+$/);
 			await expect(page.getByTestId("signing-ceremony")).toHaveAttribute("data-state", "ready");
 			await expect(page.locator("[data-esign-decline]")).toHaveCount(0);
-			if (guardian) await expect(page.getByTestId("signing-ceremony")).toContainText(who);
+			if (guardian) await expect(page.getByTestId("signing-ceremony")).toContainText(`Signing as ${BUYER} (guardian)`);
 			await signCeremony(page, BUYER);
 			await page.waitForURL(new RegExp(`/booking\\?ref=${ref}`));
 		}

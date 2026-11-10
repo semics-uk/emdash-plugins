@@ -3153,6 +3153,25 @@
 				"T158"
 			],
 			"spec": [],
+			"unblocks": [
+				"T160"
+			],
+			"column": "done"
+		},
+		"T160": {
+			"file": "T160-waiver-order-setting.md",
+			"id": "T160",
+			"title": "Configurable waiver order: sign before payment (default), after payment, or off; and a no-decline option",
+			"phase": 7,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T159"
+			],
+			"spec": [],
 			"unblocks": [],
 			"column": "done"
 		}
@@ -3303,7 +3322,8 @@
 			"T155",
 			"T157",
 			"T158",
-			"T159"
+			"T159",
+			"T160"
 		],
 		"blocked": [
 			"T111"
