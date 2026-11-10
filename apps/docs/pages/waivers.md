@@ -60,6 +60,32 @@ ran, opening `/booking` again catches up with the signatures E-sign already hold
 
 If E-sign cannot start a signature, the waiver page shows a **Try again** button; the seats stay held.
 
+## Sign before or after paying, and declining
+
+Two Events Pro settings choose the order (Events settings, as site defaults). An event can choose its own on
+its **Tickets & booking** panel, in the **Waiver order** form ("Site default" uses the settings).
+
+| Setting | Values | Default |
+| --- | --- | --- |
+| `waiverTiming` | `before-payment`, `after-payment`, `off` | `before-payment` |
+| `waiverAllowDecline` | on or off (on an event: `on`, `off`, or blank for the site default) | on |
+
+- **`before-payment`** is the flow above: sign, then pay.
+- **`after-payment`**: Book, then Pay, then Sign the waiver (the booking form shows these steps). The buyer goes
+  straight to Stripe. Once paid, the booking is confirmed at once, and every attendee shows **Waiver pending** on
+  the booking page, in the Attendees admin page and at check-in. The booking page opens with **Last step: sign the
+  waiver**: its button signs the next attendee signed on this device (the buyer, then each minor as guardian) on
+  E-sign's signing page, and emails the other adults their waiver. The confirmation email says the waiver is still
+  to sign and links to the booking page. Someone who paid but never signs keeps their place (no refund, nothing
+  lapses): staff get them to sign on arrival with the door signing link. A free ticket signs first, as with
+  `before-payment`: there is nothing to pay first. A waiver signed once by the buyer for the whole booking
+  (signing mode "buyer") also always signs before paying.
+- **`off`**: no waiver step at all, even with a template chosen. New bookings are plain bookings.
+- **`waiverAllowDecline` off**: the signing page has no **Decline** button, and E-sign refuses a decline sent
+  anyway, so the only way to finish is to sign. This works in either order.
+
+The order is fixed when a booking is made: changing a setting later does not move bookings already made.
+
 ## The attendee list on the booking page
 
 With Events Pro, `/booking` lists every attendee of a waiver booking as **Signed** or **Waiting**:

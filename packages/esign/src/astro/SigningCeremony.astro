@@ -248,13 +248,15 @@ const doneLink = (view.kind === "signed" || view.kind === "closed") && view.down
 					<p id="esign-missing" class="semics-note" data-esign-missing data-testid="sign-missing" aria-live="polite" hidden></p>
 					<button type="submit" name="intent" value="sign" data-esign-sign aria-describedby="esign-missing">{t("sign.submit")}</button>
 				</form>}
-				<form method="post" action={action} class="semics-decline">
-					<div class="semics-field">
-						<label for="esign-reason">{t("sign.decline.label")}</label>
-						<input id="esign-reason" name="reason" type="text" maxlength="500" />
-					</div>
-					<button type="submit" name="intent" value="decline" data-esign-decline>{t("sign.decline.button")}</button>
-				</form>
+				{!session.noDecline && (
+					<form method="post" action={action} class="semics-decline">
+						<div class="semics-field">
+							<label for="esign-reason">{t("sign.decline.label")}</label>
+							<input id="esign-reason" name="reason" type="text" maxlength="500" />
+						</div>
+						<button type="submit" name="intent" value="decline" data-esign-decline>{t("sign.decline.button")}</button>
+					</form>
+				)}
 			</>
 		)
 	}

@@ -30,7 +30,7 @@ import {
 	resumePayment,
 } from "./lib/checkout-form";
 import AttendeeList from "./AttendeeList.astro";
-import { handleAttendeeAction, signingRows } from "./lib/attendees";
+import { handleAttendeeAction, signingRows, waiverStep } from "./lib/attendees";
 import { eventPageHref, pageCss } from "./lib/page";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
@@ -66,7 +66,7 @@ const CODES = [
 	"ESIGN_NOT_CONFIGURED",
 ];
 const WAIVER_OUTCOMES = ["signed", "declined", "voided", "expired", "failed"];
-const ATTENDEE_OUTCOMES = ["saved", "resent"];
+const ATTENDEE_OUTCOMES = ["saved", "resent", "invited"];
 const errorText = (code: string, fallback: MessageKey) =>
 	CODES.includes(code) ? t(`booking.error.${code}` as MessageKey) : t(fallback);
 
@@ -171,6 +171,8 @@ if (booking?.eventId) {
 	if (event.ok) names = ticketNames(event.data);
 }
 const signingList = booking && !cancelled ? signingRows(booking) : null;
+// A waiver that comes after payment (Events Pro, T160): the signing step leads the page while seats wait.
+const waiverNext = booking && !cancelled ? waiverStep(booking) : null;
 const payment = booking && !cancelled ? paymentView(booking, locale) : null;
 const confirmed = Boolean(booking && !cancelled && booking.status === "confirmed");
 const passes = booking && confirmed ? booking.attendees.filter((a) => a.code) : [];
@@ -207,6 +209,17 @@ const passes = booking && confirmed ? booking.attendees.filter((a) => a.code) : 
 					<>
 						<BookingStatus booking={booking} cancelled={cancelled} ticketNames={names} bookAgain={eventPageHref(booking.event?.slug, page.eventPath)} showAttendees={!signingList} locale={locale} />
 						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} locale={locale} />}
+						{waiverNext && (
+							<section class="semics-events semics-waiver-step" data-testid="waiver-step" aria-labelledby="semics-waiver-step-title">
+								<h2 id="semics-waiver-step-title">{t("booking.waiverStep.title")}</h2>
+								<p>{t("booking.waiverStep.lead")}</p>
+								{waiverNext.invite && <p>{t("booking.waiverStep.emailed")}</p>}
+								<form method="post" action={`/booking?ref=${ref}`}>
+									<input type="hidden" name="intent" value="sign-waiver" />
+									<button type="submit" data-testid="waiver-step-sign">{waiverNext.sign ? t("booking.waiverStep.sign") : t("booking.waiverStep.invite")}</button>
+								</form>
+							</section>
+						)}
 						{signingList && (
 							<AttendeeList
 								rows={signingList}
@@ -214,6 +227,7 @@ const passes = booking && confirmed ? booking.attendees.filter((a) => a.code) : 
 								editUntil={booking.signingList?.editable ? booking.signingList.editUntil : undefined}
 								zone={booking.event?.timezone}
 								locale={locale}
+								pending={booking.waiverAfter === true}
 							/>
 						)}
 						{passes.length > 0 && (

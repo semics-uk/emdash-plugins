@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { handleAttendeeAction, readAttendeeEdits, signingRows } from "../../src/astro/lib/attendees";
+import { handleAttendeeAction, readAttendeeEdits, signingRows, waiverStep } from "../../src/astro/lib/attendees";
 import type { BookingView } from "../../src/astro/lib/widget";
 import { t } from "../../src/i18n/index";
 
@@ -275,5 +275,89 @@ describe("the list while the organiser decides", () => {
 
 	it("T133 says what to do when an invitation does not arrive, since bounces cannot be seen here", () => {
 		expect(t("en", "booking.attendees.notArrived")).toContain("cannot see emails that bounce");
+	});
+});
+
+// T160: a booking whose waiver comes after payment (Events Pro's `waiverTiming: "after-payment"`, `waiverAfter` on
+// `public/booking`) is confirmed with its seats waiting. The page leads with the signing step: one button signs
+// the next seat signed on this device (the buyer, a minor as guardian) and sends the emailed adults their
+// invitations, which e-sign sends once however often it is pressed.
+describe("T160 the waiver step after payment", () => {
+	const paidFirst = (over: Partial<BookingView> = {}) =>
+		booking({ status: "confirmed", waiverAfter: true, ...over } as Partial<BookingView>);
+
+	it("T160 only an after-payment booking with seats to sign has the step", () => {
+		expect(waiverStep(paidFirst())).toEqual({ sign: true, invite: true });
+		expect(waiverStep(booking({ status: "confirmed" }))).toBeNull();
+		expect(waiverStep(paidFirst({ status: "cancelled" }))).toBeNull();
+		expect(waiverStep(paidFirst({ signingList: undefined }))).toBeNull();
+		const allSigned = paidFirst().attendees.map((a) => ({ ...a, signing: "signed" }));
+		expect(waiverStep(paidFirst({ attendees: allSigned }))).toBeNull();
+		const emailedOnly = paidFirst().attendees.map((a) =>
+			(a as { signs?: string }).signs === "inline" ? { ...a, signing: "signed" } : a,
+		);
+		expect(waiverStep(paidFirst({ attendees: emailedOnly }))).toEqual({ sign: false, invite: true });
+	});
+
+	it("T160 Sign the waiver sends the invitations, then opens e-sign's page for the next seat signed here", async () => {
+		const h = host({
+			"semics-events public/booking/attendees/sign": [
+				okData({
+					intents: [
+						{ delivery: "email", token: INTENT2 },
+						{ delivery: "inline", token: INTENT },
+					],
+				}),
+			],
+			"semics-esign public/envelopes/from-intent": [
+				okData({ status: "sent" }),
+				okData({ status: "sent", signingToken: SIGNING }),
+			],
+		});
+		const out = await handleAttendeeAction(h.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst());
+		expect(out).toEqual({ location: `/sign/${SIGNING}` });
+		expect(h.seen.map((s) => `${s.id} ${s.path}`)).toEqual([
+			"semics-events public/booking/attendees/sign",
+			"semics-esign public/envelopes/from-intent",
+			"semics-esign public/envelopes/from-intent",
+		]);
+		expect(h.seen[0]?.body).toEqual({ bookingRef: access.ref, accessToken: access.token });
+		expect(h.seen[1]?.body).toEqual({ intent: INTENT2 });
+		expect(h.seen[2]?.body).toEqual({ intent: INTENT });
+	});
+
+	it("T160 with only emailed adults left it says the invitations are sent; a refusal shows its notice", async () => {
+		const sent = host({
+			"semics-events public/booking/attendees/sign": [okData({ intents: [{ delivery: "email", token: INTENT2 }] })],
+			"semics-esign public/envelopes/from-intent": [okData({ status: "sent" })],
+		});
+		expect(await handleAttendeeAction(sent.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst())).toEqual({
+			location: "/booking?ref=ABCDEFGHJK&attendees=invited",
+		});
+		const unsent = host({
+			"semics-events public/booking/attendees/sign": [okData({ intents: [{ delivery: "email", token: INTENT2 }] })],
+			"semics-esign public/envelopes/from-intent": [refused("TEMPLATE_NOT_FOUND")],
+		});
+		expect(await handleAttendeeAction(unsent.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst())).toEqual({
+			location: "/booking?ref=ABCDEFGHJK&error=ATTENDEES_UNSENT",
+		});
+		const no = host({ "semics-events public/booking/attendees/sign": [refused("HOLD_EXPIRED")] });
+		expect(await handleAttendeeAction(no.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst())).toEqual({
+			location: "/booking?ref=ABCDEFGHJK&error=HOLD_EXPIRED",
+		});
+	});
+
+	it("T160 a booking without the step sends nothing", async () => {
+		const h = host({});
+		const out = await handleAttendeeAction(h.ctx, form({ intent: "sign-waiver" }), access, ids, booking());
+		expect(out).toEqual({ location: "/booking?ref=ABCDEFGHJK&error=BAD_REQUEST" });
+		expect(h.seen).toEqual([]);
+	});
+
+	it("T160 the step's wording names the order: paid, then sign; waiting seats read Waiver pending", () => {
+		expect(t("en", "booking.waiverStep.title")).toMatch(/sign the waiver/i);
+		expect(t("en", "booking.waiverStep.lead")).toMatch(/payment/i);
+		expect(t("en", "booking.attendees.pending")).toBe("Waiver pending");
+		expect(t("en", "booking.attendees.invited")).toMatch(/emailed/i);
 	});
 });

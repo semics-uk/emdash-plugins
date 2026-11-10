@@ -86,6 +86,8 @@ export interface EnvelopeDoc {
 	expiresAt: string | null;
 	/** The intent's deadline (T153), from `signByOf`: send caps `expiresAt` with it. */
 	signBy?: number;
+	/** T160: the intent said the signer may not decline (`noDecline: true`): no Decline, and `public/decline` refuses. */
+	noDecline?: true;
 	sentAt: string | null;
 	completedAt: string | null;
 	/** When a decline or void closed the envelope (T062: the receipt's `at`); absent on older envelopes. */
@@ -327,7 +329,9 @@ function missingFields(envelope: EnvelopeDoc, body: string): EnvelopeIssue[] {
 
 function draftDoc(
 	base: Pick<EnvelopeDoc, "templateId" | "signer" | "fieldValues" | "delivery"> &
-		Partial<Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title" | "signerFields" | "signBy">>,
+		Partial<
+			Pick<EnvelopeDoc, "clientId" | "externalRef" | "returnUrl" | "title" | "signerFields" | "signBy" | "noDecline">
+		>,
 	template: TemplateDoc,
 	ctx: { now: string; piiSalt: string },
 ): Result<EnvelopeDoc, EnvelopeIssue[]> {
@@ -397,6 +401,7 @@ export function draftFromIntent(
 			externalRef: intent.ref,
 			returnUrl: intent.returnUrl,
 			...(signBy === undefined ? {} : { signBy }),
+			...(intent.noDecline === true ? { noDecline: true as const } : {}),
 		},
 		template,
 		ctx,

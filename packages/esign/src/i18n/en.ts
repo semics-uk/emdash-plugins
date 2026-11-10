@@ -16,6 +16,7 @@ export const en = {
 	"error.BAD_REQUEST": "Please check the form and try again.",
 	"error.SIGNING_OUT_OF_TURN": "Another signer has to sign first. You will get an email when it is your turn.",
 	"error.OTP_REQUIRED": "Enter the code we emailed you before signing.",
+	"error.DECLINE_NOT_ALLOWED": "This document must be signed. It cannot be declined.",
 	"error.OTP_INVALID": "That code is not right. Check the latest email and try again.",
 	"error.OTP_EXPIRED": "That code has expired. Ask for a new code.",
 	"error.OTP_LOCKED": "Too many wrong codes. Ask for a new code.",

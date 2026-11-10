@@ -809,3 +809,41 @@ describe("T153 intent signBy caps the envelope's expiry", () => {
 		expect((await stored(made.envelopeId)).expiresAt).toBe(iso(signBy + SKEW));
 	});
 });
+
+// T160: a booking can say its waiver must be signed, with no way to decline it (Events Pro's `waiverAllowDecline`
+// off). The intent carries `noDecline: true` (covered by the HMAC, unknown to an older e-sign, like `signBy`);
+// e-sign keeps it on the envelope it creates, the session tells the ceremony to offer no Decline, and
+// `public/decline` refuses, so hiding the button is not the only guard.
+describe("T160 intent noDecline: the waiver cannot be declined", () => {
+	type Stored = { status: string; noDecline?: boolean };
+	const extra = (over: Record<string, unknown>) => over as Partial<IntentPayload>;
+	const stored = async (id: unknown) =>
+		(await runtime?.inspect.storage.get<Stored>("envelopes", id as string)) as Stored;
+	const open = (budget: BudgetedHost, token: unknown) =>
+		budget.invokeRoute("public/session", { token, open: true }).then((r) => r.value as Body);
+
+	it("T160 noDecline is kept on the envelope, the session says so, and public/decline refuses", async () => {
+		const budget = await integration();
+		const made = await call(budget, await sign(payload(extra({ noDecline: true }))));
+		expect((await stored(made.envelopeId)).noDecline).toBe(true);
+		expect(await open(budget, made.signingToken)).toMatchObject({ ok: true, state: "ready", noDecline: true });
+		const declined = await budget.invokeRoute("public/decline", { token: made.signingToken, reason: "No" });
+		expect(declined.value).toMatchObject({ ok: false, error: { code: "DECLINE_NOT_ALLOWED" } });
+		expect((await stored(made.envelopeId)).status).toBe("in_progress");
+	});
+
+	it.each([
+		["absent", {}],
+		["false", { noDecline: false }],
+		["a string", { noDecline: "yes" }],
+	])("T160 noDecline %s means the signer may decline (an older Events never sends it)", async (_name, over) => {
+		const budget = await integration();
+		const made = await call(budget, await sign(payload(extra(over))));
+		expect((await stored(made.envelopeId)).noDecline).toBeUndefined();
+		const session = await open(budget, made.signingToken);
+		expect(session).toMatchObject({ ok: true, state: "ready" });
+		expect(session).not.toHaveProperty("noDecline");
+		const declined = await budget.invokeRoute("public/decline", { token: made.signingToken });
+		expect(declined.value).toMatchObject({ ok: true, status: "declined" });
+	});
+});

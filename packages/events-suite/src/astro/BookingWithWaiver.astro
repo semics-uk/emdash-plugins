@@ -29,6 +29,7 @@ import {
 	WAIVER_MESSAGES,
 	WAIVER_PATH,
 	waiverAnchor,
+	waiverCopy,
 } from "./lib/form";
 
 interface Props {
@@ -88,6 +89,8 @@ const when = (iso: string) => {
 // event is booked by ticket type and quantity, as a plain booking.
 const needsWaiver = data?.waiver === true;
 const rows = needsWaiver ? Array.from({ length: seats }, (_, i) => i + 1) : [];
+// The order of signing and paying (Events Pro, T160): after payment only when the event says so and a ticket has a price.
+const copy = waiverCopy(needsWaiver && data?.waiverAfter === true && ticketTypes.some((t) => t.priceMinor > 0));
 const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
 // The first row shows; the others wait behind "Add another person" (T157). Without JavaScript they sit in a
 // `<details>`, open when the server marked one of them.
@@ -259,10 +262,12 @@ const currency = data?.currency ?? "GBP";
 				{needsWaiver && (
 					<div class="semics-group semics-attendees">
 						<h3 class="semics-group-title">Who is coming</h3>
-						<p class="semics-note" id={`${id}-who`}>
-							List everyone attending, including you if you are going. You sign the waiver now, for yourself and
-							for anyone under 18. Other adults need their own email address: they are sent their waiver to sign.
-						</p>
+						{copy.steps.length > 0 && (
+							<ol class="semics-steps" data-testid="waiver-steps">
+								{copy.steps.map((step) => <li>{step}</li>)}
+							</ol>
+						)}
+						<p class="semics-note" id={`${id}-who`}>{copy.note}</p>
 						{bad("attendees") && <p class="semics-field-error" data-testid="waiver-attendees-error">Add at least one attendee, and an email for each other adult.</p>}
 						{[firstRow === undefined ? [] : [firstRow], moreRows].map((group, g) => {
 							const list = group.map((n) => (
@@ -604,6 +609,15 @@ const currency = data?.currency ?? "GBP";
 	.semics-note {
 		margin: 0;
 		color: var(--_muted);
+	}
+	/* T160: the waiver order as numbered steps (after payment only). */
+	.semics-steps {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 1.75rem;
+		margin: 0;
+		padding-inline-start: 1.25rem;
+		font-weight: 600;
 	}
 	.semics-field-error,
 	.semics-form-alert {

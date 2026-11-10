@@ -60,6 +60,24 @@ const MAX_TEXT = 254;
 /** Issue codes of a refused save the page explains itself; any other issue is an invalid entry. */
 const ISSUE_CODES = ["ATTENDEE_SIGNED", "WAIVER_EMAIL_REQUIRED", "WAIVER_TOO_MANY_EMAILS", "RATE_LIMITED"];
 
+/** Where the after-payment waiver step shows (T160): a paid booking confirmed, or waiting for the organiser. */
+const AFTER_PAYMENT = ["confirmed", "awaiting_approval"];
+
+/**
+ * The booking page's signing step for a waiver that comes after payment (Events Pro's `waiverAfter`, T160): `sign`
+ * when a seat signed on this device (the buyer, or a minor with the buyer as guardian) still waits, `invite` when an
+ * emailed adult does. Null for any other booking, so nothing changes for a waiver signed before payment.
+ */
+export function waiverStep(booking: BookingView): { sign: boolean; invite: boolean } | null {
+	if (booking.waiverAfter !== true || !AFTER_PAYMENT.includes(booking.status)) return null;
+	const rows = signingRows(booking);
+	const waiting = (booking.attendees as SigningAttendee[]).filter(
+		(a) => a.signing === "waiting" && rows?.some((r) => r.seat === a.seat),
+	);
+	if (waiting.length === 0) return null;
+	return { sign: waiting.some((a) => a.signs !== "email"), invite: waiting.some((a) => a.signs === "email") };
+}
+
 /** The list's rows, or null when the answer has no signing list (Free, or not a waiver booking). */
 export function signingRows(booking: BookingView): SigningRow[] | null {
 	const list = booking.signingList;
@@ -112,7 +130,7 @@ function back(ref: string, key: "error" | "attendees", value: string): { locatio
 interface Minted {
 	intent?: unknown;
 	lookup?: unknown;
-	intents?: Array<{ token?: unknown }>;
+	intents?: Array<{ token?: unknown; delivery?: unknown }>;
 }
 
 /**
@@ -127,11 +145,13 @@ export async function handleAttendeeAction(
 	booking: BookingView,
 ): Promise<{ location: string } | null> {
 	const intent = form.get("intent");
-	if (intent !== "sign-now" && intent !== "resend" && intent !== "attendees") return null;
+	if (intent !== "sign-now" && intent !== "resend" && intent !== "attendees" && intent !== "sign-waiver") return null;
 	const { ref } = access;
 	if (!options.esignPluginId) return back(ref, "error", "ESIGN_NOT_CONFIGURED");
 	const rows = signingRows(booking) ?? [];
 	const auth = { bookingRef: ref, accessToken: access.token };
+
+	if (intent === "sign-waiver") return signWaiver(ctx, auth, options, booking);
 
 	if (intent === "attendees") {
 		const attendees = readAttendeeEdits(form, rows);
@@ -164,6 +184,34 @@ export async function handleAttendeeAction(
 	const minted = await post<Minted>(ctx, options.pluginId, "public/booking/attendees/sign", { ...auth, seat });
 	if (!minted.ok) return back(ref, "error", minted.error.code);
 	const started = await startDoorSigning(ctx, minted.data.intent, options, minted.data.lookup);
+	if ("location" in started) return started;
+	if ("signed" in started) return { location: `${BOOKING_PATH}?ref=${ref}&waiver=signed` };
+	return back(ref, "error", started.error);
+}
+
+/**
+ * "Sign the waiver" after payment (T160): Events Pro's `public/booking/attendees/sign` with no seat mints an intent for every seat not
+ * signed. The emailed adults' are redeemed first (e-sign invites each once: a second press finds the envelope and
+ * sends nothing), then the first seat signed on this device opens e-sign's signing page; the next press signs the next.
+ */
+async function signWaiver(
+	ctx: PublicRouteContext,
+	auth: { bookingRef: string; accessToken: string },
+	options: ReceiptOptions,
+	booking: BookingView,
+): Promise<{ location: string }> {
+	const ref = auth.bookingRef;
+	if (!waiverStep(booking) || !options.esignPluginId) return back(ref, "error", "BAD_REQUEST");
+	const minted = await post<Minted>(ctx, options.pluginId, "public/booking/attendees/sign", auth);
+	if (!minted.ok) return back(ref, "error", minted.error.code);
+	const intents = minted.data.intents ?? [];
+	for (const email of intents.filter((i) => i.delivery === "email")) {
+		const sent = await post(ctx, options.esignPluginId, "public/envelopes/from-intent", { intent: email.token });
+		if (!sent.ok) return back(ref, "error", "ATTENDEES_UNSENT");
+	}
+	const inline = intents.find((i) => i.delivery !== "email");
+	if (!inline) return back(ref, "attendees", "invited");
+	const started = await startDoorSigning(ctx, inline.token, options);
 	if ("location" in started) return started;
 	if ("signed" in started) return { location: `${BOOKING_PATH}?ref=${ref}&waiver=signed` };
 	return back(ref, "error", started.error);

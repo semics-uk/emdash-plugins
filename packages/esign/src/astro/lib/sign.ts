@@ -29,6 +29,8 @@ export interface SessionData {
 	};
 	/** An emailed one-time code is needed before signing (E-sign Pro, T091); `verified` once it has been entered. */
 	otp?: "required" | "verified";
+	/** T160: the signer may not decline (the intent said `noDecline`): no Decline is offered. */
+	noDecline?: boolean;
 	/** `sha256` is the SHA-256 of `wording`, posted back with the signature (T117). */
 	consent?: { version: string; wording: string; sha256?: string };
 	/** Values the signer fills in (`fieldValues` on submit). */
@@ -203,6 +205,7 @@ const CODES = [
 	"OTP_WAIT",
 	"OTP_SEND_FAILED",
 	"STROKES_TOO_LARGE",
+	"DECLINE_NOT_ALLOWED",
 ];
 
 /** A refusal's message in the locale's language (T102); an unknown code gets `INTERNAL`'s. */
@@ -307,6 +310,9 @@ export async function handleSign(ctx: PublicRouteContext, token: string, form: F
 		return { kind: "ready", session: again?.ok ? again.data : session, ...(verify ? {} : { otpSent: true as const }) };
 	}
 	if (intent === "decline") {
+		if (session.noDecline) {
+			return { kind: "ready", session, errorCode: "DECLINE_NOT_ALLOWED", message: message("DECLINE_NOT_ALLOWED") };
+		}
 		const reason = text(form, "reason");
 		const result = await callPublicRoute<Done>(ctx, {
 			method: "POST",

@@ -145,6 +145,7 @@ Issued by Events for one signature, redeemed by e-sign at `public/envelopes/from
 | `resend` | no | boolean | `true`: email the open envelope's invitation again (§8.1). Other values mean absent |
 | `replace` | no | boolean | `true`: void the open envelope unless it names this signer; never create one (§8.1). Other values mean absent |
 | `signBy` | no | integer | `> iat`: the last moment the client wants this signed. Caps the envelope's expiry (§8.1). Other values mean absent |
+| `noDecline` | no | boolean | `true`: the signer may not decline this envelope (§8.1). Other values mean absent |
 
 `resend` and `replace` were added after the first release of this version (T133). They are unknown fields to
 an older e-sign, which ignores them (§5): a `resend` intent then reuses the envelope without an invitation and a
@@ -154,6 +155,9 @@ an older e-sign, which ignores them (§5): a `resend` intent then reuses the env
 own expiry. Verification (§6) never looks at it, and a value that breaks its rule means absent rather than
 `PAYLOAD_INVALID`, so a verifier from before the field and one after it give the same result for every vector;
 the `signBy` vectors show exactly that, and that the signature covers the field.
+
+`noDecline` was added the same way (T160). An older e-sign ignores it and offers Decline as before. It has no
+vectors: verification never looks at it.
 
 **Issuer rules (Events, R5).** These are Events obligations; e-sign cannot check them.
 
@@ -172,6 +176,8 @@ the `signBy` vectors show exactly that, and that the signature covers the field.
   for a booking past that stage (the door, a Sign now once the booking is paying or confirmed) sets a `signBy`
   beyond e-sign's longest own expiry (366 days from now), which lifts a deadline an earlier intent left on the
   envelope.
+- `noDecline` (T160): set on every intent of a booking whose waiver must be signed (Events Pro's
+  `waiverAllowDecline` off for the event), so no seat's envelope can be declined.
 - A fresh nonce per intent. To retry a failed call, mint a new intent; idempotency on `(cid, ref)`
   (§8.1) returns the same envelope.
 - E-sign emails every `delivery: "email"` signer from the site, so an issuer bounds them (R48): Events
@@ -323,6 +329,11 @@ Idempotency on `(cid, ref)`: if an envelope for the pair exists and is in progre
 it is returned unchanged and the intent's other fields are ignored, except that `signBy` may extend it (below).
 If the existing envelope is `declined`, `voided` or `expired`, a new envelope is created, so a signer can try
 again.
+
+**No decline** (`noDecline`, T160). An envelope created from an intent with `noDecline: true` keeps the flag. Its
+session answers `noDecline: true`, so the ceremony offers no Decline, and `public/decline` refuses with
+`DECLINE_NOT_ALLOWED` (403). Only the intent that creates the envelope sets it; a later intent for the same
+`(cid, ref)` does not change it.
 
 **Deadline** (`signBy`, T153). A new envelope expires at `min(sent + its own expiry setting, signBy + S)`, with `S`
 from §6.1. From then on e-sign refuses the signer on every path (`SIGNING_TOKEN_EXPIRED`), closes the envelope as
