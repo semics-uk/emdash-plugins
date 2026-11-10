@@ -157,6 +157,15 @@ export const ar: Messages = {
 	"booking.attendees.save": "حفظ التغييرات",
 	"booking.attendees.saved": "حُفظت بيانات الحضور. كل من تغيّرت بياناته سيصله طلب توقيع جديد.",
 	"booking.attendees.resent": "أعدنا إرسال دعوة التوقيع.",
+	"booking.attendees.pending": "التنازل بانتظار التوقيع",
+	"booking.attendees.invited": "أرسلنا التنازل بالبريد الإلكتروني إلى البالغين الآخرين لتوقيعه.",
+	"booking.waiverStep.title": "الخطوة الأخيرة: وقّع التنازل",
+	"booking.waiverStep.lead":
+		"استلمنا الدفع. لا يزال على كل مشارك توقيع التنازل: إلى أن يفعل يظهر بانتظار التوقيع ولا يمكن تسجيل حضوره.",
+	"booking.waiverStep.sign": "وقّع التنازل",
+	"booking.waiverStep.invite": "أرسل التنازلات بالبريد",
+	"booking.waiverStep.emailed":
+		"يُرسل إلى البالغين الذين لديهم بريد إلكتروني خاص بهم التنازل لتوقيعه عند الضغط على الزر.",
 	"booking.error.ATTENDEE_SIGNED": "لا يمكن تغيير بيانات شخص وقّع إقرار التنازل.",
 	"booking.error.ATTENDEES_LOCKED": "لم يعد بالإمكان تغيير بيانات الحضور عبر الإنترنت.",
 	"booking.error.ATTENDEE_INVALID": "تحقّق من اسم كل شخص وعنوان بريده الإلكتروني.",

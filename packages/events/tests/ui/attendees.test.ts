@@ -301,7 +301,7 @@ describe("T160 the waiver step after payment", () => {
 
 	it("T160 Sign the waiver sends the invitations, then opens e-sign's page for the next seat signed here", async () => {
 		const h = host({
-			"semics-events public/booking/waiver": [
+			"semics-events public/booking/attendees/sign": [
 				okData({
 					intents: [
 						{ delivery: "email", token: INTENT2 },
@@ -317,7 +317,7 @@ describe("T160 the waiver step after payment", () => {
 		const out = await handleAttendeeAction(h.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst());
 		expect(out).toEqual({ location: `/sign/${SIGNING}` });
 		expect(h.seen.map((s) => `${s.id} ${s.path}`)).toEqual([
-			"semics-events public/booking/waiver",
+			"semics-events public/booking/attendees/sign",
 			"semics-esign public/envelopes/from-intent",
 			"semics-esign public/envelopes/from-intent",
 		]);
@@ -328,20 +328,20 @@ describe("T160 the waiver step after payment", () => {
 
 	it("T160 with only emailed adults left it says the invitations are sent; a refusal shows its notice", async () => {
 		const sent = host({
-			"semics-events public/booking/waiver": [okData({ intents: [{ delivery: "email", token: INTENT2 }] })],
+			"semics-events public/booking/attendees/sign": [okData({ intents: [{ delivery: "email", token: INTENT2 }] })],
 			"semics-esign public/envelopes/from-intent": [okData({ status: "sent" })],
 		});
 		expect(await handleAttendeeAction(sent.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst())).toEqual({
 			location: "/booking?ref=ABCDEFGHJK&attendees=invited",
 		});
 		const unsent = host({
-			"semics-events public/booking/waiver": [okData({ intents: [{ delivery: "email", token: INTENT2 }] })],
+			"semics-events public/booking/attendees/sign": [okData({ intents: [{ delivery: "email", token: INTENT2 }] })],
 			"semics-esign public/envelopes/from-intent": [refused("TEMPLATE_NOT_FOUND")],
 		});
 		expect(await handleAttendeeAction(unsent.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst())).toEqual({
 			location: "/booking?ref=ABCDEFGHJK&error=ATTENDEES_UNSENT",
 		});
-		const no = host({ "semics-events public/booking/waiver": [refused("HOLD_EXPIRED")] });
+		const no = host({ "semics-events public/booking/attendees/sign": [refused("HOLD_EXPIRED")] });
 		expect(await handleAttendeeAction(no.ctx, form({ intent: "sign-waiver" }), access, ids, paidFirst())).toEqual({
 			location: "/booking?ref=ABCDEFGHJK&error=HOLD_EXPIRED",
 		});

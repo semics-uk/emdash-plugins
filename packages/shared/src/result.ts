@@ -81,6 +81,8 @@ const ESIGN_ERRORS = {
 
 	/** E-sign Pro (T091): the envelope needs a verified email one-time code first; the code routes are Pro's. */
 	OTP_REQUIRED: [403, "Enter the code we emailed you before signing."],
+	/** T160: the integration said this document must be signed (intent `noDecline`). */
+	DECLINE_NOT_ALLOWED: [403, "This document must be signed. It cannot be declined."],
 } as const;
 
 const TOKEN_INVALID = [401, "The token is not valid."] as const;

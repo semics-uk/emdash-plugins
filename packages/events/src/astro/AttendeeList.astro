@@ -17,9 +17,11 @@ interface Props {
 	/** The event's time zone, for that deadline. */
 	zone?: string | null;
 	locale?: string;
+	/** A waiver after payment (T160): a seat not signed reads "Waiver pending" (else "Waiting"). */
+	pending?: boolean;
 }
 
-const { rows, action, editUntil, zone } = Astro.props;
+const { rows, action, editUntil, zone, pending } = Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, lang, dir } = translator(locale);
 const editable = rows.filter((r) => r.canEdit);
@@ -34,7 +36,7 @@ const at = (iso: string) => zonedAt(iso, zone, locale);
 			rows.map((row) => (
 				<li data-testid="attendee-row" data-seat={row.seat} data-signing={row.signed ? "signed" : "waiting"}>
 					<span class="semics-attendee-name" id={`semics-attendee-${row.seat}`}>{row.name}</span>
-					<span class="semics-status-badge">{row.signed ? t("booking.attendees.signed") : t("booking.attendees.waiting")}</span>
+					<span class="semics-status-badge">{row.signed ? t("booking.attendees.signed") : t(pending ? "booking.attendees.pending" : "booking.attendees.waiting")}</span>
 					{row.minor && <p class="semics-attendee-note">{t("booking.attendees.minor")}</p>}
 					{row.canResend && row.email && (
 						<p class="semics-attendee-note">

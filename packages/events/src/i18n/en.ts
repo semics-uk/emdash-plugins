@@ -161,6 +161,15 @@ export const en = {
 	"booking.attendees.save": "Save changes",
 	"booking.attendees.saved": "Attendee details saved. Anyone whose details changed gets a new signing request.",
 	"booking.attendees.resent": "We have sent the signing invitation again.",
+	"booking.attendees.pending": "Waiver pending",
+	"booking.attendees.invited": "We have emailed the waiver to the other adults to sign.",
+	"booking.waiverStep.title": "Last step: sign the waiver",
+	"booking.waiverStep.lead":
+		"Your payment is received. Each attendee still has to sign the waiver: until they do, they show as Waiver pending and cannot be checked in.",
+	"booking.waiverStep.sign": "Sign the waiver",
+	"booking.waiverStep.invite": "Email the waivers",
+	"booking.waiverStep.emailed":
+		"Adults with their own email address are sent their waiver to sign when you press the button.",
 	"booking.error.ATTENDEE_SIGNED": "An attendee who has signed their waiver cannot be changed.",
 	"booking.error.ATTENDEES_LOCKED": "Attendee details can no longer be changed online.",
 	"booking.error.ATTENDEE_INVALID": "Check each attendee's name and email address.",

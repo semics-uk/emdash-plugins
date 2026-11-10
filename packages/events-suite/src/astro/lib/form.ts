@@ -164,6 +164,23 @@ export const WAIVER_MESSAGES: Record<string, string> = {
 	INTERNAL: "Something went wrong. Please try again.",
 };
 
+/**
+ * The widget's words for the waiver order (T160, Events Pro's `waiverTiming`). Before payment (the default) the
+ * note is today's and there are no numbered steps; after payment the note and the steps say pay, then sign.
+ */
+export function waiverCopy(afterPayment: boolean): { note: string; steps: string[] } {
+	if (!afterPayment) {
+		return {
+			note: "List everyone attending, including you if you are going. You sign the waiver now, for yourself and for anyone under 18. Other adults need their own email address: they are sent their waiver to sign.",
+			steps: [],
+		};
+	}
+	return {
+		note: "List everyone attending, including you if you are going. You pay first, then sign the waiver for yourself and for anyone under 18. Other adults need their own email address: they are sent their waiver to sign after you pay.",
+		steps: ["Book", "Pay", "Sign the waiver"],
+	};
+}
+
 /** The anchor of a widget, so a refusal scrolls back to it. */
 export function waiverAnchor(eventId: string): string {
 	return `semics-waiver-${eventId.replace(/[^A-Za-z0-9_-]/g, "_")}`;

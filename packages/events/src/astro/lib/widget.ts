@@ -38,6 +38,8 @@ export interface PublicEvent {
 	waiver?: boolean;
 	/** Events Pro: that waiver is signed per attendee, so its seat rules can be checked before reserving. */
 	waiverEach?: boolean;
+	/** Events Pro (T160): the waiver is signed after payment (`waiverTiming: "after-payment"`), for a paid order. */
+	waiverAfter?: boolean;
 	/** True when the core takes promo codes (Events Pro, T078): the widget then shows a code field. */
 	promoCodes?: boolean;
 	/** True when a sold-out event takes a waitlist (T081): the widget then shows a "Join the waitlist" form. */
@@ -96,6 +98,8 @@ export interface BookingView {
 	 * has ended (expired, cancelled), Pro lists instead a void intent per seat not signed (T152).
 	 */
 	waiver?: { refs: string[]; lookups?: Record<string, string>; voids?: Record<string, string> };
+	/** Events Pro (T160): the booking's waiver comes after payment, so a paid booking is confirmed with seats still to sign. */
+	waiverAfter?: boolean;
 	/**
 	 * Events Pro (T133): a waiver booking's attendee signing list. Each attendee then also carries
 	 * `seat`, `signing`, `signs`, `email` and `minor` (`SigningAttendee` in `lib/attendees.ts`);

@@ -98,6 +98,11 @@ export interface IntentPayload extends PayloadBase<"intent"> {
 	 * absent, and an older e-sign ignores it.
 	 */
 	readonly signBy?: number;
+	/**
+	 * T160, optional: `true` means the signer may not decline: e-sign offers no Decline and refuses one. Any
+	 * other value means absent, and an older e-sign ignores it (the signer could decline there).
+	 */
+	readonly noDecline?: boolean;
 }
 
 export type ReceiptStatus = "completed" | "declined" | "voided" | "expired";

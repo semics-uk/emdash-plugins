@@ -339,6 +339,7 @@ async function session(routeCtx: RouteInput, ctx: PluginContext) {
 		signer: { name: signer.data.name, as: signer.data.as, ...(participant ? { participant: participant.name } : {}) },
 		snapshot: text,
 		...(doc ? { document: { kind: doc.kind, name: doc.name, bytes: doc.bytes, pages: doc.pages } } : {}),
+		...(envelope.noDecline ? { noDecline: true } : {}),
 		...(envelope.otp ? { otp: signer.data.otpVerifiedAt ? "verified" : "required" } : {}),
 		...(envelope.signerFields?.length ? { fields: envelope.signerFields } : {}),
 		consent: { version: consent.version, wording: consent.wording, sha256: consent.sha256 },
@@ -457,6 +458,7 @@ async function decline(routeCtx: RouteInput, ctx: PluginContext) {
 	const envelopeId = signer.data.envelopeId;
 	const envelope = await envelopes.get(envelopeId);
 	if (!envelope) return fail("ENVELOPE_NOT_FOUND");
+	if (envelope.noDecline) return fail("DECLINE_NOT_ALLOWED");
 	if (!canTransition(envelope.status, "declined")) return fail("ENVELOPE_CLOSED");
 	const now = toIso();
 	if (isExpired(envelope, now)) return refuseExpired(ctx, envelopeId, envelope, now);
