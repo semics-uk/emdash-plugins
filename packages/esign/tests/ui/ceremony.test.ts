@@ -349,3 +349,29 @@ describe("an uploaded PDF in the ceremony (ES-FR-19, T094)", () => {
 		expect(source).not.toMatch(/<(iframe|object|embed)\b/);
 	});
 });
+
+// T160: an envelope whose intent said `noDecline` (Events Pro's `waiverAllowDecline` off) offers no Decline, and a
+// decline post that reaches the page anyway is refused before e-sign is asked (e-sign refuses it too).
+describe("T160 a waiver that cannot be declined", () => {
+	it("T160 the ceremony renders the decline form only when the session allows it", () => {
+		const source = readFileSync(resolve(root, "src/astro/SigningCeremony.astro"), "utf8");
+		expect(source).toMatch(
+			/\{!session\.noDecline && \(\s*<form method="post" action=\{action\} class="semics-decline">/,
+		);
+	});
+
+	it("T160 a decline post for such a session never reaches public/decline and says why", async () => {
+		const h = host({ "public/session": { ...ready, noDecline: true } });
+		const view = await handleSign(h.ctx, TOKEN, form({ intent: "decline", reason: "No" }));
+		expect(view).toMatchObject({ kind: "ready", errorCode: "DECLINE_NOT_ALLOWED" });
+		expect(view.kind === "ready" ? view.message : "").toMatch(/must be signed/);
+		expect(h.seen.map((s) => s.path)).toEqual(["public/session"]);
+	});
+
+	it("T160 a session that allows declining declines as before", async () => {
+		const h = host({ "public/session": ready, "public/decline": { ok: true, status: "declined" } });
+		const view = await handleSign(h.ctx, TOKEN, form({ intent: "decline" }));
+		expect(view).toEqual({ kind: "declined" });
+		expect(h.seen.map((s) => s.path)).toEqual(["public/session", "public/decline"]);
+	});
+});

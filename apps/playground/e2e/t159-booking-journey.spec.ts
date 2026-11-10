@@ -3,7 +3,20 @@ import { resolve } from "node:path";
 import { type APIRequestContext, type Browser, expect, type Locator, type Page, test } from "@playwright/test";
 
 import { CHECKOUT_HOST, type FakeStripe, SECRET_KEY, type Session, startFakeStripe, WEBHOOK_SECRET } from "./harness/fake-stripe";
-import { address, BOOKING_URL, createEvent, EVENTS, isPro, pairEsign, saveSettings, stripePort } from "./harness/pro";
+import {
+	address,
+	attendeesOf,
+	BOOKING_URL,
+	bookingByRef,
+	createEvent,
+	EVENTS,
+	eventsRoute,
+	isPro,
+	mailTo,
+	pairEsign,
+	saveSettings,
+	stripePort,
+} from "./harness/pro";
 
 // T159 (rc.8 staging check). Nothing gets past Turnstile on LMSC staging, so the confirmed page and its printout
 // could not be checked there. This journey gets as close to LMSC as the harness allows, with no third party on
@@ -131,6 +144,7 @@ test("T159 the calendar keeps its size in a wide column while the widget fills i
 
 let stripe: FakeStripe | undefined;
 let pro = false;
+let waiverTemplate = "";
 
 test.beforeAll(async ({ request, baseURL }) => {
 	pro = await isPro(request);
@@ -139,6 +153,7 @@ test.beforeAll(async ({ request, baseURL }) => {
 	stripe = await startFakeStripe(stripePort());
 	await saveSettings(request, { stripeSecretKey: SECRET_KEY, stripeWebhookSecret: WEBHOOK_SECRET });
 	const templateId = await pairEsign(request, baseURL as string);
+	waiverTemplate = templateId;
 	await createEvent(request, {
 		slug: PRO_SLUG,
 		title: "Clay Shooting Taster",
@@ -332,4 +347,101 @@ test("T159 the booking journey: Turnstile, book, sign, pay, confirmed; the page 
 	const allowed = ["https://challenges.cloudflare.com/turnstile/v0/api.js", ...(pro ? [CHECKOUT_HOST] : [])];
 	expect(outside.filter((u) => !allowed.some((a) => u.startsWith(a)))).toEqual([]);
 	await context.close();
+});
+
+// --- 4. T160: the waiver after payment ------------------------------------------------------------------
+
+// Events Pro's `waiverTiming: "after-payment"` and `waiverAllowDecline: false` (site settings here; an event can
+// override both). Book → Stripe straight away (no ceremony) → confirmed with every seat "Waiver pending" (the
+// booking page, the confirmation email, check-in) → "Sign the waiver" on the booking page → e-sign's page, with
+// no Decline → Signed.
+test("T160 the waiver after payment: book, pay, then sign; Waiver pending until signed, and no Decline", async ({
+	browser,
+	request,
+}) => {
+	test.skip(!pro, "Events Pro is not linked (build with EMDASH_PRO_DIR=<Pro checkout>)");
+	const slug = "t160-after-payment";
+	await createEvent(request, {
+		slug,
+		title: "Clay Shooting, Pay First",
+		startsAt: new Date(Math.floor(Date.now() / 86_400_000 + 15) * 86_400_000 + 10 * 3_600_000).toISOString(),
+		config: {
+			status: "on_sale",
+			capacity: 20,
+			currency: "GBP",
+			signature: { required: true, templateId: waiverTemplate, mode: "each_attendee" },
+		},
+		ticketTypes: [{ name: "Taster session", priceMinor: 4500, capacity: 20, maxPerOrder: 4 }],
+	});
+	await saveSettings(request, { waiverTiming: "after-payment", waiverAllowDecline: false });
+	try {
+		const { context, page, outside } = await visitor(browser);
+		await page.goto(`/e2e/waiver?slug=${slug}`);
+		const steps = page.getByTestId("booking-with-waiver").getByTestId("waiver-steps");
+		await expect(steps.locator("li")).toHaveText(["Book", "Pay", "Sign the waiver"]);
+		await expect(page.getByTestId("booking-with-waiver")).toContainText("pay first, then sign the waiver");
+
+		// Book → the payment page at once: nothing to sign before paying.
+		const email = address("annie-after");
+		const [checkout] = await Promise.all([
+			page.waitForRequest((r) => r.url().startsWith(`${CHECKOUT_HOST}/c/`)),
+			fillAndBook(page, email),
+		]);
+		const session = stripe?.sessions.get(new URL(checkout.url()).pathname.split("/").at(-1) as string);
+		expect(session?.amount).toBe(9000);
+		await finishCheckout(request, page, session as Session);
+
+		// Confirmed, paid, and both seats Waiver pending; the page leads with the signing step.
+		await expect(page).toHaveURL(BOOKING_URL);
+		const ref = BOOKING_URL.exec(page.url())?.[1] as string;
+		await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "confirmed");
+		await expect(page.getByTestId("payment-return")).toContainText("Payment received");
+		const step = page.getByTestId("waiver-step");
+		await expect(step).toBeVisible();
+		await expect(page.getByTestId("attendee-row")).toHaveCount(2);
+		for (const row of await page.getByTestId("attendee-row").all()) {
+			await expect(row).toHaveAttribute("data-signing", "waiting");
+			await expect(row).toContainText("Waiver pending");
+		}
+		const booking = bookingByRef(ref);
+		expect(booking.data.status).toBe("confirmed");
+		const seats = attendeesOf(booking.id);
+		expect(seats.map((a) => a.status)).toEqual(["pending", "pending"]);
+
+		// The confirmation email says the waiver is still to sign and links to the booking.
+		const mail = await mailTo(request, email, /Your booking/);
+		expect(mail.text).toMatch(/sign the waiver/i);
+		expect(mail.text).toContain(`/booking?ref=${ref}`);
+
+		// Staff: check-in refuses the seat until it is signed, with the door-signing link.
+		const refusedAtDoor = await eventsRoute<{ checkedIn?: boolean; reason?: string; signLink?: string }>(
+			request,
+			"checkin/code",
+			{ code: seats[0]?.code },
+		);
+		expect(refusedAtDoor).toMatchObject({ checkedIn: false, reason: "WAIVER_PENDING" });
+
+		// Sign the waiver: e-sign's page, with no way to decline; then the child's, as guardian.
+		for (const [who, guardian] of [
+			[BUYER, false],
+			["Billy Oakley", true],
+		] as const) {
+			await step.getByRole("button", { name: "Sign the waiver" }).click();
+			await page.waitForURL(/\/sign\/[A-Za-z0-9_-]+$/);
+			await expect(page.getByTestId("signing-ceremony")).toHaveAttribute("data-state", "ready");
+			await expect(page.locator("[data-esign-decline]")).toHaveCount(0);
+			if (guardian) await expect(page.getByTestId("signing-ceremony")).toContainText(who);
+			await signCeremony(page, BUYER);
+			await page.waitForURL(new RegExp(`/booking\\?ref=${ref}`));
+		}
+		for (const row of await page.getByTestId("attendee-row").all()) {
+			await expect(row).toHaveAttribute("data-signing", "signed");
+		}
+		await expect(page.getByTestId("waiver-step")).toHaveCount(0);
+		expect(attendeesOf(booking.id).map((a) => a.status)).toEqual(["valid", "valid"]);
+		expect(outside.filter((u) => !u.startsWith(CHECKOUT_HOST) && !u.includes("turnstile"))).toEqual([]);
+		await context.close();
+	} finally {
+		await saveSettings(request, { waiverTiming: "before-payment", waiverAllowDecline: true });
+	}
 });
