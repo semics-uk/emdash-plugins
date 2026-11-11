@@ -1,5 +1,12 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.11
+
+### Patch Changes
+
+- 6493d16: Admin data deletion: the "live bookings were kept" and "too many attendees" notices now show their explanation ("Live bookings of upcoming events are kept.", "Run the deletion again to finish."), which was passed in a field the notice ignored.
+- c8816af: Smaller Events sandbox backend with no change in behaviour: repeated statuses, error codes and checks now exist once in the bundle. `backend.js` goes from 123,871 to 119,444 bytes (4.3 KiB back), leaving 4.4 KiB free beyond the 4 KiB hotfix room under the 125 KiB budget.
+
 ## 1.0.0-rc.10
 
 ### Minor Changes

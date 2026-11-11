@@ -1,5 +1,14 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.11
+
+### Patch Changes
+
+- Updated dependencies [6493d16]
+- Updated dependencies [c8816af]
+  - @semics-tech/emdash-events@1.0.0-rc.11
+  - @semics-tech/emdash-esign@1.0.0-rc.11
+
 ## 1.0.0-rc.10
 
 ### Minor Changes
