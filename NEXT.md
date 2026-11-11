@@ -19,7 +19,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Mac disk: 3.4 GB free after clearing npm's cache; the site build fails with no space when it is nearly full
-- Events backend size: 125 KiB budget, about 95 bytes of hotfix room after T151
+- Events backend size: 125 KiB budget; Free Events 119,392 bytes after T162 (rc.11)
 
 ## Ideas
 - Templates page links straight to the event it was opened from, not the events list
@@ -28,6 +28,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-11 rc.11 published (T162 shrink, #27): npm Free and Pro (Pro rebuilt on Free, no Pro changes), EmDash registry; LMSC staging still on rc.9
 - 2026-11-11 T161 size investigation (#24), T162 shrink pass (#25, Events 123,871 → 119,444 bytes, size table in CI) and data deletion notices fix (#27) merged; Oli: no feature freeze, weigh size on every change
 - 2026-11-11 Dropped the Release-failure watch item: rc.9 and rc.10 Release runs all passed
 - 2026-11-11 rc.10 published (T160 waiver order, lmsc-site#21): npm Free and Pro, EmDash registry; LMSC session told the keys
