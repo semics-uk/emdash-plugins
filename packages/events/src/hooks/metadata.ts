@@ -2,6 +2,7 @@ import { fromMinor, pad2, utcOffsetMinutes, validZone } from "@semics-tech/share
 import type { PageMetadataEvent, PluginContext } from "emdash/plugin";
 
 import { mappingOf } from "../domain/event-info";
+import { CANCELLED, DRAFT, ON_SALE } from "../domain/names";
 import { ticketOrder } from "../domain/order";
 import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, TicketTypeDoc } from "../storage/schema";
@@ -55,7 +56,7 @@ export function withOffset(text: string, timeZone: string | null | undefined): s
 function availability(c: EventConfigDoc, t: TicketTypeDoc, now: number): string {
 	const end = msOf(c.salesEnd);
 	const start = msOf(c.salesStart);
-	if (c.status !== "on_sale" || (Number.isFinite(end) && end <= now)) return `${SCHEMA}Discontinued`;
+	if (c.status !== ON_SALE || (Number.isFinite(end) && end <= now)) return `${SCHEMA}Discontinued`;
 	if (left(t.capacity, t.reserved) === 0 || left(c.capacity, c.reserved) === 0) return `${SCHEMA}SoldOut`;
 	if (Number.isFinite(start) && start > now) return `${SCHEMA}PreOrder`;
 	return `${SCHEMA}InStock`;
@@ -71,7 +72,7 @@ export async function eventJsonLd(
 	const mapping = mappingOf(await deps.settings.list());
 	if (content.collection !== mapping.collection) return null;
 	const config = (await deps.storage.event_configs.get(content.id)) as EventConfigDoc | null;
-	if (!config?.info || config.orphaned || config.unpublished || config.status === "draft") return null;
+	if (!config?.info || config.orphaned || config.unpublished || config.status === DRAFT) return null;
 	const { info } = config;
 	const startDate = withOffset(info.startsAt, info.timezone);
 	if (!startDate) return null;
@@ -98,7 +99,7 @@ export async function eventJsonLd(
 		url,
 		startDate,
 		...(endDate ? { endDate } : {}),
-		eventStatus: `${SCHEMA}${config.status === "cancelled" ? "EventCancelled" : "EventScheduled"}`,
+		eventStatus: `${SCHEMA}${config.status === CANCELLED ? "EventCancelled" : "EventScheduled"}`,
 		eventAttendanceMode: `${SCHEMA}OfflineEventAttendanceMode`,
 		...(info.venue ? { location: { "@type": "Place", name: safe(info.venue) } } : {}),
 		...(offers.length > 0 ? { offers } : {}),

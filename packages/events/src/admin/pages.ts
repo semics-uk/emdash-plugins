@@ -21,6 +21,7 @@ import { BOOKING_TRANSITIONS } from "../domain/booking-state";
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, LABELS, validateMapping } from "../domain/mapping";
+import { ALREADY_CHECKED_IN, AWAITING_APPROVAL, ON_SALE, OPEN, WAIVER_PENDING } from "../domain/names";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import { type ApprovalDeps, approveBooking, declineBooking } from "../routes/approval";
@@ -161,7 +162,7 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 function bookingRows(items: Page["items"], configs: Map<string, unknown>) {
 	return items.map(({ id, data }) => {
 		const b = data as BookingDoc;
-		const waiting = b.status === "awaiting_approval";
+		const waiting = b.status === AWAITING_APPROVAL;
 		return {
 			...(waiting && {
 				approve: button("bookings.approve", "Approve", { style: "primary", value: id }),
@@ -251,7 +252,7 @@ async function decide(deps: AdminDeps, id: string, reason?: string): Promise<Adm
 	const banner: NoticeInput = out.ok
 		? { severity: "info", title: `${out.bookingRef}: ${out.status}` }
 		: { severity: "error", title: "Not changed", message: out.error?.message ?? "" };
-	return bookingsPage(deps, { status: "awaiting_approval" }, notices([banner]));
+	return bookingsPage(deps, { status: AWAITING_APPROVAL }, notices([banner]));
 }
 
 // --- deletion on request (EV-FR-20) -----------------------------------------------------------
@@ -375,7 +376,7 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 				column("status", "Status", "badge"),
 				column("sold", "Sold", "number"),
 				column("capacity", "Capacity", "number"),
-				column("open", "", "element"),
+				column(OPEN, "", "element"),
 			],
 			rows: page.items.map(({ id, data }) => {
 				const c = data as EventConfigDoc;
@@ -509,13 +510,13 @@ async function doCheckIn(
 	});
 	let banner: NoticeInput;
 	const links: Block[] = [];
-	if (!result.ok && result.reason === "WAIVER_PENDING" && result.waiver && result.id && deps.signingLink) {
+	if (!result.ok && result.reason === WAIVER_PENDING && result.waiver && result.id && deps.signingLink) {
 		const url = await deps.signingLink({ attendeeId: result.id, ...result.waiver, origin: deps.origin });
 		if (url) links.push(actions([link("Open the signing page", { kind: "external", url })]));
 	}
 	if (result.ok) {
 		banner = { severity: "info", title: `Checked in: ${result.name}`, message: `At ${result.checkedInAt}.` };
-	} else if (result.reason === "ALREADY_CHECKED_IN") {
+	} else if (result.reason === ALREADY_CHECKED_IN) {
 		banner = {
 			severity: "warning",
 			title: "Already checked in",
@@ -524,7 +525,7 @@ async function doCheckIn(
 	} else {
 		banner = {
 			severity: "error",
-			title: result.reason === "WAIVER_PENDING" ? "Waiver not signed" : "Cannot check in",
+			title: result.reason === WAIVER_PENDING ? "Waiver not signed" : "Cannot check in",
 			message: REFUSALS[result.reason]?.(result) ?? "Check-in refused.",
 		};
 	}
@@ -549,7 +550,7 @@ async function panelPage(deps: AdminDeps, id: string, interaction: PanelInteract
 // --- dashboard widget -------------------------------------------------------------------------
 
 async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
-	const page = await deps.storage.event_configs.query({ where: { status: "on_sale" }, limit: 5 });
+	const page = await deps.storage.event_configs.query({ where: { status: ON_SALE }, limit: 5 });
 	if (page.items.length === 0) return respond([context("No events are on sale.")]);
 	return respond(page.items.map(({ id, data }) => soldMeter(id, data as EventConfigDoc)));
 }
@@ -615,7 +616,7 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 			case "bookings.approve":
 				return decide(deps, str(value));
 			case "bookings.decline_ask":
-				return bookingsPage(deps, { status: "awaiting_approval" }, [
+				return bookingsPage(deps, { status: AWAITING_APPROVAL }, [
 					form({
 						fields: [textInput("reason", "Reason (optional, sent to the buyer)")],
 						submit: { label: "Decline", actionId: `bookings.decline:${str(value)}` },

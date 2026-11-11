@@ -11,13 +11,14 @@
  */
 import type { EventConfigDoc, WaitlistDoc } from "../storage/schema";
 import { type CheckoutPlan, planCheckout } from "./checkout";
+import { ON_SALE } from "./names";
 
 /** How long an offer holds the seats for the waitlister: the claim link's life. */
 export const OFFER_HOURS = 24;
 
 /** True when the event may take a waitlist offer now: on sale, live, waitlist on, a seat left. */
 export function offerable(c: EventConfigDoc): boolean {
-	return c.waitlistEnabled && c.status === "on_sale" && !c.orphaned && !c.unpublished && c.capacity > c.reserved;
+	return c.waitlistEnabled && c.status === ON_SALE && !c.orphaned && !c.unpublished && c.capacity > c.reserved;
 }
 
 export interface OfferPlan {

@@ -11,6 +11,7 @@ import { err, ok, type Result, toHex } from "@semics-tech/shared";
 
 import type { BookingDoc, BookingLine, EventConfigDoc } from "../storage/schema";
 import { type Counter, planReservation, type ReserveStep, seatsByType } from "./inventory";
+import { BAD_REQUEST, ON_SALE, OPEN, SOLD_OUT } from "./names";
 import { cmp } from "./order";
 import { iso } from "./time";
 
@@ -301,8 +302,8 @@ export function planCheckout(
 	{ maxSteps }: { maxSteps: number },
 ): Result<CheckoutPlan, CheckoutError> {
 	const closed = err({ code: "SALES_CLOSED" as const });
-	const bad = (reason: string) => err({ code: "BAD_REQUEST" as const, reason });
-	if (config.status !== "on_sale" || !inWindow(now, config.salesStart, config.salesEnd)) return closed;
+	const bad = (reason: string) => err({ code: BAD_REQUEST, reason });
+	if (config.status !== ON_SALE || !inWindow(now, config.salesStart, config.salesEnd)) return closed;
 
 	const types = config.catalog?.ticketTypes ?? {};
 	const occurrences = config.catalog?.occurrences ?? {};
@@ -324,7 +325,7 @@ export function planCheckout(
 	if (input.occurrenceId !== undefined) {
 		const occ = Object.hasOwn(occurrences, input.occurrenceId) ? occurrences[input.occurrenceId] : undefined;
 		if (!occ) return bad("UNKNOWN_OCCURRENCE");
-		if (occ.status !== "open" || !(now < Date.parse(occ.startsAt))) return closed;
+		if (occ.status !== OPEN || !(now < Date.parse(occ.startsAt))) return closed;
 		occurrence = { capacity: occ.capacity, reserved: 0 };
 	} else if (config.schedule || Object.keys(occurrences).length > 0) {
 		return bad("OCCURRENCE_REQUIRED");
@@ -341,7 +342,7 @@ export function planCheckout(
 		{ maxCalls: maxSteps, compensation: "bounded" },
 	);
 	if (!planned.ok) {
-		return planned.error.code === "SOLD_OUT" ? err({ code: "SOLD_OUT" }) : bad(planned.error.reason);
+		return planned.error.code === SOLD_OUT ? err({ code: SOLD_OUT }) : bad(planned.error.reason);
 	}
 	const subtotalMinor = lines.reduce((sum, l) => sum + l.qty * l.unitPriceMinor, 0);
 	return ok({

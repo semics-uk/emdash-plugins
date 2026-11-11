@@ -1,6 +1,7 @@
 import { type OutboxMessage, pad2, utcToZoned, validZone } from "@semics-tech/shared";
 
 import type { EventInfo } from "../domain/event-info";
+import { AWAITING_APPROVAL } from "../domain/names";
 import type { BookingDoc, OutboxDoc } from "../storage/schema";
 
 /**
@@ -129,7 +130,7 @@ export function approvalEmail(
 ): OutboxMessage | null {
 	const i = { to, buyerName: b.buyer.name, bookingRef: b.ref, event, siteName };
 	if (kind === "approval_admin") {
-		const waiting = b.status === "awaiting_approval";
+		const waiting = b.status === AWAITING_APPROVAL;
 		// Ended (declined, cancelled, expired, refunded*): nothing new to tell. Anything else is still live.
 		if (/^(de|ca|ex|re)/.test(b.status)) return null;
 		const seats = b.lines.reduce((n, l) => n + l.qty, 0);

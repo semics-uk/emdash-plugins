@@ -1,4 +1,5 @@
 import { type Block, notices } from "@semics-tech/shared";
+import { TOO_MANY_CHANGES } from "../domain/names";
 
 /** Plain-language messages for `config/save` refusals, shared by the event editor page and the editor panel. */
 const ISSUE_MESSAGES: Record<string, string> = {
@@ -21,12 +22,12 @@ const ISSUE_MESSAGES: Record<string, string> = {
 };
 
 export function issueMessage(code: string, path = ""): string {
-	return `${ISSUE_MESSAGES[code] ?? code}${path && code !== "TOO_MANY_CHANGES" ? ` (${path})` : ""}`;
+	return `${ISSUE_MESSAGES[code] ?? code}${path && code !== TOO_MANY_CHANGES ? ` (${path})` : ""}`;
 }
 
 /** The banner for a refused save: every issue in plain language. */
 export function saveRefused(issues: Array<{ path: string; code: string }>): Block[] {
-	const tooMany = issues.some((i) => i.code === "TOO_MANY_CHANGES");
+	const tooMany = issues.some((i) => i.code === TOO_MANY_CHANGES);
 	const message = issues.map((i) => issueMessage(i.code, i.path)).join(" ") || "The change was refused.";
 	return notices([{ severity: "error", title: tooMany ? "Too many changes at once" : "Not saved", message }]);
 }

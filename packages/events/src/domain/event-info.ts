@@ -1,5 +1,6 @@
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc } from "../storage/schema";
 import { isObj } from "./config";
+import { DRAFT } from "./names";
 import { iso } from "./time";
 
 /**
@@ -129,7 +130,7 @@ export async function loadEventInfo(
 	const config = (await deps.storage.event_configs.get(eventId)) as EventConfigDoc | null;
 	// What anyone may see (public/event/ics): a configured event out of draft that is still live,
 	// like `public/event`. Without the check a draft or unpublished entry's details would leak.
-	if (publicOnly && (!config || config.status === "draft" || config.orphaned || config.unpublished)) return null;
+	if (publicOnly && (!config || config.status === DRAFT || config.orphaned || config.unpublished)) return null;
 	const doc = config?.info ?? (await readEntryInfo(deps, eventId));
 	if (!doc) return null;
 	const occurrence = occurrenceId ? ((await deps.storage.occurrences.get(occurrenceId)) as OccurrenceDoc | null) : null;

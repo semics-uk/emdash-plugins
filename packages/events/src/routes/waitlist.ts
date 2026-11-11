@@ -2,6 +2,7 @@ import { type RateLimitStore, rateLimit, type TurnstileFetch } from "@semics-tec
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { parseJoinInput, planCheckout } from "../domain/checkout";
+import { NOT_FOUND, OFFERED, SOLD_OUT, TURNSTILE_FAILED } from "../domain/names";
 import { iso } from "../domain/time";
 import type { EventConfigDoc, WaitlistDoc } from "../storage/schema";
 import { type RedeemDeps, redeemBooking } from "./redeem";
@@ -48,7 +49,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 	const input = parsed.value;
 	const [entries, stored] = await Promise.all([d.settings.list(), d.storage.event_configs.get(input.eventId)]);
 	const c = stored as EventConfigDoc | null;
-	if (!c?.waitlistEnabled || c.orphaned || c.unpublished) return fail("NOT_FOUND");
+	if (!c?.waitlistEnabled || c.orphaned || c.unpublished) return fail(NOT_FOUND);
 	// The order an offer would place (any listed type when none is named): a date or type that does
 	// not exist, or a quantity the type never sells, could never be offered. Sold out is the point.
 	const occ = input.occurrenceId;
@@ -58,7 +59,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 	const planned = planCheckout(input.eventId, c, { ...input, lines: [line], buyer: input, idempotencyKey: "" }, d.now, {
 		maxSteps: 3,
 	});
-	if (!planned.ok && planned.error.code !== "SOLD_OUT") return planRefusal(planned.error, "ticketTypeId");
+	if (!planned.ok && planned.error.code !== SOLD_OUT) return planRefusal(planned.error, "ticketTypeId");
 
 	const { salt, human: check } = botCheck(entries, d.settings, d.fetch, input.turnstileToken, d.ip);
 	const [limited, human] = await Promise.all([
@@ -66,7 +67,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 		check,
 	]);
 	if (!limited.ok) return fail("RATE_LIMITED");
-	if (!human.ok) return fail("TURNSTILE_FAILED");
+	if (!human.ok) return fail(TURNSTILE_FAILED);
 
 	const { items } = await d.storage.waitlist.query({
 		where: { eventId: input.eventId, email: input.email },
@@ -74,7 +75,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 	});
 	const queued = items.some(({ data }) => {
 		const e = data as WaitlistDoc;
-		return (e.status === "waiting" || e.status === "offered") && e.occurrenceId === occ;
+		return (e.status === "waiting" || e.status === OFFERED) && e.occurrenceId === occ;
 	});
 	if (!queued) {
 		await d.storage.waitlist.put(d.newId?.() ?? `wl_${crypto.randomUUID()}`, {

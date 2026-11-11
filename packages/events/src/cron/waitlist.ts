@@ -26,6 +26,7 @@ import { generateToken, hashToken } from "@semics-tech/shared";
 import { bookingKeys, type CheckoutPlan } from "../domain/checkout";
 import { DEFAULT_HOLD_SETTINGS, startHold } from "../domain/holds";
 import { type Counter, type CounterStorage, keyOf, reserve } from "../domain/inventory";
+import { DRAFT, EXPIRED, HELD, OFFERED, ON_SALE, PENDING } from "../domain/names";
 import { iso } from "../domain/time";
 import { OFFER_HOURS, offerable, planOffer } from "../domain/waitlist";
 import { newBooking } from "../routes/checkout-reserve";
@@ -70,13 +71,13 @@ async function offer(
 	);
 	const claimed = await st.waitlist.updateIf(entryId, {
 		where: { status: "waiting" },
-		set: { status: "offered", offerExpiresAt: hold.holdExpiresAt, bookingId: id },
+		set: { status: OFFERED, offerExpiresAt: hold.holdExpiresAt, bookingId: id },
 	});
 	if (!claimed.applied) return "entry";
 	await st.bookings.put(
 		id,
 		newBooking(
-			{ ref, eventId: e.eventId, occurrenceId: e.occurrenceId || undefined, status: "held" },
+			{ ref, eventId: e.eventId, occurrenceId: e.occurrenceId || undefined, status: HELD },
 			hold,
 			e,
 			plan,
@@ -96,25 +97,25 @@ async function offer(
 			payload: { bookingId: id },
 			attempts: 0,
 			nextAttemptAt: iso(now),
-			status: "pending",
+			status: PENDING,
 		});
 		return "ok";
 	}
 	const quiet = () => ({ applied: false });
 	await st.waitlist
 		.updateIf(entryId, {
-			where: { status: "offered", bookingId: id },
+			where: { status: OFFERED, bookingId: id },
 			set: { status: "waiting", offerExpiresAt: null, bookingId: null },
 		})
 		.catch(quiet);
 	// All seats given back: closed now. Otherwise a dead draft, which the sweeper closes and repairs.
 	await st.bookings
 		.updateIf(id, {
-			where: { status: "held", releaseClaimedAt: null },
+			where: { status: HELD, releaseClaimedAt: null },
 			set:
 				reserved.error.uncompensated.length > 0
-					? { status: "draft", holdExpiresAt: iso(now) }
-					: { status: "expired", expiredAt: iso(now) },
+					? { status: DRAFT, holdExpiresAt: iso(now) }
+					: { status: EXPIRED, expiredAt: iso(now) },
 		})
 		.catch(quiet);
 	return "seat";
@@ -123,7 +124,7 @@ async function offer(
 /** One tick. Returns the bridge calls it made (at most 10) and what it did. */
 export async function waitlistTick({ storage: st, now }: { storage: WaitlistStorage; now: number }) {
 	const configs = new Map<string, EventConfigDoc>();
-	for (const { id, data } of (await st.event_configs.query({ where: { status: "on_sale" }, limit: 100 })).items) {
+	for (const { id, data } of (await st.event_configs.query({ where: { status: ON_SALE }, limit: 100 })).items) {
 		if (offerable(data as EventConfigDoc)) configs.set(id, data as EventConfigDoc);
 	}
 	let calls = 1;
@@ -167,15 +168,15 @@ export async function waitlistTick({ storage: st, now }: { storage: WaitlistStor
 	// Every fifth minute, a tick without an offer marks lapsed offers (so an idle minute is one call).
 	if (!offered && calls + 2 <= TARGET_CALLS && Math.floor(now / 60_000) % 5 === 0) {
 		const { items } = await st.waitlist.query({
-			where: { status: "offered", offerExpiresAt: { lt: iso(now) } },
+			where: { status: OFFERED, offerExpiresAt: { lt: iso(now) } },
 			limit: TARGET_CALLS - calls - 1,
 		});
 		calls++;
 		for (const { id, data } of items) {
 			const at = (data as WaitlistDoc).offerExpiresAt;
 			const r = await st.waitlist.updateIf(id, {
-				where: { status: "offered", offerExpiresAt: at },
-				set: { status: "expired" },
+				where: { status: OFFERED, offerExpiresAt: at },
+				set: { status: EXPIRED },
 			});
 			calls++;
 			if (r.applied) expired++;

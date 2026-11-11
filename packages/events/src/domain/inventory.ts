@@ -21,6 +21,19 @@
 import { err, ok, type Result } from "@semics-tech/shared";
 
 import type { BookingDoc, BookingStatus } from "../storage/schema";
+import {
+	AWAITING_APPROVAL,
+	AWAITING_PAYMENT,
+	AWAITING_SIGNATURE,
+	BAD_REQUEST,
+	CANCELLED,
+	CONFIRMED,
+	DRAFT,
+	EXPIRED,
+	HELD,
+	INTERNAL,
+	SOLD_OUT,
+} from "./names";
 import { iso } from "./time";
 
 export type CountedCollection = "ticket_types" | "occurrences" | "event_configs";
@@ -136,8 +149,7 @@ export function planReservation(
 	req: ReservationRequest,
 	{ maxCalls = DEFAULT_MAX_CALLS, compensation = "full" }: { maxCalls?: number; compensation?: Compensation } = {},
 ): Result<ReserveStep[], PlanError> {
-	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) =>
-		err({ code: "BAD_REQUEST" as const, reason });
+	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) => err({ code: BAD_REQUEST, reason });
 	if (!Array.isArray(req.lines) || req.lines.length === 0) return bad("NO_LINES");
 	for (const line of req.lines) {
 		if (!isQty(line.qty)) return bad("INVALID_QUANTITY");
@@ -163,7 +175,7 @@ export function planReservation(
 	if (worst > maxCalls) return bad("TOO_MANY_LINES");
 	for (const [step, doc] of read) {
 		if ((doc.reserved ?? 0) + step.qty > step.capacity) {
-			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id });
+			return err({ code: SOLD_OUT, collection: step.collection, id: step.id });
 		}
 	}
 	return ok(read.map(([step]) => step));
@@ -200,10 +212,10 @@ export async function reserve(
 				delta: { reserved: { inc: step.qty } },
 			}));
 		} catch (cause) {
-			return err({ code: "INTERNAL", cause, uncompensated: await undo() });
+			return err({ code: INTERNAL, cause, uncompensated: await undo() });
 		}
 		if (!applied) {
-			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id, uncompensated: await undo() });
+			return err({ code: SOLD_OUT, collection: step.collection, id: step.id, uncompensated: await undo() });
 		}
 		done.push(step);
 	}
@@ -300,14 +312,14 @@ export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurr
  * One list so the sandbox bundle carries each name once (R100); `BOOKING_TRANSITIONS` indexes it.
  */
 export const STATUSES: readonly BookingStatus[] = [
-	"draft",
-	"held",
-	"awaiting_signature",
-	"awaiting_payment",
-	"awaiting_approval",
-	"confirmed",
-	"expired",
-	"cancelled",
+	DRAFT,
+	HELD,
+	AWAITING_SIGNATURE,
+	AWAITING_PAYMENT,
+	AWAITING_APPROVAL,
+	CONFIRMED,
+	EXPIRED,
+	CANCELLED,
 	"refunded",
 	"refunded_unavailable",
 	"declined",
@@ -326,9 +338,9 @@ export type Tally = Map<string, { reserved: number; sold: number }>;
 export function tallyBookings(bookings: Iterable<BookingLike>, now: number): Tally {
 	const tally: Tally = new Map();
 	for (const b of bookings) {
-		const draftLive = b.status === "draft" && now - Date.parse(b.createdAt) < DRAFT_GRACE_MS;
+		const draftLive = b.status === DRAFT && now - Date.parse(b.createdAt) < DRAFT_GRACE_MS;
 		if (!draftLive && !LIVE_BOOKING_STATUSES.includes(b.status)) continue;
-		const sold = b.status === "confirmed";
+		const sold = b.status === CONFIRMED;
 		for (const ref of countersForBooking(b)) {
 			const key = keyOf(ref);
 			const t = tally.get(key) ?? { reserved: 0, sold: 0 };
@@ -425,7 +437,7 @@ export async function repairEventCounters(
 	for (;;) {
 		if (calls >= maxCalls) return { complete: false, ...none };
 		const page = await storage.bookings.query({
-			where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES, "draft"] } },
+			where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES, DRAFT] } },
 			limit: 100,
 			...(cursor ? { cursor } : {}),
 		});
@@ -521,7 +533,7 @@ export async function repairStep(
 	while (!j.fixes) {
 		if (calls >= maxCalls) return result(j);
 		const page = await storage.bookings.query({
-			where: { eventId: j.eventId, status: { in: [...LIVE_BOOKING_STATUSES, "draft"] } },
+			where: { eventId: j.eventId, status: { in: [...LIVE_BOOKING_STATUSES, DRAFT] } },
 			limit: 100,
 			...(j.cursor ? { cursor: j.cursor } : {}),
 		});

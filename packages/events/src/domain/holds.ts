@@ -36,6 +36,7 @@ import {
 	restore,
 	STATUSES,
 } from "./inventory";
+import { CLOSED, EXPIRED } from "./names";
 import { clampSetting } from "./settings";
 import { iso, msOf } from "./time";
 
@@ -279,13 +280,13 @@ export async function expireBookings(
 						? { status: p.booking.status, releaseClaimedAt: p.booking.releaseClaimedAt }
 						: heldGuard(p.booking);
 			const { applied } = await storage.bookings
-				.updateIf(p.id, { where: guard, set: { status: "expired", expiredAt: at } })
+				.updateIf(p.id, { where: guard, set: { status: EXPIRED, expiredAt: at } })
 				.catch(() => ({ applied: false }));
 			const partly = p.refs.some((r) => unreleasedDocs.has(keyOf(r)));
 			if (applied) {
 				return p.action === "release"
-					? { ...base, outcome: "expired", dirty: partly }
-					: { ...base, outcome: "closed", dirty: true };
+					? { ...base, outcome: EXPIRED, dirty: partly }
+					: { ...base, outcome: CLOSED, dirty: true };
 			}
 			if (p.action === "close") return { ...base, outcome: "skipped", dirty: false };
 			await restore(

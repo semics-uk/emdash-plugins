@@ -2,6 +2,7 @@
 import { type Block, column, header, meter, toMinor } from "@semics-tech/shared";
 
 import { EVENT_STATUSES, OCCURRENCE_STATUSES } from "../domain/config";
+import { HELD } from "../domain/names";
 
 export const respond = (blocks: Block[]): { blocks: Block[] } => ({ blocks });
 
@@ -24,7 +25,7 @@ export const OCCURRENCE_STATUS_OPTIONS = optionsOf(OCCURRENCE_STATUSES);
 /** The Sold, Held and capacity columns of the panel's tables. */
 export const countColumns = (key = "capacity", label = "Capacity") => [
 	column("sold", "Sold", "number"),
-	column("held", "Held", "number"),
+	column(HELD, "Held", "number"),
 	column(key, label, "number"),
 ];
 

@@ -1,6 +1,7 @@
 import { confirmationMessage, confirmationOutboxId } from "../domain/booking-state";
 import { heldGuard } from "../domain/holds";
 import { confirmSold, countersForBooking } from "../domain/inventory";
+import { AWAITING_APPROVAL, CONFIRMED, HOLD_EXPIRED, NOT_FOUND, PAYMENT_FAILED } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { type BookingDeps, type BookingRouteStorage, closeBooking } from "./booking";
@@ -42,32 +43,32 @@ const answer = (b: BookingDoc, status: string) => ({ ok: true, bookingRef: b.ref
 export async function approveBooking(deps: ApprovalDeps, id: string): Promise<unknown> {
 	const { storage, now } = deps;
 	const b = (await storage.bookings.get(id)) as BookingDoc | null;
-	if (!b) return fail("NOT_FOUND");
-	if (b.status === "confirmed") {
+	if (!b) return fail(NOT_FOUND);
+	if (b.status === CONFIRMED) {
 		// A replay: make sure the confirmation went out (an earlier approve may have died first).
 		if (!(await storage.outbox.get(confirmationOutboxId(id)))) {
 			await storage.outbox.put(confirmationOutboxId(id), confirmationMessage(id, b, now));
 		}
-		return answer(b, "confirmed");
+		return answer(b, CONFIRMED);
 	}
-	const open = b.status === "awaiting_approval" && !b.releaseClaimedAt && msOf(b.holdExpiresAt) > now;
-	if (!open) return fail("HOLD_EXPIRED");
+	const open = b.status === AWAITING_APPROVAL && !b.releaseClaimedAt && msOf(b.holdExpiresAt) > now;
+	if (!open) return fail(HOLD_EXPIRED);
 	// A held payment (Pro, R98) is captured by the edition before it confirms; Free never confirms it.
-	if (b.payment) return fail("PAYMENT_FAILED");
+	if (b.payment) return fail(PAYMENT_FAILED);
 	const { applied } = await storage.bookings.updateIf(id, {
 		where: heldGuard(b),
-		set: { status: "confirmed", confirmedAt: iso(now) },
+		set: { status: CONFIRMED, confirmedAt: iso(now) },
 	});
-	if (!applied) return fail("HOLD_EXPIRED");
+	if (!applied) return fail(HOLD_EXPIRED);
 	// What fits under the limit once the page's list and names are counted; drift repair settles the rest.
 	await confirmSold(storage, countersForBooking(b).reverse().slice(0, APPROVE_COUNTERS)).catch(() => undefined);
 	await storage.outbox.put(confirmationOutboxId(id), confirmationMessage(id, b, now));
-	return answer(b, "confirmed");
+	return answer(b, CONFIRMED);
 }
 
 /** Decline `id` with an optional reason for the buyer (trimmed, at most 300 characters). */
 export async function declineBooking(deps: ApprovalDeps, id: string, reason: string, used = 0): Promise<unknown> {
 	const b = (await deps.storage.bookings.get(id)) as BookingDoc | null;
-	if (!b) return fail("NOT_FOUND");
+	if (!b) return fail(NOT_FOUND);
 	return closeBooking(deps, id, b, { reason: reason.trim().slice(0, 300) }, used);
 }

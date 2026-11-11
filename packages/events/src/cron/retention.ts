@@ -20,6 +20,7 @@
  */
 import { sweepRateLimits } from "@semics-tech/shared";
 import { STATUSES } from "../domain/inventory";
+import { PENDING } from "../domain/names";
 import { clampSetting, settingsObject } from "../domain/settings";
 import { iso, msOf } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
@@ -179,7 +180,7 @@ export async function eraseBookings(
 	if (cutoff === undefined && emails.length > 0) {
 		const rows = await st.outbox.query({ where: { to: { in: emails } }, limit: OUTBOX_PAGE });
 		calls++;
-		const ids = rows.items.filter((r) => (r.data as OutboxDoc).status !== "pending").map((r) => r.id);
+		const ids = rows.items.filter((r) => (r.data as OutboxDoc).status !== PENDING).map((r) => r.id);
 		if (ids.length > 0) {
 			await st.outbox.deleteMany(ids);
 			calls++;

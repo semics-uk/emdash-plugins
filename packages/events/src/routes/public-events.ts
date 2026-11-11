@@ -1,5 +1,6 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { text } from "../domain/event-info";
+import { CANCELLED, CLOSED, DRAFT, NOT_FOUND, ON_SALE, OPEN } from "../domain/names";
 import { cmp, ticketOrder } from "../domain/order";
 import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
@@ -30,7 +31,7 @@ type Item = { id: string; data: unknown };
 
 export const EVENTS_LIST_CACHE = "public, max-age=60, stale-while-revalidate=300";
 const EVENT_ID_PATTERN = /^[A-Za-z0-9_:.-]{1,200}$/;
-const LISTED_STATUSES = ["on_sale", "paused", "closed", "cancelled"];
+const LISTED_STATUSES = [ON_SALE, "paused", CLOSED, CANCELLED];
 const MAX_EVENTS = 100;
 
 export interface PublicEventsStorage {
@@ -56,12 +57,12 @@ export interface PublicEventsDeps {
 }
 
 const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
-const notFound = () => routeError("NOT_FOUND").body;
+const notFound = () => routeError(NOT_FOUND).body;
 
 /** `closed` once the sales end has passed, else the stored status. */
 const statusOf = (c: EventConfigDoc, now: number): EventConfigDoc["status"] => {
 	const end = msOf(c.salesEnd);
-	return c.status === "on_sale" && Number.isFinite(end) && end <= now ? "closed" : c.status;
+	return c.status === ON_SALE && Number.isFinite(end) && end <= now ? "closed" : c.status;
 };
 
 /** The first start that has not passed: an upcoming date of a recurring event, else the event's own. */
@@ -71,7 +72,7 @@ function nextStart(c: EventConfigDoc, now: number): { startsAt: string; endsAt: 
 	const dates = Object.values(c.catalog?.occurrences ?? {});
 	if (dates.length > 0) {
 		const upcoming = dates
-			.filter((o) => o.status === "open")
+			.filter((o) => o.status === OPEN)
 			.map((o) => Date.parse(o.startsAt))
 			.filter((ms) => Number.isFinite(ms) && ms >= now)
 			.sort((a, b) => a - b);
@@ -118,7 +119,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	if (typeof eventId !== "string" || !EVENT_ID_PATTERN.test(eventId)) return notFound();
 	const { storage } = deps;
 	const config = (await storage.event_configs.get(eventId)) as EventConfigDoc | null;
-	if (!config || config.orphaned || config.unpublished || config.status === "draft") return notFound();
+	if (!config || config.orphaned || config.unpublished || config.status === DRAFT) return notFound();
 
 	const recurring = !!config.schedule || Object.keys(config.catalog?.occurrences ?? {}).length > 0;
 	// Upcoming open dates only (a slot schedule keeps hundreds of past ones, T129), from the picker's
@@ -127,7 +128,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	const from = Math.max(deps.now, Date.parse(typeof asked === "string" ? asked : "") || 0);
 	const page = (cursor?: string) =>
 		storage.occurrences.query({
-			where: { eventId, status: "open", startsAt: { gte: iso(from) } },
+			where: { eventId, status: OPEN, startsAt: { gte: iso(from) } },
 			orderBy: { startsAt: "asc" },
 			limit: 100,
 			cursor,

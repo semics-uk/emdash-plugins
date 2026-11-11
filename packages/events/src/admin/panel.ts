@@ -23,6 +23,7 @@ import {
 import { APPROVAL_HOURS } from "../domain/booking-state";
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
+import { DRAFT, EACH_ATTENDEE } from "../domain/names";
 import { ticketOrder } from "../domain/order";
 import { scheduleOwned } from "../domain/schedule";
 import { readSettings } from "../domain/settings";
@@ -106,7 +107,7 @@ const WAIVER_UNAVAILABLE: Record<"edition" | "pairing" | "licence", string> = {
 };
 
 const MODE_OPTIONS = [
-	{ label: "Each attendee (the buyer signs for minors)", value: "each_attendee" },
+	{ label: "Each attendee (the buyer signs for minors)", value: EACH_ATTENDEE },
 	{ label: "The buyer, once per booking", value: "buyer" },
 ];
 
@@ -147,7 +148,7 @@ function waiverFields(config: EventConfigDoc, waivers: WaiverAvailability): Form
 					initialValue: saved || (options[0]?.value ?? ""),
 				})
 			: textInput("waiver_template", "Waiver template id (E-sign)", initial(saved)),
-		select("waiver_mode", "Who signs", MODE_OPTIONS, initial(sig?.mode ?? "each_attendee")),
+		select("waiver_mode", "Who signs", MODE_OPTIONS, initial(sig?.mode ?? EACH_ATTENDEE)),
 	];
 }
 
@@ -406,14 +407,14 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 	if (hours !== approvalHours(stored)) changed++;
 	const schedule = scheduleInput(values, stored.schedule, capacity);
 	if (JSON.stringify(schedule) !== JSON.stringify(stored.schedule ?? null)) changed++;
-	const storedSignature = stored.signature ?? { required: false, mode: "each_attendee" };
+	const storedSignature = stored.signature ?? { required: false, mode: EACH_ATTENDEE };
 	let signature = storedSignature;
 	if (waivers.available) {
 		const required = typeof values.waiver_required === "boolean" ? values.waiver_required : storedSignature.required;
 		const templateId =
 			values.waiver_template !== undefined ? str(values.waiver_template, 64) : (storedSignature.templateId ?? "");
 		const mode =
-			values.waiver_mode === "buyer" || values.waiver_mode === "each_attendee"
+			values.waiver_mode === "buyer" || values.waiver_mode === EACH_ATTENDEE
 				? values.waiver_mode
 				: storedSignature.mode;
 		if (required && !/^[A-Za-z0-9_-]{1,64}$/.test(templateId)) {
@@ -531,7 +532,7 @@ async function enablePanel(deps: PanelDeps, eventId: string, values: Obj): Promi
 	const result = await runSave(
 		deps,
 		eventId,
-		{ config: { status: "draft", capacity: num(values.capacity), currency }, ticketTypes: [], occurrences: [] },
+		{ config: { status: DRAFT, capacity: num(values.capacity), currency }, ticketTypes: [], occurrences: [] },
 		state,
 		waiverCalls(deps),
 	);

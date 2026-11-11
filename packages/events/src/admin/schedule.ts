@@ -18,6 +18,7 @@ import {
 
 import { entryOf } from "../cron/schedule";
 import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
+import { CLOSED, OPEN } from "../domain/names";
 import { dayBounds, parseSchedule } from "../domain/schedule";
 import { msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OccurrenceDoc } from "../storage/schema";
@@ -133,12 +134,12 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			const d = docs.get(id);
 			if (!d) return [];
 			const open = values[`sl_open:${id}`];
-			let status = typeof open === "boolean" && open !== (d.status === "open") ? (open ? "open" : "closed") : d.status;
-			if (all === "open" || (all === "closed" && d.status === "open")) status = all;
+			let status = typeof open === "boolean" && open !== (d.status === OPEN) ? (open ? "open" : CLOSED) : d.status;
+			if (all === OPEN || (all === CLOSED && d.status === OPEN)) status = all;
 			const places = num(values[`sl_places:${id}`]) ?? d.capacity;
 			return status === d.status && places === d.capacity ? [] : [{ id, d, status, places }];
 		});
-		const closing = changes.filter((c) => c.status !== "open" && c.d.status === "open" && c.d.reserved + c.d.sold > 0);
+		const closing = changes.filter((c) => c.status !== OPEN && c.d.status === OPEN && c.d.reserved + c.d.sold > 0);
 		const bad = changes.find((c) => !Number.isSafeInteger(c.places) || c.places < Math.max(c.d.reserved, 1));
 		if (closing.length > 0) {
 			const refused = new Set(closing.map((c) => c.id));
@@ -164,7 +165,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			const done = await Promise.all(
 				now.map((c) =>
 					storage.occurrences.updateIf(c.id, {
-						where: c.status === "open" ? { reserved: { lte: c.places } } : { reserved: 0, sold: 0 },
+						where: c.status === OPEN ? { reserved: { lte: c.places } } : { reserved: 0, sold: 0 },
 						set: { status: c.status, capacity: c.places },
 					}),
 				),
@@ -201,13 +202,13 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			"Whole day",
 			[
 				{ label: "As set below", value: "" },
-				{ label: "Close every slot", value: "closed" },
-				{ label: "Reopen every slot", value: "open" },
+				{ label: "Close every slot", value: CLOSED },
+				{ label: "Reopen every slot", value: OPEN },
 			],
 			{ initialValue: "" },
 		),
 		...rows.flatMap(({ id, d }) => [
-			toggle(`sl_open:${id}`, `${time(d)} open`, initial(d.status === "open")),
+			toggle(`sl_open:${id}`, `${time(d)} open`, initial(d.status === OPEN)),
 			numberInput(`sl_places:${id}`, `${time(d)} places`, { initialValue: d.capacity, min: 1 }),
 		]),
 	];

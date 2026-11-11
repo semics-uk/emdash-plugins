@@ -2,6 +2,7 @@ import { generateToken, hashToken, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type InputIssue, parseBookingAccessInput } from "../domain/checkout";
+import { BAD_REQUEST, HELD, NOT_FOUND, OFFERED } from "../domain/names";
 import { msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { fail } from "./reply";
@@ -53,7 +54,7 @@ function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[
 
 export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = false } = {}): Promise<unknown> {
 	const input = parse(raw);
-	if (Array.isArray(input)) return { ...fail("BAD_REQUEST"), issues: input };
+	if (Array.isArray(input)) return { ...fail(BAD_REQUEST), issues: input };
 	const { bookingRef, code } = input as { bookingRef: string; code: string };
 	const { items } = await deps.storage.bookings.query({ where: { ref: bookingRef }, limit: 1 });
 	const found = items[0];
@@ -61,17 +62,17 @@ export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = fa
 	const stored = booking?.redeemHash ?? undefined;
 	const matches = await verifyToken(code, stored);
 	const live = msOf(booking?.redeemExpiresAt) > deps.now;
-	const offer = booking?.status === "held" ? booking.waitlistId : undefined;
-	if (!found || !booking || !stored || !matches || !live || (claim && !offer)) return fail("NOT_FOUND");
+	const offer = booking?.status === HELD ? booking.waitlistId : undefined;
+	if (!found || !booking || !stored || !matches || !live || (claim && !offer)) return fail(NOT_FOUND);
 	const accessToken = generateToken();
 	const swapped = await deps.storage.bookings.updateIf(found.id, {
-		where: { redeemHash: stored, ...(offer ? { status: "held", releaseClaimedAt: null } : {}) },
+		where: { redeemHash: stored, ...(offer ? { status: HELD, releaseClaimedAt: null } : {}) },
 		set: { accessTokenHash: await hashToken(accessToken), redeemHash: null, redeemExpiresAt: null },
 	});
-	if (!swapped.applied) return fail("NOT_FOUND");
+	if (!swapped.applied) return fail(NOT_FOUND);
 	if (offer) {
 		await deps.storage.waitlist
-			?.updateIf(offer, { where: { status: "offered" }, set: { status: "claimed" } })
+			?.updateIf(offer, { where: { status: OFFERED }, set: { status: "claimed" } })
 			.catch(() => undefined);
 	}
 	return { ok: true, bookingRef: booking.ref, accessToken };

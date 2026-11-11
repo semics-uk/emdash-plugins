@@ -2,6 +2,7 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { type ConfigIssue, catalogOf as catalogFrom, type ExistingState, validateConfigInput } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
+import { BAD_REQUEST, NOT_FOUND } from "../domain/names";
 import { cmp, ticketOrder } from "../domain/order";
 import { scheduleOwned } from "../domain/schedule";
 import { iso } from "../domain/time";
@@ -41,7 +42,7 @@ export interface ConfigStorage {
 	occurrences: Collection;
 }
 
-const badRequest = (issues?: unknown) => ({ ...routeError("BAD_REQUEST").body, ...(issues ? { issues } : {}) });
+const badRequest = (issues?: unknown) => ({ ...routeError(BAD_REQUEST).body, ...(issues ? { issues } : {}) });
 
 function eventIdOf(input: unknown): string | null {
 	const id = (input as { eventId?: unknown } | null | undefined)?.eventId;
@@ -251,7 +252,7 @@ export const CONFIG_ROUTES: Record<string, RouteDef> = {
 			const eventId = eventIdOf(routeCtx.input);
 			if (!eventId) return badRequest();
 			const state = await loadEventState(eventId, configStorage(ctx));
-			if (!state.config) return routeError("NOT_FOUND").body;
+			if (!state.config) return routeError(NOT_FOUND).body;
 			const { catalog: _derived, info: _info, ...config } = state.config;
 			// A slot schedule's first 100 are its oldest: list its upcoming slots instead (T130).
 			const dates = scheduleOwned(state.config)

@@ -8,6 +8,8 @@
  * again). Writes: `putMany` new slots, `deleteMany` dropped ones, and the config's catalog guarded on
  * `slotsRev` (a lost race is redone next tick). With the tick's cursor read and page query: <= 6 calls.
  */
+
+import { OPEN } from "../domain/names";
 import type { SlotPlan } from "../domain/schedule";
 import { iso } from "../domain/time";
 import type { ConfigStorage } from "../routes/config";
@@ -43,7 +45,7 @@ export async function scheduleStep(
 				capacity: s.capacity,
 				reserved: 0,
 				sold: 0,
-				status: "open",
+				status: OPEN,
 			};
 			fresh.push({ id, data: d });
 		}

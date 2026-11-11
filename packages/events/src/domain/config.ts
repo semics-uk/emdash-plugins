@@ -22,6 +22,17 @@ import type {
 	TicketTypeDoc,
 } from "../storage/schema";
 import { APPROVAL_HOURS } from "./booking-state";
+import {
+	CANCELLED,
+	CAPACITY_BELOW_RESERVED,
+	CLOSED,
+	DRAFT,
+	EACH_ATTENDEE,
+	INVALID_INPUT,
+	INVALID_QUANTITY_LIMITS,
+	ON_SALE,
+	OPEN,
+} from "./names";
 import { cmp } from "./order";
 import { parseSchedule } from "./schedule";
 
@@ -70,9 +81,9 @@ export const MAX_TICKET_TYPES = 25;
 export const MAX_OCCURRENCES = 100;
 const MAX_NAME_LENGTH = 100;
 
-export const EVENT_STATUSES: readonly EventStatus[] = ["draft", "on_sale", "paused", "closed", "cancelled"];
-export const OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = ["open", "closed", "cancelled"];
-const SIGNATURE_MODES: readonly SignatureMode[] = ["each_attendee", "buyer"];
+export const EVENT_STATUSES: readonly EventStatus[] = [DRAFT, ON_SALE, "paused", CLOSED, CANCELLED];
+export const OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = [OPEN, CLOSED, CANCELLED];
+const SIGNATURE_MODES: readonly SignatureMode[] = [EACH_ATTENDEE, "buyer"];
 
 type Obj = Record<string, unknown>;
 
@@ -132,13 +143,13 @@ function checkCapacity(raw: unknown, stored: { reserved: number } | undefined, p
 		issues.add(path, "INVALID_CAPACITY");
 		return 0;
 	}
-	if (stored && raw < stored.reserved) issues.add(path, "CAPACITY_BELOW_RESERVED");
+	if (stored && raw < stored.reserved) issues.add(path, CAPACITY_BELOW_RESERVED);
 	return raw;
 }
 
 function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Issues): EventConfigDoc {
 	if (!isObj(raw)) {
-		issues.add("config", "INVALID_INPUT");
+		issues.add("config", INVALID_INPUT);
 		return validateConfig({}, stored, new Issues());
 	}
 	const base = raw;
@@ -153,13 +164,13 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 
 	const sig: Obj = isObj(base.signature) ? base.signature : {};
 	const mode = sig.mode === undefined ? "each_attendee" : (sig.mode as SignatureMode);
-	if (!SIGNATURE_MODES.includes(mode)) issues.add("config.signature.mode", "INVALID_INPUT");
-	if (base.signature !== undefined && !isObj(base.signature)) issues.add("config.signature", "INVALID_INPUT");
+	if (!SIGNATURE_MODES.includes(mode)) issues.add("config.signature.mode", INVALID_INPUT);
+	if (base.signature !== undefined && !isObj(base.signature)) issues.add("config.signature", INVALID_INPUT);
 	const signature: EventConfigDoc["signature"] = { required: sig.required === true, mode };
 	if (typeof sig.templateId === "string" && sig.templateId !== "") signature.templateId = sig.templateId;
 
 	const questions = Array.isArray(base.questions) ? (base.questions as EventQuestion[]) : [];
-	if (base.questions !== undefined && !Array.isArray(base.questions)) issues.add("config.questions", "INVALID_INPUT");
+	if (base.questions !== undefined && !Array.isArray(base.questions)) issues.add("config.questions", INVALID_INPUT);
 
 	const config: EventConfigDoc = {
 		status,
@@ -206,7 +217,7 @@ function collect<TIn extends Obj, TStored extends { reserved: number; sold: numb
 ): { items: Array<{ id: string; data: TDoc }>; deleteIds: string[] } {
 	const items: Array<{ id: string; data: TDoc }> = [];
 	if (raw !== undefined && !Array.isArray(raw)) {
-		issues.add(name, "INVALID_INPUT");
+		issues.add(name, INVALID_INPUT);
 		return { items, deleteIds: [] };
 	}
 	const list = (raw ?? []) as unknown[];
@@ -218,7 +229,7 @@ function collect<TIn extends Obj, TStored extends { reserved: number; sold: numb
 	list.forEach((entry, index) => {
 		const path = `${name}[${index}]`;
 		const item: Obj = isObj(entry) ? entry : {};
-		if (!isObj(entry)) issues.add(path, "INVALID_INPUT");
+		if (!isObj(entry)) issues.add(path, INVALID_INPUT);
 		let id: string;
 		let prior: TStored | undefined;
 		if (typeof item.id === "string" && item.id !== "") {
@@ -282,10 +293,10 @@ function buildTicketType(
 
 	const min = optionalLimit(item.minPerOrder);
 	const max = optionalLimit(item.maxPerOrder);
-	if (min === null) issues.add(`${path}.minPerOrder`, "INVALID_QUANTITY_LIMITS");
-	if (max === null) issues.add(`${path}.maxPerOrder`, "INVALID_QUANTITY_LIMITS");
+	if (min === null) issues.add(`${path}.minPerOrder`, INVALID_QUANTITY_LIMITS);
+	if (max === null) issues.add(`${path}.maxPerOrder`, INVALID_QUANTITY_LIMITS);
 	if (typeof min === "number" && typeof max === "number" && min > max) {
-		issues.add(`${path}.maxPerOrder`, "INVALID_QUANTITY_LIMITS");
+		issues.add(`${path}.maxPerOrder`, INVALID_QUANTITY_LIMITS);
 	}
 
 	const doc: TicketTypeDoc = {
@@ -318,7 +329,7 @@ function buildOccurrence(
 	checkWindow(startsAt ?? undefined, endsAt, `${path}.endsAt`, issues);
 	const capacity = checkCapacity(item.capacity, prior, `${path}.capacity`, issues);
 
-	let status: OccurrenceStatus = prior?.status ?? "open";
+	let status: OccurrenceStatus = prior?.status ?? OPEN;
 	if (item.status !== undefined) {
 		if (OCCURRENCE_STATUSES.includes(item.status as OccurrenceStatus)) status = item.status as OccurrenceStatus;
 		else issues.add(`${path}.status`, "INVALID_STATUS");
@@ -347,7 +358,7 @@ export function validateConfigInput(
 	existing: ExistingState,
 	newId: () => string,
 ): Result<ValidatedConfig, ConfigIssue[]> {
-	if (!isObj(input)) return err([{ path: "input", code: "INVALID_INPUT" }]);
+	if (!isObj(input)) return err([{ path: "input", code: INVALID_INPUT }]);
 	const issues = new Issues();
 
 	const config = validateConfig(input.config, existing.config, issues);

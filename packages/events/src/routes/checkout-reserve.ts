@@ -15,6 +15,17 @@ import {
 } from "../domain/checkout";
 import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "../domain/holds";
 import { type CounterCollection, reserve } from "../domain/inventory";
+import {
+	CONFIRMED,
+	DRAFT,
+	EXPIRED,
+	HELD,
+	HOLD_EXPIRED,
+	INTERNAL,
+	NOT_FOUND,
+	SOLD_OUT,
+	TURNSTILE_FAILED,
+} from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal } from "./reply";
@@ -141,19 +152,19 @@ async function resume(a: Attempt, existing: BookingDoc): Promise<unknown> {
 	if (HOLD_STATUSES.includes(existing.status)) {
 		const until = stepTarget(now, { paid: existing.totals.totalMinor > 0 }, holdSettings(a.settings));
 		const extended = await extendHold(storage.bookings, a.id, existing, now, until, { accessTokenHash: a.tokenHash });
-		if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
+		if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : HOLD_EXPIRED);
 		return success(existing, a.token, extended.value.holdExpiresAt);
 	}
-	if (existing.status === "draft" && !existing.releaseClaimedAt && msOf(existing.holdExpiresAt) > now) {
+	if (existing.status === DRAFT && !existing.releaseClaimedAt && msOf(existing.holdExpiresAt) > now) {
 		// The first submit is still reserving: hand this one the booking it is creating.
 		const { applied } = await storage.bookings.updateIf(a.id, {
-			where: { status: "draft", holdExpiresAt: existing.holdExpiresAt, releaseClaimedAt: null },
+			where: { status: DRAFT, holdExpiresAt: existing.holdExpiresAt, releaseClaimedAt: null },
 			set: { accessTokenHash: a.tokenHash },
 		});
-		return applied ? success(existing, a.token, existing.holdExpiresAt ?? "") : fail("INTERNAL");
+		return applied ? success(existing, a.token, existing.holdExpiresAt ?? "") : fail(INTERNAL);
 	}
-	if (existing.status === "confirmed") return { ok: true, bookingRef: existing.ref, status: existing.status };
-	return fail("HOLD_EXPIRED");
+	if (existing.status === CONFIRMED) return { ok: true, bookingRef: existing.ref, status: existing.status };
+	return fail(HOLD_EXPIRED);
 }
 
 /** After a refusal, a resubmit of an existing booking still gets it (one read); otherwise the refusal. */
@@ -170,7 +181,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 
 	const [entries, stored] = await Promise.all([deps.settings.list(), storage.event_configs.get(input.eventId)]);
 	const config = stored as EventConfigDoc | null;
-	if (!config || config.orphaned || config.unpublished) return fail("NOT_FOUND");
+	if (!config || config.orphaned || config.unpublished) return fail(NOT_FOUND);
 	const bot = botCheck(entries, deps.settings, deps.fetch, input.turnstileToken, deps.ip);
 	const settings = bot.settings;
 
@@ -185,7 +196,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	const { id, ref } = await bookingKeys(input.idempotencyKey);
 	const token = generateToken();
 	const attempt: Attempt = { deps, input, id, token, tokenHash: await hashToken(token), settings };
-	if (!human.ok) return resumeOr(attempt, fail("TURNSTILE_FAILED"));
+	if (!human.ok) return resumeOr(attempt, fail(TURNSTILE_FAILED));
 
 	// Keep two calls: the draft write before reserving and the move to `held` after.
 	const plan = planCheckout(input.eventId, config, input, now, { maxSteps: RESERVE_MAX_CALLS - calls - 2 });
@@ -193,7 +204,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 
 	const hold = startHold(now, { paid: plan.value.paid }, holdSettings(settings));
 	const draft = newBooking(
-		{ ref, eventId: input.eventId, occurrenceId: input.occurrenceId, status: "draft" },
+		{ ref, eventId: input.eventId, occurrenceId: input.occurrenceId, status: DRAFT },
 		hold,
 		input.buyer,
 		plan.value,
@@ -207,12 +218,12 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		created = await storage.bookings.compareAndSet(id, null, draft);
 	} catch {
 		// A duplicate `ref` (the unique index) from another key: astronomically rare; retry with a new key.
-		return fail("INTERNAL");
+		return fail(INTERNAL);
 	}
 	calls++;
 	if (!created.applied) {
 		const existing = (await storage.bookings.get(id)) as BookingDoc | null;
-		if (!existing) return fail("INTERNAL");
+		if (!existing) return fail(INTERNAL);
 		return sameOrder(existing, input)
 			? resume(attempt, existing)
 			: badRequest([{ path: "idempotencyKey", code: "IDEMPOTENCY_KEY_REUSED" }]);
@@ -224,27 +235,27 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		// sweeper closes it after the draft grace period and repairs the event's counters.
 		const set =
 			reserved.error.uncompensated.length === 0
-				? { status: "expired", expiredAt: iso(now) }
+				? { status: EXPIRED, expiredAt: iso(now) }
 				: { holdExpiresAt: iso(now) };
 		await storage.bookings
-			.updateIf(id, { where: { status: "draft", releaseClaimedAt: null }, set })
+			.updateIf(id, { where: { status: DRAFT, releaseClaimedAt: null }, set })
 			.catch(() => undefined);
-		return fail(reserved.error.code === "SOLD_OUT" ? "SOLD_OUT" : "INTERNAL");
+		return fail(reserved.error.code === SOLD_OUT ? "SOLD_OUT" : INTERNAL);
 	}
 	calls += plan.value.steps.length;
 
 	const held = await storage.bookings.updateIf(id, {
-		where: { status: "draft", releaseClaimedAt: null },
-		set: { status: "held" },
+		where: { status: DRAFT, releaseClaimedAt: null },
+		set: { status: HELD },
 	});
 	calls++;
 	// Claimed by an expirer meanwhile: it closes the draft and drift repair settles its seats.
-	if (!held.applied) return fail("HOLD_EXPIRED");
+	if (!held.applied) return fail(HOLD_EXPIRED);
 
 	if (deps.cron && calls + 1 <= RESERVE_TARGET_CALLS) {
 		await scheduleHoldTask(deps.cron, { id, ref, holdExpiresAt: hold.holdExpiresAt }).catch(() => undefined);
 	}
-	return success({ ref, status: "held", totals: plan.value.totals }, token, hold.holdExpiresAt);
+	return success({ ref, status: HELD, totals: plan.value.totals }, token, hold.holdExpiresAt);
 }
 
 export const CHECKOUT_RESERVE_ROUTE: RouteDef = {

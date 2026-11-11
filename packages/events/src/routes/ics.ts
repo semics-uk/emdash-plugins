@@ -3,6 +3,7 @@ import { type PluginContext, pluginResponse, type RouteHandler } from "emdash/pl
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { type LinkKv, linkSecret } from "../domain/link-secret";
+import { BAD_REQUEST, CONFIRMED, NOT_FOUND, OPEN } from "../domain/names";
 import type { BookingDoc, OccurrenceDoc } from "../storage/schema";
 import { routeError } from "./reply";
 
@@ -107,9 +108,9 @@ export async function bookingIcs(deps: IcsDeps, query: URLSearchParams): Promise
 	if (typeof ref !== "string" || !REF_PATTERN.test(ref)) return failure("TOKEN_INVALID");
 	const { items } = await deps.storage.bookings.query({ where: { ref }, limit: 1 });
 	const booking = items[0]?.data as BookingDoc | undefined;
-	if (booking?.status !== "confirmed") return failure("NOT_FOUND");
+	if (booking?.status !== CONFIRMED) return failure(NOT_FOUND);
 	const info = await loadEventInfo(deps, booking.eventId, booking.occurrenceId);
-	if (!info) return failure("NOT_FOUND");
+	if (!info) return failure(NOT_FOUND);
 	const body = calendar(info.title, [
 		calendarEvent(`booking-${ref}@semics-events`, deps.now, info, { description: `Booking reference ${ref}` }),
 	]);
@@ -124,12 +125,12 @@ export async function bookingIcs(deps: IcsDeps, query: URLSearchParams): Promise
 
 export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<RawResponse> {
 	const eventId = query.get("eventId") ?? "";
-	if (!EVENT_ID_PATTERN.test(eventId)) return failure("BAD_REQUEST");
+	if (!EVENT_ID_PATTERN.test(eventId)) return failure(BAD_REQUEST);
 	const info = await loadEventInfo(deps, eventId, undefined, { publicOnly: true });
-	if (!info) return failure("NOT_FOUND");
+	if (!info) return failure(NOT_FOUND);
 	const { items } = await deps.storage.occurrences.query({
 		// The next 50 (T130): a slot schedule keeps hundreds of past dates.
-		where: { eventId, status: "open", startsAt: { gte: new Date(deps.now).toISOString() } },
+		where: { eventId, status: OPEN, startsAt: { gte: new Date(deps.now).toISOString() } },
 		orderBy: { startsAt: "asc" },
 		limit: MAX_OCCURRENCES,
 	});

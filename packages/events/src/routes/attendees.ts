@@ -1,6 +1,7 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { pluginResponse } from "emdash/plugin";
 import { toCsv } from "../admin/csv";
+import { ALREADY_CHECKED_IN, BAD_REQUEST, CONFIRMED, NOT_FOUND, PENDING, WAIVER_PENDING } from "../domain/names";
 import type { AttendeeDoc, BookingDoc } from "../storage/schema";
 import { routeError } from "./reply";
 
@@ -81,28 +82,28 @@ export async function checkIn(
 	{ waivers = true }: { waivers?: boolean } = {},
 ): Promise<CheckInResult> {
 	const hit = await find(storage, target);
-	if (!hit || (eventId !== undefined && hit.doc.eventId !== eventId)) return { ok: false, reason: "NOT_FOUND" };
+	if (!hit || (eventId !== undefined && hit.doc.eventId !== eventId)) return { ok: false, reason: NOT_FOUND };
 	const { id, doc } = hit;
 	const who = { id, name: doc.name };
 	const booking = (await storage.bookings.get(doc.bookingId)) as BookingDoc | null;
-	if (booking?.status !== "confirmed") {
+	if (booking?.status !== CONFIRMED) {
 		return { ok: false, reason: "BOOKING_NOT_CONFIRMED", ...who, bookingStatus: booking?.status ?? "missing" };
 	}
 	// A waiver booking confirms once the buyer has signed; other adults stay pending until their
 	// own receipt arrives, and are refused here with a signing link (EV-FR-12).
-	const waiverPending = doc.status === "pending" && Boolean(booking.waiver);
+	const waiverPending = doc.status === PENDING && Boolean(booking.waiver);
 	if (waiverPending && waivers) {
-		return { ok: false, reason: "WAIVER_PENDING", ...who, waiver: { attendee: doc, booking } };
+		return { ok: false, reason: WAIVER_PENDING, ...who, waiver: { attendee: doc, booking } };
 	}
 	if (doc.status !== "valid" && !waiverPending) return { ok: false, reason: "ATTENDEE_NOT_VALID", ...who };
-	if (doc.checkedInAt) return { ok: false, reason: "ALREADY_CHECKED_IN", ...who, checkedInAt: doc.checkedInAt };
+	if (doc.checkedInAt) return { ok: false, reason: ALREADY_CHECKED_IN, ...who, checkedInAt: doc.checkedInAt };
 	const written = await storage.attendees.updateIf(id, { where: { checkedInAt: null }, set: { checkedInAt: nowIso } });
 	if (!written.applied) {
 		// Someone else got there first: show their time.
 		const current = (await storage.attendees.get(id)) as AttendeeDoc | null;
 		return {
 			ok: false,
-			reason: "ALREADY_CHECKED_IN",
+			reason: ALREADY_CHECKED_IN,
 			...who,
 			...(current?.checkedInAt ? { checkedInAt: current.checkedInAt } : {}),
 		};
@@ -116,7 +117,7 @@ export async function undoCheckIn(
 	id: string,
 ): Promise<{ ok: true; name: string } | { ok: false; reason: "NOT_FOUND" }> {
 	const doc = (await storage.attendees.get(id)) as AttendeeDoc | null;
-	if (!doc) return { ok: false, reason: "NOT_FOUND" };
+	if (!doc) return { ok: false, reason: NOT_FOUND };
 	if (doc.checkedInAt) await storage.attendees.updateIf(id, { where: {}, set: { checkedInAt: null } });
 	return { ok: true, name: doc.name };
 }
@@ -168,7 +169,7 @@ export const ATTENDEE_ROUTES: Record<string, RouteDef> = {
 				return pluginResponse({
 					status: 400,
 					headers: { "content-type": "text/plain; charset=utf-8" },
-					body: { kind: "text", value: routeError("BAD_REQUEST").body.error.message },
+					body: { kind: "text", value: routeError(BAD_REQUEST).body.error.message },
 				});
 			}
 			const out = await exportAttendeesCsv(ctx.storage as unknown as AttendeeStorage, {

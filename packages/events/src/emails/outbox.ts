@@ -39,6 +39,7 @@ import type { CronEvent, PluginContext } from "emdash/plugin";
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { heldGuard } from "../domain/holds";
+import { AWAITING_APPROVAL, CANCELLED, CONFIRMED, EXPIRED, HELD } from "../domain/names";
 import { iso } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { approvalEmail, cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
@@ -207,7 +208,7 @@ async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<nu
 	const confirming = unique(
 		rows
 			.filter(
-				(r) => r.kind === "booking_confirmed" && tick.bookings.get(String(r.payload.bookingId))?.status === "confirmed",
+				(r) => r.kind === "booking_confirmed" && tick.bookings.get(String(r.payload.bookingId))?.status === CONFIRMED,
 			)
 			.map((r) => String(r.payload.bookingId)),
 	);
@@ -264,17 +265,17 @@ async function eventOf(d: DrainDeps, tick: Tick, booking: BookingDoc): Promise<E
 /** A confirmation: null when the booking is gone or no longer confirmed (nothing to send). */
 async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
 	const booking = await loadBooking(d, tick, bookingId);
-	if (booking?.status !== "confirmed") return null;
+	if (booking?.status !== CONFIRMED) return null;
 	const [attendees, event] = await Promise.all([
 		tick.attendees.get(bookingId) ??
 			d.storage.attendees.query({ where: { bookingId }, limit: ATTENDEE_PAGE }).then((r) => r.items),
 		eventOf(d, tick, booking),
 	]);
-	const bookingUrl = await mintLink(d, bookingId, booking, { status: "confirmed" }, iso(d.now + REDEEM_TTL_MS));
+	const bookingUrl = await mintLink(d, bookingId, booking, { status: CONFIRMED }, iso(d.now + REDEEM_TTL_MS));
 	if (!bookingUrl) return null;
 	const names = attendees
 		.map((i) => i.data as AttendeeDoc)
-		.filter((a) => a.status !== "cancelled")
+		.filter((a) => a.status !== CANCELLED)
 		.map((a) => a.name);
 	return confirmationEmail({
 		...addressee(booking),
@@ -329,7 +330,7 @@ async function renderCancellation(d: DrainDeps, tick: Tick, bookingId: string): 
 async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
 	const booking = await loadBooking(d, tick, bookingId);
 	const until = booking?.holdExpiresAt;
-	if (booking?.status !== "held" || booking.releaseClaimedAt || !until) return null;
+	if (booking?.status !== HELD || booking.releaseClaimedAt || !until) return null;
 	const event = await eventOf(d, tick, booking);
 	const bookingUrl = await mintLink(d, bookingId, booking, heldGuard(booking), until, { offer: "1" });
 	if (!bookingUrl) return null;
@@ -351,8 +352,8 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
  */
 async function renderApproval(d: DrainDeps, tick: Tick, doc: OutboxDoc, bookingId: string) {
 	const b = await loadBooking(d, tick, bookingId);
-	const waiting = b?.status === "awaiting_approval";
-	if (!b || (doc.kind === "approval_expired" && b.status !== "expired")) {
+	const waiting = b?.status === AWAITING_APPROVAL;
+	if (!b || (doc.kind === "approval_expired" && b.status !== EXPIRED)) {
 		if (waiting) throw new Error("not expired yet");
 		return null;
 	}
