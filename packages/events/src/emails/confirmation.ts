@@ -2,6 +2,7 @@ import { type OutboxMessage, pad2, utcToZoned, validZone } from "@semics-tech/sh
 
 import type { EventInfo } from "../domain/event-info";
 import { AWAITING_APPROVAL } from "../domain/names";
+import { msOf } from "../domain/time";
 import type { BookingDoc, OutboxDoc } from "../storage/schema";
 
 /**
@@ -53,7 +54,7 @@ const NOT_YOU = "Not you? Contact the organiser and quote the reference.";
 
 /** An instant (ISO), such as a deadline, in the event's own zone. */
 const zoned = (at: string, event: EventInfo) => {
-	const startsAt = Date.parse(at);
+	const startsAt = msOf(at);
 	return startsAt ? formatWhen({ startsAt, timeZone: event.timeZone }) : at; // `at` is a stored value: never lose the mail
 };
 

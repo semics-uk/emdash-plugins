@@ -2,7 +2,7 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { type ConfigIssue, catalogOf as catalogFrom, type ExistingState, validateConfigInput } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
 import { counterlessChanges, retireCounted, type UpdateIfArgsLike, updateCountedFields } from "../domain/inventory";
-import { BAD_REQUEST, NOT_FOUND } from "../domain/names";
+import { allOf, BAD_REQUEST, isStr, NOT_FOUND, toJson } from "../domain/names";
 import { cmp, ticketOrder } from "../domain/order";
 import { scheduleOwned } from "../domain/schedule";
 import { iso } from "../domain/time";
@@ -46,12 +46,12 @@ const badRequest = (issues?: unknown) => ({ ...routeError(BAD_REQUEST).body, ...
 
 function eventIdOf(input: unknown): string | null {
 	const id = (input as { eventId?: unknown } | null | undefined)?.eventId;
-	return typeof id === "string" && id.length > 0 && id.length <= 200 ? id : null;
+	return isStr(id) && id.length > 0 && id.length <= 200 ? id : null;
 }
 
 export async function loadEventState(eventId: string, storage: ConfigStorage) {
 	const where = { eventId };
-	const [config, tts, occs] = await Promise.all([
+	const [config, tts, occs] = await allOf([
 		storage.event_configs.get(eventId) as Promise<EventConfigDoc | null>,
 		storage.ticket_types.query({ where, limit: 100 }),
 		storage.occurrences.query({ where, orderBy: { startsAt: "asc" }, limit: 100 }),
@@ -192,7 +192,7 @@ export async function saveConfig(
 	};
 
 	// 1. Edits, guarded on what is reserved at write time (EV-FR-03).
-	const outcomes = await Promise.all(changed.map((e) => updateCountedFields(e.collection, e.id, e.stored, e.next)));
+	const outcomes = await allOf(changed.map((e) => updateCountedFields(e.collection, e.id, e.stored, e.next)));
 	changed.forEach((e, i) => {
 		if (outcomes[i] === "applied") e.map?.set(e.id, e.next);
 	});
@@ -213,9 +213,9 @@ export async function saveConfig(
 
 	// 2. Deletes: close each document to reservations first; one that took a seat meanwhile stays.
 	const inUse: ConfigIssue[] = [];
-	await Promise.all(
+	await allOf(
 		deletes.map(async (d) => {
-			const retired = await Promise.all(d.ids.map((id) => retireCounted(d.collection, id)));
+			const retired = await allOf(d.ids.map((id) => retireCounted(d.collection, id)));
 			const ids = d.ids.filter((_, i) => retired[i]);
 			if (ids.length > 0) await d.collection.deleteMany(ids);
 			for (const id of ids) effective[d.name].delete(id);
@@ -240,7 +240,7 @@ export async function saveConfig(
 	return { ok: true, eventId };
 }
 
-const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const sameJson = (a: unknown, b: unknown) => toJson(a) === toJson(b);
 
 const entries = <T>(m: Map<string, unknown>) => [...m].map(([id, data]) => ({ id, data: data as T }));
 

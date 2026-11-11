@@ -1,7 +1,7 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { pluginResponse } from "emdash/plugin";
 import { toCsv } from "../admin/csv";
-import { ALREADY_CHECKED_IN, BAD_REQUEST, CONFIRMED, NOT_FOUND, PENDING, WAIVER_PENDING } from "../domain/names";
+import { ALREADY_CHECKED_IN, BAD_REQUEST, CONFIRMED, isStr, NOT_FOUND, PENDING, WAIVER_PENDING } from "../domain/names";
 import type { AttendeeDoc, BookingDoc } from "../storage/schema";
 import { routeError } from "./reply";
 
@@ -165,7 +165,7 @@ export const ATTENDEE_ROUTES: Record<string, RouteDef> = {
 		response: "raw",
 		handler: (async (routeCtx, ctx) => {
 			const input = (routeCtx.input ?? {}) as { eventId?: unknown; cursor?: unknown };
-			if (typeof input.eventId !== "string" || input.eventId === "" || input.eventId.length > 200) {
+			if (!isStr(input.eventId) || input.eventId === "" || input.eventId.length > 200) {
 				return pluginResponse({
 					status: 400,
 					headers: { "content-type": "text/plain; charset=utf-8" },
@@ -174,7 +174,7 @@ export const ATTENDEE_ROUTES: Record<string, RouteDef> = {
 			}
 			const out = await exportAttendeesCsv(ctx.storage as unknown as AttendeeStorage, {
 				eventId: input.eventId,
-				...(typeof input.cursor === "string" && input.cursor ? { cursor: input.cursor } : {}),
+				...(isStr(input.cursor) && input.cursor ? { cursor: input.cursor } : {}),
 			});
 			return pluginResponse({
 				headers: {

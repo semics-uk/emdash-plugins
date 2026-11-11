@@ -8,6 +8,7 @@
  */
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { HOLD_STATUSES } from "./holds";
+import { isFin } from "./names";
 import { clampSetting } from "./settings";
 import { iso, msOf } from "./time";
 
@@ -33,7 +34,7 @@ export function referenceStart(
 			: undefined;
 	const start = occ?.startsAt ?? (booking.occurrenceId === undefined ? config?.salesEnd : undefined);
 	const ms = msOf(start);
-	return Number.isFinite(ms) ? ms : null;
+	return isFin(ms) ? ms : null;
 }
 
 export type CancelDecision =

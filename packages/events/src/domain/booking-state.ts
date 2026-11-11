@@ -24,7 +24,18 @@ import type {
 import type { InputIssue } from "./checkout";
 import { HOLD_STATUSES } from "./holds";
 import { STATUSES, seatsByType } from "./inventory";
-import { AWAITING_APPROVAL, AWAITING_PAYMENT, AWAITING_SIGNATURE, CLOSED, CONFIRMED, DRAFT, PENDING } from "./names";
+import {
+	AWAITING_APPROVAL,
+	AWAITING_PAYMENT,
+	AWAITING_SIGNATURE,
+	CLOSED,
+	CONFIRMED,
+	DRAFT,
+	isFin,
+	isStr,
+	OPEN,
+	PENDING,
+} from "./names";
 import { cmp } from "./order";
 import { iso, msOf } from "./time";
 
@@ -91,7 +102,7 @@ export function checkoutState(
 	if (booking.status === DRAFT) return PENDING;
 	if (!HOLD_STATUSES.includes(booking.status)) return CLOSED;
 	const expires = msOf(booking.holdExpiresAt);
-	return !booking.releaseClaimedAt && Number.isFinite(expires) && expires > now ? "open" : "lapsed";
+	return !booking.releaseClaimedAt && isFin(expires) && expires > now ? OPEN : "lapsed";
 }
 
 export interface AttendeeInput {
@@ -206,7 +217,7 @@ export function approvalOf(
 ): Pick<BookingDoc, "approval"> {
 	if (!config.approval?.required) return {};
 	const until = now + (config.approval.deadlineHours || APPROVAL_HOURS) * 3_600_000;
-	const start = Date.parse(
+	const start = msOf(
 		(occurrenceId ? config.catalog?.occurrences[occurrenceId]?.startsAt : config.info?.startsAt) ?? "",
 	);
 	return { approval: { until: iso(start < until ? start : until) } };
@@ -214,9 +225,7 @@ export function approvalOf(
 
 /** The admin addresses in `adminNotifyEmails` (comma, semicolon, space or line separated): at most 5. */
 export const adminRecipients = (raw: unknown): string[] =>
-	(typeof raw === "string" ? raw.toLowerCase().split(/[\s,;]+/) : [])
-		.filter((e) => /^[^@]+@[^@]+\.[^@]+$/.test(e))
-		.slice(0, 5);
+	(isStr(raw) ? raw.toLowerCase().split(/[\s,;]+/) : []).filter((e) => /^[^@]+@[^@]+\.[^@]+$/.test(e)).slice(0, 5);
 
 export interface Settled {
 	status: "confirmed" | "awaiting_approval";

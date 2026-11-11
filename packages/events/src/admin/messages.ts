@@ -1,5 +1,6 @@
-import { type Block, notices } from "@semics-tech/shared";
-import { TOO_MANY_CHANGES } from "../domain/names";
+import type { Block } from "@semics-tech/shared";
+import { ERROR, INFO, TOO_MANY_CHANGES } from "../domain/names";
+import { say } from "./ui";
 
 /** Plain-language messages for `config/save` refusals, shared by the event editor page and the editor panel. */
 const ISSUE_MESSAGES: Record<string, string> = {
@@ -29,11 +30,9 @@ export function issueMessage(code: string, path = ""): string {
 export function saveRefused(issues: Array<{ path: string; code: string }>): Block[] {
 	const tooMany = issues.some((i) => i.code === TOO_MANY_CHANGES);
 	const message = issues.map((i) => issueMessage(i.code, i.path)).join(" ") || "The change was refused.";
-	return notices([{ severity: "error", title: tooMany ? "Too many changes at once" : "Not saved", message }]);
+	return say(ERROR, tooMany ? "Too many changes at once" : "Not saved", message);
 }
 
-export const NOTHING_TO_SAVE = (): Block[] =>
-	notices([{ severity: "info", title: "Nothing to save", message: "No values were changed." }]);
+export const NOTHING_TO_SAVE = (): Block[] => say(INFO, "Nothing to save", "No values were changed.");
 
-export const SAVED = (message = "The event was updated."): Block[] =>
-	notices([{ severity: "info", title: "Saved", message }]);
+export const SAVED = (message = "The event was updated."): Block[] => say(INFO, "Saved", message);

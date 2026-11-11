@@ -10,11 +10,14 @@ import type { LinkKv } from "../domain/link-secret";
 import {
 	AWAITING_APPROVAL,
 	AWAITING_SIGNATURE,
+	allOf,
 	CANCEL_NOT_ALLOWED,
 	CANCELLED,
 	CONFIRMED,
+	ERROR,
 	HOLD_EXPIRED,
 	INTERNAL,
+	maxOf,
 	NOT_FOUND,
 	PAYMENT_FAILED,
 	PENDING,
@@ -23,7 +26,7 @@ import { readSettings } from "../domain/settings";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
-import { badRequest, fail } from "./reply";
+import { badRequest, fail, publicPost } from "./reply";
 
 /**
  * `POST public/booking` (status) and `POST public/booking/cancel` (EV-US-4, EV-FR-09). Both are
@@ -164,11 +167,11 @@ async function decide(
 
 export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<unknown> {
 	const auth = await authenticate(deps, raw);
-	if ("error" in auth) return auth.error;
+	if (ERROR in auth) return auth.error;
 	const { id, booking: b } = auth;
 	// One config read serves the cancel policy and the event's public info (T151: kept after it leaves sale).
 	const read = deps.storage.event_configs.get(b.eventId);
-	const [{ items }, decision, calendar, config] = await Promise.all([
+	const [{ items }, decision, calendar, config] = await allOf([
 		deps.storage.attendees.query({ where: { bookingId: id }, limit: 100 }),
 		decide(deps, b, read),
 		b.status === CONFIRMED && deps.kv
@@ -233,7 +236,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 
 export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<unknown> {
 	const auth = await authenticate(deps, raw);
-	if ("error" in auth) return auth.error;
+	if (ERROR in auth) return auth.error;
 	return closeBooking(deps, auth.id, auth.booking);
 }
 
@@ -276,7 +279,7 @@ export async function closeBooking(
 		where: { status: b.status, releaseClaimedAt: b.releaseClaimedAt ?? null },
 		set: { releaseClaimedAt: claim },
 	});
-	if (!claimed.applied) return fail(held ? "HOLD_EXPIRED" : INTERNAL);
+	if (!claimed.applied) return fail(held ? HOLD_EXPIRED : INTERNAL);
 
 	let mail: { kind: string; payload?: Record<string, unknown> } | undefined;
 	const step = paid ? deps.refund : undefined;
@@ -298,7 +301,7 @@ export async function closeBooking(
 	// count cancelled bookings, settles the counters (an over-count meanwhile is the safe direction).
 	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS) - (step?.calls(b) ?? 0) - used;
 	const stale = b.releaseClaimedAt != null;
-	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, Math.max(room, 0));
+	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, maxOf(room, 0));
 	await release(storage, refs, { sold: b.status === CONFIRMED }).catch(() => undefined);
 
 	const moved = await storage.bookings.updateIf(id, {
@@ -340,17 +343,10 @@ const handler =
 		);
 
 /** `public/booking` with the given lookup step (none: the Free route; a Pro build supplies one, `src/seams.ts`). */
-export const bookingStatusRoute = (lookups?: LookupStep): RouteDef => ({
-	methods: ["POST"],
-	public: true,
-	handler: handler(bookingStatus, lookups) as never,
-});
+export const bookingStatusRoute = (lookups?: LookupStep): RouteDef => publicPost(handler(bookingStatus, lookups));
 
 export const BOOKING_ROUTE: RouteDef = bookingStatusRoute();
 /** `public/booking/cancel` with the given refund step (none: the Free route; a Pro build supplies one, `src/seams.ts`). */
-export const bookingCancelRoute = (refund?: (ctx: PluginContext) => RefundStep): RouteDef => ({
-	methods: ["POST"],
-	public: true,
-	handler: handler(cancelBooking, undefined, refund) as never,
-});
+export const bookingCancelRoute = (refund?: (ctx: PluginContext) => RefundStep): RouteDef =>
+	publicPost(handler(cancelBooking, undefined, refund));
 export const BOOKING_CANCEL_ROUTE: RouteDef = bookingCancelRoute();

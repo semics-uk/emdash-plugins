@@ -21,7 +21,20 @@ import { BOOKING_TRANSITIONS } from "../domain/booking-state";
 import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
 import { type CollectionSchemas, type EventsMapping, LABELS, validateMapping } from "../domain/mapping";
-import { ALREADY_CHECKED_IN, AWAITING_APPROVAL, ON_SALE, OPEN, WAIVER_PENDING } from "../domain/names";
+import {
+	ALREADY_CHECKED_IN,
+	AWAITING_APPROVAL,
+	allOf,
+	ERROR,
+	INFO,
+	isStr,
+	keysOf,
+	ON_SALE,
+	OPEN,
+	uriEnc,
+	WAIVER_PENDING,
+	WARNING,
+} from "../domain/names";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import { type ApprovalDeps, approveBooking, declineBooking } from "../routes/approval";
@@ -30,7 +43,7 @@ import type { RefundStep } from "../routes/booking";
 import type { ConfigStorage } from "../routes/config";
 import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
 import { handlePanel, type PanelDeps, type PanelInteraction, type WaiverCheck } from "./panel";
-import { initial, optionsOf, respond, soldMeter, str } from "./ui";
+import { initial, note, optionsOf, respond, say, soldMeter, str } from "./ui";
 
 /**
  * Block Kit admin pages (EV-FR-11, EV-US-5, EV-US-7), built only with the shared builders.
@@ -109,7 +122,7 @@ const BOOKINGS_PAGE = 50;
 const NAME_SEARCH_PAGES = 4;
 const NAME_SEARCH_MATCHES = 25;
 /** Every booking status, for the status filter. */
-const BOOKING_STATUSES = Object.keys(BOOKING_TRANSITIONS);
+const BOOKING_STATUSES = keysOf(BOOKING_TRANSITIONS);
 
 // --- setup ------------------------------------------------------------------------------------
 
@@ -122,11 +135,11 @@ const MAPPING_DEFAULTS: EventsMapping = {
 };
 
 async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
-	const [entries, collections] = await Promise.all([deps.settings.list(), deps.schema.listCollections()]);
+	const [entries, collections] = await allOf([deps.settings.list(), deps.schema.listCollections()]);
 	const values = settingsObject(entries);
 	const mapping = { ...MAPPING_DEFAULTS };
-	for (const key of Object.keys(mapping) as Array<keyof EventsMapping>) {
-		if (typeof values[key] === "string") mapping[key] = values[key] as string;
+	for (const key of keysOf(mapping) as Array<keyof EventsMapping>) {
+		if (isStr(values[key])) mapping[key] = values[key] as string;
 	}
 	const schemas: CollectionSchemas = Object.fromEntries(
 		collections.map((c) => [c.slug, { fields: c.fields.map((f) => f.slug) }]),
@@ -135,20 +148,18 @@ async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
 
 	// A stored secret that comes back as something other than text is an envelope the host could not open.
 	const outcome = (v: unknown): SecretReadOutcome =>
-		typeof v === "string" && v !== "" ? "readable" : v !== null && typeof v === "object" ? "unreadable" : "unset";
+		isStr(v) && v !== "" ? "readable" : v !== null && typeof v === "object" ? "unreadable" : "unset";
 	const secrets = Object.fromEntries(SECRET_SETTING_KEYS.map((k) => [k, outcome(values[k])]));
 	const encryption = encryptionKeyStatus({ secrets });
-	const noTurnstile: NoticeInput | false = secrets.turnstileSecretKey === "unset" && {
-		severity: "warning",
-		title: "Turnstile is not set up",
-		message: "Checkout runs without a bot check; add the Turnstile keys.",
-	};
+	const noTurnstile: NoticeInput | false =
+		secrets.turnstileSecretKey === "unset" &&
+		note(WARNING, "Turnstile is not set up", "Checkout runs without a bot check; add the Turnstile keys.");
 
 	return respond([
 		header("Events setup"),
 		...notices([mapped.banner, encryption.banner, noTurnstile]),
 		fieldsBlock([
-			...(Object.keys(LABELS) as Array<keyof EventsMapping>).map((k) => ({
+			...(keysOf(LABELS) as Array<keyof EventsMapping>).map((k) => ({
 				label: LABELS[k],
 				value: mapping[k] || "(not set)",
 			})),
@@ -250,8 +261,8 @@ async function decide(deps: AdminDeps, id: string, reason?: string): Promise<Adm
 		error?: { message: string };
 	};
 	const banner: NoticeInput = out.ok
-		? { severity: "info", title: `${out.bookingRef}: ${out.status}` }
-		: { severity: "error", title: "Not changed", message: out.error?.message ?? "" };
+		? note(INFO, `${out.bookingRef}: ${out.status}`)
+		: note(ERROR, "Not changed", out.error?.message ?? "");
 	return bookingsPage(deps, { status: AWAITING_APPROVAL }, notices([banner]));
 }
 
@@ -279,7 +290,7 @@ async function targetQuery(deps: AdminDeps, target: string) {
 	const email = target.includes("@") ? target.trim().toLowerCase() : "";
 	const none = { items: [] };
 	const [page, waitlist] = target
-		? await Promise.all([
+		? await allOf([
 				deps.storage.bookings.query({ where: email ? { email } : { ref: target.toUpperCase() }, limit: 10 }),
 				email ? deps.storage.waitlist.query({ where: { email }, limit: 100 }) : none,
 			])
@@ -294,8 +305,8 @@ async function retentionPreview(deps: AdminDeps, target: string): Promise<AdminR
 	const n = page.items.filter((i) => !(i.data as BookingDoc).erasedAt).length;
 	const found = [n && bookingCount(n), waitlist.length && entries(waitlist.length)].filter(Boolean);
 	const banner: NoticeInput = found.length
-		? { severity: "warning", title: `${found.join(" and ")} found for ${target}` }
-		: { severity: "info", title: "Nothing to delete for that reference or email" };
+		? note(WARNING, `${found.join(" and ")} found for ${target}`)
+		: note(INFO, "Nothing to delete for that reference or email");
 	return retentionView(
 		[banner],
 		found.length
@@ -325,14 +336,14 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
 	if (waitlist.length) await deps.storage.waitlist.deleteMany(waitlist);
 	const also = waitlist.length ? ` and ${entries(waitlist.length)}` : "";
 	const banners: NoticeInput[] = [
-		{ severity: "info", title: `Deleted personal data of ${bookingCount(out.erased)}${also}` },
+		note(INFO, `Deleted personal data of ${bookingCount(out.erased)}${also}`),
 		out.kept > 0 && {
-			severity: "warning",
+			severity: WARNING,
 			title: `${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,
 			description: "Live bookings of upcoming events are kept.",
 		},
 		!out.complete && {
-			severity: "error",
+			severity: ERROR,
 			title: "Too many attendees to delete in one go",
 			description: "Run the deletion again to finish.",
 		},
@@ -398,8 +409,8 @@ async function eventsList(deps: AdminDeps, title: string, actionId: string, labe
 // --- attendees --------------------------------------------------------------------------------
 
 const exportUrl = (deps: AdminDeps, eventId: string, cursor?: string) =>
-	`${deps.origin}/_emdash/api/plugins/${encodeURIComponent(deps.pluginId)}/attendees/export?eventId=${encodeURIComponent(eventId)}${
-		cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""
+	`${deps.origin}/_emdash/api/plugins/${uriEnc(deps.pluginId)}/attendees/export?eventId=${uriEnc(eventId)}${
+		cursor ? `&cursor=${uriEnc(cursor)}` : ""
 	}`;
 
 async function attendeesPage(
@@ -515,19 +526,19 @@ async function doCheckIn(
 		if (url) links.push(actions([link("Open the signing page", { kind: "external", url })]));
 	}
 	if (result.ok) {
-		banner = { severity: "info", title: `Checked in: ${result.name}`, message: `At ${result.checkedInAt}.` };
+		banner = note(INFO, `Checked in: ${result.name}`, `At ${result.checkedInAt}.`);
 	} else if (result.reason === ALREADY_CHECKED_IN) {
-		banner = {
-			severity: "warning",
-			title: "Already checked in",
-			message: `${result.name ?? "This attendee"} was first checked in at ${result.checkedInAt ?? "an unknown time"}.`,
-		};
+		banner = note(
+			WARNING,
+			"Already checked in",
+			`${result.name ?? "This attendee"} was first checked in at ${result.checkedInAt ?? "an unknown time"}.`,
+		);
 	} else {
-		banner = {
-			severity: "error",
-			title: result.reason === WAIVER_PENDING ? "Waiver not signed" : "Cannot check in",
-			message: REFUSALS[result.reason]?.(result) ?? "Check-in refused.",
-		};
+		banner = note(
+			ERROR,
+			result.reason === WAIVER_PENDING ? "Waiver not signed" : "Cannot check in",
+			REFUSALS[result.reason]?.(result) ?? "Check-in refused.",
+		);
 	}
 	return attendeesPage(deps, eventId, { extra: [...notices([banner]), ...links] });
 }
@@ -558,12 +569,12 @@ async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
 // --- dispatch ---------------------------------------------------------------------------------
 
 const eventIdOf = (value: unknown): string => {
-	if (typeof value === "string") return str(value);
+	if (isStr(value)) return str(value);
 	if (value && typeof value === "object") return str((value as { eventId?: unknown }).eventId);
 	return "";
 };
 
-const errorNotice = (title: string) => notices([{ severity: "error", title }]);
+const errorNotice = (title: string) => say(ERROR, title);
 
 export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction): Promise<AdminResponse> {
 	const events = () => eventsList(deps, "Events", "events.edit", "Edit");
@@ -634,8 +645,8 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				const eventId = eventIdOf(value);
 				const out = await undoCheckIn(deps.storage, str((value as { id?: unknown } | null)?.id));
 				const banner: NoticeInput = out.ok
-					? { severity: "info", title: `Check-in undone: ${out.name}` }
-					: { severity: "error", title: "Attendee not found" };
+					? note(INFO, `Check-in undone: ${out.name}`)
+					: note(ERROR, "Attendee not found");
 				return attendeesPage(deps, eventId, { extra: notices([banner]) });
 			}
 			case "retention.erase":

@@ -21,6 +21,15 @@ export const CLOSED = "closed" as const;
 export const PENDING = "pending" as const;
 export const OFFERED = "offered" as const;
 export const EACH_ATTENDEE = "each_attendee" as const;
+export const WAITING = "waiting" as const;
+
+// --- other repeated names: a collection, a hold step, an input issue, notice severities ---
+export const OCCURRENCES = "occurrences" as const;
+export const RELEASE = "release" as const;
+export const INVALID_TYPE = "invalid_type" as const;
+export const ERROR = "error" as const;
+export const INFO = "info" as const;
+export const WARNING = "warning" as const;
 
 // --- error codes ---
 export const NOT_FOUND = "NOT_FOUND" as const;
@@ -37,3 +46,18 @@ export const CAPACITY_BELOW_RESERVED = "CAPACITY_BELOW_RESERVED" as const;
 export const TOO_MANY_CHANGES = "TOO_MANY_CHANGES" as const;
 export const PAYMENT_FAILED = "PAYMENT_FAILED" as const;
 export const WAIVER_PENDING = "WAIVER_PENDING" as const;
+
+// --- built-ins called all over the backend: a short name each in the bundle (none of them uses `this`) ---
+export const isFin = Number.isFinite;
+export const keysOf = Object.keys;
+export const maxOf = Math.max;
+export const toJson = JSON.stringify;
+export const isArr = Array.isArray;
+export const isInt = Number.isSafeInteger;
+export const uriEnc = encodeURIComponent;
+/** `Promise.all` needs `this`: bound once. */
+export const allOf = Promise.all.bind(Promise) as typeof Promise.all;
+
+// --- type guards: `typeof v === "string"` repeated in every validator ---
+export const isStr = (v: unknown): v is string => typeof v === "string";
+export const isNum = (v: unknown): v is number => typeof v === "number";

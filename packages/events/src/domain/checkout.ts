@@ -11,9 +11,9 @@ import { err, ok, type Result, toHex } from "@semics-tech/shared";
 
 import type { BookingDoc, BookingLine, EventConfigDoc } from "../storage/schema";
 import { type Counter, planReservation, type ReserveStep, seatsByType } from "./inventory";
-import { BAD_REQUEST, ON_SALE, OPEN, SOLD_OUT } from "./names";
+import { BAD_REQUEST, INVALID_TYPE, isArr, isNum, isStr, keysOf, ON_SALE, OPEN, SOLD_OUT } from "./names";
 import { cmp } from "./order";
-import { iso } from "./time";
+import { iso, msOf } from "./time";
 
 /** Most lines and seats per line one order may carry. */
 export const MAX_LINES = 10;
@@ -70,8 +70,8 @@ function checkLength(
 /** A string: trimmed and lowercased first when asked, then checked for length and pattern. */
 function text(rule: TextRule): Validator<string> {
 	return (value, path, issues) => {
-		if (typeof value !== "string") {
-			report(issues, path, "invalid_type");
+		if (!isStr(value)) {
+			report(issues, path, INVALID_TYPE);
 			checkLength(value, rule.min, rule.max, path, issues);
 			return value as string;
 		}
@@ -88,8 +88,8 @@ function text(rule: TextRule): Validator<string> {
 /** A safe integer from `min` to `max`. */
 function int(min: number, max: number): Validator<number> {
 	return (value, path, issues) => {
-		if (typeof value !== "number" || !Number.isInteger(value)) {
-			report(issues, path, "invalid_type");
+		if (!isNum(value) || !Number.isInteger(value)) {
+			report(issues, path, INVALID_TYPE);
 		} else {
 			if (value > Number.MAX_SAFE_INTEGER) report(issues, path, "too_big");
 			if (value < Number.MIN_SAFE_INTEGER) report(issues, path, "too_small");
@@ -101,7 +101,7 @@ function int(min: number, max: number): Validator<number> {
 }
 
 const bool: Validator<boolean> = (value, path, issues) => {
-	if (typeof value !== "boolean") report(issues, path, "invalid_type");
+	if (typeof value !== "boolean") report(issues, path, INVALID_TYPE);
 	return value as boolean;
 };
 
@@ -112,8 +112,8 @@ function optional<T>(inner: Validator<T>): Validator<T | undefined> {
 /** An array of `min` to `max` items, each checked by `item`. */
 function list<T>(item: Validator<T>, min: number, max: number): Validator<T[]> {
 	return (value, path, issues) => {
-		if (!Array.isArray(value)) {
-			report(issues, path, "invalid_type");
+		if (!isArr(value)) {
+			report(issues, path, INVALID_TYPE);
 			checkLength(value, min, max, path, issues);
 			return value as T[];
 		}
@@ -126,8 +126,8 @@ function list<T>(item: Validator<T>, min: number, max: number): Validator<T[]> {
 /** An object with exactly the keys of `shape` (unknown keys are refused). */
 function strict<T>(shape: { [K in keyof T]-?: Validator<T[K]> }): Validator<T> {
 	return (value, path, issues) => {
-		if (typeof value !== "object" || value === null || Array.isArray(value)) {
-			report(issues, path, "invalid_type");
+		if (typeof value !== "object" || value === null || isArr(value)) {
+			report(issues, path, INVALID_TYPE);
 			return value as T;
 		}
 		const input = value as Record<string, unknown>;
@@ -136,7 +136,7 @@ function strict<T>(shape: { [K in keyof T]-?: Validator<T[K]> }): Validator<T> {
 			const checked = (shape[key] as Validator<unknown>)(input[key], [...path, key], issues);
 			if (checked !== undefined || key in input) out[key] = checked;
 		}
-		if (Object.keys(input).some((key) => !Object.hasOwn(shape, key))) report(issues, path, "unrecognized_keys");
+		if (keysOf(input).some((key) => !Object.hasOwn(shape, key))) report(issues, path, "unrecognized_keys");
 		return out as T;
 	};
 }
@@ -283,7 +283,7 @@ export interface CheckoutPlan {
 export type CheckoutError = { code: "SALES_CLOSED" } | { code: "SOLD_OUT" } | { code: "BAD_REQUEST"; reason: string };
 
 const inWindow = (now: number, start?: string | null, end?: string | null) =>
-	!(start && now < Date.parse(start)) && !(end && now >= Date.parse(end));
+	!(start && now < msOf(start)) && !(end && now >= msOf(end));
 
 function mergeLines(lines: ReserveInput["lines"]): Map<string, number> {
 	return new Map([...seatsByType(lines)].sort(([a], [b]) => cmp(a, b)));
@@ -325,9 +325,9 @@ export function planCheckout(
 	if (input.occurrenceId !== undefined) {
 		const occ = Object.hasOwn(occurrences, input.occurrenceId) ? occurrences[input.occurrenceId] : undefined;
 		if (!occ) return bad("UNKNOWN_OCCURRENCE");
-		if (occ.status !== OPEN || !(now < Date.parse(occ.startsAt))) return closed;
+		if (occ.status !== OPEN || !(now < msOf(occ.startsAt))) return closed;
 		occurrence = { capacity: occ.capacity, reserved: 0 };
-	} else if (config.schedule || Object.keys(occurrences).length > 0) {
+	} else if (config.schedule || keysOf(occurrences).length > 0) {
 		return bad("OCCURRENCE_REQUIRED");
 	}
 

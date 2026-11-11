@@ -1,6 +1,18 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { text } from "../domain/event-info";
-import { CANCELLED, CLOSED, DRAFT, NOT_FOUND, ON_SALE, OPEN } from "../domain/names";
+import {
+	allOf,
+	CANCELLED,
+	CLOSED,
+	DRAFT,
+	isFin,
+	isStr,
+	keysOf,
+	maxOf,
+	NOT_FOUND,
+	ON_SALE,
+	OPEN,
+} from "../domain/names";
 import { cmp, ticketOrder } from "../domain/order";
 import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
@@ -56,13 +68,13 @@ export interface PublicEventsDeps {
 	now: number;
 }
 
-const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
+const left = (capacity: number, reserved: number) => maxOf(0, capacity - reserved);
 const notFound = () => routeError(NOT_FOUND).body;
 
 /** `closed` once the sales end has passed, else the stored status. */
 const statusOf = (c: EventConfigDoc, now: number): EventConfigDoc["status"] => {
 	const end = msOf(c.salesEnd);
-	return c.status === ON_SALE && Number.isFinite(end) && end <= now ? "closed" : c.status;
+	return c.status === ON_SALE && isFin(end) && end <= now ? CLOSED : c.status;
 };
 
 /** The first start that has not passed: an upcoming date of a recurring event, else the event's own. */
@@ -73,12 +85,12 @@ function nextStart(c: EventConfigDoc, now: number): { startsAt: string; endsAt: 
 	if (dates.length > 0) {
 		const upcoming = dates
 			.filter((o) => o.status === OPEN)
-			.map((o) => Date.parse(o.startsAt))
-			.filter((ms) => Number.isFinite(ms) && ms >= now)
+			.map((o) => msOf(o.startsAt))
+			.filter((ms) => isFin(ms) && ms >= now)
 			.sort((a, b) => a - b);
 		return upcoming[0] === undefined ? null : { startsAt: iso(upcoming[0]), endsAt: null };
 	}
-	const end = Date.parse(info.endsAt ?? info.startsAt);
+	const end = msOf(info.endsAt ?? info.startsAt);
 	return end >= now ? { startsAt: info.startsAt, endsAt: info.endsAt } : null;
 }
 
@@ -116,16 +128,16 @@ export async function listEvents(deps: PublicEventsDeps): Promise<unknown> {
 
 export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<unknown> {
 	const eventId = (raw as { eventId?: unknown } | null | undefined)?.eventId;
-	if (typeof eventId !== "string" || !EVENT_ID_PATTERN.test(eventId)) return notFound();
+	if (!isStr(eventId) || !EVENT_ID_PATTERN.test(eventId)) return notFound();
 	const { storage } = deps;
 	const config = (await storage.event_configs.get(eventId)) as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished || config.status === DRAFT) return notFound();
 
-	const recurring = !!config.schedule || Object.keys(config.catalog?.occurrences ?? {}).length > 0;
+	const recurring = !!config.schedule || keysOf(config.catalog?.occurrences ?? {}).length > 0;
 	// Upcoming open dates only (a slot schedule keeps hundreds of past ones, T129), from the picker's
 	// `from` when later (T130), in up to two pages of 100 (a month of six slots a day), then `more`.
 	const asked = (raw as { from?: unknown }).from;
-	const from = Math.max(deps.now, Date.parse(typeof asked === "string" ? asked : "") || 0);
+	const from = maxOf(deps.now, msOf(isStr(asked) ? asked : "") || 0);
 	const page = (cursor?: string) =>
 		storage.occurrences.query({
 			where: { eventId, status: OPEN, startsAt: { gte: iso(from) } },
@@ -133,7 +145,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 			limit: 100,
 			cursor,
 		});
-	const [types, first, settings] = await Promise.all([
+	const [types, first, settings] = await allOf([
 		storage.ticket_types.query({ where: { eventId }, limit: 100 }),
 		recurring ? page() : null,
 		deps.settings.list(),

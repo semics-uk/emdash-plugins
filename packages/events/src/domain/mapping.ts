@@ -1,4 +1,4 @@
-/**
+import { ERROR, keysOf } from "./names"; /**
  * Events collection mapping validation (EV-FR-01).
  *
  * The settings map the site's events collection and the fields that hold start, end, timezone and
@@ -55,7 +55,7 @@ function join(parts: string[]): string {
 }
 
 function fail(problems: MappingProblem[], message: string): MappingResult {
-	return { ok: false, problems, banner: { severity: "error", title: TITLE, message } };
+	return { ok: false, problems, banner: { severity: ERROR, title: TITLE, message } };
 }
 
 export function validateMapping(mapping: EventsMapping, schemas: CollectionSchemas): MappingResult {
@@ -69,7 +69,7 @@ export function validateMapping(mapping: EventsMapping, schemas: CollectionSchem
 
 	const schema = schemas[slug];
 	if (!schema) {
-		const available = Object.keys(schemas).sort().join(", ");
+		const available = keysOf(schemas).sort().join(", ");
 		return fail(
 			[{ setting: "eventsCollection", field: slug, reason: "missing-collection" }],
 			`The collection "${slug}" does not exist. Choose an existing collection in the Events settings.${available ? ` Available: ${available}.` : ""}`,

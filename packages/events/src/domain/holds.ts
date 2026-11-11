@@ -36,7 +36,7 @@ import {
 	restore,
 	STATUSES,
 } from "./inventory";
-import { CLOSED, EXPIRED } from "./names";
+import { allOf, CLOSED, EXPIRED, isFin, keysOf, maxOf, RELEASE } from "./names";
 import { clampSetting } from "./settings";
 import { iso, msOf } from "./time";
 
@@ -125,11 +125,11 @@ export function planExtension(
 ): Result<{ holdExpiresAt: string; changed: boolean; atCeiling: boolean }, ExtendError> {
 	if (!HOLD_STATUSES.includes(booking.status)) return err({ code: "NOT_HELD" });
 	const current = msOf(booking.holdExpiresAt);
-	if (!Number.isFinite(current)) return err({ code: "NOT_HELD" });
+	if (!isFin(current)) return err({ code: "NOT_HELD" });
 	if (booking.releaseClaimedAt || current <= now) return err({ code: "HOLD_LAPSED" });
 	const parsedCeiling = msOf(booking.holdCeilingAt);
-	const ceiling = Number.isFinite(parsedCeiling) ? Math.max(parsedCeiling, current) : current;
-	const next = Math.min(ceiling, Math.max(current, until));
+	const ceiling = isFin(parsedCeiling) ? maxOf(parsedCeiling, current) : current;
+	const next = Math.min(ceiling, maxOf(current, until));
 	return ok({ holdExpiresAt: iso(next), changed: next > current, atCeiling: next >= ceiling });
 }
 
@@ -161,7 +161,7 @@ export async function extendHold(
 	const plan = planExtension(booking, now, until);
 	if (!plan.ok) return plan;
 	const { holdExpiresAt, changed, atCeiling } = plan.value;
-	if (!changed && Object.keys(set).length === 0) return ok({ holdExpiresAt, atCeiling });
+	if (!changed && keysOf(set).length === 0) return ok({ holdExpiresAt, atCeiling });
 	const { applied } = await bookings.updateIf(id, {
 		where: heldGuard(booking),
 		set: { ...set, holdExpiresAt },
@@ -182,12 +182,12 @@ export type ExpiringBooking = Pick<BookingDoc, "eventId" | "occurrenceId" | "lin
 export function expiryAction(b: ExpiringBooking, now: number): "release" | "close" | null {
 	if (!EXPIRABLE_STATUSES.includes(b.status)) return null;
 	if (b.releaseClaimedAt) {
-		const claimed = Date.parse(b.releaseClaimedAt);
-		return !Number.isFinite(claimed) || now - claimed >= CLAIM_STALE_MS ? "close" : null;
+		const claimed = msOf(b.releaseClaimedAt);
+		return !isFin(claimed) || now - claimed >= CLAIM_STALE_MS ? "close" : null;
 	}
 	const expires = msOf(b.holdExpiresAt);
-	if (!Number.isFinite(expires) || expires > now) return null;
-	if (b.status === "draft") return now - Date.parse(b.createdAt) >= DRAFT_GRACE_MS ? "close" : null;
+	if (!isFin(expires) || expires > now) return null;
+	if (b.status === "draft") return now - msOf(b.createdAt) >= DRAFT_GRACE_MS ? "close" : null;
 	return "release";
 }
 
@@ -200,7 +200,7 @@ export interface PlannedExpiry {
 
 /** Bridge calls a set of planned expiries makes: claims, merged releases, moves. */
 export function expiryCalls(planned: readonly PlannedExpiry[]): number {
-	const releasing = planned.filter((p) => p.action === "release");
+	const releasing = planned.filter((p) => p.action === RELEASE);
 	return releasing.length + mergeRefs(releasing.flatMap((p) => p.refs)).length + planned.length;
 }
 
@@ -226,7 +226,7 @@ export function planExpiries(
 			id: item.id,
 			booking,
 			action,
-			refs: action === "release" ? countersForBooking(booking) : [],
+			refs: action === RELEASE ? countersForBooking(booking) : [],
 		};
 		if (expiryCalls([...planned, next]) > maxCalls) full = true;
 		else planned.push(next);
@@ -253,7 +253,7 @@ export async function expireBookings(
 	now: number,
 ): Promise<ExpiryOutcome[]> {
 	const at = iso(now);
-	const claimed = await Promise.all(
+	const claimed = await allOf(
 		planned.map(async (p) => {
 			if (p.action === "close") return true;
 			const { applied } = await storage.bookings
@@ -265,16 +265,16 @@ export async function expireBookings(
 			return applied;
 		}),
 	);
-	const releasing = planned.filter((p, i) => p.action === "release" && claimed[i]);
+	const releasing = planned.filter((p, i) => p.action === RELEASE && claimed[i]);
 	const unreleased = await release(storage, mergeRefs(releasing.flatMap((p) => p.refs)));
 	const unreleasedDocs = new Set(unreleased.map(keyOf));
 
-	return Promise.all(
+	return allOf(
 		planned.map(async (p, i): Promise<ExpiryOutcome> => {
 			const base = { id: p.id, eventId: p.booking.eventId };
 			if (!claimed[i]) return { ...base, outcome: "skipped", dirty: false };
 			const guard =
-				p.action === "release"
+				p.action === RELEASE
 					? { status: p.booking.status, releaseClaimedAt: at }
 					: p.booking.releaseClaimedAt
 						? { status: p.booking.status, releaseClaimedAt: p.booking.releaseClaimedAt }
@@ -284,7 +284,7 @@ export async function expireBookings(
 				.catch(() => ({ applied: false }));
 			const partly = p.refs.some((r) => unreleasedDocs.has(keyOf(r)));
 			if (applied) {
-				return p.action === "release"
+				return p.action === RELEASE
 					? { ...base, outcome: EXPIRED, dirty: partly }
 					: { ...base, outcome: CLOSED, dirty: true };
 			}

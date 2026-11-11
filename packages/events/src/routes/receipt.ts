@@ -9,6 +9,8 @@ import {
 	AWAITING_SIGNATURE,
 	CONFIRMED,
 	HOLD_EXPIRED,
+	isStr,
+	maxOf,
 	NOT_FOUND,
 	OPEN,
 	PENDING,
@@ -16,7 +18,7 @@ import {
 import { mergeSignature, parseReceiptRef, receiptAttendeeIds, seatIds, type VerifiedReceipt } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
 import type { AttendeeDoc, BookingDoc, BookingStatus } from "../storage/schema";
-import { badRequest, fail } from "./reply";
+import { badRequest, fail, publicPost } from "./reply";
 
 /**
  * `POST signatures/receipt` (EV-FR-12, SX-FR-04; esign-intent/1 §8.4): records an e-sign receipt
@@ -48,7 +50,6 @@ import { badRequest, fail } from "./reply";
  * Free has no step (waivers are Pro): the declared Free route stays the stub that answers NOT_FOUND.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
 type Where = Record<string, unknown>;
 type Item = { id: string; data: unknown };
 
@@ -96,7 +97,7 @@ export interface ReceiptDeps {
 
 function parseInput(raw: unknown): string | null {
 	const receipt = raw && typeof raw === "object" ? (raw as { receipt?: unknown }).receipt : undefined;
-	return typeof receipt === "string" && receipt.length > 0 && receipt.length <= MAX_RECEIPT_LENGTH ? receipt : null;
+	return isStr(receipt) && receipt.length > 0 && receipt.length <= MAX_RECEIPT_LENGTH ? receipt : null;
 }
 
 const completed = (a: AttendeeDoc | undefined) => a?.signature?.status === "completed";
@@ -131,7 +132,7 @@ async function advance(
 		const set = done ? { status: AWAITING_PAYMENT } : {};
 		const extended = await extendHold(storage.bookings, id, booking, now, until, set);
 		if (!extended.ok) return { code: HOLD_EXPIRED };
-		return { status: done ? "awaiting_payment" : booking.status };
+		return { status: done ? AWAITING_PAYMENT : booking.status };
 	}
 	// Confirm, or wait for the admin's approval (T131): `settle` says which and what to queue.
 	const s = settle(id, booking, settings, now);
@@ -143,7 +144,7 @@ async function advance(
 	}
 	if (s.status === CONFIRMED) {
 		const room = RECEIPT_MAX_CALLS - used - 1 - AFTER_SOLD_CALLS;
-		await confirmSold(storage, countersForBooking(booking).slice(0, Math.max(room, 0))).catch(() => undefined);
+		await confirmSold(storage, countersForBooking(booking).slice(0, maxOf(room, 0))).catch(() => undefined);
 	}
 	await storage.outbox.putMany(s.outbox);
 	return { status: s.status };
@@ -220,18 +221,15 @@ export interface ReceiptSteps {
 
 /** `signatures/receipt` with the given step (none: answers NOT_FOUND, like the Free stub). */
 export function signaturesReceiptRoute(steps: ReceiptSteps = {}): RouteDef {
-	return {
-		methods: ["POST"],
-		public: true,
-		handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
-			recordReceipt(
-				{
-					storage: ctx.storage as unknown as ReceiptStorage,
-					settings: ctx.settings,
-					step: steps.receipts?.(ctx),
-					now: Date.now(),
-				},
-				routeCtx.input,
-			)) as Handler,
-	};
+	return publicPost(async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
+		recordReceipt(
+			{
+				storage: ctx.storage as unknown as ReceiptStorage,
+				settings: ctx.settings,
+				step: steps.receipts?.(ctx),
+				now: Date.now(),
+			},
+			routeCtx.input,
+		),
+	);
 }

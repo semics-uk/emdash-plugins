@@ -27,7 +27,7 @@ import {
 	planExpiries,
 } from "../domain/holds";
 import { type InventoryStorage, type RepairJob, repairStep } from "../domain/inventory";
-import { CLOSED, EXPIRED, ON_SALE } from "../domain/names";
+import { allOf, CLOSED, EXPIRED, isStr, maxOf, ON_SALE } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { jobState, type StateKv } from "./state";
@@ -110,7 +110,7 @@ export async function sweepHolds({
 	now,
 	maxCalls = SWEEP_MAX_CALLS,
 }: SweepDeps): Promise<SweepReport> {
-	const [stored, page] = await Promise.all([
+	const [stored, page] = await allOf([
 		kv.getVersioned<SweepState>(SWEEP_STATE_KEY),
 		storage.bookings.query({
 			where: { status: { in: [...EXPIRABLE_STATUSES] }, holdExpiresAt: { lt: iso(now) } },
@@ -185,7 +185,7 @@ export async function sweepHolds({
 		calls,
 		expired: counted(EXPIRED),
 		closed: counted(CLOSED),
-		backlog: Math.max(0, plan.due - plan.planned.length) + (page.hasMore ? 1 : 0),
+		backlog: maxOf(0, plan.due - plan.planned.length) + (page.hasMore ? 1 : 0),
 		continued,
 		repaired,
 		conflicted,
@@ -250,7 +250,7 @@ export async function runCron(
 	};
 	if (event.name === SWEEP_TASK || event.name === SWEEP_MORE_TASK) {
 		await sweepHolds(deps);
-	} else if (event.name.startsWith(HOLD_TASK_PREFIX) && typeof event.data?.bookingId === "string") {
+	} else if (event.name.startsWith(HOLD_TASK_PREFIX) && isStr(event.data?.bookingId)) {
 		await expireHoldTask(deps, event.data.bookingId);
 	}
 }

@@ -9,7 +9,6 @@ import {
 	form,
 	fromMinor,
 	link,
-	notices,
 	numberInput,
 	select,
 	stats,
@@ -23,11 +22,11 @@ import {
 import { APPROVAL_HOURS } from "../domain/booking-state";
 import { isObj, MAX_OCCURRENCES, MAX_TICKET_TYPES } from "../domain/config";
 import { readEntryInfo } from "../domain/event-info";
-import { DRAFT, EACH_ATTENDEE } from "../domain/names";
+import { DRAFT, EACH_ATTENDEE, ERROR, isArr, isFin, isNum, isStr, maxOf, toJson, WARNING } from "../domain/names";
 import { ticketOrder } from "../domain/order";
 import { scheduleOwned } from "../domain/schedule";
 import { readSettings } from "../domain/settings";
-import { iso } from "../domain/time";
+import { iso, msOf } from "../domain/time";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
@@ -41,6 +40,7 @@ import {
 	panelView,
 	priceEdit,
 	respond,
+	say,
 	soldMeter,
 	str,
 } from "./ui";
@@ -165,8 +165,7 @@ type Obj = Record<string, unknown>;
 type Item<T> = { id: string; data: T };
 
 /** A whole number from a number or a numeric string; NaN otherwise (the validator then refuses it). */
-const num = (v: unknown): number =>
-	typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : Number.NaN;
+const num = (v: unknown): number => (isNum(v) ? v : isStr(v) && v.trim() !== "" ? Number(v) : Number.NaN);
 const given = (v: unknown) => v !== undefined && v !== null && v !== "";
 
 const LOCAL = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})$/;
@@ -187,8 +186,8 @@ function toInstant(text: string, zone: string): string {
 	return iso(ms);
 }
 
-const rows = (value: unknown): Obj[] => (Array.isArray(value) ? value.filter(isObj) : []);
-const blankRow = (row: Obj) => Object.values(row).every((v) => !given(v) || (typeof v === "string" && v.trim() === ""));
+const rows = (value: unknown): Obj[] => (isArr(value) ? value.filter(isObj) : []);
+const blankRow = (row: Obj) => Object.values(row).every((v) => !given(v) || (isStr(v) && v.trim() === ""));
 
 // --- render -----------------------------------------------------------------------------------
 
@@ -197,7 +196,7 @@ function statsBlocks(config: EventConfigDoc): Block[] {
 		stats([
 			{ label: "Sold", value: String(config.sold) },
 			{ label: "Held", value: String(held(config)) },
-			{ label: "Remaining", value: String(Math.max(config.capacity - config.reserved, 0)) },
+			{ label: "Remaining", value: String(maxOf(config.capacity - config.reserved, 0)) },
 			{ label: "Capacity", value: String(config.capacity) },
 		]),
 		soldMeter("Seats sold", config),
@@ -406,7 +405,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 		hours > 0 ? { required: true, deadlineHours: hours } : { required: false, deadlineHours: APPROVAL_HOURS };
 	if (hours !== approvalHours(stored)) changed++;
 	const schedule = scheduleInput(values, stored.schedule, capacity);
-	if (JSON.stringify(schedule) !== JSON.stringify(stored.schedule ?? null)) changed++;
+	if (toJson(schedule) !== toJson(stored.schedule ?? null)) changed++;
 	const storedSignature = stored.signature ?? { required: false, mode: EACH_ATTENDEE };
 	let signature = storedSignature;
 	if (waivers.available) {
@@ -421,7 +420,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 			return panelForm(state, saveRefused([{ path: "", code: "WAIVER_TEMPLATE_REQUIRED" }]), waivers, rev);
 		}
 		signature = { required, mode, ...(templateId ? { templateId } : {}) };
-		if (JSON.stringify(signature) !== JSON.stringify(storedSignature)) changed++;
+		if (toJson(signature) !== toJson(storedSignature)) changed++;
 	}
 
 	// A stored ticket type or date as the form leaves it: `null` when removed, else with any new capacity.
@@ -450,7 +449,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 	const ticketTypes: Obj[] = [];
 	let nextSort = 0;
 	for (const { id, data } of (state.ticketTypes as Item<TicketTypeDoc>[]).slice().sort(byTicketOrder)) {
-		nextSort = Math.max(nextSort, data.sort + 1);
+		nextSort = maxOf(nextSort, data.sort + 1);
 		const item = edited("tt", id, data);
 		if (!item) continue;
 		const name = str(values[`tt_name:${id}`], 120);
@@ -488,8 +487,8 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 			const startsAt = toInstant(typed, zone);
 			item.startsAt = startsAt;
 			// Keep the length of the date: move the end with the start.
-			const moved = Date.parse(startsAt) - Date.parse(data.startsAt);
-			if (data.endsAt && Number.isFinite(moved)) item.endsAt = iso(Date.parse(data.endsAt) + moved);
+			const moved = msOf(startsAt) - msOf(data.startsAt);
+			if (data.endsAt && isFin(moved)) item.endsAt = iso(msOf(data.endsAt) + moved);
 			changed++;
 		}
 		const next = str(values[`oc_status:${id}`]);
@@ -548,7 +547,7 @@ export async function handlePanel(
 	interaction: PanelInteraction,
 	eventId: string,
 ): Promise<PanelResponse> {
-	if (!eventId) return respond(notices([{ severity: "error", title: "Save the entry first" }]));
+	if (!eventId) return respond(say(ERROR, "Save the entry first"));
 	if (interaction.type === "form_submit") {
 		if (interaction.action_id === "panel.save") {
 			return savePanel(deps, eventId, interaction.values, interaction.block_id);
@@ -570,13 +569,7 @@ export async function handlePanel(
 					actions([link("Step 1: fetch the templates", { kind: "external", url }, { appearance: "primary" })]),
 					context("Step 2: reload this panel and pick one."),
 				]
-			: notices([
-					{
-						severity: "warning",
-						title: "Could not prepare the refresh",
-						message: "Check the E-sign pairing string.",
-					},
-				]);
+			: say(WARNING, "Could not prepare the refresh", "Check the E-sign pairing string.");
 	}
 	return panelForm(state, extra, waivers);
 }

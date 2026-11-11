@@ -22,15 +22,17 @@ import {
 	HELD,
 	HOLD_EXPIRED,
 	INTERNAL,
+	isStr,
 	NOT_FOUND,
 	PAYMENT_FAILED,
 	PENDING,
+	toJson,
 } from "../domain/names";
 import { seatIds } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
 import { findByToken } from "./booking";
-import { badRequest, fail } from "./reply";
+import { badRequest, fail, publicPost } from "./reply";
 
 /**
  * `POST public/checkout/continue` (EV-FR-05, EV-FR-07, R9): the step after `checkout/reserve`.
@@ -76,7 +78,6 @@ import { badRequest, fail } from "./reply";
  * declared route is the Free one, with neither step.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
 
 export const CONTINUE_MAX_CALLS = 10;
 export const CONTINUE_TARGET_CALLS = 8;
@@ -237,7 +238,7 @@ async function advance(
 ) {
 	const { storage, now, cron } = c.deps;
 	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
-	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : HOLD_EXPIRED);
+	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? INTERNAL : HOLD_EXPIRED);
 	const { holdExpiresAt } = extended.value;
 	await storage.attendees.putMany(await docs());
 	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
@@ -256,7 +257,7 @@ async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item
 	const holdExpiresAt = await advance(c, b, status, until, () =>
 		b.waiver && b.status === status && !c.stored ? keepSigned(storage, docs) : docs,
 	);
-	if (typeof holdExpiresAt !== "string") return holdExpiresAt;
+	if (!isStr(holdExpiresAt)) return holdExpiresAt;
 	const session = await prepared.value.start(holdExpiresAt);
 	if (!session.ok) return fail(session.error.code);
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.value.url } };
@@ -303,7 +304,7 @@ async function storedAttendees(storage: ContinueStorage, id: string, b: BookingD
 /** What a seat's intent was minted for: its ticket type, the person and whether they are under 18. */
 const seatKey = (d: Item) => {
 	const a = d.data as AttendeeDoc;
-	return JSON.stringify([d.id, a.ticketTypeId, a.name, a.email, a.minor === true]);
+	return toJson([d.id, a.ticketTypeId, a.name, a.email, a.minor === true]);
 };
 
 /**
@@ -345,7 +346,7 @@ async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: It
 	const status: BookingStatus = AWAITING_SIGNATURE;
 	const until = stepTarget(now, { paid: b.totals.totalMinor > 0 }, holdSettings(settings));
 	const holdExpiresAt = await advance(c, b, status, until, () => docs);
-	if (typeof holdExpiresAt !== "string") return holdExpiresAt;
+	if (!isStr(holdExpiresAt)) return holdExpiresAt;
 	const intents = await prepared.value.issue(holdExpiresAt);
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "sign", intents } };
 }
@@ -394,22 +395,19 @@ export interface ContinueSteps {
 
 /** `public/checkout/continue` with the given steps (none: the Free route). */
 export function checkoutContinueRoute(steps: ContinueSteps = {}): RouteDef {
-	return {
-		methods: ["POST"],
-		public: true,
-		handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
-			continueCheckout(
-				{
-					storage: ctx.storage as unknown as ContinueStorage,
-					settings: ctx.settings,
-					...(ctx.cron ? { cron: ctx.cron } : {}),
-					...(steps.payment ? { payment: steps.payment(ctx) } : {}),
-					...(steps.signature ? { signature: steps.signature(ctx) } : {}),
-					now: Date.now(),
-				},
-				routeCtx.input,
-			)) as Handler,
-	};
+	return publicPost(async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
+		continueCheckout(
+			{
+				storage: ctx.storage as unknown as ContinueStorage,
+				settings: ctx.settings,
+				...(ctx.cron ? { cron: ctx.cron } : {}),
+				...(steps.payment ? { payment: steps.payment(ctx) } : {}),
+				...(steps.signature ? { signature: steps.signature(ctx) } : {}),
+				now: Date.now(),
+			},
+			routeCtx.input,
+		),
+	);
 }
 
 export const CHECKOUT_CONTINUE_ROUTE: RouteDef = checkoutContinueRoute();

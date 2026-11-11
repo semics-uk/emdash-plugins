@@ -2,7 +2,7 @@ import { fromMinor, pad2, utcOffsetMinutes, validZone } from "@semics-tech/share
 import type { PageMetadataEvent, PluginContext } from "emdash/plugin";
 
 import { mappingOf } from "../domain/event-info";
-import { CANCELLED, DRAFT, ON_SALE } from "../domain/names";
+import { CANCELLED, DRAFT, isFin, maxOf, ON_SALE } from "../domain/names";
 import { ticketOrder } from "../domain/order";
 import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, TicketTypeDoc } from "../storage/schema";
@@ -36,7 +36,7 @@ const TYPE_PAGE = 100;
 /** `<` becomes the full-width sign: JSON-LD is read by machines and a raw `</script` is the one thing to rule out. */
 const safe = (value: string) => value.replaceAll("<", "＜");
 
-const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
+const left = (capacity: number, reserved: number) => maxOf(0, capacity - reserved);
 
 /**
  * ISO local date-time with the zone's offset (`2099-07-14T20:00:00+01:00`, `+00:00` in a zone at
@@ -44,8 +44,8 @@ const left = (capacity: number, reserved: number) => Math.max(0, capacity - rese
  * (R100: it replaced an `Intl` `longOffset` lookup of the same value).
  */
 export function withOffset(text: string, timeZone: string | null | undefined): string | null {
-	const ms = Date.parse(text);
-	if (!Number.isFinite(ms)) return null;
+	const ms = msOf(text);
+	if (!isFin(ms)) return null;
 	const zone = validZone(timeZone);
 	if (!zone) return iso(ms).replace(/\.\d{3}Z$/, "Z");
 	const o = utcOffsetMinutes(ms, zone);
@@ -56,9 +56,9 @@ export function withOffset(text: string, timeZone: string | null | undefined): s
 function availability(c: EventConfigDoc, t: TicketTypeDoc, now: number): string {
 	const end = msOf(c.salesEnd);
 	const start = msOf(c.salesStart);
-	if (c.status !== ON_SALE || (Number.isFinite(end) && end <= now)) return `${SCHEMA}Discontinued`;
+	if (c.status !== ON_SALE || (isFin(end) && end <= now)) return `${SCHEMA}Discontinued`;
 	if (left(t.capacity, t.reserved) === 0 || left(c.capacity, c.reserved) === 0) return `${SCHEMA}SoldOut`;
-	if (Number.isFinite(start) && start > now) return `${SCHEMA}PreOrder`;
+	if (isFin(start) && start > now) return `${SCHEMA}PreOrder`;
 	return `${SCHEMA}InStock`;
 }
 

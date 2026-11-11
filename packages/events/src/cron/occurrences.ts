@@ -22,13 +22,14 @@
 import { occurrencesBetween, parseRrule, validZone } from "@semics-tech/shared";
 
 import { MAX_OCCURRENCES } from "../domain/config";
+import { keysOf, maxOf, OCCURRENCES } from "../domain/names";
 import { planSlots } from "../domain/schedule";
 import { iso, msOf } from "../domain/time";
 import { type ConfigStorage, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { scheduleStep } from "./schedule";
 
-export const OCCURRENCES_TASK = "occurrences";
+export const OCCURRENCES_TASK = OCCURRENCES;
 export const OCCURRENCES_SCHEDULE = "*/10 * * * *";
 /** Dates ahead of now a series keeps: the window size, and the most one run creates. */
 export const OCCURRENCES_WINDOW = 20;
@@ -48,18 +49,18 @@ function plan(eventId: string, c: EventConfigDoc, now: number) {
 	const info = c.info;
 	if (!rule || !info) return null;
 	const zone = validZone(info.timezone) ?? "UTC";
-	const starts = occurrencesBetween(rule, Date.parse(info.startsAt), zone, now, now + HORIZON, OCCURRENCES_WINDOW);
+	const starts = occurrencesBetween(rule, msOf(info.startsAt), zone, now, now + HORIZON, OCCURRENCES_WINDOW);
 	const have = c.catalog?.occurrences ?? {};
 	const prefix = `r-${eventId}-`;
 	const id = (t: number) => prefix + t.toString(36);
 	const wanted = new Set(starts.map(id));
 	const missing = starts.filter((t) => !have[id(t)]);
-	const room = MAX_OCCURRENCES - Object.keys(have).length;
-	const series = Object.keys(have)
+	const room = MAX_OCCURRENCES - keysOf(have).length;
+	const series = keysOf(have)
 		.filter((k) => k.startsWith(prefix) && !wanted.has(k))
 		.sort((a, b) => msOf(have[a]?.startsAt) - msOf(have[b]?.startsAt));
 	const stale = series.filter((k) => msOf(have[k]?.startsAt) >= now || missing.length > room);
-	const add = missing.slice(0, Math.max(room, 0));
+	const add = missing.slice(0, maxOf(room, 0));
 	return add.length > 0 || stale.length > 0 ? { add, stale, id, info } : null;
 }
 
@@ -92,7 +93,7 @@ export async function occurrencesTick({ storage, kv }: OccurrencesDeps, now: num
 		const d = o.data as OccurrenceDoc;
 		return stale.includes(o.id) && !d.reserved && !d.sold;
 	})?.id;
-	const length = info.endsAt ? Date.parse(info.endsAt) - Date.parse(info.startsAt) : 0;
+	const length = info.endsAt ? msOf(info.endsAt) - msOf(info.startsAt) : 0;
 	const created = drop ? [] : add;
 	const ids = created.map(id);
 	await saveConfig(

@@ -11,6 +11,7 @@
 import { utcOffsetMinutes, utcParts, utcToZoned, WEEKDAYS, zonedToUtc } from "@semics-tech/shared";
 
 import type { EventConfigDoc, ScheduleDoc } from "../storage/schema";
+import { isArr, isInt, isStr, keysOf } from "./names";
 import { msOf } from "./time";
 
 export type { ScheduleDoc };
@@ -28,14 +29,13 @@ const PRUNE = 7 * DAY;
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
-const int = (v: unknown, min: number, max: number) =>
-	Number.isSafeInteger(v) && (v as number) >= min && (v as number) <= max;
+const int = (v: unknown, min: number, max: number) => isInt(v) && (v as number) >= min && (v as number) <= max;
 const list = (v: unknown, max: number, ok: (s: string) => boolean) =>
-	Array.isArray(v) && v.length <= max && new Set(v).size === v.length && v.every((s) => typeof s === "string" && ok(s));
+	isArr(v) && v.length <= max && new Set(v).size === v.length && v.every((s) => isStr(s) && ok(s));
 
 /** Naive (local-as-UTC) ms of a real `YYYY-MM-DD`, else NaN. */
 const dayMs = (d: string) => {
-	const t = DATE.test(d) ? Date.parse(d) : Number.NaN;
+	const t = DATE.test(d) ? msOf(d) : Number.NaN;
 	return t >= 0 && new Date(t).toISOString().startsWith(d) ? t : Number.NaN;
 };
 
@@ -53,9 +53,9 @@ export function parseSchedule(raw: unknown): ScheduleDoc | null {
 		int(s.durationMinutes, 1, 1440) &&
 		int(s.capacity, 1, 1e6) &&
 		int(ahead, 1, 90) &&
-		Array.isArray(closed) &&
+		isArr(closed) &&
 		closed.length <= 366 &&
-		closed.every((d) => typeof d === "string" && dayMs(d) >= 0);
+		closed.every((d) => isStr(d) && dayMs(d) >= 0);
 	return ok
 		? {
 				days: s.days as string[],
@@ -110,7 +110,7 @@ export function dayBounds(day: string, zone: string): [number, number] | null {
 
 /** Whether the event's occurrences belong to a schedule (it has one, or slots one made). */
 export const scheduleOwned = (c: EventConfigDoc | null | undefined): boolean =>
-	!!c && (!!c.schedule || Object.keys(c.catalog?.occurrences ?? {}).some((k) => k.startsWith("s-")));
+	!!c && (!!c.schedule || keysOf(c.catalog?.occurrences ?? {}).some((k) => k.startsWith("s-")));
 
 export interface SlotPlan {
 	/** Wanted slots missing from the catalog, earliest first, at most SLOT_BATCH. */
@@ -138,7 +138,7 @@ export function planSlots(eventId: string, c: EventConfigDoc, now: number): Slot
 	}
 	const have = c.catalog?.occurrences ?? {};
 	const wanted = new Set(starts.map((t) => slotId(eventId, t)));
-	const ours = Object.keys(have).filter((k) => k.startsWith(`s-${eventId}-`));
+	const ours = keysOf(have).filter((k) => k.startsWith(`s-${eventId}-`));
 	const at = (k: string) => msOf(have[k]?.startsAt);
 	const pending = c.unlisted;
 	const ready = !!pending && now - pending.at >= GRACE;

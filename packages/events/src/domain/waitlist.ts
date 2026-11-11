@@ -11,7 +11,7 @@
  */
 import type { EventConfigDoc, WaitlistDoc } from "../storage/schema";
 import { type CheckoutPlan, planCheckout } from "./checkout";
-import { ON_SALE } from "./names";
+import { OCCURRENCES, ON_SALE } from "./names";
 
 /** How long an offer holds the seats for the waitlister: the claim link's life. */
 export const OFFER_HOURS = 24;
@@ -55,7 +55,7 @@ export function planOffer(eventId: string, c: EventConfigDoc, e: WaitlistDoc, no
 			s.collection === "event_configs" || sure(s.capacity) ? [] : [{ collection: s.collection, id: s.id, qty: s.qty }],
 		);
 		// Within the tick's budget: with a date (three steps) read at most one counter, the date's.
-		if (reads.length + planned.value.steps.length > 4) reads = reads.filter((r) => r.collection === "occurrences");
+		if (reads.length + planned.value.steps.length > 4) reads = reads.filter((r) => r.collection === OCCURRENCES);
 		return { plan: planned.value, reads };
 	}
 	return null;

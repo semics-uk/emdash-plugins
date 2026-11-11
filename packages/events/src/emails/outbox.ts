@@ -39,8 +39,8 @@ import type { CronEvent, PluginContext } from "emdash/plugin";
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { heldGuard } from "../domain/holds";
-import { AWAITING_APPROVAL, CANCELLED, CONFIRMED, EXPIRED, HELD } from "../domain/names";
-import { iso } from "../domain/time";
+import { AWAITING_APPROVAL, allOf, CANCELLED, CONFIRMED, EXPIRED, HELD, isFin, isStr, uriEnc } from "../domain/names";
+import { iso, msOf } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 import { approvalEmail, cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
 
@@ -154,15 +154,15 @@ function adapt(
 					rows.set(id, doc);
 					const message: OutboxMessage = { to: doc.to, subject: "", text: "" };
 					stubs.set(message, { id, doc });
-					const nextAttemptAt = Date.parse(doc.nextAttemptAt);
+					const nextAttemptAt = msOf(doc.nextAttemptAt);
 					return {
 						id,
 						data: {
 							message,
 							status: doc.status,
 							attempts: doc.attempts,
-							nextAttemptAt: Number.isFinite(nextAttemptAt) ? nextAttemptAt : 0,
-							createdAt: Number.isFinite(nextAttemptAt) ? nextAttemptAt : 0,
+							nextAttemptAt: isFin(nextAttemptAt) ? nextAttemptAt : 0,
+							createdAt: isFin(nextAttemptAt) ? nextAttemptAt : 0,
 							...(doc.lastError !== undefined ? { lastError: doc.lastError } : {}),
 						},
 					};
@@ -173,7 +173,7 @@ function adapt(
 }
 
 const calendarUrl = (d: DrainDeps, eventId: string) =>
-	`${d.origin}/_emdash/api/plugins/${encodeURIComponent(d.pluginId)}/public/event/ics?${new URLSearchParams({ eventId })}`;
+	`${d.origin}/_emdash/api/plugins/${uriEnc(d.pluginId)}/public/event/ics?${new URLSearchParams({ eventId })}`;
 
 /**
  * What one tick read for all its rows at once (see `prefetch`): bookings, their attendees, event
@@ -200,7 +200,7 @@ const ATTENDEE_PAGE = 100;
  * a guarded write and a send each, the final save). A failed prefetch only means per-message reads.
  */
 async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<number> {
-	const ids = unique(rows.map((r) => r.payload.bookingId).filter((id): id is string => typeof id === "string"));
+	const ids = unique(rows.map((r) => r.payload.bookingId).filter((id): id is string => isStr(id)));
 	if (ids.length === 0) return rows.length;
 	const found = await d.storage.bookings.getMany(ids);
 	for (const id of ids) tick.bookings.set(id, (found.get(id) as BookingDoc | undefined) ?? null);
@@ -218,7 +218,7 @@ async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<nu
 			(b.booking as BookingDoc).occurrenceId ? [(b.booking as BookingDoc).occurrenceId as string] : [],
 		),
 	);
-	const [attendees, configs, occurrences] = await Promise.all([
+	const [attendees, configs, occurrences] = await allOf([
 		confirming.length > 0
 			? d.storage.attendees.query({ where: { bookingId: { in: confirming } }, limit: ATTENDEE_PAGE })
 			: null,
@@ -266,7 +266,7 @@ async function eventOf(d: DrainDeps, tick: Tick, booking: BookingDoc): Promise<E
 async function renderConfirmation(d: DrainDeps, tick: Tick, bookingId: string): Promise<OutboxMessage | null> {
 	const booking = await loadBooking(d, tick, bookingId);
 	if (booking?.status !== CONFIRMED) return null;
-	const [attendees, event] = await Promise.all([
+	const [attendees, event] = await allOf([
 		tick.attendees.get(bookingId) ??
 			d.storage.attendees.query({ where: { bookingId }, limit: ATTENDEE_PAGE }).then((r) => r.items),
 		eventOf(d, tick, booking),
@@ -363,13 +363,13 @@ async function renderApproval(d: DrainDeps, tick: Tick, doc: OutboxDoc, bookingI
 		b,
 		await eventOf(d, tick, b),
 		d.siteName,
-		`${d.origin}/_emdash/admin/plugins/${encodeURIComponent(d.pluginId)}/bookings`,
+		`${d.origin}/_emdash/admin/plugins/${uriEnc(d.pluginId)}/bookings`,
 	);
 }
 
 async function render(d: DrainDeps, tick: Tick, doc: OutboxDoc): Promise<OutboxMessage | null> {
 	const bookingId = doc.payload.bookingId;
-	if (typeof bookingId !== "string") throw new Error(`no bookingId (${doc.kind})`);
+	if (!isStr(bookingId)) throw new Error(`no bookingId (${doc.kind})`);
 	if (doc.kind === "booking_confirmed") return renderConfirmation(d, tick, bookingId);
 	if (doc.kind === "booking_cancelled") return renderCancellation(d, tick, bookingId);
 	if (doc.kind === "waitlist_offer") return renderOffer(d, tick, bookingId);

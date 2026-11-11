@@ -5,7 +5,6 @@ import {
 	column,
 	type FormField,
 	form,
-	notices,
 	numberInput,
 	pad2,
 	select,
@@ -18,12 +17,12 @@ import {
 
 import { entryOf } from "../cron/schedule";
 import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
-import { CLOSED, OPEN } from "../domain/names";
+import { allOf, CAPACITY_BELOW_RESERVED, CLOSED, ERROR, isInt, keysOf, maxOf, OPEN } from "../domain/names";
 import { dayBounds, parseSchedule } from "../domain/schedule";
 import { msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OccurrenceDoc } from "../storage/schema";
 import { SAVED, saveRefused } from "./messages";
-import { countColumns, held, initial, panelView, str } from "./ui";
+import { countColumns, held, initial, panelView, say, str } from "./ui";
 
 /**
  * The editor panel's Schedule section and day view (EV-FR-17, T129). The section edits
@@ -67,7 +66,7 @@ export const zoneOf = (config: EventConfigDoc): string => {
 
 /** `2026-12-01 19:30` in the zone. */
 export function localText(iso: string, zone: string): string {
-	const p = utcToZoned(Date.parse(iso), zone);
+	const p = utcToZoned(msOf(iso), zone);
 	return `${p.year}-${pad(p.month)}-${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}`;
 }
 
@@ -115,15 +114,11 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	const back = actions([button("panel.back", "Back to the event", { style: "secondary" })]);
 	let extra: Block[] = [];
 	if (!config || !bounds) {
-		return panelView([
-			...notices([{ severity: "error", title: "Enter a day such as 2026-12-01" }]),
-			dayPicker(day),
-			back,
-		]);
+		return panelView([...say(ERROR, "Enter a day such as 2026-12-01"), dayPicker(day), back]);
 	}
 	const slots = { ...config.catalog?.occurrences };
 	const at = (id: string) => msOf(slots[id]?.startsAt);
-	const ids = Object.keys(slots)
+	const ids = keysOf(slots)
 		.filter((id) => at(id) >= bounds[0] && at(id) < bounds[1])
 		.sort((a, b) => at(a) - at(b));
 	const docs = (ids.length > 0 ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
@@ -134,13 +129,13 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			const d = docs.get(id);
 			if (!d) return [];
 			const open = values[`sl_open:${id}`];
-			let status = typeof open === "boolean" && open !== (d.status === OPEN) ? (open ? "open" : CLOSED) : d.status;
+			let status = typeof open === "boolean" && open !== (d.status === OPEN) ? (open ? OPEN : CLOSED) : d.status;
 			if (all === OPEN || (all === CLOSED && d.status === OPEN)) status = all;
 			const places = num(values[`sl_places:${id}`]) ?? d.capacity;
 			return status === d.status && places === d.capacity ? [] : [{ id, d, status, places }];
 		});
 		const closing = changes.filter((c) => c.status !== OPEN && c.d.status === OPEN && c.d.reserved + c.d.sold > 0);
-		const bad = changes.find((c) => !Number.isSafeInteger(c.places) || c.places < Math.max(c.d.reserved, 1));
+		const bad = changes.find((c) => !isInt(c.places) || c.places < maxOf(c.d.reserved, 1));
 		if (closing.length > 0) {
 			const refused = new Set(closing.map((c) => c.id));
 			const { items } = await storage.bookings.query({
@@ -151,18 +146,16 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 				.map((i) => i.data as BookingDoc)
 				.filter((b) => refused.has(b.occurrenceId ?? ""))
 				.map((b) => `${b.ref} (${b.buyer?.name}, ${b.status})`);
-			extra = notices([
-				{
-					severity: "error",
-					title: "Not saved: booked slots cannot be closed",
-					message: `${closing.map((c) => time(c.d)).join(", ")}: ${refs.join("; ") || "seats held or sold"}.`,
-				},
-			]);
+			extra = say(
+				ERROR,
+				"Not saved: booked slots cannot be closed",
+				`${closing.map((c) => time(c.d)).join(", ")}: ${refs.join("; ") || "seats held or sold"}.`,
+			);
 		} else if (bad) {
-			extra = saveRefused([{ path: "", code: bad.places >= 1 ? "CAPACITY_BELOW_RESERVED" : "INVALID_CAPACITY" }]);
+			extra = saveRefused([{ path: "", code: bad.places >= 1 ? CAPACITY_BELOW_RESERVED : "INVALID_CAPACITY" }]);
 		} else if (changes.length > 0) {
 			const now = changes.slice(0, MAX_DAY_CHANGES);
-			const done = await Promise.all(
+			const done = await allOf(
 				now.map((c) =>
 					storage.occurrences.updateIf(c.id, {
 						where: c.status === OPEN ? { reserved: { lte: c.places } } : { reserved: 0, sold: 0 },

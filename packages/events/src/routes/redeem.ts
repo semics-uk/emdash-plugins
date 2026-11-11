@@ -2,10 +2,10 @@ import { generateToken, hashToken, verifyToken } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type InputIssue, parseBookingAccessInput } from "../domain/checkout";
-import { BAD_REQUEST, HELD, NOT_FOUND, OFFERED } from "../domain/names";
+import { BAD_REQUEST, HELD, isArr, keysOf, NOT_FOUND, OFFERED } from "../domain/names";
 import { msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
-import { fail } from "./reply";
+import { fail, publicPost } from "./reply";
 
 /**
  * `POST public/booking/redeem` (EV-US-3, EV-FR-08): exchanges the one-time code from the emailed
@@ -41,7 +41,7 @@ export interface RedeemDeps {
 
 function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[] {
 	const input = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
-	const extra = Object.keys(input).filter((k) => k !== "bookingRef" && k !== "code");
+	const extra = keysOf(input).filter((k) => k !== "bookingRef" && k !== "code");
 	const parsed = parseBookingAccessInput({ bookingRef: input.bookingRef, accessToken: input.code });
 	if (!parsed.ok || extra.length > 0) {
 		const issues = parsed.ok
@@ -54,7 +54,7 @@ function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[
 
 export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = false } = {}): Promise<unknown> {
 	const input = parse(raw);
-	if (Array.isArray(input)) return { ...fail(BAD_REQUEST), issues: input };
+	if (isArr(input)) return { ...fail(BAD_REQUEST), issues: input };
 	const { bookingRef, code } = input as { bookingRef: string; code: string };
 	const { items } = await deps.storage.bookings.query({ where: { ref: bookingRef }, limit: 1 });
 	const found = items[0];
@@ -78,12 +78,6 @@ export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = fa
 	return { ok: true, bookingRef: booking.ref, accessToken };
 }
 
-export const BOOKING_REDEEM_ROUTE: RouteDef = {
-	methods: ["POST"],
-	public: true,
-	handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
-		redeemBooking(
-			{ storage: ctx.storage as unknown as RedeemDeps["storage"], now: Date.now() },
-			routeCtx.input,
-		)) as never,
-};
+export const BOOKING_REDEEM_ROUTE: RouteDef = publicPost(async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
+	redeemBooking({ storage: ctx.storage as unknown as RedeemDeps["storage"], now: Date.now() }, routeCtx.input),
+);

@@ -26,7 +26,7 @@ import { generateToken, hashToken } from "@semics-tech/shared";
 import { bookingKeys, type CheckoutPlan } from "../domain/checkout";
 import { DEFAULT_HOLD_SETTINGS, startHold } from "../domain/holds";
 import { type Counter, type CounterStorage, keyOf, reserve } from "../domain/inventory";
-import { DRAFT, EXPIRED, HELD, OFFERED, ON_SALE, PENDING } from "../domain/names";
+import { DRAFT, EXPIRED, HELD, OFFERED, ON_SALE, PENDING, WAITING } from "../domain/names";
 import { iso } from "../domain/time";
 import { OFFER_HOURS, offerable, planOffer } from "../domain/waitlist";
 import { newBooking } from "../routes/checkout-reserve";
@@ -70,7 +70,7 @@ async function offer(
 		{ freeMinutes: MINUTES, paidMinutes: MINUTES, ceilingMinutes: MINUTES + DEFAULT_HOLD_SETTINGS.ceilingMinutes },
 	);
 	const claimed = await st.waitlist.updateIf(entryId, {
-		where: { status: "waiting" },
+		where: { status: WAITING },
 		set: { status: OFFERED, offerExpiresAt: hold.holdExpiresAt, bookingId: id },
 	});
 	if (!claimed.applied) return "entry";
@@ -105,7 +105,7 @@ async function offer(
 	await st.waitlist
 		.updateIf(entryId, {
 			where: { status: OFFERED, bookingId: id },
-			set: { status: "waiting", offerExpiresAt: null, bookingId: null },
+			set: { status: WAITING, offerExpiresAt: null, bookingId: null },
 		})
 		.catch(quiet);
 	// All seats given back: closed now. Otherwise a dead draft, which the sweeper closes and repairs.
@@ -131,7 +131,7 @@ export async function waitlistTick({ storage: st, now }: { storage: WaitlistStor
 	let offered: string | undefined;
 	if (configs.size > 0) {
 		const { items } = await st.waitlist.query({
-			where: { eventId: { in: [...configs.keys()] }, status: "waiting" },
+			where: { eventId: { in: [...configs.keys()] }, status: WAITING },
 			limit: 50,
 		});
 		calls++;

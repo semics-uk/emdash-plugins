@@ -1,7 +1,7 @@
 import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc } from "../storage/schema";
 import { isObj } from "./config";
-import { DRAFT } from "./names";
-import { iso } from "./time";
+import { DRAFT, isFin, isStr } from "./names";
+import { iso, msOf } from "./time";
 
 /**
  * What emails, calendar files and the public event routes need to know about an event: its title,
@@ -49,11 +49,10 @@ const DEFAULTS: EventMapping = {
 	venue: "venue",
 };
 
-export const text = (v: unknown): string | undefined =>
-	typeof v === "string" && v.trim() !== "" ? v.trim() : undefined;
+export const text = (v: unknown): string | undefined => (isStr(v) && v.trim() !== "" ? v.trim() : undefined);
 const instant = (v: unknown): number | undefined => {
-	const ms = typeof v === "string" ? Date.parse(v) : Number.NaN;
-	return Number.isFinite(ms) ? ms : undefined;
+	const ms = isStr(v) ? msOf(v) : Number.NaN;
+	return isFin(ms) ? ms : undefined;
 };
 
 /** The mapping from a settings listing; an unset (or blank) setting means its default. */

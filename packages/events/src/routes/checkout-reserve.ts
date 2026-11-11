@@ -16,6 +16,7 @@ import {
 import { extendHold, HOLD_STATUSES, holdSettings, startHold, stepTarget } from "../domain/holds";
 import { type CounterCollection, reserve } from "../domain/inventory";
 import {
+	allOf,
 	CONFIRMED,
 	DRAFT,
 	EXPIRED,
@@ -28,7 +29,7 @@ import {
 } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
-import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal } from "./reply";
+import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal, publicPost } from "./reply";
 
 /**
  * `POST public/checkout/reserve` (EV-FR-05, R9): Turnstile + rate limit → validate → write the
@@ -53,7 +54,6 @@ import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal
  * A one-ticket-type order is 8 calls; an occurrence order with two ticket types is 10.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
 
 export const RESERVE_MAX_CALLS = 10;
 export const RESERVE_TARGET_CALLS = 8;
@@ -152,7 +152,7 @@ async function resume(a: Attempt, existing: BookingDoc): Promise<unknown> {
 	if (HOLD_STATUSES.includes(existing.status)) {
 		const until = stepTarget(now, { paid: existing.totals.totalMinor > 0 }, holdSettings(a.settings));
 		const extended = await extendHold(storage.bookings, a.id, existing, now, until, { accessTokenHash: a.tokenHash });
-		if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : HOLD_EXPIRED);
+		if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? INTERNAL : HOLD_EXPIRED);
 		return success(existing, a.token, extended.value.holdExpiresAt);
 	}
 	if (existing.status === DRAFT && !existing.releaseClaimedAt && msOf(existing.holdExpiresAt) > now) {
@@ -179,14 +179,14 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	const input = parsed.value;
 	const { storage, now } = deps;
 
-	const [entries, stored] = await Promise.all([deps.settings.list(), storage.event_configs.get(input.eventId)]);
+	const [entries, stored] = await allOf([deps.settings.list(), storage.event_configs.get(input.eventId)]);
 	const config = stored as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished) return fail(NOT_FOUND);
 	const bot = botCheck(entries, deps.settings, deps.fetch, input.turnstileToken, deps.ip);
 	const settings = bot.settings;
 
 	const ipHash = await hashIp(deps.ip ?? "unknown", bot.salt);
-	const [recent, human] = await Promise.all([
+	const [recent, human] = await allOf([
 		storage.bookings.count({ ipHash, createdAt: { gte: rateWindowStart(now) } }),
 		bot.human,
 	]);
@@ -240,7 +240,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		await storage.bookings
 			.updateIf(id, { where: { status: DRAFT, releaseClaimedAt: null }, set })
 			.catch(() => undefined);
-		return fail(reserved.error.code === SOLD_OUT ? "SOLD_OUT" : INTERNAL);
+		return fail(reserved.error.code === SOLD_OUT ? SOLD_OUT : INTERNAL);
 	}
 	calls += plan.value.steps.length;
 
@@ -258,10 +258,8 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	return success({ ref, status: HELD, totals: plan.value.totals }, token, hold.holdExpiresAt);
 }
 
-export const CHECKOUT_RESERVE_ROUTE: RouteDef = {
-	methods: ["POST"],
-	public: true,
-	handler: (async (routeCtx: { input?: unknown; requestMeta?: { ip: string | null } }, ctx: PluginContext) =>
+export const CHECKOUT_RESERVE_ROUTE: RouteDef = publicPost(
+	async (routeCtx: { input?: unknown; requestMeta?: { ip: string | null } }, ctx: PluginContext) =>
 		reserveCheckout(
 			{
 				storage: ctx.storage as unknown as ReserveStorage,
@@ -272,5 +270,5 @@ export const CHECKOUT_RESERVE_ROUTE: RouteDef = {
 				now: Date.now(),
 			},
 			routeCtx.input,
-		)) as Handler,
-};
+		),
+);
