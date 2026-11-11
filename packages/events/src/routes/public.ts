@@ -1,4 +1,5 @@
 import { pluginResponse, type RouteHandler, type SandboxedPlugin } from "emdash/plugin";
+import { NOT_FOUND } from "../domain/names";
 import { BOOKING_CANCEL_ROUTE, BOOKING_ROUTE } from "./booking";
 import { CHECKOUT_CONTINUE_ROUTE } from "./checkout-continue";
 import { CHECKOUT_RESERVE_ROUTE } from "./checkout-reserve";
@@ -16,7 +17,7 @@ import { WAITLIST_ROUTES } from "./waitlist";
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 
-const notImplemented = async () => routeError("NOT_FOUND").body;
+const notImplemented = async () => routeError(NOT_FOUND).body;
 
 function route(def: Omit<RouteDef, "handler" | "public">): RouteDef {
 	return { ...def, public: true, handler: notImplemented };

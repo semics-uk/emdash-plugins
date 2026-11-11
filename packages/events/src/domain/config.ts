@@ -22,8 +22,25 @@ import type {
 	TicketTypeDoc,
 } from "../storage/schema";
 import { APPROVAL_HOURS } from "./booking-state";
+import {
+	CANCELLED,
+	CAPACITY_BELOW_RESERVED,
+	CLOSED,
+	DRAFT,
+	EACH_ATTENDEE,
+	INVALID_INPUT,
+	INVALID_QUANTITY_LIMITS,
+	isArr,
+	isInt,
+	isNum,
+	isStr,
+	OCCURRENCES,
+	ON_SALE,
+	OPEN,
+} from "./names";
 import { cmp } from "./order";
 import { parseSchedule } from "./schedule";
+import { msOf } from "./time";
 
 export type ConfigIssueCode =
 	| "INVALID_INPUT"
@@ -70,20 +87,20 @@ export const MAX_TICKET_TYPES = 25;
 export const MAX_OCCURRENCES = 100;
 const MAX_NAME_LENGTH = 100;
 
-export const EVENT_STATUSES: readonly EventStatus[] = ["draft", "on_sale", "paused", "closed", "cancelled"];
-export const OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = ["open", "closed", "cancelled"];
-const SIGNATURE_MODES: readonly SignatureMode[] = ["each_attendee", "buyer"];
+export const EVENT_STATUSES: readonly EventStatus[] = [DRAFT, ON_SALE, "paused", CLOSED, CANCELLED];
+export const OCCURRENCE_STATUSES: readonly OccurrenceStatus[] = [OPEN, CLOSED, CANCELLED];
+const SIGNATURE_MODES: readonly SignatureMode[] = [EACH_ATTENDEE, "buyer"];
 
 type Obj = Record<string, unknown>;
 
-export const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
-const isPositiveInt = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 1;
+export const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !isArr(v);
+const isPositiveInt = (v: unknown): v is number => isNum(v) && isInt(v) && v >= 1;
 
 const ISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
 
 /** A UTC ISO 8601 string for a real calendar instant with an explicit offset, or null. */
 function parseInstant(value: unknown): string | null {
-	if (typeof value !== "string") return null;
+	if (!isStr(value)) return null;
 	const m = ISO.exec(value);
 	if (!m) return null;
 	const [year, month, day, hour, minute, second] = [m[1], m[2], m[3], m[4], m[5], m[6] ?? "0"].map(Number) as [
@@ -96,12 +113,12 @@ function parseInstant(value: unknown): string | null {
 	];
 	const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
 	if (month < 1 || month > 12 || day < 1 || day > daysInMonth || hour > 23 || minute > 59 || second > 59) return null;
-	const ms = Date.parse(value);
+	const ms = msOf(value);
 	return Number.isNaN(ms) ? null : new Date(ms).toISOString();
 }
 
 function validCurrency(value: unknown): value is string {
-	if (typeof value !== "string" || !/^[A-Z]{3}$/.test(value)) return false;
+	if (!isStr(value) || !/^[A-Z]{3}$/.test(value)) return false;
 	const supported = (Intl as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
 	return supported ? supported("currency").includes(value) : true;
 }
@@ -122,7 +139,7 @@ function optionalInstant(raw: unknown, path: string, issues: Issues): string | u
 }
 
 function checkWindow(start: string | undefined, end: string | undefined, endPath: string, issues: Issues): void {
-	if (start !== undefined && end !== undefined && Date.parse(end) <= Date.parse(start)) {
+	if (start !== undefined && end !== undefined && msOf(end) <= msOf(start)) {
 		issues.add(endPath, "INVALID_WINDOW");
 	}
 }
@@ -132,13 +149,13 @@ function checkCapacity(raw: unknown, stored: { reserved: number } | undefined, p
 		issues.add(path, "INVALID_CAPACITY");
 		return 0;
 	}
-	if (stored && raw < stored.reserved) issues.add(path, "CAPACITY_BELOW_RESERVED");
+	if (stored && raw < stored.reserved) issues.add(path, CAPACITY_BELOW_RESERVED);
 	return raw;
 }
 
 function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Issues): EventConfigDoc {
 	if (!isObj(raw)) {
-		issues.add("config", "INVALID_INPUT");
+		issues.add("config", INVALID_INPUT);
 		return validateConfig({}, stored, new Issues());
 	}
 	const base = raw;
@@ -152,14 +169,14 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 	checkWindow(salesStart, salesEnd, "config.salesEnd", issues);
 
 	const sig: Obj = isObj(base.signature) ? base.signature : {};
-	const mode = sig.mode === undefined ? "each_attendee" : (sig.mode as SignatureMode);
-	if (!SIGNATURE_MODES.includes(mode)) issues.add("config.signature.mode", "INVALID_INPUT");
-	if (base.signature !== undefined && !isObj(base.signature)) issues.add("config.signature", "INVALID_INPUT");
+	const mode = sig.mode === undefined ? EACH_ATTENDEE : (sig.mode as SignatureMode);
+	if (!SIGNATURE_MODES.includes(mode)) issues.add("config.signature.mode", INVALID_INPUT);
+	if (base.signature !== undefined && !isObj(base.signature)) issues.add("config.signature", INVALID_INPUT);
 	const signature: EventConfigDoc["signature"] = { required: sig.required === true, mode };
-	if (typeof sig.templateId === "string" && sig.templateId !== "") signature.templateId = sig.templateId;
+	if (isStr(sig.templateId) && sig.templateId !== "") signature.templateId = sig.templateId;
 
-	const questions = Array.isArray(base.questions) ? (base.questions as EventQuestion[]) : [];
-	if (base.questions !== undefined && !Array.isArray(base.questions)) issues.add("config.questions", "INVALID_INPUT");
+	const questions = isArr(base.questions) ? (base.questions as EventQuestion[]) : [];
+	if (base.questions !== undefined && !isArr(base.questions)) issues.add("config.questions", INVALID_INPUT);
 
 	const config: EventConfigDoc = {
 		status,
@@ -173,7 +190,7 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 	};
 	if (salesStart !== undefined) config.salesStart = salesStart;
 	if (salesEnd !== undefined) config.salesEnd = salesEnd;
-	if (typeof base.recurrence === "string" && base.recurrence !== "") {
+	if (isStr(base.recurrence) && base.recurrence !== "") {
 		if (!parseRrule(base.recurrence)) issues.add("config.recurrence", "INVALID_RECURRENCE");
 		config.recurrence = base.recurrence;
 	}
@@ -205,8 +222,8 @@ function collect<TIn extends Obj, TStored extends { reserved: number; sold: numb
 	build: (item: TIn, path: string, prior: TStored | undefined) => TDoc,
 ): { items: Array<{ id: string; data: TDoc }>; deleteIds: string[] } {
 	const items: Array<{ id: string; data: TDoc }> = [];
-	if (raw !== undefined && !Array.isArray(raw)) {
-		issues.add(name, "INVALID_INPUT");
+	if (raw !== undefined && !isArr(raw)) {
+		issues.add(name, INVALID_INPUT);
 		return { items, deleteIds: [] };
 	}
 	const list = (raw ?? []) as unknown[];
@@ -218,10 +235,10 @@ function collect<TIn extends Obj, TStored extends { reserved: number; sold: numb
 	list.forEach((entry, index) => {
 		const path = `${name}[${index}]`;
 		const item: Obj = isObj(entry) ? entry : {};
-		if (!isObj(entry)) issues.add(path, "INVALID_INPUT");
+		if (!isObj(entry)) issues.add(path, INVALID_INPUT);
 		let id: string;
 		let prior: TStored | undefined;
-		if (typeof item.id === "string" && item.id !== "") {
+		if (isStr(item.id) && item.id !== "") {
 			id = item.id;
 			prior = stored.get(id);
 			if (!prior) issues.add(`${path}.id`, "UNKNOWN_ID");
@@ -245,11 +262,9 @@ function collect<TIn extends Obj, TStored extends { reserved: number; sold: numb
 
 function priceMinorOf(item: Obj, currency: unknown): number | null {
 	if (item.priceMinor !== undefined) {
-		return typeof item.priceMinor === "number" && Number.isSafeInteger(item.priceMinor) && item.priceMinor >= 0
-			? item.priceMinor
-			: null;
+		return isNum(item.priceMinor) && isInt(item.priceMinor) && item.priceMinor >= 0 ? item.priceMinor : null;
 	}
-	if (typeof item.price !== "string" || typeof currency !== "string") return null;
+	if (!isStr(item.price) || !isStr(currency)) return null;
 	try {
 		const minor = toMinor(item.price, currency);
 		return minor >= 0 ? minor : null;
@@ -271,7 +286,7 @@ function buildTicketType(
 	prior: TicketTypeDoc | undefined,
 	issues: Issues,
 ): TicketTypeDoc {
-	const name = typeof item.name === "string" ? item.name.trim() : "";
+	const name = isStr(item.name) ? item.name.trim() : "";
 	if (name === "" || name.length > MAX_NAME_LENGTH) issues.add(`${path}.name`, "INVALID_NAME");
 	const priceMinor = priceMinorOf(item, currency);
 	if (priceMinor === null) issues.add(`${path}.priceMinor`, "INVALID_PRICE");
@@ -282,10 +297,10 @@ function buildTicketType(
 
 	const min = optionalLimit(item.minPerOrder);
 	const max = optionalLimit(item.maxPerOrder);
-	if (min === null) issues.add(`${path}.minPerOrder`, "INVALID_QUANTITY_LIMITS");
-	if (max === null) issues.add(`${path}.maxPerOrder`, "INVALID_QUANTITY_LIMITS");
-	if (typeof min === "number" && typeof max === "number" && min > max) {
-		issues.add(`${path}.maxPerOrder`, "INVALID_QUANTITY_LIMITS");
+	if (min === null) issues.add(`${path}.minPerOrder`, INVALID_QUANTITY_LIMITS);
+	if (max === null) issues.add(`${path}.maxPerOrder`, INVALID_QUANTITY_LIMITS);
+	if (isNum(min) && isNum(max) && min > max) {
+		issues.add(`${path}.maxPerOrder`, INVALID_QUANTITY_LIMITS);
 	}
 
 	const doc: TicketTypeDoc = {
@@ -296,10 +311,10 @@ function buildTicketType(
 		reserved: prior?.reserved ?? 0,
 		sold: prior?.sold ?? 0,
 		hidden: item.hidden === true,
-		sort: typeof item.sort === "number" && Number.isSafeInteger(item.sort) ? item.sort : 0,
+		sort: isNum(item.sort) && isInt(item.sort) ? item.sort : 0,
 	};
-	if (typeof min === "number") doc.minPerOrder = min;
-	if (typeof max === "number") doc.maxPerOrder = max;
+	if (isNum(min)) doc.minPerOrder = min;
+	if (isNum(max)) doc.maxPerOrder = max;
 	if (salesStart !== undefined) doc.salesStart = salesStart;
 	if (salesEnd !== undefined) doc.salesEnd = salesEnd;
 	return doc;
@@ -318,7 +333,7 @@ function buildOccurrence(
 	checkWindow(startsAt ?? undefined, endsAt, `${path}.endsAt`, issues);
 	const capacity = checkCapacity(item.capacity, prior, `${path}.capacity`, issues);
 
-	let status: OccurrenceStatus = prior?.status ?? "open";
+	let status: OccurrenceStatus = prior?.status ?? OPEN;
 	if (item.status !== undefined) {
 		if (OCCURRENCE_STATUSES.includes(item.status as OccurrenceStatus)) status = item.status as OccurrenceStatus;
 		else issues.add(`${path}.status`, "INVALID_STATUS");
@@ -347,7 +362,7 @@ export function validateConfigInput(
 	existing: ExistingState,
 	newId: () => string,
 ): Result<ValidatedConfig, ConfigIssue[]> {
-	if (!isObj(input)) return err([{ path: "input", code: "INVALID_INPUT" }]);
+	if (!isObj(input)) return err([{ path: "input", code: INVALID_INPUT }]);
 	const issues = new Issues();
 
 	const config = validateConfig(input.config, existing.config, issues);
@@ -362,7 +377,7 @@ export function validateConfigInput(
 		(item, path, prior) => buildTicketType(eventId, config.currency, item, path, prior, issues),
 	);
 	const occurrences = collect<Obj, OccurrenceDoc, OccurrenceDoc>(
-		"occurrences",
+		OCCURRENCES,
 		input.occurrences,
 		MAX_OCCURRENCES,
 		existing.occurrences,

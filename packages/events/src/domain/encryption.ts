@@ -1,4 +1,4 @@
-/**
+import { ERROR, keysOf } from "./names"; /**
  * Encryption-key banner state for the admin pages (spike S8).
  *
  * Secret settings are encrypted with `EMDASH_ENCRYPTION_KEY`. A sandboxed plugin cannot read the
@@ -33,7 +33,7 @@ export interface EncryptionKeyStatus {
 const KEY = "EMDASH_ENCRYPTION_KEY";
 
 export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeyStatus {
-	const names = Object.keys(input.secrets).sort();
+	const names = keysOf(input.secrets).sort();
 
 	if (input.keyConfigured === false) {
 		return {
@@ -41,7 +41,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 			secretsWritable: false,
 			affected: names,
 			banner: {
-				severity: "error",
+				severity: ERROR,
 				title: "Encryption key missing",
 				message: `Set ${KEY} on the site and restart it to save secret settings.`,
 			},
@@ -55,7 +55,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 			secretsWritable: true,
 			affected: unreadable,
 			banner: {
-				severity: "error",
+				severity: ERROR,
 				title: "Saved secrets cannot be read",
 				message: `${unreadable.join(", ")} cannot be decrypted. ${KEY} is missing, changed or does not include the key the value was saved with. Restore the key, or enter the value again.`,
 			},

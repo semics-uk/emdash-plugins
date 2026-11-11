@@ -2,6 +2,7 @@ import { fromMinor, pad2, utcOffsetMinutes, validZone } from "@semics-tech/share
 import type { PageMetadataEvent, PluginContext } from "emdash/plugin";
 
 import { mappingOf } from "../domain/event-info";
+import { CANCELLED, DRAFT, isFin, maxOf, ON_SALE } from "../domain/names";
 import { ticketOrder } from "../domain/order";
 import { iso, msOf } from "../domain/time";
 import type { EventConfigDoc, TicketTypeDoc } from "../storage/schema";
@@ -35,7 +36,7 @@ const TYPE_PAGE = 100;
 /** `<` becomes the full-width sign: JSON-LD is read by machines and a raw `</script` is the one thing to rule out. */
 const safe = (value: string) => value.replaceAll("<", "＜");
 
-const left = (capacity: number, reserved: number) => Math.max(0, capacity - reserved);
+const left = (capacity: number, reserved: number) => maxOf(0, capacity - reserved);
 
 /**
  * ISO local date-time with the zone's offset (`2099-07-14T20:00:00+01:00`, `+00:00` in a zone at
@@ -43,8 +44,8 @@ const left = (capacity: number, reserved: number) => Math.max(0, capacity - rese
  * (R100: it replaced an `Intl` `longOffset` lookup of the same value).
  */
 export function withOffset(text: string, timeZone: string | null | undefined): string | null {
-	const ms = Date.parse(text);
-	if (!Number.isFinite(ms)) return null;
+	const ms = msOf(text);
+	if (!isFin(ms)) return null;
 	const zone = validZone(timeZone);
 	if (!zone) return iso(ms).replace(/\.\d{3}Z$/, "Z");
 	const o = utcOffsetMinutes(ms, zone);
@@ -55,9 +56,9 @@ export function withOffset(text: string, timeZone: string | null | undefined): s
 function availability(c: EventConfigDoc, t: TicketTypeDoc, now: number): string {
 	const end = msOf(c.salesEnd);
 	const start = msOf(c.salesStart);
-	if (c.status !== "on_sale" || (Number.isFinite(end) && end <= now)) return `${SCHEMA}Discontinued`;
+	if (c.status !== ON_SALE || (isFin(end) && end <= now)) return `${SCHEMA}Discontinued`;
 	if (left(t.capacity, t.reserved) === 0 || left(c.capacity, c.reserved) === 0) return `${SCHEMA}SoldOut`;
-	if (Number.isFinite(start) && start > now) return `${SCHEMA}PreOrder`;
+	if (isFin(start) && start > now) return `${SCHEMA}PreOrder`;
 	return `${SCHEMA}InStock`;
 }
 
@@ -71,7 +72,7 @@ export async function eventJsonLd(
 	const mapping = mappingOf(await deps.settings.list());
 	if (content.collection !== mapping.collection) return null;
 	const config = (await deps.storage.event_configs.get(content.id)) as EventConfigDoc | null;
-	if (!config?.info || config.orphaned || config.unpublished || config.status === "draft") return null;
+	if (!config?.info || config.orphaned || config.unpublished || config.status === DRAFT) return null;
 	const { info } = config;
 	const startDate = withOffset(info.startsAt, info.timezone);
 	if (!startDate) return null;
@@ -98,7 +99,7 @@ export async function eventJsonLd(
 		url,
 		startDate,
 		...(endDate ? { endDate } : {}),
-		eventStatus: `${SCHEMA}${config.status === "cancelled" ? "EventCancelled" : "EventScheduled"}`,
+		eventStatus: `${SCHEMA}${config.status === CANCELLED ? "EventCancelled" : "EventScheduled"}`,
 		eventAttendanceMode: `${SCHEMA}OfflineEventAttendanceMode`,
 		...(info.venue ? { location: { "@type": "Place", name: safe(info.venue) } } : {}),
 		...(offers.length > 0 ? { offers } : {}),

@@ -9,12 +9,22 @@ import {
 	type TurnstileFetch,
 	verifyTurnstile,
 } from "@semics-tech/shared";
-import type { PluginContext } from "emdash/plugin";
+import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import type { CheckoutError, InputIssue } from "../domain/checkout";
+import { BAD_REQUEST, isStr } from "../domain/names";
 import { settingsObject } from "../domain/settings";
 
 let errorCodes: ErrorTable = EVENTS_ERROR_CODES;
+
+type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
+
+/** A public POST route: one copy of its shape in the bundle (R100, T162). */
+export const publicPost = (handler: unknown): RouteDef => ({
+	methods: ["POST"],
+	public: true,
+	handler: handler as never,
+});
 
 /**
  * The codes the core answers with: Events' own (R97), so the e-sign and protocol messages stay out
@@ -32,14 +42,14 @@ export const routeError = (code: ErrorCode) => routeErrorFrom(errorCodes, code);
 export const fail = (code: ErrorCode) => routeError(code).body;
 
 /** `BAD_REQUEST` with the input issues. */
-export const badRequest = (issues: InputIssue[]) => ({ ...fail("BAD_REQUEST"), issues });
+export const badRequest = (issues: InputIssue[]) => ({ ...fail(BAD_REQUEST), issues });
 
 /**
  * The answer to an order `planCheckout` refused (reserve and waitlist join): a bad date names
  * `occurrenceId`, another bad request `path`; other refusals are their code.
  */
 export const planRefusal = (e: CheckoutError, path: string) =>
-	e.code === "BAD_REQUEST"
+	e.code === BAD_REQUEST
 		? badRequest([{ path: e.reason.includes("OCCURRENCE") ? "occurrenceId" : path, code: e.reason }])
 		: fail(e.code);
 
@@ -73,8 +83,8 @@ export function botCheck(
 	ip: string | null,
 ) {
 	const settings = settingsObject(entries);
-	const secret = typeof settings.turnstileSecretKey === "string" ? settings.turnstileSecretKey : "";
-	const stored = typeof settings.ipSalt === "string" ? settings.ipSalt : "";
+	const secret = isStr(settings.turnstileSecretKey) ? settings.turnstileSecretKey : "";
+	const stored = isStr(settings.ipSalt) ? settings.ipSalt : "";
 	const salt = secret || stored || generateToken();
 	const human = secret
 		? verifyTurnstile(fetch, { secret, token: token ?? "", ...(ip ? { remoteIp: ip } : {}) })

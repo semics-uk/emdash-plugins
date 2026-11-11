@@ -3,6 +3,8 @@ import { type PluginContext, pluginResponse, type RouteHandler } from "emdash/pl
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { type LinkKv, linkSecret } from "../domain/link-secret";
+import { BAD_REQUEST, CONFIRMED, isFin, isStr, NOT_FOUND, OPEN, toJson } from "../domain/names";
+import { msOf } from "../domain/time";
 import type { BookingDoc, OccurrenceDoc } from "../storage/schema";
 import { routeError } from "./reply";
 
@@ -60,7 +62,7 @@ const failure = (code: ErrorCode): RawResponse => {
 	return {
 		status,
 		contentType: "application/json; charset=utf-8",
-		body: JSON.stringify(body),
+		body: toJson(body),
 		cacheControl: "no-store",
 	};
 };
@@ -104,12 +106,12 @@ export async function bookingIcs(deps: IcsDeps, query: URLSearchParams): Promise
 	});
 	if (!link.ok) return failure(link.error);
 	const ref = link.value.ref;
-	if (typeof ref !== "string" || !REF_PATTERN.test(ref)) return failure("TOKEN_INVALID");
+	if (!isStr(ref) || !REF_PATTERN.test(ref)) return failure("TOKEN_INVALID");
 	const { items } = await deps.storage.bookings.query({ where: { ref }, limit: 1 });
 	const booking = items[0]?.data as BookingDoc | undefined;
-	if (booking?.status !== "confirmed") return failure("NOT_FOUND");
+	if (booking?.status !== CONFIRMED) return failure(NOT_FOUND);
 	const info = await loadEventInfo(deps, booking.eventId, booking.occurrenceId);
-	if (!info) return failure("NOT_FOUND");
+	if (!info) return failure(NOT_FOUND);
 	const body = calendar(info.title, [
 		calendarEvent(`booking-${ref}@semics-events`, deps.now, info, { description: `Booking reference ${ref}` }),
 	]);
@@ -124,12 +126,12 @@ export async function bookingIcs(deps: IcsDeps, query: URLSearchParams): Promise
 
 export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<RawResponse> {
 	const eventId = query.get("eventId") ?? "";
-	if (!EVENT_ID_PATTERN.test(eventId)) return failure("BAD_REQUEST");
+	if (!EVENT_ID_PATTERN.test(eventId)) return failure(BAD_REQUEST);
 	const info = await loadEventInfo(deps, eventId, undefined, { publicOnly: true });
-	if (!info) return failure("NOT_FOUND");
+	if (!info) return failure(NOT_FOUND);
 	const { items } = await deps.storage.occurrences.query({
 		// The next 50 (T130): a slot schedule keeps hundreds of past dates.
-		where: { eventId, status: "open", startsAt: { gte: new Date(deps.now).toISOString() } },
+		where: { eventId, status: OPEN, startsAt: { gte: new Date(deps.now).toISOString() } },
 		orderBy: { startsAt: "asc" },
 		limit: MAX_OCCURRENCES,
 	});
@@ -138,9 +140,9 @@ export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<R
 		items.length === 0
 			? [calendarEvent(`event-${eventId}@semics-events`, deps.now, info)]
 			: items.flatMap(({ id, data }) => {
-					const start = Date.parse((data as OccurrenceDoc).startsAt);
-					if (!Number.isFinite(start)) return [];
-					const end = Date.parse((data as OccurrenceDoc).endsAt ?? "");
+					const start = msOf((data as OccurrenceDoc).startsAt);
+					if (!isFin(start)) return [];
+					const end = msOf((data as OccurrenceDoc).endsAt ?? "");
 					const occ = { ...info, startsAt: start, endsAt: end > start ? end : start + duration };
 					return [calendarEvent(`event-${eventId}-${id}@semics-events`, deps.now, occ)];
 				});

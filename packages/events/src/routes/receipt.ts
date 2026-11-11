@@ -4,10 +4,21 @@ import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 import { checkoutState, confirmationMessage, confirmationOutboxId, settle } from "../domain/booking-state";
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
+import {
+	AWAITING_PAYMENT,
+	AWAITING_SIGNATURE,
+	CONFIRMED,
+	HOLD_EXPIRED,
+	isStr,
+	maxOf,
+	NOT_FOUND,
+	OPEN,
+	PENDING,
+} from "../domain/names";
 import { mergeSignature, parseReceiptRef, receiptAttendeeIds, seatIds, type VerifiedReceipt } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
 import type { AttendeeDoc, BookingDoc, BookingStatus } from "../storage/schema";
-import { badRequest, fail } from "./reply";
+import { badRequest, fail, publicPost } from "./reply";
 
 /**
  * `POST signatures/receipt` (EV-FR-12, SX-FR-04; esign-intent/1 §8.4): records an e-sign receipt
@@ -39,7 +50,6 @@ import { badRequest, fail } from "./reply";
  * Free has no step (waivers are Pro): the declared Free route stays the stub that answers NOT_FOUND.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
 type Where = Record<string, unknown>;
 type Item = { id: string; data: unknown };
 
@@ -87,7 +97,7 @@ export interface ReceiptDeps {
 
 function parseInput(raw: unknown): string | null {
 	const receipt = raw && typeof raw === "object" ? (raw as { receipt?: unknown }).receipt : undefined;
-	return typeof receipt === "string" && receipt.length > 0 && receipt.length <= MAX_RECEIPT_LENGTH ? receipt : null;
+	return isStr(receipt) && receipt.length > 0 && receipt.length <= MAX_RECEIPT_LENGTH ? receipt : null;
 }
 
 const completed = (a: AttendeeDoc | undefined) => a?.signature?.status === "completed";
@@ -110,7 +120,7 @@ async function advance(
 	changed: boolean,
 ): Promise<{ status: BookingStatus } | { code: ErrorCode }> {
 	const { storage, now } = deps;
-	if (checkoutState(booking, now) !== "open") return { code: "HOLD_EXPIRED" };
+	if (checkoutState(booking, now) !== OPEN) return { code: HOLD_EXPIRED };
 	const byId = new Map(attendees.map((a) => [a.id, a.data]));
 	const done = step.awaited(booking, attendees).every((a) => completed(byId.get(a)));
 	const paid = booking.totals.totalMinor > 0;
@@ -119,10 +129,10 @@ async function advance(
 	if (!done && !changed) return { status: booking.status };
 	if (!done || paid) {
 		const until = stepTarget(now, { paid }, holdSettings(settings));
-		const set = done ? { status: "awaiting_payment" } : {};
+		const set = done ? { status: AWAITING_PAYMENT } : {};
 		const extended = await extendHold(storage.bookings, id, booking, now, until, set);
-		if (!extended.ok) return { code: "HOLD_EXPIRED" };
-		return { status: done ? "awaiting_payment" : booking.status };
+		if (!extended.ok) return { code: HOLD_EXPIRED };
+		return { status: done ? AWAITING_PAYMENT : booking.status };
 	}
 	// Confirm, or wait for the admin's approval (T131): `settle` says which and what to queue.
 	const s = settle(id, booking, settings, now);
@@ -130,11 +140,11 @@ async function advance(
 	if (!applied) {
 		// Claimed by an expirer, or settled by a concurrent receipt (which queues the rows).
 		const fresh = (await storage.bookings.get(id)) as BookingDoc | null;
-		return fresh?.status === s.status ? { status: s.status } : { code: "HOLD_EXPIRED" };
+		return fresh?.status === s.status ? { status: s.status } : { code: HOLD_EXPIRED };
 	}
-	if (s.status === "confirmed") {
+	if (s.status === CONFIRMED) {
 		const room = RECEIPT_MAX_CALLS - used - 1 - AFTER_SOLD_CALLS;
-		await confirmSold(storage, countersForBooking(booking).slice(0, Math.max(room, 0))).catch(() => undefined);
+		await confirmSold(storage, countersForBooking(booking).slice(0, maxOf(room, 0))).catch(() => undefined);
 	}
 	await storage.outbox.putMany(s.outbox);
 	return { status: s.status };
@@ -144,7 +154,7 @@ export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<un
 	const token = parseInput(raw);
 	if (token === null) return badRequest([{ path: "receipt", code: "INVALID" }]);
 	const { step, storage } = deps;
-	if (!step) return fail("NOT_FOUND");
+	if (!step) return fail(NOT_FOUND);
 
 	const settings = await readSettings(deps);
 	const verified = await step.verify(token, settings);
@@ -167,7 +177,7 @@ export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<un
 		const doc = stored.get(id) as AttendeeDoc;
 		const signature = mergeSignature(doc.signature, receipt);
 		if (!signature) continue;
-		const status = signature.status === "completed" && doc.status === "pending" ? "valid" : doc.status;
+		const status = signature.status === "completed" && doc.status === PENDING ? "valid" : doc.status;
 		const next = { ...doc, signature, status };
 		changed.push({ id, data: next });
 		stored.set(id, next);
@@ -180,11 +190,11 @@ export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<un
 	const attendees = ids.filter((id) => stored.has(id)).map((id) => ({ id, data: stored.get(id) as AttendeeDoc }));
 
 	let status: BookingStatus = booking.status;
-	if (booking.status === "awaiting_signature") {
+	if (booking.status === AWAITING_SIGNATURE) {
 		const advanced = await advance(deps, found.id, booking, attendees, step, settings, used, changed.length > 0);
 		if ("code" in advanced) return fail(advanced.code);
 		status = advanced.status;
-	} else if (booking.status === "confirmed" && changed.length === 0) {
+	} else if (booking.status === CONFIRMED && changed.length === 0) {
 		// A replay: make sure the confirmation was queued (an earlier run may have died before it).
 		if (!(await storage.outbox.get(confirmationOutboxId(found.id)))) {
 			await storage.outbox.put(confirmationOutboxId(found.id), confirmationMessage(found.id, booking, deps.now));
@@ -211,18 +221,15 @@ export interface ReceiptSteps {
 
 /** `signatures/receipt` with the given step (none: answers NOT_FOUND, like the Free stub). */
 export function signaturesReceiptRoute(steps: ReceiptSteps = {}): RouteDef {
-	return {
-		methods: ["POST"],
-		public: true,
-		handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
-			recordReceipt(
-				{
-					storage: ctx.storage as unknown as ReceiptStorage,
-					settings: ctx.settings,
-					step: steps.receipts?.(ctx),
-					now: Date.now(),
-				},
-				routeCtx.input,
-			)) as Handler,
-	};
+	return publicPost(async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
+		recordReceipt(
+			{
+				storage: ctx.storage as unknown as ReceiptStorage,
+				settings: ctx.settings,
+				step: steps.receipts?.(ctx),
+				now: Date.now(),
+			},
+			routeCtx.input,
+		),
+	);
 }

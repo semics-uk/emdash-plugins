@@ -24,6 +24,18 @@ import type {
 import type { InputIssue } from "./checkout";
 import { HOLD_STATUSES } from "./holds";
 import { STATUSES, seatsByType } from "./inventory";
+import {
+	AWAITING_APPROVAL,
+	AWAITING_PAYMENT,
+	AWAITING_SIGNATURE,
+	CLOSED,
+	CONFIRMED,
+	DRAFT,
+	isFin,
+	isStr,
+	OPEN,
+	PENDING,
+} from "./names";
 import { cmp } from "./order";
 import { iso, msOf } from "./time";
 
@@ -67,11 +79,11 @@ export function nextStep(
 	booking: Pick<BookingDoc, "status" | "totals">,
 	{ signaturePending }: StepRequirements,
 ): { type: StepType; status: BookingStatus } | null {
-	if (booking.status === "confirmed") return { type: "done", status: "confirmed" };
+	if (booking.status === CONFIRMED) return { type: "done", status: CONFIRMED };
 	if (!HOLD_STATUSES.includes(booking.status)) return null;
-	if (signaturePending) return { type: "sign", status: "awaiting_signature" };
-	if (booking.totals.totalMinor > 0) return { type: "pay", status: "awaiting_payment" };
-	return { type: "done", status: "confirmed" };
+	if (signaturePending) return { type: "sign", status: AWAITING_SIGNATURE };
+	if (booking.totals.totalMinor > 0) return { type: "pay", status: AWAITING_PAYMENT };
+	return { type: "done", status: CONFIRMED };
 }
 
 export type CheckoutState = "open" | "lapsed" | "pending" | "confirmed" | "closed";
@@ -86,11 +98,11 @@ export function checkoutState(
 	booking: Pick<BookingDoc, "status" | "holdExpiresAt" | "releaseClaimedAt">,
 	now: number,
 ): CheckoutState {
-	if (booking.status === "confirmed" || booking.status === "awaiting_approval") return "confirmed";
-	if (booking.status === "draft") return "pending";
-	if (!HOLD_STATUSES.includes(booking.status)) return "closed";
+	if (booking.status === CONFIRMED || booking.status === AWAITING_APPROVAL) return CONFIRMED;
+	if (booking.status === DRAFT) return PENDING;
+	if (!HOLD_STATUSES.includes(booking.status)) return CLOSED;
 	const expires = msOf(booking.holdExpiresAt);
-	return !booking.releaseClaimedAt && Number.isFinite(expires) && expires > now ? "open" : "lapsed";
+	return !booking.releaseClaimedAt && isFin(expires) && expires > now ? OPEN : "lapsed";
 }
 
 export interface AttendeeInput {
@@ -175,7 +187,7 @@ export const outboxRow = (
 	payload: { bookingId: id, bookingRef: b.ref } as Record<string, unknown>,
 	attempts: 0,
 	nextAttemptAt: at,
-	status: "pending" as OutboxDoc["status"],
+	status: PENDING as OutboxDoc["status"],
 });
 
 /**
@@ -205,7 +217,7 @@ export function approvalOf(
 ): Pick<BookingDoc, "approval"> {
 	if (!config.approval?.required) return {};
 	const until = now + (config.approval.deadlineHours || APPROVAL_HOURS) * 3_600_000;
-	const start = Date.parse(
+	const start = msOf(
 		(occurrenceId ? config.catalog?.occurrences[occurrenceId]?.startsAt : config.info?.startsAt) ?? "",
 	);
 	return { approval: { until: iso(start < until ? start : until) } };
@@ -213,9 +225,7 @@ export function approvalOf(
 
 /** The admin addresses in `adminNotifyEmails` (comma, semicolon, space or line separated): at most 5. */
 export const adminRecipients = (raw: unknown): string[] =>
-	(typeof raw === "string" ? raw.toLowerCase().split(/[\s,;]+/) : [])
-		.filter((e) => /^[^@]+@[^@]+\.[^@]+$/.test(e))
-		.slice(0, 5);
+	(isStr(raw) ? raw.toLowerCase().split(/[\s,;]+/) : []).filter((e) => /^[^@]+@[^@]+\.[^@]+$/.test(e)).slice(0, 5);
 
 export interface Settled {
 	status: "confirmed" | "awaiting_approval";
@@ -245,8 +255,8 @@ export function settle(id: string, b: BookingDoc, settings: Record<string, unkno
 			{ id: `request-${id}`, data: outboxRow("approval_requested", id, b, at) },
 			{ id: `lapse-${id}`, data: outboxRow("approval_expired", id, b, until) },
 		);
-		return { status: "awaiting_approval", set: { status: "awaiting_approval", holdExpiresAt: until }, outbox };
+		return { status: AWAITING_APPROVAL, set: { status: AWAITING_APPROVAL, holdExpiresAt: until }, outbox };
 	}
 	outbox.push({ id: confirmationOutboxId(id), data: confirmationMessage(id, b, now) });
-	return { status: "confirmed", set: { status: "confirmed", confirmedAt: at }, outbox };
+	return { status: CONFIRMED, set: { status: CONFIRMED, confirmedAt: at }, outbox };
 }

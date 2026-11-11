@@ -1,6 +1,7 @@
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { handlePanel, type PanelDeps, type PanelInteraction, type WaiverCheck } from "../admin/panel";
+import { isStr } from "../domain/names";
 
 /**
  * The private `editor/tickets` route behind the "Tickets & booking" editor panel (T043). The host
@@ -30,11 +31,7 @@ export function editorTicketsRoute(steps: EditorSteps = {}): RouteDef {
 				newId: () => crypto.randomUUID(),
 				...(steps.waivers ? { waivers: steps.waivers(ctx) } : {}),
 			};
-			return handlePanel(
-				deps,
-				(routeCtx.input ?? { type: "panel_load" }) as PanelInteraction,
-				typeof id === "string" ? id : "",
-			);
+			return handlePanel(deps, (routeCtx.input ?? { type: "panel_load" }) as PanelInteraction, isStr(id) ? id : "");
 		}) as Handler,
 	};
 }

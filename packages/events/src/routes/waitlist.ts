@@ -2,10 +2,11 @@ import { type RateLimitStore, rateLimit, type TurnstileFetch } from "@semics-tec
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { parseJoinInput, planCheckout } from "../domain/checkout";
+import { allOf, keysOf, NOT_FOUND, OFFERED, SOLD_OUT, TURNSTILE_FAILED, WAITING } from "../domain/names";
 import { iso } from "../domain/time";
 import type { EventConfigDoc, WaitlistDoc } from "../storage/schema";
 import { type RedeemDeps, redeemBooking } from "./redeem";
-import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal } from "./reply";
+import { badRequest, botCheck, fail, httpFetch, type PublicSettings, planRefusal, publicPost } from "./reply";
 
 /**
  * `POST public/waitlist/join` and `POST public/waitlist/claim` (EV-FR-16, EV-US-6, T081).
@@ -46,27 +47,24 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 	const parsed = parseJoinInput(raw);
 	if (!parsed.ok) return badRequest(parsed.error);
 	const input = parsed.value;
-	const [entries, stored] = await Promise.all([d.settings.list(), d.storage.event_configs.get(input.eventId)]);
+	const [entries, stored] = await allOf([d.settings.list(), d.storage.event_configs.get(input.eventId)]);
 	const c = stored as EventConfigDoc | null;
-	if (!c?.waitlistEnabled || c.orphaned || c.unpublished) return fail("NOT_FOUND");
+	if (!c?.waitlistEnabled || c.orphaned || c.unpublished) return fail(NOT_FOUND);
 	// The order an offer would place (any listed type when none is named): a date or type that does
 	// not exist, or a quantity the type never sells, could never be offered. Sold out is the point.
 	const occ = input.occurrenceId;
 	const tt = input.ticketTypeId;
 	const types = c.catalog?.ticketTypes ?? {};
-	const line = { ticketTypeId: tt ?? Object.keys(types).find((id) => !types[id]?.hidden) ?? "", qty: input.qty };
+	const line = { ticketTypeId: tt ?? keysOf(types).find((id) => !types[id]?.hidden) ?? "", qty: input.qty };
 	const planned = planCheckout(input.eventId, c, { ...input, lines: [line], buyer: input, idempotencyKey: "" }, d.now, {
 		maxSteps: 3,
 	});
-	if (!planned.ok && planned.error.code !== "SOLD_OUT") return planRefusal(planned.error, "ticketTypeId");
+	if (!planned.ok && planned.error.code !== SOLD_OUT) return planRefusal(planned.error, "ticketTypeId");
 
 	const { salt, human: check } = botCheck(entries, d.settings, d.fetch, input.turnstileToken, d.ip);
-	const [limited, human] = await Promise.all([
-		rateLimit(d.kv, d.ip ?? "unknown", d.now, { ...JOIN_LIMIT, salt }),
-		check,
-	]);
+	const [limited, human] = await allOf([rateLimit(d.kv, d.ip ?? "unknown", d.now, { ...JOIN_LIMIT, salt }), check]);
 	if (!limited.ok) return fail("RATE_LIMITED");
-	if (!human.ok) return fail("TURNSTILE_FAILED");
+	if (!human.ok) return fail(TURNSTILE_FAILED);
 
 	const { items } = await d.storage.waitlist.query({
 		where: { eventId: input.eventId, email: input.email },
@@ -74,7 +72,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 	});
 	const queued = items.some(({ data }) => {
 		const e = data as WaitlistDoc;
-		return (e.status === "waiting" || e.status === "offered") && e.occurrenceId === occ;
+		return (e.status === WAITING || e.status === OFFERED) && e.occurrenceId === occ;
 	});
 	if (!queued) {
 		await d.storage.waitlist.put(d.newId?.() ?? `wl_${crypto.randomUUID()}`, {
@@ -84,7 +82,7 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 			email: input.email,
 			name: input.name,
 			qty: input.qty,
-			status: "waiting",
+			status: WAITING,
 			createdAt: iso(d.now),
 		});
 	}
@@ -94,28 +92,20 @@ export async function joinWaitlist(d: JoinDeps, raw: unknown): Promise<unknown> 
 type Handler = (routeCtx: { input?: unknown; requestMeta?: { ip: string | null } }, ctx: PluginContext) => unknown;
 
 export const WAITLIST_ROUTES: Record<string, RouteDef> = {
-	"public/waitlist/join": {
-		methods: ["POST"],
-		public: true,
-		handler: ((routeCtx, ctx) =>
-			joinWaitlist(
-				{
-					storage: ctx.storage as unknown as JoinDeps["storage"],
-					settings: ctx.settings,
-					kv: { get: (key) => ctx.kv.get<string>(key), set: (key, value) => ctx.kv.set(key, value) },
-					fetch: httpFetch(ctx),
-					ip: routeCtx.requestMeta?.ip ?? null,
-					now: Date.now(),
-				},
-				routeCtx.input,
-			)) as Handler as never,
-	},
-	"public/waitlist/claim": {
-		methods: ["POST"],
-		public: true,
-		handler: ((routeCtx, ctx) =>
-			redeemBooking({ storage: ctx.storage as unknown as RedeemDeps["storage"], now: Date.now() }, routeCtx.input, {
-				claim: true,
-			})) as Handler as never,
-	},
+	"public/waitlist/join": publicPost(((routeCtx, ctx) =>
+		joinWaitlist(
+			{
+				storage: ctx.storage as unknown as JoinDeps["storage"],
+				settings: ctx.settings,
+				kv: { get: (key) => ctx.kv.get<string>(key), set: (key, value) => ctx.kv.set(key, value) },
+				fetch: httpFetch(ctx),
+				ip: routeCtx.requestMeta?.ip ?? null,
+				now: Date.now(),
+			},
+			routeCtx.input,
+		)) as Handler),
+	"public/waitlist/claim": publicPost(((routeCtx, ctx) =>
+		redeemBooking({ storage: ctx.storage as unknown as RedeemDeps["storage"], now: Date.now() }, routeCtx.input, {
+			claim: true,
+		})) as Handler),
 };

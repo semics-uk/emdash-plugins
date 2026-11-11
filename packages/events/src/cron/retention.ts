@@ -20,6 +20,7 @@
  */
 import { sweepRateLimits } from "@semics-tech/shared";
 import { STATUSES } from "../domain/inventory";
+import { isFin, PENDING } from "../domain/names";
 import { clampSetting, settingsObject } from "../domain/settings";
 import { iso, msOf } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc, WaitlistDoc } from "../storage/schema";
@@ -87,7 +88,7 @@ export function retentionDays(raw: { retentionDays?: unknown }): number {
 function eventTime(b: BookingDoc, c: EventConfigDoc | undefined): number | null {
 	const occ = b.occurrenceId === undefined ? undefined : c?.catalog?.occurrences?.[b.occurrenceId]?.startsAt;
 	const ms = msOf(occ ?? c?.info?.endsAt ?? c?.info?.startsAt ?? c?.salesEnd);
-	return Number.isFinite(ms) ? ms : null;
+	return isFin(ms) ? ms : null;
 }
 
 export interface EraseOptions {
@@ -131,7 +132,7 @@ export async function eraseBookings(
 		pending++;
 		const t = eventTime(b, configs.get(b.eventId) as EventConfigDoc | undefined);
 		const live = LIVE_STATUSES.includes(b.status) && (t === null || t >= now);
-		if (!live && (cutoff === undefined || (t ?? Date.parse(b.createdAt)) < cutoff)) return true;
+		if (!live && (cutoff === undefined || (t ?? msOf(b.createdAt)) < cutoff)) return true;
 		held ??= b.createdAt;
 		return false;
 	});
@@ -179,7 +180,7 @@ export async function eraseBookings(
 	if (cutoff === undefined && emails.length > 0) {
 		const rows = await st.outbox.query({ where: { to: { in: emails } }, limit: OUTBOX_PAGE });
 		calls++;
-		const ids = rows.items.filter((r) => (r.data as OutboxDoc).status !== "pending").map((r) => r.id);
+		const ids = rows.items.filter((r) => (r.data as OutboxDoc).status !== PENDING).map((r) => r.id);
 		if (ids.length > 0) {
 			await st.outbox.deleteMany(ids);
 			calls++;
@@ -253,7 +254,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 		else {
 			delete s.cursor;
 			s.ipFrom = lastCreated(page) ?? s.ipFrom;
-			if (!s.fullAt || now - Date.parse(s.fullAt) >= FULL_EVERY) {
+			if (!s.fullAt || now - msOf(s.fullAt) >= FULL_EVERY) {
 				s.phase = "bookings";
 				s.fullAt = iso(now);
 			} else idle = true;

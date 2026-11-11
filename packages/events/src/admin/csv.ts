@@ -1,4 +1,4 @@
-/**
+import { isNum } from "../domain/names"; /**
  * CSV for the attendee export (EV-FR-11). Pure.
  *
  * Cells are quoted when they hold a comma, quote or line break (quotes doubled). A text cell that
@@ -6,12 +6,13 @@
  * locales convert, T100) would run as a formula, so it gets a leading apostrophe. Numbers are written
  * as they are: a real `-5` is not a formula.
  */
+
 const FORMULA_START = /^[=+\-@\t\r＝＋－＠]/;
 const NEEDS_QUOTES = /[",\r\n]/;
 
 export function csvCell(value: unknown): string {
 	if (value === null || value === undefined) return "";
-	if (typeof value === "number" || typeof value === "boolean") return String(value);
+	if (isNum(value) || typeof value === "boolean") return String(value);
 	let text = String(value);
 	if (FORMULA_START.test(text)) text = `'${text}`;
 	return NEEDS_QUOTES.test(text) ? `"${text.replaceAll('"', '""')}"` : text;

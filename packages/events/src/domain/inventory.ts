@@ -21,7 +21,30 @@
 import { err, ok, type Result } from "@semics-tech/shared";
 
 import type { BookingDoc, BookingStatus } from "../storage/schema";
-import { iso } from "./time";
+import {
+	AWAITING_APPROVAL,
+	AWAITING_PAYMENT,
+	AWAITING_SIGNATURE,
+	allOf,
+	BAD_REQUEST,
+	CANCELLED,
+	CONFIRMED,
+	DRAFT,
+	EXPIRED,
+	HELD,
+	INFO,
+	INTERNAL,
+	isArr,
+	isInt,
+	isNum,
+	isStr,
+	keysOf,
+	maxOf,
+	OCCURRENCES,
+	SOLD_OUT,
+	toJson,
+} from "./names";
+import { iso, msOf } from "./time";
 
 export type CountedCollection = "ticket_types" | "occurrences" | "event_configs";
 
@@ -76,7 +99,7 @@ const MANAGED_FIELDS = new Set([
 	"orphaned",
 	"unpublished",
 	"catalog",
-	"info",
+	INFO,
 	"slotsRev",
 	"unlisted",
 	"kept",
@@ -85,7 +108,7 @@ const MANAGED_FIELDS = new Set([
 /** Designs target ≤ 8 bridge calls per invocation (R22). */
 export const DEFAULT_MAX_CALLS = 8;
 
-const isQty = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 1;
+const isQty = (v: unknown): v is number => isNum(v) && isInt(v) && v >= 1;
 const strip = ({ collection, id, qty }: CounterRef): CounterRef => ({ collection, id, qty });
 /** A counter document's key, `<collection>/<id>`. */
 export const keyOf = (r: { collection: string; id: string }) => `${r.collection}/${r.id}`;
@@ -136,12 +159,11 @@ export function planReservation(
 	req: ReservationRequest,
 	{ maxCalls = DEFAULT_MAX_CALLS, compensation = "full" }: { maxCalls?: number; compensation?: Compensation } = {},
 ): Result<ReserveStep[], PlanError> {
-	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) =>
-		err({ code: "BAD_REQUEST" as const, reason });
-	if (!Array.isArray(req.lines) || req.lines.length === 0) return bad("NO_LINES");
+	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) => err({ code: BAD_REQUEST, reason });
+	if (!isArr(req.lines) || req.lines.length === 0) return bad("NO_LINES");
 	for (const line of req.lines) {
 		if (!isQty(line.qty)) return bad("INVALID_QUANTITY");
-		if (typeof line.ticketTypeId !== "string" || !req.ticketTypes.has(line.ticketTypeId)) {
+		if (!isStr(line.ticketTypeId) || !req.ticketTypes.has(line.ticketTypeId)) {
 			return bad("UNKNOWN_TICKET_TYPE");
 		}
 	}
@@ -153,7 +175,7 @@ export function planReservation(
 			const doc = (
 				ref.collection === "ticket_types"
 					? req.ticketTypes.get(ref.id)
-					: req[ref.collection === "occurrences" ? "occurrence" : "event"]
+					: req[ref.collection === OCCURRENCES ? "occurrence" : "event"]
 			) as Counter;
 			return [{ ...ref, capacity: doc.capacity }, doc];
 		},
@@ -163,7 +185,7 @@ export function planReservation(
 	if (worst > maxCalls) return bad("TOO_MANY_LINES");
 	for (const [step, doc] of read) {
 		if ((doc.reserved ?? 0) + step.qty > step.capacity) {
-			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id });
+			return err({ code: SOLD_OUT, collection: step.collection, id: step.id });
 		}
 	}
 	return ok(read.map(([step]) => step));
@@ -188,7 +210,7 @@ export async function reserve(
 ): Promise<Result<ReserveStep[], ReserveError>> {
 	const done: ReserveStep[] = [];
 	const undo = async () => {
-		const room = Math.max(0, maxCalls - (done.length + 1));
+		const room = maxOf(0, maxCalls - (done.length + 1));
 		const failed = await release(storage, done.slice(0, room));
 		return [...failed, ...done.slice(room).map(strip)];
 	};
@@ -200,10 +222,10 @@ export async function reserve(
 				delta: { reserved: { inc: step.qty } },
 			}));
 		} catch (cause) {
-			return err({ code: "INTERNAL", cause, uncompensated: await undo() });
+			return err({ code: INTERNAL, cause, uncompensated: await undo() });
 		}
 		if (!applied) {
-			return err({ code: "SOLD_OUT", collection: step.collection, id: step.id, uncompensated: await undo() });
+			return err({ code: SOLD_OUT, collection: step.collection, id: step.id, uncompensated: await undo() });
 		}
 		done.push(step);
 	}
@@ -212,7 +234,7 @@ export async function reserve(
 
 /** Run one guarded write per ref in parallel; return the refs whose write missed or threw. */
 async function eachRef(refs: CounterRef[], write: (ref: CounterRef) => Promise<{ applied: boolean }>) {
-	const results = await Promise.all(
+	const results = await allOf(
 		refs.map((ref) =>
 			write(ref).then(
 				(r) => r.applied,
@@ -288,7 +310,7 @@ export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurr
 	const refs: CounterRef[] = [...perType.keys()]
 		.sort()
 		.map((id) => ({ collection: "ticket_types", id, qty: perType.get(id) as number }));
-	if (booking.occurrenceId) refs.push({ collection: "occurrences", id: booking.occurrenceId, qty: total });
+	if (booking.occurrenceId) refs.push({ collection: OCCURRENCES, id: booking.occurrenceId, qty: total });
 	refs.push({ collection: "event_configs", id: booking.eventId, qty: total });
 	return refs;
 }
@@ -300,14 +322,14 @@ export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurr
  * One list so the sandbox bundle carries each name once (R100); `BOOKING_TRANSITIONS` indexes it.
  */
 export const STATUSES: readonly BookingStatus[] = [
-	"draft",
-	"held",
-	"awaiting_signature",
-	"awaiting_payment",
-	"awaiting_approval",
-	"confirmed",
-	"expired",
-	"cancelled",
+	DRAFT,
+	HELD,
+	AWAITING_SIGNATURE,
+	AWAITING_PAYMENT,
+	AWAITING_APPROVAL,
+	CONFIRMED,
+	EXPIRED,
+	CANCELLED,
 	"refunded",
 	"refunded_unavailable",
 	"declined",
@@ -326,9 +348,9 @@ export type Tally = Map<string, { reserved: number; sold: number }>;
 export function tallyBookings(bookings: Iterable<BookingLike>, now: number): Tally {
 	const tally: Tally = new Map();
 	for (const b of bookings) {
-		const draftLive = b.status === "draft" && now - Date.parse(b.createdAt) < DRAFT_GRACE_MS;
+		const draftLive = b.status === DRAFT && now - msOf(b.createdAt) < DRAFT_GRACE_MS;
 		if (!draftLive && !LIVE_BOOKING_STATUSES.includes(b.status)) continue;
-		const sold = b.status === "confirmed";
+		const sold = b.status === CONFIRMED;
 		for (const ref of countersForBooking(b)) {
 			const key = keyOf(ref);
 			const t = tally.get(key) ?? { reserved: 0, sold: 0 };
@@ -373,7 +395,7 @@ export async function applyDriftRepair(
 	storage: CounterStorage,
 	fixes: DriftFix[],
 ): Promise<{ repaired: DriftFix[]; conflicted: DriftFix[] }> {
-	const applied = await Promise.all(
+	const applied = await allOf(
 		fixes.map((fix) =>
 			storage[fix.collection]
 				.updateIf(fix.id, { where: { reserved: fix.from.reserved, sold: fix.from.sold }, set: { ...fix.to } })
@@ -411,7 +433,7 @@ export async function repairEventCounters(
 	{ maxCalls = DEFAULT_MAX_CALLS }: { maxCalls?: number } = {},
 ): Promise<{ complete: boolean; repaired: DriftFix[]; conflicted: DriftFix[]; pending: DriftFix[] }> {
 	const where = { eventId };
-	const [config, tts, occs] = await Promise.all([
+	const [config, tts, occs] = await allOf([
 		storage.event_configs.get(eventId),
 		storage.ticket_types.query({ where, limit: 100 }),
 		storage.occurrences.query(recentDates(where.eventId, now)),
@@ -425,7 +447,7 @@ export async function repairEventCounters(
 	for (;;) {
 		if (calls >= maxCalls) return { complete: false, ...none };
 		const page = await storage.bookings.query({
-			where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES, "draft"] } },
+			where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES, DRAFT] } },
 			limit: 100,
 			...(cursor ? { cursor } : {}),
 		});
@@ -438,10 +460,10 @@ export async function repairEventCounters(
 	const snapshot = [
 		snap("event_configs", eventId, config),
 		...tts.items.map((i) => snap("ticket_types", i.id, i.data)),
-		...occs.items.map((i) => snap("occurrences", i.id, i.data)),
+		...occs.items.map((i) => snap(OCCURRENCES, i.id, i.data)),
 	];
 	const fixes = planDriftRepair(snapshot, tallyBookings(bookings, now));
-	const writable = fixes.slice(0, Math.max(0, maxCalls - calls));
+	const writable = fixes.slice(0, maxOf(0, maxCalls - calls));
 	const pending = fixes.slice(writable.length);
 	const { repaired, conflicted } = await applyDriftRepair(storage, writable);
 	return { complete: pending.length === 0, repaired, conflicted, pending };
@@ -499,7 +521,7 @@ export async function repairStep(
 	if (!j.snapshot && !j.fixes) {
 		if (maxCalls < REPAIR_SNAPSHOT_CALLS) return result(j);
 		const where = { eventId: j.eventId };
-		const [config, tts, occs] = await Promise.all([
+		const [config, tts, occs] = await allOf([
 			storage.event_configs.get(j.eventId),
 			storage.ticket_types.query({ where, limit: 100 }),
 			storage.occurrences.query(recentDates(where.eventId, now)),
@@ -512,7 +534,7 @@ export async function repairStep(
 			snapshot: [
 				snap("event_configs", j.eventId, config),
 				...tts.items.map((i) => snap("ticket_types", i.id, i.data)),
-				...occs.items.map((i) => snap("occurrences", i.id, i.data)),
+				...occs.items.map((i) => snap(OCCURRENCES, i.id, i.data)),
 			],
 			tally: [],
 		};
@@ -521,7 +543,7 @@ export async function repairStep(
 	while (!j.fixes) {
 		if (calls >= maxCalls) return result(j);
 		const page = await storage.bookings.query({
-			where: { eventId: j.eventId, status: { in: [...LIVE_BOOKING_STATUSES, "draft"] } },
+			where: { eventId: j.eventId, status: { in: [...LIVE_BOOKING_STATUSES, DRAFT] } },
 			limit: 100,
 			...(j.cursor ? { cursor: j.cursor } : {}),
 		});
@@ -541,7 +563,7 @@ export async function repairStep(
 				: { eventId: j.eventId, fixes: planDriftRepair(j.snapshot ?? [], tally) };
 	}
 
-	const writable = j.fixes.slice(0, Math.max(0, maxCalls - calls));
+	const writable = j.fixes.slice(0, maxOf(0, maxCalls - calls));
 	const rest = j.fixes.slice(writable.length);
 	const fixed = await applyDriftRepair(storage, writable);
 	calls += writable.length;
@@ -550,7 +572,7 @@ export async function repairStep(
 
 // --- admin edits of counted documents (config/save) ------------------------------------------------
 
-const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
+const same = (a: unknown, b: unknown) => toJson(a ?? null) === toJson(b ?? null);
 
 /**
  * The non-counter fields that differ between a stored counted document and its edited version, as
@@ -565,7 +587,7 @@ export function counterlessChanges(stored: object, next: object): Record<string,
 		if (MANAGED_FIELDS.has(key) || same(s[key], n[key])) continue;
 		set[key] = n[key] ?? null;
 	}
-	return Object.keys(set).length > 0 ? set : null;
+	return keysOf(set).length > 0 ? set : null;
 }
 
 /**

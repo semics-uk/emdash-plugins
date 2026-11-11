@@ -9,6 +9,7 @@
  */
 import type { AttendeeDoc, BookingDoc } from "../storage/schema";
 import { attendeeId } from "./booking-state";
+import { EACH_ATTENDEE } from "./names";
 
 export type ReceiptStatus = "completed" | "declined" | "voided" | "expired";
 
@@ -48,7 +49,7 @@ export function receiptAttendeeIds(
 ): string[] | null {
 	const seats = seatIds(bookingId, booking);
 	if (booking.waiver?.mode === "buyer") return ref.seat === undefined ? seats : null;
-	if (booking.waiver?.mode !== "each_attendee" || ref.seat === undefined || ref.seat > seats.length) return null;
+	if (booking.waiver?.mode !== EACH_ATTENDEE || ref.seat === undefined || ref.seat > seats.length) return null;
 	return [attendeeId(bookingId, ref.seat)];
 }
 

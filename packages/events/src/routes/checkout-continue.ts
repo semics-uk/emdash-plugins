@@ -14,11 +14,25 @@ import {
 import { type InputIssue, parseContinueInput } from "../domain/checkout";
 import { extendHold, heldGuard, holdSettings, stepTarget } from "../domain/holds";
 import { type CounterStorage, confirmSold, countersForBooking } from "../domain/inventory";
+import {
+	AWAITING_APPROVAL,
+	AWAITING_PAYMENT,
+	AWAITING_SIGNATURE,
+	CONFIRMED,
+	HELD,
+	HOLD_EXPIRED,
+	INTERNAL,
+	isStr,
+	NOT_FOUND,
+	PAYMENT_FAILED,
+	PENDING,
+	toJson,
+} from "../domain/names";
 import { seatIds } from "../domain/receipts";
 import { readSettings } from "../domain/settings";
 import type { AttendeeDoc, AttendeeStatus, BookingDoc, BookingStatus } from "../storage/schema";
 import { findByToken } from "./booking";
-import { badRequest, fail } from "./reply";
+import { badRequest, fail, publicPost } from "./reply";
 
 /**
  * `POST public/checkout/continue` (EV-FR-05, EV-FR-07, R9): the step after `checkout/reserve`.
@@ -64,7 +78,6 @@ import { badRequest, fail } from "./reply";
  * declared route is the Free one, with neither step.
  */
 type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
-type Handler = (routeCtx: { input?: unknown }, ctx: PluginContext) => Promise<unknown>;
 
 export const CONTINUE_MAX_CALLS = 10;
 export const CONTINUE_TARGET_CALLS = 8;
@@ -156,11 +169,11 @@ interface Checkout {
 }
 
 /** The answer for a booking whose checkout is over: `confirmed`, or `awaiting_approval` (T131). */
-const done = (b: Pick<BookingDoc, "ref">, status: BookingStatus = "confirmed") => ({
+const done = (b: Pick<BookingDoc, "ref">, status: BookingStatus = CONFIRMED) => ({
 	ok: true as const,
 	bookingRef: b.ref,
 	status,
-	next: { type: status === "confirmed" ? "done" : "approval", bookingRef: b.ref },
+	next: { type: status === CONFIRMED ? "done" : "approval", bookingRef: b.ref },
 });
 
 function attendeesFor(c: Checkout, b: BookingDoc, status: AttendeeStatus, attendees: Checkout["attendees"]) {
@@ -180,7 +193,7 @@ async function fulfil(c: Checkout, docs: Item[], rows: Item[]): Promise<void> {
  * without counting the sale again. An approved booking only needs its confirmation.
  */
 async function finishConfirmed(c: Checkout, b: BookingDoc): Promise<unknown> {
-	const waiting = b.status === "awaiting_approval";
+	const waiting = b.status === AWAITING_APPROVAL;
 	if (await c.deps.storage.outbox.get(waiting ? `request-${c.id}` : confirmationOutboxId(c.id))) {
 		return done(b, b.status);
 	}
@@ -200,9 +213,9 @@ async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknow
 	if (!applied) {
 		// Claimed by an expirer (the hold lapsed), or settled by a concurrent continue.
 		const fresh = (await storage.bookings.get(c.id)) as BookingDoc | null;
-		return fresh && checkoutState(fresh, now) === "confirmed" ? finishConfirmed(c, fresh) : fail("HOLD_EXPIRED");
+		return fresh && checkoutState(fresh, now) === CONFIRMED ? finishConfirmed(c, fresh) : fail(HOLD_EXPIRED);
 	}
-	if (s.status === "confirmed") {
+	if (s.status === CONFIRMED) {
 		const room = CONTINUE_MAX_CALLS - 2 - c.reads - AFTER_SOLD_CALLS;
 		await confirmSold(storage, countersForBooking(b).slice(0, room)).catch(() => undefined);
 	}
@@ -225,7 +238,7 @@ async function advance(
 ) {
 	const { storage, now, cron } = c.deps;
 	const extended = await extendHold(storage.bookings, c.id, b, now, until, b.status === status ? {} : { status });
-	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? "INTERNAL" : "HOLD_EXPIRED");
+	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? INTERNAL : HOLD_EXPIRED);
 	const { holdExpiresAt } = extended.value;
 	await storage.attendees.putMany(await docs());
 	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
@@ -235,7 +248,7 @@ async function advance(
 /** The Pro payment step: extend the hold, move to `awaiting_payment`, re-arm `hold-<ref>`. */
 async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item[]): Promise<unknown> {
 	const { storage, now, payment } = c.deps;
-	if (!payment) return fail("PAYMENT_FAILED");
+	if (!payment) return fail(PAYMENT_FAILED);
 	const settings = await settingsOf(c.deps);
 	const prepared = await payment.prepare({ bookingId: c.id, booking: b, settings });
 	if (!prepared.ok) return fail(prepared.error.code);
@@ -244,7 +257,7 @@ async function pay(c: Checkout, b: BookingDoc, status: BookingStatus, docs: Item
 	const holdExpiresAt = await advance(c, b, status, until, () =>
 		b.waiver && b.status === status && !c.stored ? keepSigned(storage, docs) : docs,
 	);
-	if (typeof holdExpiresAt !== "string") return holdExpiresAt;
+	if (!isStr(holdExpiresAt)) return holdExpiresAt;
 	const session = await prepared.value.start(holdExpiresAt);
 	if (!session.ok) return fail(session.error.code);
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "pay", url: session.value.url } };
@@ -291,7 +304,7 @@ async function storedAttendees(storage: ContinueStorage, id: string, b: BookingD
 /** What a seat's intent was minted for: its ticket type, the person and whether they are under 18. */
 const seatKey = (d: Item) => {
 	const a = d.data as AttendeeDoc;
-	return JSON.stringify([d.id, a.ticketTypeId, a.name, a.email, a.minor === true]);
+	return toJson([d.id, a.ticketTypeId, a.name, a.email, a.minor === true]);
 };
 
 /**
@@ -301,14 +314,14 @@ const seatKey = (d: Item) => {
  * again). Free does the same, so a Pro hold still open at a downgrade keeps its receipts (F6, R44).
  */
 const intentsOut = (b: BookingDoc) =>
-	Boolean(b.waiver) && (b.status === "awaiting_signature" || b.status === "awaiting_payment");
+	Boolean(b.waiver) && (b.status === AWAITING_SIGNATURE || b.status === AWAITING_PAYMENT);
 
 async function lockedAttendees(c: Checkout, b: BookingDoc): Promise<Result<Item[], InputIssue[]> | null> {
 	c.reads = 1;
 	const kept = await storedAttendees(c.deps.storage, c.id, b);
 	if (!kept) return null;
 	if (c.attendees) {
-		const asked = attendeesFor(c, b, "pending", c.attendees);
+		const asked = attendeesFor(c, b, PENDING, c.attendees);
 		if (!asked.ok) return asked;
 		if (asked.value.map(seatKey).join() !== kept.map(seatKey).join()) {
 			return { ok: false, error: [{ path: "attendees", code: "ATTENDEES_LOCKED" }] };
@@ -323,17 +336,17 @@ async function sign(c: Checkout, b: BookingDoc, step: SignatureStep, planned: It
 	const { storage, now } = c.deps;
 	const settings = await settingsOf(c.deps);
 	const docs =
-		b.status === "awaiting_signature" ? reissued(c.stored ? planned : await keepSigned(storage, planned)) : planned;
+		b.status === AWAITING_SIGNATURE ? reissued(c.stored ? planned : await keepSigned(storage, planned)) : planned;
 	const attendees = docs as Array<{ id: string; data: AttendeeDoc }>;
 	const prepared = await step.prepare({ bookingId: c.id, booking: b, attendees, settings });
 	if (!prepared.ok) {
 		const refusal = prepared.error;
 		return "code" in refusal ? fail(refusal.code) : badRequest(refusal.issues);
 	}
-	const status: BookingStatus = "awaiting_signature";
+	const status: BookingStatus = AWAITING_SIGNATURE;
 	const until = stepTarget(now, { paid: b.totals.totalMinor > 0 }, holdSettings(settings));
 	const holdExpiresAt = await advance(c, b, status, until, () => docs);
-	if (typeof holdExpiresAt !== "string") return holdExpiresAt;
+	if (!isStr(holdExpiresAt)) return holdExpiresAt;
 	const intents = await prepared.value.issue(holdExpiresAt);
 	return { ok: true, bookingRef: b.ref, status, holdExpiresAt, next: { type: "sign", intents } };
 }
@@ -344,7 +357,7 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 	const input = parsed.value;
 
 	const found = await findByToken(deps.storage, input);
-	if (!found) return fail("NOT_FOUND");
+	if (!found) return fail(NOT_FOUND);
 	const { booking } = found;
 	const c: Checkout = { deps, id: found.id, attendees: input.attendees, reads: 0 };
 
@@ -353,22 +366,22 @@ export async function continueCheckout(deps: ContinueDeps, raw: unknown): Promis
 			return finishConfirmed(c, booking);
 		case "pending":
 			// Reserve is still writing this booking: the client should retry in a moment.
-			return fail("INTERNAL");
+			return fail(INTERNAL);
 		case "lapsed":
 		case "closed":
-			return fail("HOLD_EXPIRED");
+			return fail(HOLD_EXPIRED);
 	}
 	// Waivers are Pro: without a signature step (Free) a booking's waiver is ignored. Signing comes
 	// before payment, so a booking already awaiting payment never goes back to it.
-	const signing = booking.waiver && (booking.status === "held" || booking.status === "awaiting_signature");
+	const signing = booking.waiver && (booking.status === HELD || booking.status === AWAITING_SIGNATURE);
 	const signature = signing ? deps.signature : undefined;
 	const step = nextStep(booking, { signaturePending: signature !== undefined });
-	if (!step) return fail("INTERNAL");
+	if (!step) return fail(INTERNAL);
 	// "Pay now" (R98, T134) resumes a booking awaiting payment: one whose seats are stored keeps them.
-	const resume = booking.status === "awaiting_payment" && !c.attendees;
+	const resume = booking.status === AWAITING_PAYMENT && !c.attendees;
 	const planned =
 		(intentsOut(booking) || resume ? await lockedAttendees(c, booking) : null) ??
-		attendeesFor(c, booking, step.type === "done" ? "valid" : "pending", c.attendees);
+		attendeesFor(c, booking, step.type === "done" ? "valid" : PENDING, c.attendees);
 	if (!planned.ok) return badRequest(planned.error);
 	if (step.type === "sign" && signature) return sign(c, booking, signature, planned.value);
 	return step.type === "done" ? confirm(c, booking, planned.value) : pay(c, booking, step.status, planned.value);
@@ -382,22 +395,19 @@ export interface ContinueSteps {
 
 /** `public/checkout/continue` with the given steps (none: the Free route). */
 export function checkoutContinueRoute(steps: ContinueSteps = {}): RouteDef {
-	return {
-		methods: ["POST"],
-		public: true,
-		handler: (async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
-			continueCheckout(
-				{
-					storage: ctx.storage as unknown as ContinueStorage,
-					settings: ctx.settings,
-					...(ctx.cron ? { cron: ctx.cron } : {}),
-					...(steps.payment ? { payment: steps.payment(ctx) } : {}),
-					...(steps.signature ? { signature: steps.signature(ctx) } : {}),
-					now: Date.now(),
-				},
-				routeCtx.input,
-			)) as Handler,
-	};
+	return publicPost(async (routeCtx: { input?: unknown }, ctx: PluginContext) =>
+		continueCheckout(
+			{
+				storage: ctx.storage as unknown as ContinueStorage,
+				settings: ctx.settings,
+				...(ctx.cron ? { cron: ctx.cron } : {}),
+				...(steps.payment ? { payment: steps.payment(ctx) } : {}),
+				...(steps.signature ? { signature: steps.signature(ctx) } : {}),
+				now: Date.now(),
+			},
+			routeCtx.input,
+		),
+	);
 }
 
 export const CHECKOUT_CONTINUE_ROUTE: RouteDef = checkoutContinueRoute();

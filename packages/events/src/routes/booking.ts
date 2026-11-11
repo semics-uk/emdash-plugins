@@ -7,11 +7,26 @@ import { parseBookingAccessInput } from "../domain/checkout";
 import { CLAIM_STALE_MS, HOLD_STATUSES } from "../domain/holds";
 import { type CounterStorage, countersForBooking, release } from "../domain/inventory";
 import type { LinkKv } from "../domain/link-secret";
+import {
+	AWAITING_APPROVAL,
+	AWAITING_SIGNATURE,
+	allOf,
+	CANCEL_NOT_ALLOWED,
+	CANCELLED,
+	CONFIRMED,
+	ERROR,
+	HOLD_EXPIRED,
+	INTERNAL,
+	maxOf,
+	NOT_FOUND,
+	PAYMENT_FAILED,
+	PENDING,
+} from "../domain/names";
 import { readSettings } from "../domain/settings";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
-import { badRequest, fail } from "./reply";
+import { badRequest, fail, publicPost } from "./reply";
 
 /**
  * `POST public/booking` (status) and `POST public/booking/cancel` (EV-US-4, EV-FR-09). Both are
@@ -135,7 +150,7 @@ export async function findByToken(
 async function authenticate(deps: BookingDeps, raw: unknown): Promise<Found | { error: unknown }> {
 	const parsed = parseBookingAccessInput(raw);
 	if (!parsed.ok) return { error: badRequest(parsed.error) };
-	return (await findByToken(deps.storage, parsed.value)) ?? { error: fail("NOT_FOUND") };
+	return (await findByToken(deps.storage, parsed.value)) ?? { error: fail(NOT_FOUND) };
 }
 
 /** The policy decision for a booking; a hold state is always cancellable and needs no reads. */
@@ -144,7 +159,7 @@ async function decide(
 	b: BookingDoc,
 	read?: Promise<unknown>,
 ): Promise<CancelDecision & { settings: Record<string, unknown> }> {
-	if (b.status !== "confirmed") return { ...cancelDecision(b, null, 0, deps.now), settings: {} };
+	if (b.status !== CONFIRMED) return { ...cancelDecision(b, null, 0, deps.now), settings: {} };
 	const config = (await (read ?? deps.storage.event_configs.get(b.eventId))) as EventConfigDoc | null;
 	const settings = await readSettings(deps);
 	return { ...cancelDecision(b, config, cancelCutoffHours(settings), deps.now), settings };
@@ -152,14 +167,14 @@ async function decide(
 
 export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<unknown> {
 	const auth = await authenticate(deps, raw);
-	if ("error" in auth) return auth.error;
+	if (ERROR in auth) return auth.error;
 	const { id, booking: b } = auth;
 	// One config read serves the cancel policy and the event's public info (T151: kept after it leaves sale).
 	const read = deps.storage.event_configs.get(b.eventId);
-	const [{ items }, decision, calendar, config] = await Promise.all([
+	const [{ items }, decision, calendar, config] = await allOf([
 		deps.storage.attendees.query({ where: { bookingId: id }, limit: 100 }),
 		decide(deps, b, read),
-		b.status === "confirmed" && deps.kv
+		b.status === CONFIRMED && deps.kv
 			? bookingCalendarQuery(deps.kv, b.ref, deps.now).catch(() => undefined)
 			: undefined,
 		read as Promise<EventConfigDoc | null>,
@@ -169,11 +184,11 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	// tab, or signed by email); with Pro's step it carries a lookup request for each (SX-FR-05). So does a
 	// confirmed one for its seats still pending: an emailed adult whose return page never ran (no
 	// JavaScript, tab closed) is recorded on the buyer's next visit (T119 F5).
-	const confirmed = b.status === "confirmed";
-	const pending = confirmed ? items.filter((i) => (i.data as { status?: string }).status === "pending") : items;
+	const confirmed = b.status === CONFIRMED;
+	const pending = confirmed ? items.filter((i) => (i.data as { status?: string }).status === PENDING) : items;
 	// Also while the organiser decides: guests can sign meanwhile, and only the buyer's visits record it.
 	const refs =
-		b.waiver && (confirmed || b.status === "awaiting_signature" || b.status === "awaiting_approval")
+		b.waiver && (confirmed || b.status === AWAITING_SIGNATURE || b.status === AWAITING_APPROVAL)
 			? waitingRefs(b, pending)
 			: [];
 	const lookups =
@@ -183,7 +198,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 	// Free has no waivers (no lookups step): an attendee a Pro waiver left pending on a confirmed booking
 	// gets their pass, and Free check-in admits them (R44, T119 F6).
 	const passFor = (status: string) =>
-		status === "valid" || (confirmed && !deps.lookups && b.waiver && status === "pending");
+		status === "valid" || (confirmed && !deps.lookups && b.waiver && status === PENDING);
 	return {
 		ok: true,
 		bookingRef: b.ref,
@@ -221,7 +236,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 
 export async function cancelBooking(deps: BookingDeps, raw: unknown): Promise<unknown> {
 	const auth = await authenticate(deps, raw);
-	if ("error" in auth) return auth.error;
+	if (ERROR in auth) return auth.error;
 	return closeBooking(deps, auth.id, auth.booking);
 }
 
@@ -239,32 +254,32 @@ export async function closeBooking(
 	used = 0,
 ): Promise<unknown> {
 	const { storage, now } = deps;
-	const to = decline ? "declined" : "cancelled";
+	const to = decline ? "declined" : CANCELLED;
 	const cancelled = { ok: true, bookingRef: b.ref, status: to };
 
 	if (b.status === to) return cancelled;
-	if (decline && b.status !== "awaiting_approval") return fail("CANCEL_NOT_ALLOWED");
+	if (decline && b.status !== AWAITING_APPROVAL) return fail(CANCEL_NOT_ALLOWED);
 	const held = HOLD_STATUSES.includes(b.status);
 	const claimedAt = msOf(b.releaseClaimedAt);
 	const claimLive = b.releaseClaimedAt != null && !(now - claimedAt >= CLAIM_STALE_MS);
 	// A claimed hold is the expirer's (the sweeper finishes it); a live claim on a confirmed
 	// booking is another cancel in flight.
-	if (held && b.releaseClaimedAt != null) return fail("HOLD_EXPIRED");
-	if (claimLive) return fail("INTERNAL");
-	if (!canTransition(b.status, to)) return fail("CANCEL_NOT_ALLOWED");
-	if (held && !(msOf(b.holdExpiresAt) > now)) return fail("HOLD_EXPIRED");
+	if (held && b.releaseClaimedAt != null) return fail(HOLD_EXPIRED);
+	if (claimLive) return fail(INTERNAL);
+	if (!canTransition(b.status, to)) return fail(CANCEL_NOT_ALLOWED);
+	if (held && !(msOf(b.holdExpiresAt) > now)) return fail(HOLD_EXPIRED);
 
 	const decision = await decide(deps, b);
 	// Paid: confirmed by the payment provider, or awaiting approval after it (Pro, T131/T132).
 	const paid = b.payment != null;
-	if (!decision.allowed || (paid && !deps.refund)) return fail("CANCEL_NOT_ALLOWED");
+	if (!decision.allowed || (paid && !deps.refund)) return fail(CANCEL_NOT_ALLOWED);
 
 	const claim = iso(now);
 	const claimed = await storage.bookings.updateIf(id, {
 		where: { status: b.status, releaseClaimedAt: b.releaseClaimedAt ?? null },
 		set: { releaseClaimedAt: claim },
 	});
-	if (!claimed.applied) return fail(held ? "HOLD_EXPIRED" : "INTERNAL");
+	if (!claimed.applied) return fail(held ? HOLD_EXPIRED : INTERNAL);
 
 	let mail: { kind: string; payload?: Record<string, unknown> } | undefined;
 	const step = paid ? deps.refund : undefined;
@@ -275,7 +290,7 @@ export async function closeBooking(
 				where: { status: b.status, releaseClaimedAt: claim },
 				set: { releaseClaimedAt: null },
 			});
-			return fail("PAYMENT_FAILED");
+			return fail(PAYMENT_FAILED);
 		}
 		mail = refunded.mail;
 	}
@@ -286,8 +301,8 @@ export async function closeBooking(
 	// count cancelled bookings, settles the counters (an over-count meanwhile is the safe direction).
 	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS) - (step?.calls(b) ?? 0) - used;
 	const stale = b.releaseClaimedAt != null;
-	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, Math.max(room, 0));
-	await release(storage, refs, { sold: b.status === "confirmed" }).catch(() => undefined);
+	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, maxOf(room, 0));
+	await release(storage, refs, { sold: b.status === CONFIRMED }).catch(() => undefined);
 
 	const moved = await storage.bookings.updateIf(id, {
 		where: { status: b.status, releaseClaimedAt: claim },
@@ -299,7 +314,7 @@ export async function closeBooking(
 			...(decline && { declineReason: decline.reason, notCharged: b.totals.totalMinor > 0 && !mail }),
 		},
 	});
-	if (!moved.applied) return fail("INTERNAL");
+	if (!moved.applied) return fail(INTERNAL);
 	// A declined buyer is told it was declined (a refund's own notice kind is for cancels, T075).
 	const kind = decline ? "approval_declined" : (mail?.kind ?? "booking_cancelled");
 	const notice = outboxRow(kind, id, b, claim);
@@ -328,17 +343,10 @@ const handler =
 		);
 
 /** `public/booking` with the given lookup step (none: the Free route; a Pro build supplies one, `src/seams.ts`). */
-export const bookingStatusRoute = (lookups?: LookupStep): RouteDef => ({
-	methods: ["POST"],
-	public: true,
-	handler: handler(bookingStatus, lookups) as never,
-});
+export const bookingStatusRoute = (lookups?: LookupStep): RouteDef => publicPost(handler(bookingStatus, lookups));
 
 export const BOOKING_ROUTE: RouteDef = bookingStatusRoute();
 /** `public/booking/cancel` with the given refund step (none: the Free route; a Pro build supplies one, `src/seams.ts`). */
-export const bookingCancelRoute = (refund?: (ctx: PluginContext) => RefundStep): RouteDef => ({
-	methods: ["POST"],
-	public: true,
-	handler: handler(cancelBooking, undefined, refund) as never,
-});
+export const bookingCancelRoute = (refund?: (ctx: PluginContext) => RefundStep): RouteDef =>
+	publicPost(handler(cancelBooking, undefined, refund));
 export const BOOKING_CANCEL_ROUTE: RouteDef = bookingCancelRoute();

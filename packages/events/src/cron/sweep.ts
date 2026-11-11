@@ -27,6 +27,7 @@ import {
 	planExpiries,
 } from "../domain/holds";
 import { type InventoryStorage, type RepairJob, repairStep } from "../domain/inventory";
+import { allOf, CLOSED, EXPIRED, isStr, maxOf, ON_SALE } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { jobState, type StateKv } from "./state";
@@ -44,7 +45,7 @@ const EVENTS_PAGE = 20;
 /** Events awaiting priority repair, kept small so the state stays one small KV value. */
 const MAX_DIRTY = 50;
 /** Events whose counters are repaired on the rolling pass (others cannot sell). */
-const SELLING = ["on_sale", "paused"];
+const SELLING = [ON_SALE, "paused"];
 
 /** What `sweep-holds` keeps between ticks. */
 export interface SweepState {
@@ -109,7 +110,7 @@ export async function sweepHolds({
 	now,
 	maxCalls = SWEEP_MAX_CALLS,
 }: SweepDeps): Promise<SweepReport> {
-	const [stored, page] = await Promise.all([
+	const [stored, page] = await allOf([
 		kv.getVersioned<SweepState>(SWEEP_STATE_KEY),
 		storage.bookings.query({
 			where: { status: { in: [...EXPIRABLE_STATUSES] }, holdExpiresAt: { lt: iso(now) } },
@@ -182,9 +183,9 @@ export async function sweepHolds({
 	const counted = (o: ExpiryOutcome["outcome"]) => outcomes.filter((x) => x.outcome === o).length;
 	return {
 		calls,
-		expired: counted("expired"),
-		closed: counted("closed"),
-		backlog: Math.max(0, plan.due - plan.planned.length) + (page.hasMore ? 1 : 0),
+		expired: counted(EXPIRED),
+		closed: counted(CLOSED),
+		backlog: maxOf(0, plan.due - plan.planned.length) + (page.hasMore ? 1 : 0),
 		continued,
 		repaired,
 		conflicted,
@@ -227,7 +228,7 @@ export async function expireHoldTask(
 	const outcomes = await expireBookings(storage, planned, now);
 	await markDirty(kv, dirtyEvents(outcomes));
 	const outcome = outcomes[0]?.outcome;
-	return outcome === "expired" || outcome === "closed" ? outcome : "ignored";
+	return outcome === EXPIRED || outcome === CLOSED ? outcome : "ignored";
 }
 
 /** Schedule the accelerator for a booking's hold (one call; the same name replaces a pending task). */
@@ -249,7 +250,7 @@ export async function runCron(
 	};
 	if (event.name === SWEEP_TASK || event.name === SWEEP_MORE_TASK) {
 		await sweepHolds(deps);
-	} else if (event.name.startsWith(HOLD_TASK_PREFIX) && typeof event.data?.bookingId === "string") {
+	} else if (event.name.startsWith(HOLD_TASK_PREFIX) && isStr(event.data?.bookingId)) {
 		await expireHoldTask(deps, event.data.bookingId);
 	}
 }

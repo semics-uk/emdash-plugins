@@ -2,6 +2,7 @@ import type { ContentDeleteEvent, ContentHookEvent, ContentStateChangeEvent, Plu
 
 import { infoOfEntry, mappingOf } from "../domain/event-info";
 import { LIVE_BOOKING_STATUSES } from "../domain/inventory";
+import { isStr } from "../domain/names";
 
 /**
  * `content:afterSave`: keep the copy of the entry's public info (title, times, zone, venue) on the
@@ -68,7 +69,7 @@ export async function markUnpublished(
 	unpublished?: boolean,
 ): Promise<void> {
 	const id = event.content.id;
-	if (typeof id !== "string" || id === "") return;
+	if (!isStr(id) || id === "") return;
 	const mapping = mappingOf(await deps.settings.list());
 	if (event.collection !== mapping.collection) return;
 	const info = unpublished ? null : infoOfEntry(event.content, mapping);
