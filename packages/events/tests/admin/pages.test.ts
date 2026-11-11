@@ -485,6 +485,7 @@ describe("deletion on request (EV-FR-20, T087)", () => {
 		expect(w.s.event_configs.docs.get("ev_past")).toMatchObject({ reserved: 1, sold: 1 });
 		expect(json(out.blocks)).toContain("Deleted personal data of 1 booking");
 		expect(json(out.blocks)).toContain("live booking was kept");
+		expect(json(out.blocks)).toContain("Live bookings of upcoming events are kept.");
 	});
 
 	it("EV-FR-16 T081 deletion by email also removes that person's waitlist entries, within budget", async () => {
