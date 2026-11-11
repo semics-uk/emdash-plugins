@@ -3198,6 +3198,27 @@
 				"R94",
 				"R100"
 			],
+			"unblocks": [
+				"T162"
+			],
+			"column": "done"
+		},
+		"T162": {
+			"file": "T162-events-backend-shrink-pass.md",
+			"id": "T162",
+			"title": "Events backend shrink pass: win back the hotfix margin; move text and templates out of the bundle where it pays",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T161"
+			],
+			"spec": [
+				"R42"
+			],
 			"unblocks": [],
 			"column": "done"
 		}
@@ -3350,7 +3371,8 @@
 			"T158",
 			"T159",
 			"T160",
-			"T161"
+			"T161",
+			"T162"
 		],
 		"blocked": [
 			"T111"
