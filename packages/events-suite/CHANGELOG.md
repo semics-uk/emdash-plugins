@@ -1,5 +1,20 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.10
+
+### Minor Changes
+
+- 154c99b: `<BookingWithWaiver>` follows the waiver order: for an event that signs after payment (Events Pro's
+  `waiverTiming`), its note and numbered steps read Book, Pay, Sign the waiver. Events that sign before payment
+  read exactly as before (T160).
+
+### Patch Changes
+
+- Updated dependencies [154c99b]
+- Updated dependencies [154c99b]
+  - @semics-tech/emdash-esign@1.0.0-rc.10
+  - @semics-tech/emdash-events@1.0.0-rc.10
+
 ## 1.0.0-rc.9
 
 ### Patch Changes
