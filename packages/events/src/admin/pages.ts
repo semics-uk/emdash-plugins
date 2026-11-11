@@ -337,16 +337,13 @@ async function retentionErase(deps: AdminDeps, target: string): Promise<AdminRes
 	const also = waitlist.length ? ` and ${entries(waitlist.length)}` : "";
 	const banners: NoticeInput[] = [
 		note(INFO, `Deleted personal data of ${bookingCount(out.erased)}${also}`),
-		out.kept > 0 && {
-			severity: WARNING,
-			title: `${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,
-			description: "Live bookings of upcoming events are kept.",
-		},
-		!out.complete && {
-			severity: ERROR,
-			title: "Too many attendees to delete in one go",
-			description: "Run the deletion again to finish.",
-		},
+		out.kept > 0 &&
+			note(
+				WARNING,
+				`${out.kept} live booking${out.kept === 1 ? " was" : "s were"} kept`,
+				"Live bookings of upcoming events are kept.",
+			),
+		!out.complete && note(ERROR, "Too many attendees to delete in one go", "Run the deletion again to finish."),
 	].filter((b): b is NoticeInput => !!b);
 	return retentionView(banners);
 }
