@@ -7,7 +7,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - (none)
 
 ## Next
-- T161 Events bundle size investigation: session failed to start (disk 4.5 GB free, needs 5.4 GB); retry after freeing space
+- Oli to decide: move the admin setup check page (about 3.2 KB) to a site-side page to save Events backend bytes (T162)
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
 - Still untested on staging: guest invitation reaching a real inbox and its link (Stackmail rejects + addresses, needs a second address), save-card path, approval deadline passing, attendee edit, T153 past a hold
 - PDF timing test failed once on PR #4 CI (58 ms against a 50 ms limit), passed on re-run: probably flaky
@@ -28,6 +28,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-11 T161 size investigation (#24), T162 shrink pass (#25, Events 123,871 → 119,444 bytes, size table in CI) and data deletion notices fix (#27) merged; Oli: no feature freeze, weigh size on every change
 - 2026-11-11 Dropped the Release-failure watch item: rc.9 and rc.10 Release runs all passed
 - 2026-11-11 rc.10 published (T160 waiver order, lmsc-site#21): npm Free and Pro, EmDash registry; LMSC session told the keys
 - 2026-11-10 t135 no-JavaScript test now opens the "Add more people" details instead of clicking the JS-only button (lint-checked only: CI has no Pro, not run against Pro)
