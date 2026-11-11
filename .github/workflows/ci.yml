@@ -50,6 +50,11 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq qpdf
       - name: Run every quality gate
         run: pnpm verify
+      # Size stays visible without a freeze (T162): this run's backend bytes in the job summary; a pull
+      # request compares with the same table in main's latest CI run.
+      - name: Report backend bundle sizes
+        if: always()
+        run: node scripts/bundle-size.mjs >> "$GITHUB_STEP_SUMMARY"
 
   e2e:
     name: Playwright
