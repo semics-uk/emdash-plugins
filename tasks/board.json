@@ -3172,6 +3172,32 @@
 				"T159"
 			],
 			"spec": [],
+			"unblocks": [
+				"T161"
+			],
+			"column": "done"
+		},
+		"T161": {
+			"file": "T161-events-bundle-size-options.md",
+			"id": "T161",
+			"title": "Events bundle size: what fills backend.js, what EmDash allows, and the options before 1.0",
+			"phase": 7,
+			"package": "events",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T160"
+			],
+			"spec": [
+				"R42",
+				"R43",
+				"R47",
+				"R51",
+				"R94",
+				"R100"
+			],
 			"unblocks": [],
 			"column": "done"
 		}
@@ -3323,7 +3349,8 @@
 			"T157",
 			"T158",
 			"T159",
-			"T160"
+			"T160",
+			"T161"
 		],
 		"blocked": [
 			"T111"
