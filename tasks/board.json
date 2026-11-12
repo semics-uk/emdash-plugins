@@ -3274,7 +3274,7 @@
 			"phase": 8,
 			"package": "vouchers",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -3288,7 +3288,7 @@
 				"T166",
 				"T167"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T166": {
 			"file": "T166-events-voucher-redemption.md",
@@ -3311,7 +3311,7 @@
 			"unblocks": [
 				"T168"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T167": {
 			"file": "T167-vouchers-admin-reports.md",
@@ -3330,7 +3330,7 @@
 			"unblocks": [
 				"T168"
 			],
-			"column": "backlog"
+			"column": "ready"
 		},
 		"T168": {
 			"file": "T168-vouchers-ui-journey.md",
@@ -3353,14 +3353,14 @@
 	},
 	"columns": {
 		"backlog": [
-			"T166",
-			"T167",
 			"T168"
 		],
-		"ready": [],
+		"ready": [
+			"T166",
+			"T167"
+		],
 		"in-progress": [
-			"T156",
-			"T165"
+			"T156"
 		],
 		"review": [],
 		"done": [
@@ -3507,16 +3507,16 @@
 			"T161",
 			"T162",
 			"T163",
-			"T164"
+			"T164",
+			"T165"
 		],
 		"blocked": [
 			"T111"
 		]
 	},
 	"criticalPath": [
-		"T165",
 		"T166",
 		"T168"
 	],
-	"criticalWeight": 8
+	"criticalWeight": 5
 }
