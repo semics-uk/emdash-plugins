@@ -3274,7 +3274,7 @@
 			"phase": 8,
 			"package": "vouchers",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -3288,7 +3288,7 @@
 				"T166",
 				"T167"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T166": {
 			"file": "T166-events-voucher-redemption.md",
@@ -3357,11 +3357,10 @@
 			"T167",
 			"T168"
 		],
-		"ready": [
-			"T165"
-		],
+		"ready": [],
 		"in-progress": [
-			"T156"
+			"T156",
+			"T165"
 		],
 		"review": [],
 		"done": [

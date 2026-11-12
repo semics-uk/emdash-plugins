@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T164 voucher/1 protocol (agent); then T165 Vouchers core (Pro), T166 redemption, T167 admin, T168 UI (T163 spec approved 2026-11-12)
+- T164 done (#28). T165 Vouchers core (Pro, agent); then, T166 redemption, T167 admin, T168 UI (T163 spec approved 2026-11-12)
 
 ## Next
 - Oli to decide: move the admin setup check page (about 3.2 KB) to a site-side page to save Events backend bytes (T162)
