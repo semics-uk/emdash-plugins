@@ -3297,7 +3297,7 @@
 			"phase": 8,
 			"package": "events-suite",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -3311,7 +3311,7 @@
 			"unblocks": [
 				"T168"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T167": {
 			"file": "T167-vouchers-admin-reports.md",
@@ -3320,7 +3320,7 @@
 			"phase": 8,
 			"package": "vouchers",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "in-progress",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -3330,7 +3330,7 @@
 			"unblocks": [
 				"T168"
 			],
-			"column": "ready"
+			"column": "in-progress"
 		},
 		"T168": {
 			"file": "T168-vouchers-ui-journey.md",
@@ -3355,12 +3355,11 @@
 		"backlog": [
 			"T168"
 		],
-		"ready": [
+		"ready": [],
+		"in-progress": [
+			"T156",
 			"T166",
 			"T167"
-		],
-		"in-progress": [
-			"T156"
 		],
 		"review": [],
 		"done": [
