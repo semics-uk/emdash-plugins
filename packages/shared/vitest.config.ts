@@ -14,7 +14,15 @@ export default defineConfig({
 		...machineLimits,
 		coverage: coverageConfig({
 			allSource: true,
-			strictBranches: ["src/tokens.ts", "src/hmac.ts", "src/pairing.ts", "src/licence.ts", "src/gate.ts"],
+			strictBranches: [
+				"src/tokens.ts",
+				"src/hmac.ts",
+				"src/pairing.ts",
+				"src/licence.ts",
+				"src/gate.ts",
+				"src/voucher.ts",
+				"src/voucher-code.ts",
+			],
 		}),
 		projects: [
 			{

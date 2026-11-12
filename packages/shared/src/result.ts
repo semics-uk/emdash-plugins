@@ -118,8 +118,19 @@ const LICENCE_ERRORS = {
 	LICENCE_EXPIRED: [403, "The licence has expired."],
 } as const;
 
+const VOUCHER_ERRORS = {
+	// --- vouchers (docs/protocol/voucher-v1.md §9) ---
+	/** One answer for unknown, expired, void and malformed codes, so guessing learns nothing. */
+	VOUCHER_INVALID: [400, "This voucher code is not valid."],
+	VOUCHER_NO_BALANCE: [409, "This voucher has nothing left to spend."],
+	VOUCHER_WRONG_ACTIVITY: [409, "This voucher is for a different activity."],
+	VOUCHER_CURRENCY: [409, "This voucher is in a different currency."],
+	VOUCHER_UNAVAILABLE: [503, "Gift vouchers cannot be used right now. You can still book without one."],
+} as const;
+
 /**
- * Every stable error code, with its HTTP status and user-safe message.
+ * Every stable error code, with its HTTP status and user-safe message, except the voucher codes, which
+ * live in `VOUCHERS_ERROR_CODES` so e-sign's bundle (which maps through this table) does not carry them.
  *
  * Naming: a name that could mean two things is prefixed by area (`BOOKING_TOKEN_*` for the
  * Events booking token vs the protocol's `TOKEN_*` for esign-intent tokens; `SIGNING_TOKEN_*`
@@ -135,6 +146,9 @@ export const ERROR_CODES = /* @__PURE__ */ table(
 
 export type ErrorCode = keyof typeof ERROR_CODES;
 
+/** A `voucher/1` route code (T164), answered through `VOUCHERS_ERROR_CODES`. */
+export type VoucherErrorCode = keyof typeof VOUCHER_ERRORS;
+
 /**
  * The codes an Events core answers with itself (R97): common, events, payments and licence (Pro steps
  * refuse through Free routes), plus the protocol's `TOKEN_INVALID`/`TOKEN_EXPIRED` (calendar links)
@@ -146,6 +160,20 @@ export const EVENTS_ERROR_CODES: Readonly<Partial<Record<keyof typeof ERROR_CODE
 	PAYMENT_ERRORS,
 	LICENCE_ERRORS,
 	{ TOKEN_INVALID, TOKEN_EXPIRED, REF_UNKNOWN },
+);
+
+/**
+ * The codes a Vouchers core answers with (T164): common, the protocol's token codes, payments, licence and
+ * the `VOUCHER_*` codes. Events Pro, which also answers `VOUCHER_*` on its continue route, merges this
+ * table into the one it passes to `useErrorCodes`. Use `routeErrorFrom(VOUCHERS_ERROR_CODES, …)`:
+ * `toRouteError` maps a voucher code to `INTERNAL`.
+ */
+export const VOUCHERS_ERROR_CODES = /* @__PURE__ */ table(
+	COMMON_ERRORS,
+	PROTOCOL_ERRORS,
+	PAYMENT_ERRORS,
+	LICENCE_ERRORS,
+	VOUCHER_ERRORS,
 );
 
 /** The JSON error body shared by every route (matches the protocol spec). */

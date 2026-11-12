@@ -105,7 +105,7 @@ describe("T164 voucher/1 error codes", () => {
 		const rows = [...section.matchAll(/^\| `([A-Z_]+)` \|.*\| (\d{3}) \|$/gm)];
 		expect(rows.length).toBe(15);
 		for (const [, code, status] of rows) {
-			const def = VOUCHERS_ERROR_CODES[code as ErrorCode];
+			const def = VOUCHERS_ERROR_CODES[code as keyof typeof VOUCHERS_ERROR_CODES];
 			expect(def?.status, code).toBe(Number(status));
 			expect(def?.message.length, code).toBeGreaterThan(0);
 		}
