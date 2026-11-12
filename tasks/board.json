@@ -3297,7 +3297,7 @@
 			"phase": 8,
 			"package": "events-suite",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [
@@ -3311,7 +3311,7 @@
 			"unblocks": [
 				"T168"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T167": {
 			"file": "T167-vouchers-admin-reports.md",
@@ -3348,17 +3348,16 @@
 			],
 			"spec": [],
 			"unblocks": [],
-			"column": "backlog"
+			"column": "ready"
 		}
 	},
 	"columns": {
-		"backlog": [
+		"backlog": [],
+		"ready": [
 			"T168"
 		],
-		"ready": [],
 		"in-progress": [
-			"T156",
-			"T166"
+			"T156"
 		],
 		"review": [],
 		"done": [
@@ -3507,6 +3506,7 @@
 			"T163",
 			"T164",
 			"T165",
+			"T166",
 			"T167"
 		],
 		"blocked": [
@@ -3514,8 +3514,7 @@
 		]
 	},
 	"criticalPath": [
-		"T166",
-		"T168"
+		"T111"
 	],
-	"criticalWeight": 5
+	"criticalWeight": 2
 }

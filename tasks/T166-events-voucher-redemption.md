@@ -4,7 +4,7 @@ title: "Events Pro voucher redemption, suite wiring and the site Stripe webhook 
 phase: 8
 package: events-suite
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: L
 depends_on: [T165]
