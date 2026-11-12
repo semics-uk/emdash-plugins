@@ -30,8 +30,8 @@ const MAX_BODY = 512 * 1024;
 /** The plugin a delivery is for: its session's `metadata.plugin`, defaulting to Events. */
 export function targetOf(raw: string, ids: StripeRouteIds): string {
 	try {
-		const tag = (JSON.parse(raw) as { data?: { object?: { metadata?: { plugin?: unknown } } } })?.data?.object
-			?.metadata?.plugin;
+		const tag = (JSON.parse(raw) as { data?: { object?: { metadata?: { plugin?: unknown } } } })?.data?.object?.metadata
+			?.plugin;
 		if (tag === "vouchers" && ids.vouchersPluginId) return ids.vouchersPluginId;
 	} catch {
 		// Not JSON: Events answers it (with its own refusal).
@@ -66,11 +66,14 @@ export async function routeStripeWebhook(ctx: StripeEndpointContext, ids: Stripe
 	const headers = new Headers({ "content-type": ctx.request.headers.get("content-type") ?? "application/json" });
 	const signature = ctx.request.headers.get("stripe-signature");
 	if (signature) headers.set("stripe-signature", signature);
-	const forward = new Request(new URL(`/_emdash/api/plugins/${encodeURIComponent(pluginId)}/${ROUTE}`, ctx.url.origin), {
-		method: "POST",
-		headers,
-		body: raw,
-	});
+	const forward = new Request(
+		new URL(`/_emdash/api/plugins/${encodeURIComponent(pluginId)}/${ROUTE}`, ctx.url.origin),
+		{
+			method: "POST",
+			headers,
+			body: raw,
+		},
+	);
 	const handler = getPublicPluginApiRouteHandler(ctx.locals);
 	if (!handler) return fetch(forward);
 	try {
@@ -80,7 +83,8 @@ export async function routeStripeWebhook(ctx: StripeEndpointContext, ids: Stripe
 			status?: number;
 		};
 		// Not handled (plugin missing, a crash): a 5xx, so Stripe keeps the delivery and retries it.
-		if (!result?.success) return new Response(null, { status: result?.status && result.status >= 500 ? result.status : 503 });
+		if (!result?.success)
+			return new Response(null, { status: result?.status && result.status >= 500 ? result.status : 503 });
 		return responseOf(result.data);
 	} catch {
 		return new Response(null, { status: 500 });

@@ -1,17 +1,17 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-
-import { translator } from "../../src/i18n/index";
-import { eventsIntegration } from "../../src/integration/index";
 import { callPublicRoute } from "../../src/astro/lib/call";
 import { ERROR_MESSAGES, fieldMessage, readWidgetState, reconcileWanted } from "../../src/astro/lib/widget";
+import { translator } from "../../src/i18n/index";
+import { eventsIntegration } from "../../src/integration/index";
 
 const { t } = translator("en");
 
 // T166 (T163 §6, R16): gift vouchers in the booking widget, the booking page and the integration. Events Pro
 // answers `vouchers: true` on `public/event` only once it is paired with Vouchers; Free never does.
-const source = (file: string) => readFileSync(fileURLToPath(new URL(`../../src/astro/${file}`, import.meta.url)), "utf8");
+const source = (file: string) =>
+	readFileSync(fileURLToPath(new URL(`../../src/astro/${file}`, import.meta.url)), "utf8");
 
 describe("T166 R16 the widget's Gift voucher code field", () => {
 	it("R16 shows the field only when public/event says the core takes vouchers, inside the order form", () => {
@@ -23,7 +23,9 @@ describe("T166 R16 the widget's Gift voucher code field", () => {
 	});
 
 	it("R16 a refusal names the voucher field with its own message, and every VOUCHER_* code has one", () => {
-		const url = new URL("https://site.example/e?booking_error=VOUCHER_NO_BALANCE&booking_fields=voucher&booking_event=ev1");
+		const url = new URL(
+			"https://site.example/e?booking_error=VOUCHER_NO_BALANCE&booking_fields=voucher&booking_event=ev1",
+		);
 		expect(readWidgetState(url, "ev1")).toEqual({ code: "VOUCHER_NO_BALANCE", fields: ["voucher"] });
 		for (const code of [
 			"VOUCHER_INVALID",

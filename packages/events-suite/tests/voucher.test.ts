@@ -91,9 +91,7 @@ describe("T166 R16 holdVoucher: reserve, then hold (voucher/1 §8.1)", () => {
 			[`${VOUCHERS} public/redeem/hold`]: (_b, n) =>
 				n === 1 ? refused("VOUCHER_NO_BALANCE", { lookups: [tok("l"), tok("m")] }) : ok({ hold: tok("h") }),
 			[`${EVENTS} public/voucher/lookup`]: (b) =>
-				b.request === tok("l")
-					? ok({ state: "settled", settle: tok("x") })
-					: ok({ state: "pending", settle: null }),
+				b.request === tok("l") ? ok({ state: "settled", settle: tok("x") }) : ok({ state: "pending", settle: null }),
 			[`${VOUCHERS} public/redeem/settle`]: () => ok({ state: "released" }),
 		});
 		const out = await holdVoucher(ctx(h), { code: "ABCD-EFGH-JKMN-PQRS", bookingRef: REF, accessToken: ACCESS }, IDS);

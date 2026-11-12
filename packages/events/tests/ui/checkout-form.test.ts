@@ -391,7 +391,11 @@ describe("T166 R16 a gift voucher code in the no-JS checkout", () => {
 
 	it("R16 a code typed where no voucher plugin is wired is refused before anything is reserved", async () => {
 		const h = routed({});
-		const out = await handleCheckoutForm({ locals: h.locals, url }, form({ ...withCode, returnTo: "/events/spring" }), {});
+		const out = await handleCheckoutForm(
+			{ locals: h.locals, url },
+			form({ ...withCode, returnTo: "/events/spring" }),
+			{},
+		);
 		expect(h.seen).toEqual([]);
 		expect(out.location).toContain("booking_error=VOUCHER_UNAVAILABLE");
 	});
