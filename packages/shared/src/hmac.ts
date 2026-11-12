@@ -509,3 +509,15 @@ export async function signEsignToken<T extends EsignTokenType>(
 	if (token.length > ESIGN_MAX_TOKEN_LENGTH[type]) throw new Error(`Cannot sign ${type} token: TOKEN_TOO_LARGE.`);
 	return token;
 }
+
+// --- primitives reused by voucher/1 (docs/protocol/voucher-v1.md), which shares this algorithm ---
+
+export {
+	decodeJsonObject,
+	ID64 as ID64_PATTERN,
+	isObject as isJsonObject,
+	isTime as isUnixTime,
+	matches as matchesPattern,
+	REF as REF_PATTERN,
+	signature as tokenSignature,
+};

@@ -11,6 +11,7 @@ import {
 	type Result,
 	routeErrorFrom,
 	toRouteError,
+	VOUCHERS_ERROR_CODES,
 } from "../src/index";
 
 const specPath = new URL("../../../docs/protocol/esign-intent-v1.md", import.meta.url);
@@ -92,6 +93,38 @@ describe("error registry", () => {
 		]) {
 			expect(ERROR_CODES, code).toHaveProperty(code);
 		}
+	});
+});
+
+describe("T164 voucher/1 error codes", () => {
+	const voucherSpec = new URL("../../../docs/protocol/voucher-v1.md", import.meta.url);
+
+	it("VOUCHERS_ERROR_CODES has every voucher-v1.md §9 code with the spec's status", () => {
+		const spec = readFileSync(voucherSpec, "utf8");
+		const section = spec.slice(spec.indexOf("## 9. Error codes"), spec.indexOf("## 10."));
+		const rows = [...section.matchAll(/^\| `([A-Z_]+)` \|.*\| (\d{3}) \|$/gm)];
+		expect(rows.length).toBe(15);
+		for (const [, code, status] of rows) {
+			const def = VOUCHERS_ERROR_CODES[code as keyof typeof VOUCHERS_ERROR_CODES];
+			expect(def?.status, code).toBe(Number(status));
+			expect(def?.message.length, code).toBeGreaterThan(0);
+		}
+	});
+
+	it("keeps the voucher codes out of ERROR_CODES, so e-sign's bundle does not carry them", () => {
+		for (const code of [
+			"VOUCHER_INVALID",
+			"VOUCHER_NO_BALANCE",
+			"VOUCHER_WRONG_ACTIVITY",
+			"VOUCHER_CURRENCY",
+			"VOUCHER_UNAVAILABLE",
+		] as const) {
+			expect(ERROR_CODES).not.toHaveProperty(code);
+			expect(routeErrorFrom(VOUCHERS_ERROR_CODES, { code }).body.error.code).toBe(code);
+		}
+		expect(routeErrorFrom(VOUCHERS_ERROR_CODES, "VOUCHER_INVALID").status).toBe(400);
+		expect(VOUCHERS_ERROR_CODES.INTERNAL).toEqual(ERROR_CODES.INTERNAL);
+		expect(Object.isFrozen(VOUCHERS_ERROR_CODES)).toBe(true);
 	});
 });
 

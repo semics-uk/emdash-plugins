@@ -2,6 +2,6 @@
 	"root": false,
 	"extends": "//",
 	"files": {
-		"includes": ["**", "!vectors.json"]
+		"includes": ["**", "!vectors.json", "!voucher-vectors.json"]
 	}
 }

@@ -27,3 +27,13 @@ public key, product and build date injected at build time, exempt local/preview 
 issuing) and `gate.ts` (T070: `gateProWork`/`gateProOperation`: no new Pro work without a key, in-flight
 work continues). `schedules.ts` (T116: `withScheduleCheck`, `ensureSchedules`, `runEnsureSchedulesJob`,
 `scheduleTasks`: cores self-schedule recurring crons behind a `cron:scheduled:v10` KV flag; bump the version when a core's recurring list changes). `rrule.ts` (T084): `parseRrule` (FREQ DAILY/WEEKLY/MONTHLY, INTERVAL, BYDAY with MONTHLY ordinals, BYMONTHDAY, COUNT or UNTIL, and the `EXDATE=YYYYMMDD,…` extension; anything else is null), `expandLocal` (naive wall-clock ms, capped at `max` and 4000 periods) and `occurrencesBetween` (UTC instants via `zonedToUtc`, so DST keeps local times); python-dateutil semantics, vectors from `tests/fixtures/rrule/generate.py`. About 2.9 KiB minified in a core that imports it.
+
+`voucher.ts` + `voucher-code.ts` (T164, `docs/protocol/voucher-v1.md`): `voucher-hold/1`, `voucher-settle/1` and
+`voucher-lookup/1` tokens (`signVoucherToken`, `verifyVoucherToken(type, { token, now, getClient })`,
+`validateVoucherPayload`), `voucher1.` pairing strings (`parseVoucherPairing`, `formatVoucherPairing`), and codes
+(`generateVoucherCode(random)`, `normaliseVoucherCode`, `formatVoucherCode`, `voucherCodeId` = SHA-256 hex of the
+canonical code). They reuse `hmac.ts`'s primitives (exported there as `tokenSignature`, `decodeJsonObject`,
+`isJsonObject`, `isUnixTime`, `matchesPattern`, `ID64_PATTERN`, `REF_PATTERN`) and run the same steps 1–7; the
+step 1–5 code is a second copy of `hmac.ts`'s `authenticate` so the e-sign and Events bundles stayed
+byte-identical. The `VOUCHER_*` codes are in `VOUCHERS_ERROR_CODES` (the Vouchers core's table, used with
+`routeErrorFrom`), not in `ERROR_CODES`, which e-sign bundles whole. No core imports any of this yet.
