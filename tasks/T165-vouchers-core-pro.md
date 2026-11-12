@@ -4,7 +4,7 @@ title: "Vouchers core (Pro): storage, settings, purchase via Stripe, issue, hold
 phase: 8
 package: vouchers
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: L
 depends_on: [T164]
