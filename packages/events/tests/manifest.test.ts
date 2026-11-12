@@ -87,7 +87,7 @@ describe("manifest (EU-FR-01, BUILD-PLAN 3.1)", () => {
 });
 
 /** Secret settings only Events Pro reads; Free declares them so its settings stay readable (T067). */
-const PRO_RESERVED_SECRETS = ["licenceKey", "stripeSecretKey", "stripeWebhookSecret"];
+const PRO_RESERVED_SECRETS = ["licenceKey", "stripeSecretKey", "stripeWebhookSecret", "vouchersPairing"];
 
 describe("settings schema", () => {
 	const settings = () => readManifest().admin.settingsSchema as Record<string, Record<string, unknown>>;
@@ -133,8 +133,14 @@ describe("settings schema", () => {
 			"stripeSecretKey",
 			"stripeWebhookSecret",
 			"turnstileSecretKey",
+			"vouchersPairing",
 		]);
 		expect([...SECRET_SETTING_KEYS].sort()).toEqual(secrets.filter((k) => !PRO_RESERVED_SECRETS.includes(k)));
+	});
+
+	it("T166 R44 declares Events Pro's gift voucher pairing string as a secret Free ignores", () => {
+		// T163 §3: Events Pro shows the "Gift voucher code" field only once this is set; a downgraded site still lists it.
+		expect(settings().vouchersPairing).toMatchObject({ type: "secret", label: "Vouchers pairing string (Pro)" });
 	});
 
 	it("T067 S10b declares the secrets a Pro build stores, so Free still reads its settings after a downgrade", () => {
