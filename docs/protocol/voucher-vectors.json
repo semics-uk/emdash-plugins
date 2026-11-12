@@ -1,0 +1,4170 @@
+{
+	"protocol": "voucher/1",
+	"spec": "docs/protocol/voucher-v1.md",
+	"generator": "docs/protocol/generate-voucher-vectors.mjs",
+	"note": "Generated file. Do not edit by hand; change the generator and re-run it. Secrets here are test keys only.",
+	"constants": {
+		"prefixes": {
+			"hold": "voucher-hold/1",
+			"settle": "voucher-settle/1",
+			"lookup": "voucher-lookup/1"
+		},
+		"maxTokenLength": {
+			"hold": 1024,
+			"settle": 1024,
+			"lookup": 1024
+		},
+		"clockSkewSeconds": 60,
+		"holdMaxLifetimeSeconds": 1800,
+		"requestMaxAgeSeconds": 300,
+		"maxMinor": 10000000,
+		"codeAlphabet": "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+	},
+	"errorCodes": [
+		"TOKEN_TOO_LARGE",
+		"TOKEN_MALFORMED",
+		"CLIENT_UNKNOWN",
+		"CLIENT_REVOKED",
+		"TOKEN_INVALID",
+		"PAYLOAD_INVALID",
+		"TOKEN_LIFETIME_EXCEEDED",
+		"TOKEN_NOT_YET_VALID",
+		"TOKEN_EXPIRED",
+		"PAIRING_MALFORMED"
+	],
+	"keys": {
+		"A": {
+			"cid": "cl_test_aaaaaaaa",
+			"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+			"pairing": "voucher1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+			"role": "paired client (the Events site)"
+		},
+		"B": {
+			"cid": "cl_test_bbbbbbbb",
+			"secret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+			"pairing": "voucher1.cl_test_bbbbbbbb.gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+			"role": "another client; its secret is the 'wrong secret'"
+		},
+		"R": {
+			"cid": "cl_test_revoked1",
+			"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+			"pairing": "voucher1.cl_test_revoked1.oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+			"role": "a client revoked in the Vouchers admin"
+		}
+	},
+	"vectors": [
+		{
+			"name": "hold/valid-money",
+			"type": "hold",
+			"description": "A money hold of 25.00 GBP.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			}
+		},
+		{
+			"name": "hold/valid-activity",
+			"type": "hold",
+			"description": "An activity hold for one clay session ticket.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJOIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJhY3Rpdml0eSIsImFtb3VudE1pbm9yIjozNTAwLCJjdXJyZW5jeSI6IkdCUCIsImxpbmUiOnsiZXZlbnRJZCI6ImV2X2NsYXkiLCJ0aWNrZXRUeXBlSWQiOiJ0dF9zZXNzaW9uIn19.luI1e54sXxoUDhBbjn0_2sLbW6yYdmuxz5MK3arJbAs",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session"
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session"
+					}
+				}
+			}
+		},
+		{
+			"name": "hold/valid-activity-zero",
+			"type": "hold",
+			"description": "Activity holds may carry a zero unit price.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkX2ZyZWUiLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMDg0MCwicmVmIjoiQks3UTJNIiwia2luZCI6ImFjdGl2aXR5IiwiYW1vdW50TWlub3IiOjAsImN1cnJlbmN5IjoiR0JQIiwibGluZSI6eyJldmVudElkIjoiZXZfY2xheSIsInRpY2tldFR5cGVJZCI6InR0X3Nlc3Npb24ifX0.V3q50y25vjlt_DRMrpr150XTCZbmfQEErxsuZWe7SaM",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_free",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 0,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session"
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_free",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 0,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session"
+					}
+				}
+			}
+		},
+		{
+			"name": "hold/valid-limits",
+			"type": "hold",
+			"description": "Largest amount, 64-character rid, 128-character ref and an unknown field.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgiLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMDg0MCwicmVmIjoiUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSUlJSOnNlYXQuMDEiLCJraW5kIjoibW9uZXkiLCJhbW91bnRNaW5vciI6MTAwMDAwMDAsImN1cnJlbmN5IjoiR0JQIiwiZnV0dXJlIjp7ImFueXRoaW5nIjp0cnVlfX0.pF_HPR4qLwWDZuZFhXkaGsxuaFIm_rkE2Cx1o1_Ceek",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:seat.01",
+					"kind": "money",
+					"amountMinor": 10000000,
+					"currency": "GBP",
+					"future": {
+						"anything": true
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR:seat.01",
+					"kind": "money",
+					"amountMinor": 10000000,
+					"currency": "GBP",
+					"future": {
+						"anything": true
+					}
+				}
+			}
+		},
+		{
+			"name": "hold/valid-line-unknown-field",
+			"type": "hold",
+			"description": "Unknown fields inside line are ignored.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJOIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJhY3Rpdml0eSIsImFtb3VudE1pbm9yIjozNTAwLCJjdXJyZW5jeSI6IkdCUCIsImxpbmUiOnsiZXZlbnRJZCI6ImV2X2NsYXkiLCJ0aWNrZXRUeXBlSWQiOiJ0dF9zZXNzaW9uIiwibGFiZWwiOiJDbGF5In19.5EJLFzwk9pedwrb3YhKERGYcnU_5lDjR5s2LXgJoU8A",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session",
+						"label": "Clay"
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session",
+						"label": "Clay"
+					}
+				}
+			}
+		},
+		{
+			"name": "hold/at-expiry-boundary",
+			"type": "hold",
+			"description": "now = exp + 60: still valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000900,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			}
+		},
+		{
+			"name": "hold/expired",
+			"type": "hold",
+			"description": "now = exp + 61.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000901,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_EXPIRED"
+			}
+		},
+		{
+			"name": "hold/iat-skew-boundary",
+			"type": "hold",
+			"description": "iat = now + 60: valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxODAwMDAwMDYwLCJleHAiOjE4MDAwMDA2NjAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.v9wrdb6UYBv9Xu1SitokSfOEEaxuf2TyyTb9rnz2qN4",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1800000060,
+					"exp": 1800000660,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1800000060,
+					"exp": 1800000660,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			}
+		},
+		{
+			"name": "hold/not-yet-valid",
+			"type": "hold",
+			"description": "iat = now + 61.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxODAwMDAwMDYxLCJleHAiOjE4MDAwMDA2NjAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.BGr9sOzqrt7B--l6ZnMubSyq_ckw6uWQXOajYxnh7xM",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1800000061,
+					"exp": 1800000660,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_NOT_YET_VALID"
+			}
+		},
+		{
+			"name": "hold/lifetime-max",
+			"type": "hold",
+			"description": "exp − iat = 1800: valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDE3NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.4z3Yj2n087Knj6JsL_xevpNWn6ePo9qRtKP2mbkEUQs",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800001740,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800001740,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			}
+		},
+		{
+			"name": "hold/lifetime-exceeded",
+			"type": "hold",
+			"description": "exp − iat = 1801.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDE3NDEsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.Z2c8RIy50huOejFHAmssSizD-uXhchccKs29q8lKzws",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800001741,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_LIFETIME_EXCEEDED"
+			}
+		},
+		{
+			"name": "hold/lifetime-after-schema",
+			"type": "hold",
+			"description": "Too long and an invalid currency: the schema failure wins.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDcyMDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6ImdicCJ9.Vl9Pzm4iJ5HvwHhjuzZTTxSWO0L54TazfaJkjT6MOxk",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800007200,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "gbp"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/exp-not-after-iat",
+			"type": "hold",
+			"description": "exp = iat.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE3OTk5OTk5NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.6Tdb0JwMi-36_0UR7bGnHw8OPLml3aBh6soCS6ylap8",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1799999940,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/money-with-line",
+			"type": "hold",
+			"description": "A money hold must not carry line.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCIsImxpbmUiOnsiZXZlbnRJZCI6ImV2X2NsYXkiLCJ0aWNrZXRUeXBlSWQiOiJ0dF9zZXNzaW9uIn19.G0kz25U8XwvNXE5Nx24jIMX_F8Gg7oqAiIvsjFrttzc",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session"
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/money-zero",
+			"type": "hold",
+			"description": "A money hold of 0.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjowLCJjdXJyZW5jeSI6IkdCUCJ9.DPzFJudjHq-zcJ5avrDqyzKLSl_Gh1k9Gg5ua65NFxg",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 0,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/amount-over-max",
+			"type": "hold",
+			"description": "amountMinor = 10000001.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoxMDAwMDAwMSwiY3VycmVuY3kiOiJHQlAifQ.4Ed1CnfH_Zy0lku1OEt-A9OrP4Foe6CotFQfo_wUKVg",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 10000001,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/amount-fraction",
+			"type": "hold",
+			"description": "amountMinor = 25.5.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNS41LCJjdXJyZW5jeSI6IkdCUCJ9.fHHVW1QfLfQypg4iAnL33KyqvT2UK3KkDi0QwKZujx4",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 25.5,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/amount-string",
+			"type": "hold",
+			"description": "amountMinor is a string.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoiMjUwMCIsImN1cnJlbmN5IjoiR0JQIn0.KGTlXlTeEqvLqjUgXFBL2fDm6hZwxIbAhtPTX3q-zUs",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": "2500",
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/currency-lowercase",
+			"type": "hold",
+			"description": "currency must be upper case.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6ImdicCJ9.j5ajGaSlgM3N5aUamfY9jn5Xgc6pRjShhOb3ZbuoUN4",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "gbp"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/currency-long",
+			"type": "hold",
+			"description": "currency has four letters.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUFgifQ.ZUg4jdW9ZnDpwEqPfidXf5j3GTGdJjMn0sJ1-RzwK0E",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBPX"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/bad-kind",
+			"type": "hold",
+			"description": "kind is not money or activity.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJnaWZ0IiwiYW1vdW50TWlub3IiOjI1MDAsImN1cnJlbmN5IjoiR0JQIn0.3pUhG_2FUUjfm4aBPDL45X7XBsmD4mrLbmxgJo8LyT0",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "gift",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/bad-rid",
+			"type": "hold",
+			"description": "rid has a space.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkIDEiLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMDg0MCwicmVmIjoiQks3UTJNIiwia2luZCI6Im1vbmV5IiwiYW1vdW50TWlub3IiOjI1MDAsImN1cnJlbmN5IjoiR0JQIn0.1XaiJGRNUSDAJ7948upCGaqnwEjK2LpvGrFeyq9ythY",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd 1",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/rid-too-long",
+			"type": "hold",
+			"description": "rid has 65 characters.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4IiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.hLjv2-UR3Z33EtqjJAWkuGIiwZY9PrrEWovYV8scLoQ",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/bad-ref",
+			"type": "hold",
+			"description": "ref has a slash.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLLzdRMk0iLCJraW5kIjoibW9uZXkiLCJhbW91bnRNaW5vciI6MjUwMCwiY3VycmVuY3kiOiJHQlAifQ.RvbLMrMRLrE7dijJQzLjF5gomeKvp9B9K5L6Yyf0nr0",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK/7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/missing-ref",
+			"type": "hold",
+			"description": "ref is missing.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.0zny0Adp8AODOeqMO5I9EUCkTxmmRgBrHwex3Y_sO64",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/iat-negative",
+			"type": "hold",
+			"description": "iat is negative.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjotMSwiZXhwIjoxODAwMDAwODQwLCJyZWYiOiJCSzdRMk0iLCJraW5kIjoibW9uZXkiLCJhbW91bnRNaW5vciI6MjUwMCwiY3VycmVuY3kiOiJHQlAifQ.7qUWZW3cH2_UQNhG_mIPhB3sr2-FgOu8iPdvlGkLbR0",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": -1,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/activity-without-line",
+			"type": "hold",
+			"description": "An activity hold must carry line.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJOIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJhY3Rpdml0eSIsImFtb3VudE1pbm9yIjozNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.LdeOzki_RrcZHVZKxbObq0h2XqyAGlML7ZYa7b31U78",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/activity-bad-line",
+			"type": "hold",
+			"description": "line.ticketTypeId is missing.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJOIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJhY3Rpdml0eSIsImFtb3VudE1pbm9yIjozNTAwLCJjdXJyZW5jeSI6IkdCUCIsImxpbmUiOnsiZXZlbnRJZCI6ImV2X2NsYXkifX0.xSyi_nsw1xZT4UQMtzgoaB0yNcmxGpzQEspLWMWbF78",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay"
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/activity-line-array",
+			"type": "hold",
+			"description": "line is an array.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJOIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJhY3Rpdml0eSIsImFtb3VudE1pbm9yIjozNTAwLCJjdXJyZW5jeSI6IkdCUCIsImxpbmUiOlsiZXZfY2xheSIsInR0X3Nlc3Npb24iXX0.yB8UrD4YsARSqI8UAMYcVx3FLEJmbcja_FUZ0dYu0uM",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": 3500,
+					"currency": "GBP",
+					"line": [
+						"ev_clay",
+						"tt_session"
+					]
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/activity-negative",
+			"type": "hold",
+			"description": "amountMinor is negative.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJOIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJhY3Rpdml0eSIsImFtb3VudE1pbm9yIjotMSwiY3VycmVuY3kiOiJHQlAiLCJsaW5lIjp7ImV2ZW50SWQiOiJldl9jbGF5IiwidGlja2V0VHlwZUlkIjoidHRfc2Vzc2lvbiJ9fQ.dUzU2mQc38EEU3Om2IEDmzxuibADq6rbtQy5BojDxdU",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2N",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "activity",
+					"amountMinor": -1,
+					"currency": "GBP",
+					"line": {
+						"eventId": "ev_clay",
+						"ticketTypeId": "tt_session"
+					}
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/wrong-prefix",
+			"type": "hold",
+			"description": "Signed under voucher-settle/1, presented as hold.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.c0kklbszFIuJEKXUYc1NuvRNMu_9Ef63sRkNfHyP3PQ",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "hold/esign-prefix",
+			"type": "hold",
+			"description": "Signed under esign-intent/1 with the same secret: other protocols never verify.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.Ymdkzk6Mnh48zoeb70BIFo2-ZogEEZcpmkitAfyhugQ",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "hold/settle-token-presented",
+			"type": "hold",
+			"description": "A genuine settle token presented as hold.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "hold/tampered-payload",
+			"type": "hold",
+			"description": "The payload segment was replaced (ref changed) and the original signature kept.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLOVpaWiIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				},
+				"tamper": "payload replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "hold/tampered-signature",
+			"type": "hold",
+			"description": "One signature bit flipped.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-94-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				},
+				"tamper": "first signature bit flipped"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "hold/wrong-secret",
+			"type": "hold",
+			"description": "cid is the paired client, signed with client B's secret.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.XTSlH-20si_sxvP3vl9nM6lCXGKKFrI7PtQWLpFyV0A",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "hold/unknown-client",
+			"type": "hold",
+			"description": "cid is not paired.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF91bmtub3duMSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.grsUQfJzTSKMrF_FvK6M286-YCXBodxvnTlTNngfkVA",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_unknown1",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "hold/typ-mismatch",
+			"type": "hold",
+			"description": "Signed under voucher-hold/1 but typ is 'settle'.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJpYXQiOjE3OTk5OTk5NDAsImV4cCI6MTgwMDAwMDg0MCwicmVmIjoiQks3UTJNIiwia2luZCI6Im1vbmV5IiwiYW1vdW50TWlub3IiOjI1MDAsImN1cnJlbmN5IjoiR0JQIn0.QzSsbr6oliKHtNkzIvenK70ILpay0DsFIGloCtXw3nY",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/wrong-version",
+			"type": "hold",
+			"description": "v is 2.",
+			"input": {
+				"token": "eyJ2IjoyLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.aeTQxicRRgK-cU0wbPfcUCWbAippOiokHryFQeg4xQg",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 2,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "hold/malformed-padding",
+			"type": "hold",
+			"description": "Payload segment carries '=' padding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9=.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-noncanonical-signature",
+			"type": "hold",
+			"description": "Signature's last character has a non-zero padding bit.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYB",
+				"expectedPrefix": "voucher-hold/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-standard-alphabet",
+			"type": "hold",
+			"description": "'+' from the standard base64 alphabet.",
+			"input": {
+				"token": "+yJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-three-segments",
+			"type": "hold",
+			"description": "Three segments.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-empty-payload",
+			"type": "hold",
+			"description": "Payload segment is empty.",
+			"input": {
+				"token": ".-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-hold/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-not-json",
+			"type": "hold",
+			"description": "Signed payload is not JSON.",
+			"input": {
+				"token": "aG9sZCBtZQ.mTpnJQPtiB67Z4Z38xlpEmUeMSzob2zCjjMntVQ2t64",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-bom",
+			"type": "hold",
+			"description": "Signed payload starts with a UTF-8 byte-order mark.",
+			"input": {
+				"token": "77u_eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.8CM7PqYfmzPDexGeYZFBmOIavW8am0PZv5uim6y4J8o",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/malformed-array",
+			"type": "hold",
+			"description": "Signed payload is a JSON array.",
+			"input": {
+				"token": "WzFd.iUmVDMpyWMu4-s3XwFCj7Lad4-Dyo-7iVt7quLUyCBk",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "hold/oversize",
+			"type": "hold",
+			"description": "1026 characters: over the 1024 limit, rejected before decoding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCIsInBhZCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifQ.Hl5ZNbnkJ6x6KJ-j6BgoYjWP35CBkHuC2v0EA0nvON4",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "hold/max-length",
+			"type": "hold",
+			"description": "Exactly 1024 characters, with an unknown field: valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCIsInBhZCI6Inh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCJ9.QrxcB7G0a93Wp32WnYvEIrwprpB1WS0V1yqk6kOiU8c",
+				"expectedPrefix": "voucher-hold/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"iat": 1799999940,
+					"exp": 1800000840,
+					"ref": "BK7Q2M",
+					"kind": "money",
+					"amountMinor": 2500,
+					"currency": "GBP",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			}
+		},
+		{
+			"name": "settle/valid-confirmed",
+			"type": "settle",
+			"description": "The booking was confirmed with the voucher.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			}
+		},
+		{
+			"name": "settle/valid-released",
+			"type": "settle",
+			"description": "The booking will never use the hold.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoicmVsZWFzZWQiLCJjcmVkaXRNaW5vciI6MCwiYXQiOjE3OTk5OTk5NzB9.34khanjTUXX-6hS5ePqAaG3zYCFlvDR4pHulwI3o4pw",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "released",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "released",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			}
+		},
+		{
+			"name": "settle/valid-credited",
+			"type": "settle",
+			"description": "15.00 credited back after a cancel.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY3JlZGl0ZWQiLCJjcmVkaXRNaW5vciI6MTUwMCwiYXQiOjE3OTk5OTk5NzB9.qNccnKe5HfqsbhCSNWO257UV64dUDUtplcmlG-Nyvz4",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "credited",
+					"creditMinor": 1500,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "credited",
+					"creditMinor": 1500,
+					"at": 1799999970
+				}
+			}
+		},
+		{
+			"name": "settle/old-never-expires",
+			"type": "settle",
+			"description": "Settled more than a year ago: settle tokens do not expire.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzY1NDQwMDAwfQ.R3yfYOiPa-g0wKrugX4DIZbwl5ZgwIHh60TUzJxKUCc",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1765440000
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1765440000
+				}
+			}
+		},
+		{
+			"name": "settle/at-skew-boundary",
+			"type": "settle",
+			"description": "at = now + 60: valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxODAwMDAwMDYwfQ.ve0ojAT6hUJMgS5VhXp3RL-5hu7IWy3qljTt-rYIksA",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1800000060
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1800000060
+				}
+			}
+		},
+		{
+			"name": "settle/not-yet-valid",
+			"type": "settle",
+			"description": "at = now + 61.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxODAwMDAwMDYxfQ.P0FE-0m85qdCKYzsvqcwjvTa1OmFPCKjtFtAm7q5ZAc",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1800000061
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_NOT_YET_VALID"
+			}
+		},
+		{
+			"name": "settle/revoked-client",
+			"type": "settle",
+			"description": "Signed by a client revoked in Vouchers' admin.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X3Jldm9rZWQxIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.lwnNhLFQwKmgZ1Q15QrPgt2RAxATn9u0RDRUSOc1XBQ",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_revoked1",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_REVOKED"
+			}
+		},
+		{
+			"name": "settle/credited-zero",
+			"type": "settle",
+			"description": "credited needs creditMinor ≥ 1.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY3JlZGl0ZWQiLCJjcmVkaXRNaW5vciI6MCwiYXQiOjE3OTk5OTk5NzB9.JWWQaD292Z9ij9oGuJytdEtMK9veoEY5756koAUu2C8",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "credited",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/confirmed-with-credit",
+			"type": "settle",
+			"description": "confirmed needs creditMinor = 0.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjEwMCwiYXQiOjE3OTk5OTk5NzB9.2xSYMsGNIW4TYJbWasxvEFH97pyfm1ahAUyrjY-yTds",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 100,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/released-with-credit",
+			"type": "settle",
+			"description": "released needs creditMinor = 0.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoicmVsZWFzZWQiLCJjcmVkaXRNaW5vciI6MTAwLCJhdCI6MTc5OTk5OTk3MH0.UxLLSM-kSrTWOvrGlB0aAKYLwRPG7vF0QXkmsO0M4bQ",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "released",
+					"creditMinor": 100,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/credit-over-max",
+			"type": "settle",
+			"description": "creditMinor = 10000001.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY3JlZGl0ZWQiLCJjcmVkaXRNaW5vciI6MTAwMDAwMDEsImF0IjoxNzk5OTk5OTcwfQ.nhNhC6THgO6s2Ucn-Q7A-rrJju1uJS6eRp4e8nJXUNU",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "credited",
+					"creditMinor": 10000001,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/missing-credit",
+			"type": "settle",
+			"description": "creditMinor is missing.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiYXQiOjE3OTk5OTk5NzB9.iVuVDaw4eqhTphoIR3WExFn9r5OrxWPq1mi0JHzIhiI",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/bad-outcome",
+			"type": "settle",
+			"description": "outcome is not one of the three.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoicmVmdW5kZWQiLCJjcmVkaXRNaW5vciI6MCwiYXQiOjE3OTk5OTk5NzB9.v6cYAQSBniLJkpXdk0_X_xWolVVJnsam4xUfIY2ufbA",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "refunded",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/bad-at",
+			"type": "settle",
+			"description": "at is a string.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0Ijoibm93In0.3gYBz6B6q_JSH18wGFc0fo9t5rPfrWxOoeX0LEXUcmY",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": "now"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/wrong-prefix",
+			"type": "settle",
+			"description": "Signed under voucher-hold/1, presented as settle.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.LPjXseyggFFpuvpA9IOvrBFZ16GagXXWYkLjeXd22to",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "settle/esign-prefix",
+			"type": "settle",
+			"description": "Signed under esign-intent/1 with the same secret: other protocols never verify.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.kK9RjOuf-bz0T1mFOiS8M3lrO0z1qVUV9lG9jN7cFeI",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "settle/hold-token-presented",
+			"type": "settle",
+			"description": "A genuine hold token presented as settle.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "settle/tampered-payload",
+			"type": "settle",
+			"description": "The payload segment was replaced (ref changed) and the original signature kept.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzlaWloiLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				},
+				"tamper": "payload replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "settle/tampered-signature",
+			"type": "settle",
+			"description": "One signature bit flipped.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.mOgyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				},
+				"tamper": "first signature bit flipped"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "settle/wrong-secret",
+			"type": "settle",
+			"description": "cid is the paired client, signed with client B's secret.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.LE2pAPR2tyDvZRjIvi1pA7iawEiamD_qcJznvI_d7jE",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "settle/unknown-client",
+			"type": "settle",
+			"description": "cid is not paired.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X3Vua25vd24xIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.tDf92CuDZSfW67-kEG2HcrO0TzrqXIEMMTN8MR6cXrM",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_unknown1",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "settle/typ-mismatch",
+			"type": "settle",
+			"description": "Signed under voucher-settle/1 but typ is 'hold'.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwicmVmIjoiQks3UTJNIiwib3V0Y29tZSI6ImNvbmZpcm1lZCIsImNyZWRpdE1pbm9yIjowLCJhdCI6MTc5OTk5OTk3MH0.Dm-sLQ6GCDN0NpglhmpmHOYGEODIYpdrRWTLD8KO2zk",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/wrong-version",
+			"type": "settle",
+			"description": "v is 2.",
+			"input": {
+				"token": "eyJ2IjoyLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.OfFPVuJR-I28PkdeC89gV_U6ztWTvHoznUVYceyCQEE",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 2,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "settle/malformed-padding",
+			"type": "settle",
+			"description": "Payload segment carries '=' padding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ=.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-noncanonical-signature",
+			"type": "settle",
+			"description": "Signature's last character has a non-zero padding bit.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbd",
+				"expectedPrefix": "voucher-settle/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-standard-alphabet",
+			"type": "settle",
+			"description": "'+' from the standard base64 alphabet.",
+			"input": {
+				"token": "+yJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-three-segments",
+			"type": "settle",
+			"description": "Three segments.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc.megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-empty-payload",
+			"type": "settle",
+			"description": "Payload segment is empty.",
+			"input": {
+				"token": ".megyQXLvuLP5KJnl3VeBX_UW9G7-KZrtitkPAWDdSbc",
+				"expectedPrefix": "voucher-settle/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-not-json",
+			"type": "settle",
+			"description": "Signed payload is not JSON.",
+			"input": {
+				"token": "aG9sZCBtZQ.Fs-G66qzW-SlzurrOfyVFTQkL2UQhmV5ffN1bcKS8uY",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-bom",
+			"type": "settle",
+			"description": "Signed payload starts with a UTF-8 byte-order mark.",
+			"input": {
+				"token": "77u_eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwfQ.qkYg65RkGou7fXN9fi5wHIwkMNc30vnzoY-ubU6ab6o",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/malformed-array",
+			"type": "settle",
+			"description": "Signed payload is a JSON array.",
+			"input": {
+				"token": "WzFd.6MW7rCZUqR42LWbKfE0RXZFJhkY10Rv4TVlYRIie-L0",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "settle/oversize",
+			"type": "settle",
+			"description": "1026 characters: over the 1024 limit, rejected before decoding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwLCJwYWQiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifQ.vGVRX0aY8EDzttDnvniHdIp9fwTKwdplCkyZ5mTAfQU",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970,
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "settle/max-length",
+			"type": "settle",
+			"description": "Exactly 1024 characters, with an unknown field: valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJzZXR0bGUiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwicmlkIjoicmRfMDFKQjdRMk0iLCJyZWYiOiJCSzdRMk0iLCJvdXRjb21lIjoiY29uZmlybWVkIiwiY3JlZGl0TWlub3IiOjAsImF0IjoxNzk5OTk5OTcwLCJwYWQiOiJ4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCJ9.txmZoHBnUHqZ-UXvglS4jtcizsmzTYSnohLVenahvsE",
+				"expectedPrefix": "voucher-settle/1",
+				"signedWithPrefix": "voucher-settle/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970,
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					},
+					"cl_test_revoked1": {
+						"secret": "oKGio6SlpqeoqaqrrK2ur7CxsrO0tba3uLm6u7y9vr8",
+						"revoked": true
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "settle",
+					"cid": "cl_test_aaaaaaaa",
+					"rid": "rd_01JB7Q2M",
+					"ref": "BK7Q2M",
+					"outcome": "confirmed",
+					"creditMinor": 0,
+					"at": 1799999970,
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			}
+		},
+		{
+			"name": "lookup/valid",
+			"type": "lookup",
+			"description": "Asks for the outcome of hold rd_01JB7Q2M on BK7Q2M.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			}
+		},
+		{
+			"name": "lookup/at-age-boundary",
+			"type": "lookup",
+			"description": "now = ts + 300 + 60: still valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000350,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			}
+		},
+		{
+			"name": "lookup/expired",
+			"type": "lookup",
+			"description": "now = ts + 361.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000351,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_EXPIRED"
+			}
+		},
+		{
+			"name": "lookup/not-yet-valid",
+			"type": "lookup",
+			"description": "ts = now + 61.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE4MDAwMDAwNjEsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.WeClfMczqQREEu4rbyX_xu6aS0W4zMaBKbNE0GVsOHU",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1800000061,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_NOT_YET_VALID"
+			}
+		},
+		{
+			"name": "lookup/missing-rid",
+			"type": "lookup",
+			"description": "rid is missing.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSJ9.qCEVhVIt1Viwem_iwhmfl4gJhpHOxRaT6bDBHM1hmEI",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "lookup/bad-ts",
+			"type": "lookup",
+			"description": "ts has a fraction.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTkuNSwicmVmIjoiQks3UTJNIiwicmlkIjoicmRfMDFKQjdRMk0ifQ.cYcYb8j0iVwfhPcYHcRWOelqQXFhdxUrPSpTylpN2vk",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999999.5,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "lookup/esign-lookup-prefix",
+			"type": "lookup",
+			"description": "Signed under esign-lookup/1.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.wg51cBb8i2IYCStX-T9p4IX9I_5RrKG25TTR4frJ_A0",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "esign-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/wrong-prefix",
+			"type": "lookup",
+			"description": "Signed under voucher-hold/1, presented as lookup.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.Y0Oit459xxHjMv9sv8XQOzdylwuCffSTHtPBs9t-JrE",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/esign-prefix",
+			"type": "lookup",
+			"description": "Signed under esign-intent/1 with the same secret: other protocols never verify.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.o3LBZFuEv2m0JsMlh56t0pg_Ft2kxisxWYO0-NHaI7I",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "esign-intent/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/hold-token-presented",
+			"type": "lookup",
+			"description": "A genuine hold token presented as lookup.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInJpZCI6InJkXzAxSkI3UTJNIiwiaWF0IjoxNzk5OTk5OTQwLCJleHAiOjE4MDAwMDA4NDAsInJlZiI6IkJLN1EyTSIsImtpbmQiOiJtb25leSIsImFtb3VudE1pbm9yIjoyNTAwLCJjdXJyZW5jeSI6IkdCUCJ9.-t4-AV8UAiz0JYMwzul_iM2_olaSk86FR3TZR_rJwYA",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-hold/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/tampered-payload",
+			"type": "lookup",
+			"description": "The payload segment was replaced (ref changed) and the original signature kept.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLOVpaWiIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				},
+				"tamper": "payload replaced"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/tampered-signature",
+			"type": "lookup",
+			"description": "One signature bit flipped.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZfVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				},
+				"tamper": "first signature bit flipped"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/wrong-secret",
+			"type": "lookup",
+			"description": "cid is the paired client, signed with client B's secret.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.QJo8FlhJGiseREAp_Q0IhogNuoNBaSQ75NXY5RqWYeI",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_INVALID"
+			}
+		},
+		{
+			"name": "lookup/unknown-client",
+			"type": "lookup",
+			"description": "cid is not paired.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X3Vua25vd24xIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.MbASU0FAMMcOLtliEJweBXmvz_u3zgFS1ZZr8Sm_Mr4",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "gIGCg4SFhoeIiYqLjI2Oj5CRkpOUlZaXmJmam5ydnp8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_unknown1",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "CLIENT_UNKNOWN"
+			}
+		},
+		{
+			"name": "lookup/typ-mismatch",
+			"type": "lookup",
+			"description": "Signed under voucher-lookup/1 but typ is 'hold'.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJob2xkIiwiY2lkIjoiY2xfdGVzdF9hYWFhYWFhYSIsInRzIjoxNzk5OTk5OTkwLCJyZWYiOiJCSzdRMk0iLCJyaWQiOiJyZF8wMUpCN1EyTSJ9.ktC9k4Dvh-Be5VfE2OExa5f2OPdmURX20LydCSGVDFs",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "hold",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "lookup/wrong-version",
+			"type": "lookup",
+			"description": "v is 2.",
+			"input": {
+				"token": "eyJ2IjoyLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.Zm3KYQYz-XWIy4WnjMr1lvT5D7DSaiVlZ_yL5sAnxQg",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 2,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAYLOAD_INVALID"
+			}
+		},
+		{
+			"name": "lookup/malformed-padding",
+			"type": "lookup",
+			"description": "Payload segment carries '=' padding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0=.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-noncanonical-signature",
+			"type": "lookup",
+			"description": "Signature's last character has a non-zero padding bit.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd9",
+				"expectedPrefix": "voucher-lookup/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-standard-alphabet",
+			"type": "lookup",
+			"description": "'+' from the standard base64 alphabet.",
+			"input": {
+				"token": "+yJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-three-segments",
+			"type": "lookup",
+			"description": "Three segments.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8.ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-empty-payload",
+			"type": "lookup",
+			"description": "Payload segment is empty.",
+			"input": {
+				"token": ".ZPVA1t0fu_j7UEl-Goon9P7daQM_YVM0rEES-v77qd8",
+				"expectedPrefix": "voucher-lookup/1"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-not-json",
+			"type": "lookup",
+			"description": "Signed payload is not JSON.",
+			"input": {
+				"token": "aG9sZCBtZQ.GdT2zn-BLQlsWJkzQDIJMjgyeXnkUdqII8DszarTowg",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-bom",
+			"type": "lookup",
+			"description": "Signed payload starts with a UTF-8 byte-order mark.",
+			"input": {
+				"token": "77u_eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIn0._5DTLYv6cZIaLGVxqsO81svKcmukC3AUAIOCPMUhKYs",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/malformed-array",
+			"type": "lookup",
+			"description": "Signed payload is a JSON array.",
+			"input": {
+				"token": "WzFd.gGQ5v1oNuEN9gr86ebF_O1rjEXp5kD7kPVwOwORF5gw",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_MALFORMED"
+			}
+		},
+		{
+			"name": "lookup/oversize",
+			"type": "lookup",
+			"description": "1026 characters: over the 1024 limit, rejected before decoding.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIiwicGFkIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHgifQ.viaFLh-RRJaOduaRKumfMxq6IjRtK-CFxRRSb4wYi0k",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": false,
+				"error": "TOKEN_TOO_LARGE"
+			}
+		},
+		{
+			"name": "lookup/max-length",
+			"type": "lookup",
+			"description": "Exactly 1024 characters, with an unknown field: valid.",
+			"input": {
+				"token": "eyJ2IjoxLCJ0eXAiOiJsb29rdXAiLCJjaWQiOiJjbF90ZXN0X2FhYWFhYWFhIiwidHMiOjE3OTk5OTk5OTAsInJlZiI6IkJLN1EyTSIsInJpZCI6InJkXzAxSkI3UTJNIiwicGFkIjoieHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCJ9.v7-ABBaNHhnka4YxXbwbgmbb6VeIknO5kg9Y1SJHZEo",
+				"expectedPrefix": "voucher-lookup/1",
+				"signedWithPrefix": "voucher-lookup/1",
+				"signedWithSecret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			},
+			"verifier": {
+				"now": 1800000000,
+				"clients": {
+					"cl_test_aaaaaaaa": {
+						"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8",
+						"revoked": false
+					}
+				}
+			},
+			"expected": {
+				"ok": true,
+				"payload": {
+					"v": 1,
+					"typ": "lookup",
+					"cid": "cl_test_aaaaaaaa",
+					"ts": 1799999990,
+					"ref": "BK7Q2M",
+					"rid": "rd_01JB7Q2M",
+					"pad": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+				}
+			}
+		},
+		{
+			"name": "pairing/valid",
+			"type": "pairing",
+			"description": "voucher1.<clientId>.<43-character base64url secret>.",
+			"input": {
+				"pairing": "voucher1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"expected": {
+				"ok": true,
+				"clientId": "cl_test_aaaaaaaa",
+				"secret": "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			}
+		},
+		{
+			"name": "pairing/esign-pairing",
+			"type": "pairing",
+			"description": "An e-sign pairing string is not a voucher pairing.",
+			"input": {
+				"pairing": "esign1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/wrong-version",
+			"type": "pairing",
+			"description": "Unknown pairing version.",
+			"input": {
+				"pairing": "voucher2.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/missing-secret",
+			"type": "pairing",
+			"description": "Only two segments.",
+			"input": {
+				"pairing": "voucher1.cl_test_aaaaaaaa"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/short-secret",
+			"type": "pairing",
+			"description": "Secret decodes to 31 bytes.",
+			"input": {
+				"pairing": "voucher1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fg"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/padded-secret",
+			"type": "pairing",
+			"description": "Secret carries '=' padding.",
+			"input": {
+				"pairing": "voucher1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8="
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/noncanonical-secret",
+			"type": "pairing",
+			"description": "Secret's last character has a non-zero padding bit.",
+			"input": {
+				"pairing": "voucher1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn9"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/bad-client-id",
+			"type": "pairing",
+			"description": "clientId has three characters.",
+			"input": {
+				"pairing": "voucher1.cl_.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "pairing/surrounding-whitespace",
+			"type": "pairing",
+			"description": "Parsers do not trim.",
+			"input": {
+				"pairing": " voucher1.cl_test_aaaaaaaa.YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8\n"
+			},
+			"expected": {
+				"ok": false,
+				"error": "PAIRING_MALFORMED"
+			}
+		},
+		{
+			"name": "code/generate-zero",
+			"type": "code",
+			"description": "Ten zero bytes.",
+			"input": {
+				"bytes": "00000000000000000000"
+			},
+			"expected": {
+				"ok": true,
+				"code": "0000000000000000"
+			}
+		},
+		{
+			"name": "code/generate-ones",
+			"type": "code",
+			"description": "Ten 0xff bytes: the last symbol, Z, everywhere.",
+			"input": {
+				"bytes": "ffffffffffffffffffff"
+			},
+			"expected": {
+				"ok": true,
+				"code": "ZZZZZZZZZZZZZZZZ"
+			}
+		},
+		{
+			"name": "code/generate-sequence",
+			"type": "code",
+			"description": "Bytes 00 11 22 … 99.",
+			"input": {
+				"bytes": "00112233445566778899"
+			},
+			"expected": {
+				"ok": true,
+				"code": "008J4CT4ANK7F24S"
+			}
+		},
+		{
+			"name": "code/generate-alphabet-low",
+			"type": "code",
+			"description": "The first 16 symbols in order.",
+			"input": {
+				"bytes": "00443214c74254b635cf"
+			},
+			"expected": {
+				"ok": true,
+				"code": "0123456789ABCDEF"
+			}
+		},
+		{
+			"name": "code/generate-alphabet-high",
+			"type": "code",
+			"description": "The last 16 symbols in order.",
+			"input": {
+				"bytes": "84653a56d7c675be77df"
+			},
+			"expected": {
+				"ok": true,
+				"code": "GHJKMNPQRSTVWXYZ"
+			}
+		},
+		{
+			"name": "code/canonical",
+			"type": "code",
+			"description": "The canonical 16-character code.",
+			"input": {
+				"text": "B8Y03ZKQ22NWT2A2"
+			},
+			"expected": {
+				"ok": true,
+				"code": "B8Y03ZKQ22NWT2A2",
+				"display": "B8Y0-3ZKQ-22NW-T2A2",
+				"id": "69091b99ba6443208bcefe8844ac855326f7ff91e090a3847cdf60438002de86"
+			}
+		},
+		{
+			"name": "code/display",
+			"type": "code",
+			"description": "The grouped display form.",
+			"input": {
+				"text": "B8Y0-3ZKQ-22NW-T2A2"
+			},
+			"expected": {
+				"ok": true,
+				"code": "B8Y03ZKQ22NWT2A2",
+				"display": "B8Y0-3ZKQ-22NW-T2A2",
+				"id": "69091b99ba6443208bcefe8844ac855326f7ff91e090a3847cdf60438002de86"
+			}
+		},
+		{
+			"name": "code/lowercase",
+			"type": "code",
+			"description": "Lower case.",
+			"input": {
+				"text": "b8y0-3zkq-22nw-t2a2"
+			},
+			"expected": {
+				"ok": true,
+				"code": "B8Y03ZKQ22NWT2A2",
+				"display": "B8Y0-3ZKQ-22NW-T2A2",
+				"id": "69091b99ba6443208bcefe8844ac855326f7ff91e090a3847cdf60438002de86"
+			}
+		},
+		{
+			"name": "code/spaces",
+			"type": "code",
+			"description": "Spaces, a tab and a line feed instead of dashes.",
+			"input": {
+				"text": "B8Y0 3ZKQ\t22NW\nT2A2"
+			},
+			"expected": {
+				"ok": true,
+				"code": "B8Y03ZKQ22NWT2A2",
+				"display": "B8Y0-3ZKQ-22NW-T2A2",
+				"id": "69091b99ba6443208bcefe8844ac855326f7ff91e090a3847cdf60438002de86"
+			}
+		},
+		{
+			"name": "code/confusables",
+			"type": "code",
+			"description": "O for 0, I and l for 1.",
+			"input": {
+				"text": "O1IL-0000-0000-000l"
+			},
+			"expected": {
+				"ok": true,
+				"code": "0111000000000001",
+				"display": "0111-0000-0000-0001",
+				"id": "a014b25cab105b44388b9f786d7f4d5a83529de01d8c7ab02489ab7fcceb4725"
+			}
+		},
+		{
+			"name": "code/surrounding",
+			"type": "code",
+			"description": "Leading and trailing spaces and dashes.",
+			"input": {
+				"text": " -B8Y03ZKQ22NWT2A2- "
+			},
+			"expected": {
+				"ok": true,
+				"code": "B8Y03ZKQ22NWT2A2",
+				"display": "B8Y0-3ZKQ-22NW-T2A2",
+				"id": "69091b99ba6443208bcefe8844ac855326f7ff91e090a3847cdf60438002de86"
+			}
+		},
+		{
+			"name": "code/too-short",
+			"type": "code",
+			"description": "15 characters.",
+			"input": {
+				"text": "B8Y03ZKQ22NWT2A"
+			},
+			"expected": {
+				"ok": false
+			}
+		},
+		{
+			"name": "code/too-long",
+			"type": "code",
+			"description": "17 characters.",
+			"input": {
+				"text": "B8Y03ZKQ22NWT2A20"
+			},
+			"expected": {
+				"ok": false
+			}
+		},
+		{
+			"name": "code/letter-u",
+			"type": "code",
+			"description": "U is not in the alphabet.",
+			"input": {
+				"text": "U8Y03ZKQ22NWT2A2"
+			},
+			"expected": {
+				"ok": false
+			}
+		},
+		{
+			"name": "code/punctuation",
+			"type": "code",
+			"description": "A dot is not a separator.",
+			"input": {
+				"text": "B8Y03ZKQ.22NWT2A2"
+			},
+			"expected": {
+				"ok": false
+			}
+		},
+		{
+			"name": "code/non-ascii",
+			"type": "code",
+			"description": "A dotless ı would upper-case to I; non-ASCII is refused first.",
+			"input": {
+				"text": "ı8Y03ZKQ22NWT2A2"
+			},
+			"expected": {
+				"ok": false
+			}
+		},
+		{
+			"name": "code/over-64",
+			"type": "code",
+			"description": "More than 64 characters, even if mostly separators.",
+			"input": {
+				"text": "B8Y03ZKQ22NWT2A2-------------------------------------------------"
+			},
+			"expected": {
+				"ok": false
+			}
+		},
+		{
+			"name": "code/empty",
+			"type": "code",
+			"description": "Empty.",
+			"input": {
+				"text": ""
+			},
+			"expected": {
+				"ok": false
+			}
+		}
+	]
+}
