@@ -4,7 +4,7 @@ title: "Vouchers admin and reports (money and activity kept apart)"
 phase: 8
 package: vouchers
 edition: pro
-status: review
+status: done
 model: sonnet-5.5
 size: M
 depends_on: [T165]
