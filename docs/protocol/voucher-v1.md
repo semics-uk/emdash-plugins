@@ -244,6 +244,12 @@ first settles it through a lookup (§8.3). It then takes `min(balance, dueMinor)
 
 Response `{ "ok": true, "hold": "<hold token>" }`.
 
+Vouchers cannot call Events, so "settles it through a lookup" runs through the suite: when the answer is
+`VOUCHER_NO_BALANCE` and the voucher has open holds, the error body carries `"lookups": ["<lookup token>", …]` (at
+most five). The suite passes each to Events (§8.3), passes every `settle` token Events answers to §8.2, and asks for
+the hold again. A booking that already holds the voucher, within that hold's `exp`, gets its hold token back
+instead of a second hold.
+
 ### 8.2 `POST public/redeem/settle` (Vouchers)
 
 Request `{ "settle": "<settle token>" }`. Verifies it (type `settle`), matches `rid` and `ref` to a hold it issued
