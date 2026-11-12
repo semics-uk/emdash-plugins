@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- (none)
+- T164 voucher/1 protocol (agent); then T165 Vouchers core (Pro), T166 redemption, T167 admin, T168 UI (T163 spec approved 2026-11-12)
 
 ## Next
 - Oli to decide: move the admin setup check page (about 3.2 KB) to a site-side page to save Events backend bytes (T162)
@@ -22,11 +22,11 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Events backend size: 125 KiB budget; Free Events 119,392 bytes after T162 (rc.11)
 
 ## Ideas
+- Payments plugin investigation: measure what moving Stripe out of Events Pro would save (only if Events Pro size gets tight; T163)
 - Templates page links straight to the event it was opened from, not the events list
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
-- Gift vouchers spec (T163, lmsc-site#33): read and say go; build tasks T164–T168 follow
 
 ## Done
 - 2026-11-11 rc.11 published (T162 shrink, #27): npm Free and Pro (Pro rebuilt on Free, no Pro changes), EmDash registry; LMSC staging still on rc.9

@@ -3230,7 +3230,7 @@
 			"phase": 8,
 			"package": "vouchers",
 			"edition": "pro",
-			"status": "review",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -3241,19 +3241,129 @@
 				"R22",
 				"R44"
 			],
+			"unblocks": [
+				"T164"
+			],
+			"column": "done"
+		},
+		"T164": {
+			"file": "T164-voucher-protocol.md",
+			"id": "T164",
+			"title": "Protocol voucher/1: doc, test vectors and shared token code",
+			"phase": 8,
+			"package": "shared",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T163"
+			],
+			"spec": [
+				"R16"
+			],
+			"unblocks": [
+				"T165"
+			],
+			"column": "in-progress"
+		},
+		"T165": {
+			"file": "T165-vouchers-core-pro.md",
+			"id": "T165",
+			"title": "Vouchers core (Pro): storage, settings, purchase via Stripe, issue, hold and settle",
+			"phase": 8,
+			"package": "vouchers",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T164"
+			],
+			"spec": [
+				"R16",
+				"R22"
+			],
+			"unblocks": [
+				"T166",
+				"T167"
+			],
+			"column": "backlog"
+		},
+		"T166": {
+			"file": "T166-events-voucher-redemption.md",
+			"id": "T166",
+			"title": "Events Pro voucher redemption, suite wiring and the site Stripe webhook endpoint",
+			"phase": 8,
+			"package": "events-suite",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [
+				"T165"
+			],
+			"spec": [
+				"R16",
+				"R22",
+				"R44"
+			],
+			"unblocks": [
+				"T168"
+			],
+			"column": "backlog"
+		},
+		"T167": {
+			"file": "T167-vouchers-admin-reports.md",
+			"id": "T167",
+			"title": "Vouchers admin and reports (money and activity kept apart)",
+			"phase": 8,
+			"package": "vouchers",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "sonnet-5.5",
+			"size": "M",
+			"depends_on": [
+				"T165"
+			],
+			"spec": [],
+			"unblocks": [
+				"T168"
+			],
+			"column": "backlog"
+		},
+		"T168": {
+			"file": "T168-vouchers-ui-journey.md",
+			"id": "T168",
+			"title": "Vouchers UI (buy page, printable voucher), docs and Playwright journeys",
+			"phase": 8,
+			"package": "vouchers",
+			"edition": "pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T166",
+				"T167"
+			],
+			"spec": [],
 			"unblocks": [],
-			"column": "review"
+			"column": "backlog"
 		}
 	},
 	"columns": {
-		"backlog": [],
+		"backlog": [
+			"T165",
+			"T166",
+			"T167",
+			"T168"
+		],
 		"ready": [],
 		"in-progress": [
-			"T156"
+			"T156",
+			"T164"
 		],
-		"review": [
-			"T163"
-		],
+		"review": [],
 		"done": [
 			"T000",
 			"T001",
@@ -3396,14 +3506,18 @@
 			"T159",
 			"T160",
 			"T161",
-			"T162"
+			"T162",
+			"T163"
 		],
 		"blocked": [
 			"T111"
 		]
 	},
 	"criticalPath": [
-		"T111"
+		"T164",
+		"T165",
+		"T166",
+		"T168"
 	],
-	"criticalWeight": 2
+	"criticalWeight": 10
 }

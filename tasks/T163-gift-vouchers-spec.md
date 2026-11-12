@@ -4,7 +4,7 @@ title: "Gift vouchers plugin: spec (buy online, redeem when booking)"
 phase: 8
 package: vouchers
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T160]
@@ -16,7 +16,7 @@ spec: [R16, R22, R44]
 Source: semics-tech/lmsc-site#33 (Oli approved a separate plugin, 2026-11-12). Reference for the buying form and
 voucher preview only: lmsc-site PR #31 (closed), `src/pages/gift-voucher.astro` on `feature/modern-gift-vouchers`.
 
-**Status:** spec written; build starts once Oli has seen it. The family's open questions (#33) are answered by
+**Status:** approved by Oli 2026-11-12 (with a restricted key for Vouchers and one site webhook endpoint); build tasks T164–T168 filed. The family's open questions (#33) are answered by
 **defaults in settings** below, so none of them block the build.
 
 ## 1. What it is
@@ -30,7 +30,7 @@ are redeemed in the Events booking flow and by hand at the clubhouse.
 | Public repo | The protocol doc and test vectors (`docs/protocol/voucher-v1.md`), the suite wiring, the Free manifest's secret declaration (R44) | Same split as E-sign and Events Pro |
 | Separate plugin | Its own storage, settings, Stripe webhook and 128 KiB backend budget | Oli's call. It also keeps Events Pro (about 12 KB under its 256 KiB ceiling) from growing by a whole feature |
 | Talking to Events | HMAC-signed tokens, passed by the site's Astro code in-process (the suite) | Plugins can't share storage or call each other (R16, T161). Same pattern as `esign-intent/1` |
-| Stripe | The **same Stripe account**, but Vouchers keeps its own keys and its **own webhook endpoint** (a second endpoint in the Stripe dashboard, with its own signing secret). The Stripe client and webhook verification code are shared through `pro-kit` | A plugin can't read Events' settings. The keys get typed in twice; nothing else is duplicated |
+| Stripe | The **same Stripe account**. Vouchers keeps its own keys: ideally a Stripe **restricted key** (Checkout Sessions write, Refunds write) so the second copy can do less than Events' key. Stripe and webhook code are shared through `pro-kit`. **One webhook endpoint for the site** (§4a) | Plugins can't read each other's settings (T161), so the keys are pasted twice. A central payments plugin was weighed and turned down for now (Oli, 2026-11-12): Events Pro's payment crons (approval holds, settle sweep) run with no site in between and could not reach it |
 | Printable voucher | A voucher page on the site with print styles ("Print or save as PDF"), linked from the email. **No server-made PDF in v1** | A PDF renderer would cost about 30–40 KB of backend and a font. Browser print gives the same result. Can be added later |
 | Shop items | **Bookings only** | There is no shop plugin. The protocol allows another client later |
 
@@ -68,11 +68,21 @@ Under R44 the **Free** Events manifest must declare that secret first, at about 
    email and message, delivery, an optional send date, and Turnstile.
 2. `public/purchase` creates a `pending` voucher order and a Stripe Checkout session (`mode=payment`, metadata
    `plugin=vouchers`, `order=<id>`). The browser goes to Stripe.
-3. Vouchers' `webhooks/stripe` handles `checkout.session.completed`. It is idempotent, keyed by the session id
+3. Vouchers' `webhooks/stripe` (reached through §4a) handles `checkout.session.completed`. It is idempotent, keyed by the session id
    as in Events. It issues the voucher (§5), sends the emails, and the success page shows the voucher.
    `expired` closes the order.
 4. Refunding a purchase: staff void the voucher (only if it has never been used) and refund in the Stripe
    dashboard. In v1 there is no automatic refund.
+
+### 4a. One Stripe webhook for the site
+
+The suite adds a site endpoint, `POST /_semics/stripe`. Stripe has one endpoint per site and one signing secret.
+The endpoint does not verify anything itself. It reads `data.object.metadata.plugin` from the raw body and passes
+the raw body and the `stripe-signature` header in-process to that plugin's `webhooks/stripe`: `vouchers` goes to
+Vouchers, and anything else, including old sessions with no tag, goes to Events. Each plugin still verifies the
+signature with the same webhook secret, so a forged tag reaches only a plugin that rejects it. Events' own
+`webhooks/stripe` endpoint keeps working for sites that point Stripe straight at it. Events Pro tags its new
+Checkout sessions with `metadata[plugin]=events`, which costs a few bytes.
 
 ## 5. The voucher and its code
 
@@ -186,13 +196,13 @@ or not reachable). Booking without the voucher is always possible.
 | E-sign | 0 |
 | Vouchers Pro | New, at most 100 KiB, measured in CI |
 
-## 10. Build tasks (filed once Oli has seen this)
+## 10. Build tasks
 
 1. **T164 Protocol `voucher/1`:** the doc, vectors and shared token code (public, test-first).
 2. **T165 Vouchers core (Pro):** manifest, storage, settings, purchase, Stripe webhook, code issue, the hold
    and settle routes with guarded writes, emails and the send-date cron.
 3. **T166 Events Pro redemption and suite wiring:** the continue wrapper, settle and lookup, the booking-form
-   field and its no-JS path, the totals line, and the Free secret declaration.
+   field and its no-JS path, the totals line, the Free secret declaration, and the site webhook endpoint (§4a).
 4. **T167 Vouchers admin and reports:** list, search, actions, "To post", "Unsettled", and CSV with the kinds
    kept apart.
 5. **T168 UI and journey:** the `<BuyVoucher>` component, the voucher page with print styles, docs, and
@@ -209,4 +219,6 @@ or not reachable). Booking without the voucher is always possible.
       are covered.
 - [x] The family's open questions have defaults in settings.
 - [x] The bytes added to Events (Free and Pro) are estimated.
-- [ ] Oli has seen it. The build tasks T164–T168 are then filed.
+- [x] Oli has seen it (2026-11-12). The build tasks T164–T168 are filed.
+
+Later, not filed: a payments plugin investigation (measure what moving Stripe out of Events Pro would save), if Events Pro's size gets tight.
