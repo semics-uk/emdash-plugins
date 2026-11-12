@@ -3320,7 +3320,7 @@
 			"phase": 8,
 			"package": "vouchers",
 			"edition": "pro",
-			"status": "in-progress",
+			"status": "done",
 			"model": "sonnet-5.5",
 			"size": "M",
 			"depends_on": [
@@ -3330,7 +3330,7 @@
 			"unblocks": [
 				"T168"
 			],
-			"column": "in-progress"
+			"column": "done"
 		},
 		"T168": {
 			"file": "T168-vouchers-ui-journey.md",
@@ -3358,8 +3358,7 @@
 		"ready": [],
 		"in-progress": [
 			"T156",
-			"T166",
-			"T167"
+			"T166"
 		],
 		"review": [],
 		"done": [
@@ -3507,7 +3506,8 @@
 			"T162",
 			"T163",
 			"T164",
-			"T165"
+			"T165",
+			"T167"
 		],
 		"blocked": [
 			"T111"
