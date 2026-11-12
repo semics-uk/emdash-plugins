@@ -4,7 +4,7 @@ title: "Protocol voucher/1: doc, test vectors and shared token code"
 phase: 8
 package: shared
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T163]
