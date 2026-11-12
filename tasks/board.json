@@ -3173,7 +3173,8 @@
 			],
 			"spec": [],
 			"unblocks": [
-				"T161"
+				"T161",
+				"T163"
 			],
 			"column": "done"
 		},
@@ -3221,6 +3222,27 @@
 			],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T163": {
+			"file": "T163-gift-vouchers-spec.md",
+			"id": "T163",
+			"title": "Gift vouchers plugin: spec (buy online, redeem when booking)",
+			"phase": 8,
+			"package": "vouchers",
+			"edition": "pro",
+			"status": "review",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T160"
+			],
+			"spec": [
+				"R16",
+				"R22",
+				"R44"
+			],
+			"unblocks": [],
+			"column": "review"
 		}
 	},
 	"columns": {
@@ -3229,7 +3251,9 @@
 		"in-progress": [
 			"T156"
 		],
-		"review": [],
+		"review": [
+			"T163"
+		],
 		"done": [
 			"T000",
 			"T001",
