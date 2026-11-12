@@ -24,7 +24,7 @@ const CONFUSABLE: Readonly<Record<string, string>> = { O: "0", I: "1", L: "1" };
  */
 export function generateVoucherCode(random: RandomBytes = webCryptoRandom): string {
 	const bytes = random(VOUCHER_CODE_BYTES);
-	if (bytes.length !== VOUCHER_CODE_BYTES) throw new Error(`Random source must return ${VOUCHER_CODE_BYTES} bytes.`);
+	if (bytes.length !== VOUCHER_CODE_BYTES) throw new Error("Random source must return 10 bytes.");
 	let code = "";
 	let value = 0;
 	let bits = 0;
