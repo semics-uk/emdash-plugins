@@ -22,6 +22,11 @@ export interface EventsIntegrationOptions {
 	reconcile?: string;
 	/** How the plugin's own pages look on this site: theme, stylesheet, brand, event page path (`PageOptions`). */
 	page?: PageOptions;
+	/**
+	 * Gift vouchers (T166): the Vouchers core's plugin id and a module exporting `holdVoucher(ctx, input, ids)`
+	 * (the suite passes its own). The checkout then holds a typed "Gift voucher code" between reserve and continue.
+	 */
+	vouchers?: { pluginId: string; module: string };
 }
 
 const VIRTUAL = "virtual:semics-events/config";
@@ -56,6 +61,13 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 		options.reconcile
 			? `export { reconcileBooking as reconcile } from ${JSON.stringify(options.reconcile)};`
 			: "export const reconcile = null;",
+		// Only with vouchers: a site without them gets exactly the config it had (pages read these by namespace).
+		...(options.vouchers
+			? [
+					`export const vouchersPluginId = ${JSON.stringify(options.vouchers.pluginId)};`,
+					`export { holdVoucher } from ${JSON.stringify(options.vouchers.module)};`,
+				]
+			: []),
 	].join("\n");
 	return {
 		name: "semics-events",

@@ -6,4 +6,6 @@ declare module "virtual:semics-events-suite/config" {
 	export const esignPluginId: string;
 	/** How the site dresses the suite's page (`eventsSuite({ page })`); checked by Events' integration. */
 	export const page: import("@semics-tech/emdash-events/astro/lib/page").PageOptions;
+	/** The Vouchers core's plugin id (T166); only exported with `eventsSuite({ vouchers })`. */
+	export const vouchersPluginId: string | undefined;
 }

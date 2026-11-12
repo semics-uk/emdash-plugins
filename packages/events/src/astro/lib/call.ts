@@ -41,6 +41,8 @@ export interface PublicRouteError {
 	message: string;
 	/** Input validation issues, when the route reported them (`BAD_REQUEST`). */
 	issues?: PublicRouteIssue[];
+	/** Any other top-level fields of the route's refusal, e.g. Vouchers' `lookups` (T166). */
+	details?: Record<string, unknown>;
 }
 
 export type PublicRouteResult<T> =
@@ -162,10 +164,12 @@ function refusal(data: unknown): PublicRouteError | undefined {
 	if (!data || typeof data !== "object") return undefined;
 	const body = data as { ok?: unknown; error?: { code?: unknown; message?: unknown }; issues?: unknown };
 	if (body.ok !== false || typeof body.error?.code !== "string") return undefined;
+	const { ok: _ok, error: _error, issues: _issues, ...details } = body as Record<string, unknown>;
 	return {
 		code: body.error.code,
 		message: typeof body.error.message === "string" ? body.error.message : "Request failed",
 		...(Array.isArray(body.issues) ? { issues: body.issues as PublicRouteIssue[] } : {}),
+		...(Object.keys(details).length > 0 ? { details } : {}),
 	};
 }
 

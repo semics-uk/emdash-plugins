@@ -14,13 +14,16 @@
 import { callPublicRoute, type PublicRouteContext } from "@semics-tech/emdash-events/astro/lib/call";
 import { forwardReceipt } from "@semics-tech/emdash-events/astro/lib/receipt";
 import type { BookingView } from "@semics-tech/emdash-events/astro/lib/widget";
+import { settleVoucher } from "./voucher.ts";
 
 export interface ReconcileInput {
-	booking: Pick<BookingView, "bookingRef" | "waiver">;
+	booking: Pick<BookingView, "bookingRef" | "waiver" | "voucher">;
 	/** The Events core's plugin id. */
 	pluginId: string;
 	/** The E-sign core's plugin id. */
 	esignPluginId: string;
+	/** The Vouchers core's plugin id, when the site has one (T166). */
+	vouchersPluginId?: string;
 }
 
 /** A page load asks e-sign at most this many times (the core lists no more refs than this). */
@@ -64,6 +67,21 @@ export async function voidEnvelopes(
 
 /** Forwards the receipts e-sign already holds for the booking's unsigned refs; resolves with how many Events took. */
 export async function reconcileBooking(
+	ctx: PublicRouteContext,
+	input: ReconcileInput,
+): Promise<{ forwarded: number; voided?: number; settled?: number }> {
+	// T166: Events Pro answers a gift voucher hold's outcome (confirmed, released, credited); Vouchers applies it
+	// idempotently, so every visit may send it again. Then whatever the waiver needs.
+	const settle = input.booking.voucher?.settle;
+	if (settle && input.vouchersPluginId) {
+		const settled = (await settleVoucher(ctx, settle, input.vouchersPluginId)) ? 1 : 0;
+		const rest = input.booking.waiver ? await reconcileWaiver(ctx, input) : { forwarded: 0 };
+		return { ...rest, settled };
+	}
+	return reconcileWaiver(ctx, input);
+}
+
+async function reconcileWaiver(
 	ctx: PublicRouteContext,
 	input: ReconcileInput,
 ): Promise<{ forwarded: number; voided?: number }> {

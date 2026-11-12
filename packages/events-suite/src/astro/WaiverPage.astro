@@ -5,7 +5,7 @@
 // receipts are forwarded to Events in-process. The page renders E-sign's <SigningCeremony> and, inline,
 // only Events' page stylesheet, so it sends E-sign's `ceremonyCsp()` (hashes of the ceremony's own script,
 // pad and stylesheet, and of the page's), `Referrer-Policy: no-referrer` and `no-store`.
-import { esignPluginId, eventsPluginId, page } from "virtual:semics-events-suite/config";
+import * as config from "virtual:semics-events-suite/config";
 import SigningCeremony from "@semics-tech/emdash-esign/astro/SigningCeremony.astro";
 import { ceremonyCsp } from "@semics-tech/emdash-esign/astro/lib/csp";
 import PageBrand from "@semics-tech/emdash-events/astro/PageBrand.astro";
@@ -19,9 +19,18 @@ import { waiverSlot } from "./lib/slot";
 
 export const prerender = false;
 
+const { esignPluginId, eventsPluginId, page } = config;
+// Gift vouchers (T166): exported only when the site wires Vouchers, so read through the namespace.
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId;
+
 const outcome = await handleWaiverRequest(
 	{ locals: Astro.locals, url: Astro.url, request: Astro.request, cookie: (name) => Astro.cookies.get(name)?.value },
-	{ eventsPluginId, esignPluginId, ...(page.eventPath ? { eventPath: page.eventPath } : {}) },
+	{
+		eventsPluginId,
+		esignPluginId,
+		...(page.eventPath ? { eventPath: page.eventPath } : {}),
+		...(vouchersPluginId ? { vouchersPluginId } : {}),
+	},
 );
 if (outcome.type === "forbidden") return crossSiteResponse();
 const cookies = outcome.type === "redirect" || outcome.type === "render" ? outcome.cookies : [];

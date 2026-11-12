@@ -121,6 +121,22 @@ Hand-made pairings (T149): the page reads Events' stored string server side with
 the client id and sends it as `clientId` to every E-sign action. So a pasted pairing shows as `paired`,
 and Pair adopts that client (E-sign revokes the auto-pair client it replaces) instead of minting a second.
 
+## Gift vouchers (T166, T163 §4a, §6; protocol `docs/protocol/voucher-v1.md`)
+
+- `eventsSuite({ vouchers })` (descriptor or `{ pluginId }`, optional). Without it nothing changes: no new virtual-config
+  export, route or `pluginIds.vouchers`. With it: `eventsIntegration({ vouchers: { pluginId, module: lib/voucher } })`,
+  the suite config's `vouchersPluginId` (pages read both configs through a namespace import), and `/_semics/stripe`.
+- `lib/voucher.ts` `holdVoucher`: Events `public/booking` (lines with `unitPriceMinor`, totals after promo; never the
+  browser's) → Vouchers `public/redeem/hold` (client-IP headers go along, so Vouchers' per-IP limit sees visitors);
+  `VOUCHER_NO_BALANCE` with `error.details.lookups` → each to Events Pro `public/voucher/lookup`, every settle token
+  to Vouchers `public/redeem/settle`, then one retry. Refusals pass on `VOUCHER_*`/`RATE_LIMITED`, else
+  `VOUCHER_UNAVAILABLE`. Used by `flow.ts` (`voucherCode` field, then continue with `voucherHold`; a refusal cancels
+  the held booking and goes back with field `voucher`) and by Events' `/_events/checkout` (through its integration).
+- `reconcileBooking` also settles `booking.voucher.settle` (Pro's `public/booking`) with `vouchersPluginId`.
+- `lib/stripe.ts` `routeStripeWebhook` (`/_semics/stripe`): reads `data.object.metadata.plugin`; `vouchers` → Vouchers
+  (when configured), anything else or unparsable → Events; hands the raw body and `stripe-signature` in process to
+  that plugin's raw `webhooks/stripe` and turns its wire answer into the Response. Verifies nothing itself.
+
 ## Tests
 
 `tests/*.test.ts`, plain Node vitest: the flow runs the real UI helpers of both products against a fake

@@ -11,11 +11,25 @@ import {
 	widgetErrorLocation,
 } from "./widget";
 
+/** What the suite's voucher hook answers (T166): a signed `voucher-hold/1` token, or the refusal's code. */
+export type VoucherHoldResult = { ok: true; hold: string } | { ok: false; code: string };
+
+/**
+ * Holds a gift voucher for a booking just reserved (T166, voucher/1 §8.1): the suite's `holdVoucher`, given
+ * through `eventsIntegration({ vouchers })`. Events never talks to Vouchers itself.
+ */
+export type VoucherHook = (
+	ctx: PublicRouteContext,
+	input: { code: string; bookingRef: string; accessToken: string },
+) => Promise<VoucherHoldResult>;
+
 export interface CheckoutFormOptions {
 	/** The core's plugin id. Defaults to the slug; registry installs pass their `r_…` id. */
 	pluginId?: string;
 	/** Injected for tests: makes the idempotency key when the form carries none. */
 	newKey?: () => string;
+	/** The gift voucher hold (T166); without it a typed voucher code is refused (`VOUCHER_UNAVAILABLE`). */
+	voucher?: VoucherHook;
 }
 
 export interface CheckoutRedirect {
@@ -178,6 +192,10 @@ export async function handleCheckoutForm(
 	});
 	if (invalid.length > 0) return refuse("BAD_REQUEST", invalid);
 
+	// A gift voucher (T166) is held between reserve and continue; without the suite's hook it cannot be.
+	const voucherCode = text(form, "voucherCode");
+	if (voucherCode && !options.voucher) return refuse("VOUCHER_UNAVAILABLE", ["voucher"]);
+
 	const turnstileToken = text(form, "cf-turnstile-response");
 	// Only a typed code is sent: Free's reserve refuses unknown keys, and only Pro offers the field.
 	const promoCode = text(form, "promoCode");
@@ -210,11 +228,22 @@ export async function handleCheckoutForm(
 	// A resubmit of a booking that is already confirmed gets no new token: this browser has its cookie.
 	if (!accessToken) return { location: done };
 	const cookie = { name: bookingCookieName(bookingRef), value: accessToken };
+	let voucherHold: string | undefined;
+	if (voucherCode && options.voucher) {
+		const held = await options.voucher(ctx, { code: voucherCode, bookingRef, accessToken });
+		if (!held.ok) {
+			// Nothing paid yet: release the places so the corrected order can have them.
+			const body = { bookingRef, accessToken };
+			await callPublicRoute(ctx, { method: "POST", path: "public/booking/cancel", pluginId, body });
+			return refuse(held.code, ["voucher"]);
+		}
+		voucherHold = held.hold;
+	}
 	const next = await callPublicRoute<{ next?: { type?: string; url?: string } }>(ctx, {
 		method: "POST",
 		path: "public/checkout/continue",
 		pluginId,
-		body: { bookingRef, accessToken },
+		body: { bookingRef, accessToken, ...(voucherHold ? { voucherHold } : {}) },
 	});
 	if (!next.ok) return fail(next.error.code, bookingRef, cookie);
 

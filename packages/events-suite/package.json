@@ -15,6 +15,7 @@
 		"./astro/WaiverPage.astro": "./src/astro/WaiverPage.astro",
 		"./astro/TemplatesPage.astro": "./src/astro/TemplatesPage.astro",
 		"./astro/PairPage.astro": "./src/astro/PairPage.astro",
+		"./astro/stripe-endpoint": "./src/astro/stripe-endpoint.ts",
 		"./astro/lib/*": "./src/astro/lib/*.ts"
 	},
 	"files": [

@@ -161,6 +161,11 @@ export const WAIVER_MESSAGES: Record<string, string> = {
 	NOT_FOUND: "This event is not taking bookings.",
 	SIGNING_UNAVAILABLE:
 		"The waiver could not be opened for signing just now. Your tickets are still held for a short time: try again, or contact the organiser.",
+	VOUCHER_INVALID: "That gift voucher code is not valid.",
+	VOUCHER_NO_BALANCE: "That gift voucher has nothing left to spend.",
+	VOUCHER_WRONG_ACTIVITY: "That gift voucher is for a different activity.",
+	VOUCHER_CURRENCY: "That gift voucher is in a different currency.",
+	VOUCHER_UNAVAILABLE: "Gift vouchers can't be used right now. Remove the code to book without it.",
 	INTERNAL: "Something went wrong. Please try again.",
 };
 
@@ -219,7 +224,7 @@ export function waiverErrorLocation(
 }
 
 const KNOWN_FIELD = new RegExp(
-	`^(event|occurrence|name|email|tickets|attendees|attendee\\.([1-9]|${MAX_SEATS})\\.(ticketTypeId|name|email))$`,
+	`^(event|occurrence|name|email|tickets|voucher|attendees|attendee\\.([1-9]|${MAX_SEATS})\\.(ticketTypeId|name|email))$`,
 );
 
 /** The refusal a widget shows after a round trip; only for the widget of `eventId`. */

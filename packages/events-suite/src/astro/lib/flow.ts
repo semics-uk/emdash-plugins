@@ -42,6 +42,7 @@ import {
 	waiverErrorLocation,
 } from "./form.ts";
 import { voidEnvelopes } from "./reconcile.ts";
+import { holdVoucher } from "./voucher.ts";
 
 /** The steps of the flow. `pay` is the Phase 4 slot: continue's `pay` answer is followed as it is. */
 export const FLOW_STEPS = ["book", "sign", "pay", "done"] as const;
@@ -51,6 +52,8 @@ export interface SuiteIds {
 	esignPluginId: string;
 	/** The site's event page for "Book again" (`page.eventPath`); default `/events/{slug}`. */
 	eventPath?: string;
+	/** The Vouchers core's plugin id, when the site has gift vouchers (T166). */
+	vouchersPluginId?: string;
 }
 
 export interface WaiverRequestContext {
@@ -265,6 +268,9 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 	const read = readWaiverForm(form);
 	if (!read.ok) return refuse(read.code, read.fields);
 	const order = read.order;
+	// A gift voucher (T166) is held with Vouchers between reserve and continue; a site without Vouchers cannot.
+	const voucherCode = (form.get("voucherCode") ?? "").toString().trim();
+	if (voucherCode && !ids.vouchersPluginId) return refuse("VOUCHER_UNAVAILABLE", ["voucher"]);
 	// An order the waiver rules refuse never reserves: no booking is left behind, and no "cancelled" email sent.
 	if (form.get("waiverEach") === "1") {
 		const seats = checkWaiverSeats(order);
@@ -293,13 +299,29 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 	const cookies: CookieOp[] = [
 		{ name: bookingCookieName(ref), value: accessToken, options: bookingCookieOptions(ctx.url) },
 	];
+	let voucherHold: string | undefined;
+	if (voucherCode && ids.vouchersPluginId) {
+		const vouchers = { eventsPluginId: ids.eventsPluginId, vouchersPluginId: ids.vouchersPluginId };
+		const held = await holdVoucher(call, { code: voucherCode, bookingRef: ref, accessToken }, vouchers);
+		if (!held.ok) {
+			// Nothing paid or signed yet: release the places so the corrected order can have them.
+			await post(call, ids.eventsPluginId, "public/booking/cancel", { bookingRef: ref, accessToken });
+			return refuse(held.code, ["voucher"]);
+		}
+		voucherHold = held.hold;
+	}
 
 	const continued = await post<{ next?: { type?: unknown; url?: unknown; intents?: unknown } }>(
 		call,
 		ids.eventsPluginId,
 		"public/checkout/continue",
 		// An event with no waiver is booked without attendee rows: Events plans the seats itself.
-		{ bookingRef: ref, accessToken, ...(order.attendees.length > 0 ? { attendees: order.attendees } : {}) },
+		{
+			bookingRef: ref,
+			accessToken,
+			...(order.attendees.length > 0 ? { attendees: order.attendees } : {}),
+			...(voucherHold ? { voucherHold } : {}),
+		},
 	);
 	if (!continued.ok) {
 		// Nothing to sign or pay for yet: release the held seats so a corrected order can have them.

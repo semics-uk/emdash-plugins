@@ -61,6 +61,9 @@ const id = anchorId(eventId);
 // Promo codes are Events Pro's (T078): the field shows only when the core says it takes them. An
 // applied code lives in an HttpOnly cookie (`/_events/promo`), never the URL, and is checked again here.
 const takesCodes = data?.promoCodes === true;
+// Gift vouchers (T166): only Events Pro paired with Vouchers says so. The code goes with the order; the
+// checkout holds it with Vouchers between reserve and continue, and never puts it in a URL.
+const takesVouchers = data?.vouchers === true;
 let promo: PromoView | null = Astro.props.promo ?? null;
 if (takesCodes && Astro.props.promo === undefined) {
 	let code = "";
@@ -298,6 +301,27 @@ const when = (iso: string) => {
 								{promo.note}
 							</p>
 						)}
+					</div>
+				)}
+
+				{takesVouchers && (
+					<div class="semics-field semics-voucher">
+						<label for={`${id}-voucher`}>{t("widget.voucher.label")}</label>
+						<input
+							id={`${id}-voucher`}
+							name="voucherCode"
+							type="text"
+							autocomplete="off"
+							autocapitalize="characters"
+							spellcheck="false"
+							maxlength="64"
+							data-field="voucher"
+							aria-invalid={invalid("voucher")}
+							aria-describedby={errId("voucher")}
+						/>
+						<p class="semics-field-error" id={errId("voucher")} data-error-for="voucher" data-message={fieldText("voucher")}>
+							{bad("voucher") ? fieldText("voucher") : ""}
+						</p>
 					</div>
 				)}
 

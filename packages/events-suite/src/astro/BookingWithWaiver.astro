@@ -318,6 +318,13 @@ const currency = data?.currency ?? "GBP";
 					</div>
 				)}
 
+				{data?.vouchers === true && (
+					<div class="semics-field">
+						<label for={`${id}-voucher`}>Gift voucher code</label>
+						<input id={`${id}-voucher`} name="voucherCode" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="64" aria-invalid={bad("voucher")} />
+					</div>
+				)}
+
 				<div class="semics-summary" data-summary data-currency={currency} data-locale={locale} data-price-minor={single ? String(single.priceMinor) : undefined} data-one="{n} person" data-many="{n} people" data-free={formatMoney(0, currency, locale)} aria-live="polite" data-testid="waiver-summary">
 					<p class="semics-summary-when" data-summary-when hidden></p>
 					<p class="semics-summary-total">

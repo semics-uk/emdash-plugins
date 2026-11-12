@@ -20,6 +20,12 @@ export interface EventsSuiteOptions {
 	esign?: SuiteCore;
 	/** How `/booking` and `/_events/waiver` look on this site: theme, stylesheet, brand, event page path. */
 	page?: PageOptions;
+	/**
+	 * Gift vouchers (T166): the Vouchers Pro core (its descriptor, or `{ pluginId }`). Optional; without it a
+	 * site is wired exactly as before. With it the booking forms hold a "Gift voucher code" with Vouchers and the
+	 * site gets one Stripe webhook endpoint, `/_semics/stripe`, for both Events and Vouchers.
+	 */
+	vouchers?: SuiteCore;
 }
 
 /** The slice of Astro's integration API the injected pages need (no `astro` dependency). */
@@ -40,8 +46,8 @@ export interface EventsSuite {
 	plugins: PluginDescriptor[];
 	/** Spread into Astro's `integrations`: both products' pages and the suite's waiver page. */
 	integrations: SuiteAstroIntegration[];
-	/** The id each core runs under on this site. */
-	pluginIds: { events: string; esign: string };
+	/** The id each core runs under on this site (`vouchers` only when configured). */
+	pluginIds: { events: string; esign: string; vouchers?: string };
 }
 
 /** A plugin id is a route segment (`/_emdash/api/plugins/<id>/…`): a slug or a registry `r_…` id. */
@@ -66,19 +72,24 @@ export const TEMPLATES_ROUTE = "/_events/templates";
 export const PAIR_ROUTE = "/_events/pair";
 /** What Events' booking page runs for a booking waiting for signatures (T066). */
 const RECONCILE_MODULE = "@semics-tech/emdash-events-suite/astro/lib/reconcile";
+/** The site's one Stripe webhook endpoint, routing by the session's `metadata.plugin` (T163 §4a, T166). */
+export const STRIPE_ROUTE = "/_semics/stripe";
+/** What Events' checkout runs to hold a gift voucher (T166). */
+const VOUCHER_MODULE = "@semics-tech/emdash-events-suite/astro/lib/voucher";
 
 /**
  * Injects `/_events/waiver` (the booking and signing steps of `<BookingWithWaiver>`) and gives it,
  * through a virtual module, the id of each core. `eventsSuite()` adds it for you.
  */
 export function suiteIntegration(
-	ids: { eventsPluginId: string; esignPluginId: string },
+	ids: { eventsPluginId: string; esignPluginId: string; vouchersPluginId?: string },
 	page: PageOptions = {},
 ): SuiteAstroIntegration {
 	const config = [
 		`export const eventsPluginId = ${JSON.stringify(ids.eventsPluginId)};`,
 		`export const esignPluginId = ${JSON.stringify(ids.esignPluginId)};`,
 		`export const page = ${JSON.stringify(page)};`,
+		...(ids.vouchersPluginId ? [`export const vouchersPluginId = ${JSON.stringify(ids.vouchersPluginId)};`] : []),
 	].join("\n");
 	return {
 		name: "semics-events-suite",
@@ -99,6 +110,13 @@ export function suiteIntegration(
 					entrypoint: "@semics-tech/emdash-events-suite/astro/PairPage.astro",
 					prerender: false,
 				});
+				if (ids.vouchersPluginId) {
+					injectRoute({
+						pattern: STRIPE_ROUTE,
+						entrypoint: "@semics-tech/emdash-events-suite/astro/stripe-endpoint",
+						prerender: false,
+					});
+				}
 				updateConfig({
 					vite: {
 						plugins: [
@@ -129,8 +147,12 @@ export function suiteIntegration(
 export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 	const events = resolveCore(options.events ?? eventsCore);
 	const esign = resolveCore(options.esign ?? esignCore);
+	const vouchers = options.vouchers ? resolveCore(options.vouchers) : undefined;
+	const voucherIds = vouchers ? { vouchersPluginId: vouchers.id } : {};
 	return {
-		sandboxed: [events.descriptor, esign.descriptor].filter((d): d is PluginDescriptor => d !== undefined),
+		sandboxed: [events.descriptor, esign.descriptor, vouchers?.descriptor].filter(
+			(d): d is PluginDescriptor => d !== undefined,
+		),
 		plugins: [eventsUi(), esignUi()],
 		integrations: [
 			eventsIntegration({
@@ -138,11 +160,12 @@ export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 				esignPluginId: esign.id,
 				reconcile: RECONCILE_MODULE,
 				...(options.page ? { page: options.page } : {}),
+				...(vouchers ? { vouchers: { pluginId: vouchers.id, module: VOUCHER_MODULE } } : {}),
 			}),
 			esignIntegration({ pluginId: esign.id }),
-			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id }, options.page),
+			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id, ...voucherIds }, options.page),
 		],
-		pluginIds: { events: events.id, esign: esign.id },
+		pluginIds: { events: events.id, esign: esign.id, ...(vouchers ? { vouchers: vouchers.id } : {}) },
 	};
 }
 

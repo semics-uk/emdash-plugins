@@ -189,6 +189,11 @@
 				"label": "Stripe webhook signing secret (Pro)",
 				"description": "Used by Events Pro only, for paid tickets; the Free edition ignores it. Stored encrypted."
 			},
+			"vouchersPairing": {
+				"type": "secret",
+				"label": "Vouchers pairing string (Pro)",
+				"description": "Used by Events Pro only, for gift vouchers; the Free edition ignores it. Stored encrypted."
+			},
 			"retentionDays": {
 				"type": "number",
 				"label": "Keep booking data (days)",

@@ -906,7 +906,7 @@ describe("T166 R16 a gift voucher code in <BookingWithWaiver>", () => {
 			lines: [{ ticketTypeId: "tt_adult", qty: 1, unitPriceMinor: 3000 }],
 			totals: { totalMinor: 3000, currency: "GBP" },
 		});
-	const runWith = (h: ReturnType<typeof host>, request: Request, ids = WITH_VOUCHERS) =>
+	const runWith = (h: ReturnType<typeof host>, request: Request, ids: typeof IDS & { vouchersPluginId?: string } = WITH_VOUCHERS) =>
 		handleWaiverRequest({ locals: h.locals, url: new URL(request.url), request, cookie: () => undefined }, ids, {
 			newKey: () => "n".repeat(43),
 		});

@@ -246,6 +246,15 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   the code). The widget re-checks the cookie's code on render (`promoView`), lists an unlock code's hidden types and puts
   the applied code in a hidden `promoCode` field of the order; `handleCheckoutForm` sends `promoCode` only when present
   (Free's reserve refuses unknown keys).
+- Gift vouchers (T166, R16, R44; Vouchers is a separate Pro plugin): the manifest declares the `vouchersPairing` secret
+  "(Pro)" (0 B of backend). `<BookingWidget>` shows "Gift voucher code" (`voucherCode`, field `voucher`) only when
+  `public/event` answers `vouchers: true` (Events Pro, paired). `handleCheckoutForm` takes `voucher` (a `VoucherHook`,
+  given by `eventsIntegration({ vouchers: { pluginId, module } })`, which adds `vouchersPluginId` and `holdVoucher` to
+  the virtual config only then): after reserve it asks the hook for a hold token and sends it as `voucherHold` on
+  continue; a refusal cancels the held booking and goes back to the widget; a typed code without a hook is
+  `VOUCHER_UNAVAILABLE`. `<BookingStatus>` shows `totals.voucherMinor` as "Gift voucher"; `reconcileWanted` includes
+  Pro's `voucher.settle`, passed to the suite's reconcile with `vouchersPluginId`. `callPublicRoute` keeps a
+  refusal's other top-level fields in `error.details` (Vouchers' `lookups`).
 - Custom attendee questions (T080, EV-FR-15, R52; Pro's): `config.questions[]` and `booking.answers` are Free schema
   fields the Free backend never reads. `<BookingWidget>` renders an "About you" fieldset only when `public/event` lists
   `questions` (Pro adds them): `src/astro/lib/questions.ts` (`questionControls`: label `for` each control, `required`,
