@@ -139,6 +139,36 @@ describe("eventsSuite() (SX-FR-01)", () => {
 	});
 });
 
+// T166 (T163 §4a, §6): Vouchers is an optional third core. Without it a site's wiring is exactly as before.
+describe("T166 R16 eventsSuite({ vouchers })", () => {
+	it("R16 without vouchers: no Stripe endpoint, no voucher wiring", () => {
+		const { routes } = wiring(eventsSuite());
+		expect(routes.map((r) => r.pattern)).not.toContain("/_semics/stripe");
+		expect(eventsSuite().pluginIds).not.toHaveProperty("vouchers");
+	});
+
+	it("R16 with a Vouchers id: the site's Stripe endpoint, and the id reaches Events' checkout and the suite pages", () => {
+		const suite = eventsSuite({ vouchers: { pluginId: "r_vouchers1" } });
+		expect(suite.pluginIds).toEqual({ events: eventsCore.id, esign: esignCore.id, vouchers: "r_vouchers1" });
+		expect(suite.sandboxed).toEqual([eventsCore, esignCore]);
+		const wired = wiring(suite);
+		expect(wired.routes.find((r) => r.pattern === "/_semics/stripe")?.entrypoint).toBe(
+			"@semics-tech/emdash-events-suite/astro/stripe-endpoint",
+		);
+		expect(wired.suite).toMatchObject({ vouchersPluginId: "r_vouchers1" });
+		expect(wired.events).toMatchObject({ vouchersPluginId: "r_vouchers1" });
+		const source = setUp(suite.integrations[0] as never).modules["virtual:semics-events/config"];
+		expect(source).toContain('export { holdVoucher } from "@semics-tech/emdash-events-suite/astro/lib/voucher";');
+	});
+
+	it("R16 a Vouchers descriptor is loaded from npm with the other cores", () => {
+		const vouchers = { ...eventsCore, id: "semics-vouchers", entrypoint: "@semics-tech/emdash-vouchers-pro/sandbox" };
+		const suite = eventsSuite({ vouchers });
+		expect(suite.sandboxed).toEqual([eventsCore, esignCore, vouchers]);
+		expect(suite.pluginIds.vouchers).toBe("semics-vouchers");
+	});
+});
+
 describe("page options", () => {
 	it("reach both the booking page and the waiver page", () => {
 		const page = { theme: { accent: "#123456" }, eventPath: "/activities/{slug}" };

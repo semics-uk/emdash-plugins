@@ -343,3 +343,72 @@ describe("T057 cross-site form posts are refused (CSRF), whatever the site's che
 		expect(cookies).toEqual(["semics_booking_ABCDEFGHJK"]);
 	});
 });
+
+// T166 (T163 §6, R16): the widget's "Gift voucher code" goes to the suite's hook between reserve and continue.
+describe("T166 R16 a gift voucher code in the no-JS checkout", () => {
+	const HOLD = `${"h".repeat(40)}.${"s".repeat(43)}`;
+	const withCode = { ...goodForm, voucherCode: " abcd-efgh-jkmn-pqrs " };
+
+	/** Every request, with the reply chosen by route. */
+	function routed(replies: Record<string, unknown>) {
+		const seen: Seen[] = [];
+		const handler = async (_id: string, method: string, path: string, request: Request) => {
+			seen.push({ url: request.url, method, body: await request.clone().json() });
+			return replies[path] ?? { success: true, data: { ok: true } };
+		};
+		return { seen, locals: { emdash: { handlePublicPluginApiRoute: handler } } as never };
+	}
+	const pathOf = (s: Seen) => new URL(s.url).pathname.split("/").slice(-2).join("/");
+
+	it("R16 reserves, asks the hook for a hold with the booking's ref and token, then continues with the hold token", async () => {
+		const h = routed({ "public/checkout/reserve": reserved, "public/checkout/continue": done });
+		const asked: unknown[] = [];
+		const voucher = async (_ctx: unknown, input: unknown) => {
+			asked.push(input);
+			return { ok: true as const, hold: HOLD };
+		};
+		const out = await handleCheckoutForm({ locals: h.locals, url }, form(withCode), { voucher });
+		expect(asked).toEqual([{ code: "abcd-efgh-jkmn-pqrs", bookingRef: "ABCDEFGHJK", accessToken: TOKEN }]);
+		// Reserve never sees the code (Free refuses unknown keys); continue carries only the signed hold.
+		expect(h.seen[0]?.body).not.toHaveProperty("voucherCode");
+		expect(h.seen[1]?.body).toEqual({ bookingRef: "ABCDEFGHJK", accessToken: TOKEN, voucherHold: HOLD });
+		expect(out.location).toBe("/booking?ref=ABCDEFGHJK");
+	});
+
+	it("R16 a refused code cancels the held booking and goes back to the widget with the voucher field, never the code", async () => {
+		const h = routed({ "public/checkout/reserve": reserved });
+		const voucher = async () => ({ ok: false as const, code: "VOUCHER_INVALID" });
+		const out = await handleCheckoutForm({ locals: h.locals, url }, form({ ...withCode, returnTo: "/events/spring" }), {
+			voucher,
+		});
+		expect(h.seen.map(pathOf)).toEqual(["checkout/reserve", "booking/cancel"]);
+		expect(h.seen[1]?.body).toEqual({ bookingRef: "ABCDEFGHJK", accessToken: TOKEN });
+		expect(out.location).toContain("booking_error=VOUCHER_INVALID");
+		expect(out.location).toContain("booking_fields=voucher");
+		expect(out.location.toUpperCase()).not.toContain("ABCD-EFGH");
+		expect(out.cookie).toBeUndefined();
+	});
+
+	it("R16 a code typed where no voucher plugin is wired is refused before anything is reserved", async () => {
+		const h = routed({});
+		const out = await handleCheckoutForm(
+			{ locals: h.locals, url },
+			form({ ...withCode, returnTo: "/events/spring" }),
+			{},
+		);
+		expect(h.seen).toEqual([]);
+		expect(out.location).toContain("booking_error=VOUCHER_UNAVAILABLE");
+	});
+
+	it("R16 an empty voucher field changes nothing: the hook is never asked", async () => {
+		const h = routed({ "public/checkout/reserve": reserved, "public/checkout/continue": done });
+		let asked = 0;
+		const voucher = async () => {
+			asked++;
+			return { ok: true as const, hold: HOLD };
+		};
+		await handleCheckoutForm({ locals: h.locals, url }, form({ ...goodForm, voucherCode: "  " }), { voucher });
+		expect(asked).toBe(0);
+		expect(h.seen[1]?.body).toEqual({ bookingRef: "ABCDEFGHJK", accessToken: TOKEN });
+	});
+});

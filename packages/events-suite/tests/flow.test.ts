@@ -882,6 +882,88 @@ describe("an event without a required waiver (T066, SX-FR-02)", () => {
 	});
 });
 
+// T166 (T163 §6): reserve, then hold with Vouchers, then continue with the hold token. No JavaScript.
+describe("T166 R16 a gift voucher code in <BookingWithWaiver>", () => {
+	const VOUCHERS = "r_vouchers1";
+	const WITH_VOUCHERS = { ...IDS, vouchersPluginId: VOUCHERS };
+	const HOLD = `${"h".repeat(40)}.${"s".repeat(43)}`;
+	const ORDER_WITH_CODE = {
+		intent: "book",
+		plain: "1",
+		eventId: "ev_1",
+		returnTo: "/events/climb",
+		idempotencyKey: "k".repeat(43),
+		name: "Ada Lovelace",
+		email: "ada@example.com",
+		ticketTypeId: "tt_adult",
+		qty: "1",
+		voucherCode: " abcd-efgh-jkmn-pqrs ",
+	};
+	const booked = () =>
+		ok({
+			bookingRef: REF,
+			eventId: "ev_1",
+			lines: [{ ticketTypeId: "tt_adult", qty: 1, unitPriceMinor: 3000 }],
+			totals: { totalMinor: 3000, currency: "GBP" },
+		});
+	const runWith = (
+		h: ReturnType<typeof host>,
+		request: Request,
+		ids: typeof IDS & { vouchersPluginId?: string } = WITH_VOUCHERS,
+	) =>
+		handleWaiverRequest({ locals: h.locals, url: new URL(request.url), request, cookie: () => undefined }, ids, {
+			newKey: () => "n".repeat(43),
+		});
+
+	it("R16 reserve, then hold, then continue with the hold token: a fully paid booking lands on its page", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/booking`]: booked,
+			[`${VOUCHERS} public/redeem/hold`]: () => ok({ hold: HOLD }),
+			[`${EVENTS} public/checkout/continue`]: () =>
+				ok({ bookingRef: REF, status: "confirmed", next: { type: "done", bookingRef: REF } }),
+		});
+		const outcome = expectRedirect(await runWith(h, post(WAIVER_PATH, ORDER_WITH_CODE)));
+		expect(outcome.location).toBe(`/booking?ref=${REF}`);
+		expect(h.calls.map((c) => c.path)).toEqual([
+			"public/checkout/reserve",
+			"public/booking",
+			"public/redeem/hold",
+			"public/checkout/continue",
+		]);
+		expect(h.calls[0]?.body).not.toHaveProperty("voucherCode");
+		expect(h.calls[2]?.body).toMatchObject({ code: "abcd-efgh-jkmn-pqrs", ref: REF, dueMinor: 3000 });
+		expect(h.calls[3]?.body).toEqual({ bookingRef: REF, accessToken: ACCESS, voucherHold: HOLD });
+	});
+
+	it("R16 a refused code cancels the hold and returns to the widget on the voucher field", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: reserve,
+			[`${EVENTS} public/booking`]: booked,
+			[`${VOUCHERS} public/redeem/hold`]: () => refused("VOUCHER_WRONG_ACTIVITY"),
+			[`${EVENTS} public/booking/cancel`]: () => ok({ status: "cancelled" }),
+		});
+		const outcome = expectRedirect(await runWith(h, post(WAIVER_PATH, ORDER_WITH_CODE)));
+		expect(outcome.location).toContain("waiver_error=VOUCHER_WRONG_ACTIVITY");
+		expect(outcome.location).toContain("waiver_fields=voucher");
+		expect(h.calls.map((c) => c.path)).toContain("public/booking/cancel");
+		expect(h.calls.map((c) => c.path)).not.toContain("public/checkout/continue");
+	});
+
+	it("R16 without Vouchers configured a typed code is refused before reserving", async () => {
+		const h = host({});
+		const outcome = expectRedirect(await runWith(h, post(WAIVER_PATH, ORDER_WITH_CODE), IDS));
+		expect(outcome.location).toContain("waiver_error=VOUCHER_UNAVAILABLE");
+		expect(h.calls).toEqual([]);
+	});
+
+	it("R16 the widget shows the field only when public/event says vouchers", () => {
+		const source = readFileSync(resolve(import.meta.dirname, "../src/astro/BookingWithWaiver.astro"), "utf8");
+		expect(source).toContain("data?.vouchers === true");
+		expect(source).toContain('name="voucherCode"');
+	});
+});
+
 describe("the waiver seat rules, before reserving", () => {
 	const order = (attendees: Array<{ name: string; email?: string; minor?: true }>) => ({
 		eventId: "ev",

@@ -42,6 +42,8 @@ export interface PublicEvent {
 	waiverAfter?: boolean;
 	/** True when the core takes promo codes (Events Pro, T078): the widget then shows a code field. */
 	promoCodes?: boolean;
+	/** True when Events Pro is paired with Vouchers (T166): the widget then shows a "Gift voucher code" field. */
+	vouchers?: boolean;
 	/** True when a sold-out event takes a waitlist (T081): the widget then shows a "Join the waitlist" form. */
 	waitlist?: boolean;
 	/** Custom attendee questions (Events Pro, T080): the buyer answers them once per booking. */
@@ -53,8 +55,8 @@ export interface PublicEvent {
  * lines carry only ids (UUIDs for types made in the editor). A hidden type is not listed there.
  */
 /** Whether the booking page hands the booking to the suite's reconciliation: lookups, or void intents (T152). */
-export const reconcileWanted = (b: Pick<BookingView, "waiver"> | undefined): boolean =>
-	Boolean(b?.waiver?.lookups || b?.waiver?.voids);
+export const reconcileWanted = (b: Pick<BookingView, "waiver" | "voucher"> | undefined): boolean =>
+	Boolean(b?.waiver?.lookups || b?.waiver?.voids || b?.voucher?.settle);
 
 export function ticketNames(event: Pick<PublicEvent, "ticketTypes"> | undefined): Record<string, string> {
 	return Object.fromEntries((event?.ticketTypes ?? []).map((t) => [t.id, t.name]));
@@ -76,7 +78,10 @@ export interface BookingView {
 	status: string;
 	eventId?: string;
 	lines: Array<{ ticketTypeId: string; qty: number }>;
-	totals: { totalMinor: number; currency: string };
+	/** `voucherMinor`: what a gift voucher paid (Events Pro, T166), already taken off `totalMinor`. */
+	totals: { totalMinor: number; currency: string; voucherMinor?: number };
+	/** Events Pro (T166): the voucher hold's signed outcome, which the suite passes to Vouchers. */
+	voucher?: { settle?: string | null };
 	holdExpiresAt?: string;
 	/** The event's public info: the booked session (`startsAt`, in `timezone`) and `venue` lead the page (T157); `slug` for "Book again". */
 	event?: { title?: string; startsAt?: string; timezone?: string | null; venue?: string | null; slug?: string | null };
@@ -110,13 +115,13 @@ export interface BookingView {
 
 /** A custom question's field is `q:<question id>` (T080). */
 export type QuestionField = `q:${string}`;
-export type WidgetField = "occurrence" | "promo" | "tickets" | "name" | "email" | QuestionField;
+export type WidgetField = "occurrence" | "promo" | "voucher" | "tickets" | "name" | "email" | QuestionField;
 
 /** Question ids safe in HTML ids, field names and the widget's error URL. */
 export const QUESTION_ID = /^[A-Za-z0-9_-]{1,64}$/;
 
 /** In form order: the first one is where focus goes. */
-export const WIDGET_FIELDS = ["occurrence", "promo", "tickets", "name", "email"] as const;
+export const WIDGET_FIELDS = ["occurrence", "promo", "voucher", "tickets", "name", "email"] as const;
 
 export const WIDGET_PARAMS = { error: "booking_error", fields: "booking_fields", event: "booking_event" } as const;
 
@@ -135,6 +140,11 @@ const ERROR_CODES = [
 	"PROMO_EXHAUSTED",
 	"PROMO_ORDER_TOO_LARGE",
 	"PROMO_UNAVAILABLE",
+	"VOUCHER_INVALID",
+	"VOUCHER_NO_BALANCE",
+	"VOUCHER_WRONG_ACTIVITY",
+	"VOUCHER_CURRENCY",
+	"VOUCHER_UNAVAILABLE",
 	"INTERNAL",
 ] as const;
 

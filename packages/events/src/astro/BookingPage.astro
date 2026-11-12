@@ -8,7 +8,7 @@
 // `src/client/receipt.ts` clears the fragment and posts the receipt here, which forwards it to the
 // core's `signatures/receipt` (no access token needed: the receipt is HMAC-signed) and redirects to
 // `?ref=&waiver=<outcome>`.
-import { esignPluginId, page, pluginId, reconcile } from "virtual:semics-events/config";
+import * as config from "virtual:semics-events/config";
 
 import { type MessageKey, pickLocale, translator } from "../i18n/index";
 import AddToCalendar from "./AddToCalendar.astro";
@@ -38,6 +38,10 @@ import { asOfNow, type BookingView, type PublicEvent, reconcileWanted, ticketNam
 import TicketPass from "./TicketPass.astro";
 
 export const prerender = false;
+
+const { esignPluginId, page, pluginId, reconcile } = config;
+// Gift vouchers (T166): exported only when the site wires Vouchers, so read through the namespace.
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
@@ -144,7 +148,12 @@ if (ref && token) {
 	// closed the tab or signed by email has a receipt this page forwards, then it shows the booking afresh.
 	// An ended booking's open envelopes are voided the same way (Pro's void intents, T152).
 	if (reconcileWanted(booking) && reconcile && esignPluginId) {
-		const done = await reconcile(ctx, { booking, pluginId, esignPluginId });
+		const done = await reconcile(ctx, {
+			booking,
+			pluginId,
+			esignPluginId,
+			...(vouchersPluginId ? { vouchersPluginId } : {}),
+		});
 		if (done.forwarded > 0) {
 			const fresh = await callPublicRoute<BookingView>(ctx, {
 				method: "POST",

@@ -89,6 +89,11 @@ const names = showAttendees && new Set(named).size > 1 ? named : [];
 				<ul>{names.map((name) => <li>{name}</li>)}</ul>
 			</div>
 		)}
+		{(booking.totals.voucherMinor ?? 0) > 0 && (
+			<p class="semics-booking-voucher" data-testid="booking-voucher">
+				{t("booking.voucher")} <span>−{formatMoney(booking.totals.voucherMinor ?? 0, booking.totals.currency, locale)}</span>
+			</p>
+		)}
 		<p class="semics-booking-total">{t("booking.total")} <strong>{formatMoney(booking.totals.totalMinor, booking.totals.currency, locale)}</strong></p>
 	</div>
 	{

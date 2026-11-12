@@ -26,6 +26,13 @@ spec: []
   - a cancelled booking credited back to the voucher;
   - the printout (A4 `page.pdf`).
 
+## From T166
+
+- Check a code before reserving (a Vouchers `public/redeem/check` route, or the suite's hold dry-run), so a mistyped or expired code
+  is refused on the form without reserving, and with no "booking cancelled" email. Today a refused code cancels the held booking.
+- Read activity voucher prices from Events' `public/event` instead of the `activityTypes` setting's price.
+- Events Pro is 252,061 B after T166 (+7,208 B, over T163's +4 KB estimate; 10,083 B left under 256 KiB). Add nothing to Events Pro here.
+
 ## Acceptance criteria
 
 - [ ] All journeys pass on CI and with Pro linked.
