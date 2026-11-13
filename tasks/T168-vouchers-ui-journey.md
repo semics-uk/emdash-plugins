@@ -4,7 +4,7 @@ title: "Vouchers UI (buy page, printable voucher), docs and Playwright journeys"
 phase: 8
 package: vouchers
 edition: pro
-status: backlog
+status: in-progress
 model: opus-5.5
 size: M
 depends_on: [T166, T167]
