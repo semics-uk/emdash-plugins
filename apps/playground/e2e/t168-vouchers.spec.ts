@@ -161,7 +161,10 @@ test("T168 R16 buy a voucher through <BuyVoucher>, open the voucher page and pri
 	const pdf = await page.pdf({ format: "A4", printBackground: true });
 	const text = pdf.toString("latin1");
 	expect(text.match(/\/Type\s*\/Page[^s]/g)?.length, "one A4 page").toBe(1);
-	expect(text).toMatch(/\/MediaBox\s*\[\s*0 0 595(\.\d+)? 841(\.\d+)?\s*\]/);
+	// The card fits A4 less the page's 15 mm margins (180 × 267 mm at 96 CSS px per inch), so it never splits.
+	const box = await card.boundingBox();
+	expect(box?.width ?? 1e9).toBeLessThanOrEqual(Math.floor((180 / 25.4) * 96));
+	expect(box?.height ?? 1e9).toBeLessThanOrEqual(Math.floor((267 / 25.4) * 96));
 	await context.close();
 });
 
