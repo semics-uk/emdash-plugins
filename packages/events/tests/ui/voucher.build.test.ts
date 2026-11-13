@@ -77,6 +77,12 @@ describe("T166 R16 eventsIntegration({ vouchers })", () => {
 		expect(out).toContain('export const vouchersPluginId = "semics-vouchers";');
 		expect(out).toContain('export { holdVoucher } from "suite/voucher";');
 	});
+
+	it("T168 R16 also exports the suite's check, run before reserving", async () => {
+		const out = await load({ vouchers: { pluginId: "semics-vouchers", module: "suite/voucher" } });
+		expect(out).toContain('export { checkVoucher } from "suite/voucher";');
+		expect(source("checkout-endpoint.ts")).toContain("checkVoucher");
+	});
 });
 
 describe("T166 callPublicRoute keeps a refusal's extra fields", () => {

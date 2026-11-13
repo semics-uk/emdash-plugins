@@ -389,6 +389,33 @@ describe("T166 R16 a gift voucher code in the no-JS checkout", () => {
 		expect(out.cookie).toBeUndefined();
 	});
 
+	it("T168 R16 the suite's check refuses a bad code before anything is reserved: no booking, no cancel", async () => {
+		const h = routed({ "public/checkout/reserve": reserved });
+		const asked: unknown[] = [];
+		const check = async (_ctx: unknown, input: unknown) => {
+			asked.push(input);
+			return { ok: false as const, code: "VOUCHER_INVALID" };
+		};
+		const voucher = async () => ({ ok: true as const, hold: HOLD });
+		const out = await handleCheckoutForm({ locals: h.locals, url }, form({ ...withCode, returnTo: "/events/spring" }), {
+			voucher,
+			check,
+		});
+		expect(asked).toEqual([{ code: "abcd-efgh-jkmn-pqrs", eventId: "ev1", ticketTypeIds: ["general"] }]);
+		expect(h.seen).toEqual([]);
+		expect(out.location).toContain("booking_error=VOUCHER_INVALID");
+		expect(out.location).toContain("booking_fields=voucher");
+	});
+
+	it("T168 R16 a code the check passes is reserved and held as before", async () => {
+		const h = routed({ "public/checkout/reserve": reserved, "public/checkout/continue": done });
+		const check = async () => ({ ok: true as const });
+		const voucher = async () => ({ ok: true as const, hold: HOLD });
+		const out = await handleCheckoutForm({ locals: h.locals, url }, form(withCode), { voucher, check });
+		expect(h.seen.map(pathOf)).toEqual(["checkout/reserve", "checkout/continue"]);
+		expect(out.location).toBe("/booking?ref=ABCDEFGHJK");
+	});
+
 	it("R16 a code typed where no voucher plugin is wired is refused before anything is reserved", async () => {
 		const h = routed({});
 		const out = await handleCheckoutForm(

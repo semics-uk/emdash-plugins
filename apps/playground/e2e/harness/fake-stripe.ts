@@ -171,6 +171,9 @@ export async function startFakeStripe(port: number): Promise<FakeStripe> {
 				bookingId: s.form.get("metadata[bookingId]"),
 				bookingRef: s.form.get("metadata[bookingRef]"),
 				...(s.hold ? { hold: s.hold } : {}),
+				// T168: the site's one endpoint routes by `plugin`; Vouchers finds its order by `order`.
+				...(s.form.get("metadata[plugin]") ? { plugin: s.form.get("metadata[plugin]") } : {}),
+				...(s.form.get("metadata[order]") ? { order: s.form.get("metadata[order]") } : {}),
 			},
 			payment_status: s.status !== "complete" ? "unpaid" : s.mode === "setup" ? "no_payment_required" : s.hold ? "unpaid" : "paid",
 			payment_intent: s.paymentIntent,

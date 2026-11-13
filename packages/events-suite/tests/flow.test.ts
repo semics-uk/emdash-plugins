@@ -925,15 +925,17 @@ describe("T166 R16 a gift voucher code in <BookingWithWaiver>", () => {
 		});
 		const outcome = expectRedirect(await runWith(h, post(WAIVER_PATH, ORDER_WITH_CODE)));
 		expect(outcome.location).toBe(`/booking?ref=${REF}`);
+		// T168: the code is checked first (here Vouchers has no check route, which never blocks).
 		expect(h.calls.map((c) => c.path)).toEqual([
+			"public/redeem/check",
 			"public/checkout/reserve",
 			"public/booking",
 			"public/redeem/hold",
 			"public/checkout/continue",
 		]);
-		expect(h.calls[0]?.body).not.toHaveProperty("voucherCode");
-		expect(h.calls[2]?.body).toMatchObject({ code: "abcd-efgh-jkmn-pqrs", ref: REF, dueMinor: 3000 });
-		expect(h.calls[3]?.body).toEqual({ bookingRef: REF, accessToken: ACCESS, voucherHold: HOLD });
+		expect(h.calls[1]?.body).not.toHaveProperty("voucherCode");
+		expect(h.calls[3]?.body).toMatchObject({ code: "abcd-efgh-jkmn-pqrs", ref: REF, dueMinor: 3000 });
+		expect(h.calls[4]?.body).toEqual({ bookingRef: REF, accessToken: ACCESS, voucherHold: HOLD });
 	});
 
 	it("R16 a refused code cancels the hold and returns to the widget on the voucher field", async () => {
@@ -948,6 +950,19 @@ describe("T166 R16 a gift voucher code in <BookingWithWaiver>", () => {
 		expect(outcome.location).toContain("waiver_fields=voucher");
 		expect(h.calls.map((c) => c.path)).toContain("public/booking/cancel");
 		expect(h.calls.map((c) => c.path)).not.toContain("public/checkout/continue");
+	});
+
+	it("T168 R16 a mistyped, expired or spent code is refused before reserving: no booking, no cancel, no email", async () => {
+		const h = host({ [`${VOUCHERS} public/redeem/check`]: () => refused("VOUCHER_INVALID") });
+		const outcome = expectRedirect(await runWith(h, post(WAIVER_PATH, ORDER_WITH_CODE)));
+		expect(outcome.location).toContain("waiver_error=VOUCHER_INVALID");
+		expect(outcome.location).toContain("waiver_fields=voucher");
+		expect(outcome.location).not.toContain("abcd");
+		expect(h.calls.map((c) => c.path)).toEqual(["public/redeem/check"]);
+		expect(h.calls[0]?.body).toEqual({
+			code: "abcd-efgh-jkmn-pqrs",
+			lines: [{ eventId: "ev_1", ticketTypeId: "tt_adult" }],
+		});
 	});
 
 	it("R16 without Vouchers configured a typed code is refused before reserving", async () => {

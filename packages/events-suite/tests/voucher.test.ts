@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { reconcileBooking } from "../src/astro/lib/reconcile";
 import { routeStripeWebhook } from "../src/astro/lib/stripe";
-import { holdVoucher, settleVoucher } from "../src/astro/lib/voucher";
+import { checkVoucher, holdVoucher, settleVoucher } from "../src/astro/lib/voucher";
 
 // T166 (T163 §4a, §6; voucher/1 §8): the suite carries gift voucher tokens between Events and Vouchers in
 // process. Both cores are faked here; the Pro repo proves the real bundles (workerd) end to end.
@@ -143,6 +143,57 @@ describe("T166 R16 holdVoucher: reserve, then hold (voucher/1 §8.1)", () => {
 		const h = host({});
 		const out = await holdVoucher(ctx(h), { code: "A".repeat(65), bookingRef: REF, accessToken: ACCESS }, IDS);
 		expect(out).toEqual({ ok: false, code: "VOUCHER_INVALID" });
+		expect(h.calls).toEqual([]);
+	});
+});
+
+// T168 (from T166): the code is checked before Events reserves, so a refused code leaves no booking behind.
+describe("T168 R16 checkVoucher: before reserving (Vouchers public/redeem/check)", () => {
+	const input = { code: "ABCD-EFGH-JKMN-PQRS", eventId: "ev_1", ticketTypeIds: ["tt_adult", "tt_child"] };
+
+	it("R16 asks Vouchers with the code and the order's ticket types; a live voucher passes", async () => {
+		const h = host({ [`${VOUCHERS} public/redeem/check`]: () => ok({ voucher: { kind: "money" } }) });
+		expect(await checkVoucher(ctx(h), input, IDS)).toEqual({ ok: true });
+		expect(h.calls).toHaveLength(1);
+		expect(h.calls[0]?.body).toEqual({
+			code: "ABCD-EFGH-JKMN-PQRS",
+			lines: [
+				{ eventId: "ev_1", ticketTypeId: "tt_adult" },
+				{ eventId: "ev_1", ticketTypeId: "tt_child" },
+			],
+		});
+		expect(h.calls[0]?.request.headers.get("cf-connecting-ip")).toBe("203.0.113.9");
+	});
+
+	it("R16 passes each VOUCHER_* refusal and RATE_LIMITED on", async () => {
+		for (const code of [
+			"VOUCHER_INVALID",
+			"VOUCHER_NO_BALANCE",
+			"VOUCHER_WRONG_ACTIVITY",
+			"VOUCHER_UNAVAILABLE",
+			"RATE_LIMITED",
+		]) {
+			const h = host({ [`${VOUCHERS} public/redeem/check`]: () => refused(code) });
+			expect(await checkVoucher(ctx(h), input, IDS), code).toEqual({ ok: false, code });
+		}
+	});
+
+	it("R16 a Vouchers without the route, or one that fails, does not block: the hold decides as before", async () => {
+		expect(await checkVoucher(ctx(host({})), input, IDS)).toEqual({ ok: true });
+		const broken = host({
+			[`${VOUCHERS} public/redeem/check`]: () => {
+				throw new Error("down");
+			},
+		});
+		expect(await checkVoucher(ctx(broken), input, IDS)).toEqual({ ok: true });
+	});
+
+	it("R16 refuses an over-long code before asking anyone", async () => {
+		const h = host({});
+		expect(await checkVoucher(ctx(h), { ...input, code: "A".repeat(65) }, IDS)).toEqual({
+			ok: false,
+			code: "VOUCHER_INVALID",
+		});
 		expect(h.calls).toEqual([]);
 	});
 });
