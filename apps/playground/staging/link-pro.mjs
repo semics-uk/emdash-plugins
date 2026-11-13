@@ -9,25 +9,32 @@ import { existsSync, lstatSync, mkdirSync, readlinkSync, rmSync, symlinkSync } f
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-/** Package name -> folder in the Pro repo. Only Events Pro is required. */
-const PACKAGES = { events: ["@semics-tech/emdash-events-pro", "packages/events-pro"] };
+/** Package name -> folder in the Pro repo, and whether it must be built. Vouchers Pro (T168) is linked only when built. */
+const PACKAGES = {
+	events: ["@semics-tech/emdash-events-pro", "packages/events-pro", true],
+	vouchers: ["@semics-tech/emdash-vouchers-pro", "packages/vouchers-pro", false],
+};
 
 /**
  * @param {string} siteRoot the playground folder
  * @param {string} proDir the Pro repo checkout
- * @returns {{ events: string }} where each package was linked
+ * @returns {{ events: string, vouchers?: string }} where each package was linked
  */
 export function linkPro(siteRoot, proDir) {
 	if (!existsSync(proDir)) throw new Error(`EMDASH_PRO_DIR ${proDir} does not exist`);
 	const linked = {};
-	for (const [key, [name, folder]] of Object.entries(PACKAGES)) {
+	for (const [key, [name, folder, required]] of Object.entries(PACKAGES)) {
 		const source = resolve(proDir, folder);
-		for (const file of ["dist/index.mjs", "dist/plugin.mjs"]) {
-			if (!existsSync(join(source, file))) {
-				throw new Error(`${name} is not built (${join(source, file)} is missing): run its build in the Pro repo first`);
-			}
-		}
 		const target = join(siteRoot, "node_modules", ...name.split("/"));
+		const missing = ["dist/index.mjs", "dist/plugin.mjs"].find((file) => !existsSync(join(source, file)));
+		if (missing && required) {
+			throw new Error(`${name} is not built (${join(source, missing)} is missing): run its build in the Pro repo first`);
+		}
+		if (missing) {
+			// Not built: leave no stale link behind, so the site is wired without it.
+			if (isLink(target)) rmSync(target, { force: true });
+			continue;
+		}
 		mkdirSync(dirname(target), { recursive: true });
 		const current = existsSync(target) || isLink(target) ? lstatSync(target) : null;
 		if (current?.isSymbolicLink() && resolve(dirname(target), readlinkSync(target)) === source) {

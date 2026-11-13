@@ -84,3 +84,9 @@ Astro 7 + EmDash 1.2.0 on Node, workerd sandbox runner. `astro.config.mjs` is wi
   there in the spec (sessions, capture, cancel, off-session charges with `refuseCharges`, setup intents, refunds) and signs the
   `checkout.session.completed` delivery the spec posts to `webhooks/stripe`. Session URLs (`https://checkout.stripe.test`) are
   never loaded (a redirect cannot be routed): `toCheckout` waits for the request instead.
+- Gift vouchers (T168): `staging/link-pro.mjs` also links Vouchers Pro when it is built in the Pro checkout
+  (`packages/vouchers-pro/dist`), and `astro.config.mjs` then passes it to `eventsSuite({ vouchers })`. `/e2e/vouchers`
+  renders `<BuyVoucher>` ("can't be bought online" without Vouchers). `e2e/t168-vouchers.spec.ts` + `e2e/harness/vouchers.ts` (settings,
+  pairing, `public/redeem/check` reads, `lapseHolds` moves a voucher's holds past their window in `data.db`): skipped
+  unless Vouchers Pro is linked. Fake Stripe sessions now carry `metadata.plugin` and `metadata.order`, and the spec
+  posts deliveries to `/_semics/stripe`.

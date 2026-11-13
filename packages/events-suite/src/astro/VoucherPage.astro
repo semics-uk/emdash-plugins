@@ -1,0 +1,105 @@
+---
+// Injected at `/_vouchers/v` by `eventsSuite({ vouchers })` (T168, T163 §5): the voucher's own page, linked from its
+// emails as `/_vouchers/v?c=<code>` (the one place voucher/1 §8 lets a code travel in a URL). It shows the code, the
+// value or activity, what is left, the expiry and the message, with print styles: "Print or save as PDF" gives one
+// A4 page with just the card (no server-made PDF in v1). The code stays out of referrers and caches.
+import * as config from "virtual:semics-events-suite/config";
+
+import VoucherCard from "./VoucherCard.astro";
+import { formatMinor, loadVoucher } from "./lib/buy";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+Astro.response.headers.set("X-Robots-Tag", "noindex");
+
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId ?? "";
+const brand = config.page?.brand?.name;
+const stylesheet = config.page?.stylesheet;
+const typed = Astro.url.searchParams.get("c") ?? "";
+const loaded = typed
+	? await loadVoucher({ locals: Astro.locals, url: Astro.url, request: Astro.request }, typed, vouchersPluginId)
+	: ({ ok: false, code: "VOUCHER_INVALID" } as const);
+if (!loaded.ok) Astro.response.status = loaded.code === "VOUCHER_INVALID" ? 404 : 503;
+
+const day = (iso: string) =>
+	new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+const v = loaded.ok ? loaded.voucher : null;
+const gift = v ? (v.kind === "activity" ? (v.label ?? "An activity") : `${formatMinor(v.amountMinor, v.currency)} gift voucher`) : "";
+const left = v
+	? v.kind === "money"
+		? v.balanceMinor > 0
+			? `${formatMinor(v.balanceMinor, v.currency)} left to spend`
+			: v.heldMinor > 0
+				? "Being used for a booking"
+				: "Fully used"
+		: v.usesLeft > 0
+			? "Not used yet"
+			: v.heldMinor > 0
+				? "Being used for a booking"
+				: "Used"
+	: "";
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>{v ? "Your gift voucher" : "Gift voucher not found"}</title>
+		{stylesheet && <link rel="stylesheet" href={stylesheet} />}
+		<style>
+			body{margin:0;padding:1.5rem 1rem;background:#f7f6f1;color:#1b2b24;font:16px/1.5 system-ui,sans-serif}
+			main{max-width:34rem;margin:0 auto}
+			.voucher-facts{margin:1.2rem auto;padding:0;list-style:none;text-align:center}
+			.voucher-actions{text-align:center;margin:1rem 0}
+			.voucher-actions button{font:inherit;padding:.8rem 1.4rem;border-radius:9px;border:0;background:#234b38;color:#fff;cursor:pointer}
+			.voucher-help{color:#5d685f;font-size:.9rem;text-align:center}
+			@page{size:A4;margin:15mm}
+			@media print{body{background:#fff;padding:0}.voucher-actions,.voucher-help,h1{display:none}.voucher-facts{margin:.6cm 0 0}}
+		</style>
+	</head>
+	<body>
+		<main data-testid="voucher-page">
+			{
+				v ? (
+					<>
+						<h1>Your gift voucher</h1>
+						<VoucherCard
+							brand={brand}
+							gift={gift}
+							toName={v.toName}
+							fromName={v.fromName}
+							message={v.message}
+							code={loaded.ok ? loaded.display : undefined}
+							footer={`Valid until ${day(v.expiresAt)}`}
+							site={Astro.url.host}
+						/>
+						<ul class="voucher-facts" data-testid="voucher-facts">
+							<li>{left}</li>
+							<li>Enter the code in the Gift voucher field when you book.</li>
+						</ul>
+						<div class="voucher-actions">
+							<button type="button" id="semics-voucher-print">Print or save as PDF</button>
+						</div>
+						<p class="voucher-help">Keep the code safe: anyone who has it can use the voucher.</p>
+					</>
+				) : (
+					<>
+						<h1>Gift voucher not found</h1>
+						<p data-testid="voucher-missing">
+							{loaded.ok || loaded.code === "VOUCHER_INVALID"
+								? "This gift voucher code is not valid: check the link in your email, or it may have expired."
+								: "Gift vouchers can't be shown right now. Please try again later."}
+						</p>
+					</>
+				)
+			}
+		</main>
+		<script>
+			document.getElementById("semics-voucher-print")?.addEventListener("click", () => window.print());
+		</script>
+	</body>
+</html>

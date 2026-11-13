@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import esignCore from "@semics-tech/emdash-esign";
 import { esignUi } from "@semics-tech/emdash-esign/ui";
 import eventsCore from "@semics-tech/emdash-events";
@@ -166,6 +167,40 @@ describe("T166 R16 eventsSuite({ vouchers })", () => {
 		const suite = eventsSuite({ vouchers });
 		expect(suite.sandboxed).toEqual([eventsCore, esignCore, vouchers]);
 		expect(suite.pluginIds.vouchers).toBe("semics-vouchers");
+	});
+});
+
+// T168 (T163 §4, §5): with Vouchers the site also gets the buying endpoint, the voucher page, the thank-you page and
+// the activity setup page; <BuyVoucher> is exported for the site's own page. Without Vouchers none of them.
+describe("T168 R16 the voucher pages", () => {
+	const VOUCHER_ROUTES = ["/_vouchers/buy", "/_vouchers/v", "/_vouchers/thanks", "/_vouchers/setup"];
+
+	it("R16 are injected only with vouchers", () => {
+		const without = wiring(eventsSuite()).routes.map((r) => r.pattern);
+		for (const route of VOUCHER_ROUTES) expect(without).not.toContain(route);
+		const routes = wiring(eventsSuite({ vouchers: { pluginId: "r_vouchers1" } })).routes;
+		const injected = routes.filter((r) => VOUCHER_ROUTES.includes(r.pattern)).map((r) => [r.pattern, r.entrypoint]);
+		expect(Object.fromEntries(injected)).toEqual({
+			"/_vouchers/buy": "@semics-tech/emdash-events-suite/astro/buy-endpoint",
+			"/_vouchers/v": "@semics-tech/emdash-events-suite/astro/VoucherPage.astro",
+			"/_vouchers/thanks": "@semics-tech/emdash-events-suite/astro/VoucherThanks.astro",
+			"/_vouchers/setup": "@semics-tech/emdash-events-suite/astro/VouchersSetupPage.astro",
+		});
+	});
+
+	it("R16 the package exports <BuyVoucher> and each injected page", () => {
+		const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as {
+			exports: Record<string, string>;
+		};
+		for (const entry of [
+			"./astro/BuyVoucher.astro",
+			"./astro/VoucherPage.astro",
+			"./astro/VoucherThanks.astro",
+			"./astro/VouchersSetupPage.astro",
+			"./astro/buy-endpoint",
+		]) {
+			expect(pkg.exports[entry], entry).toBeTruthy();
+		}
 	});
 });
 

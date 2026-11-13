@@ -16,6 +16,12 @@
 		"./astro/TemplatesPage.astro": "./src/astro/TemplatesPage.astro",
 		"./astro/PairPage.astro": "./src/astro/PairPage.astro",
 		"./astro/stripe-endpoint": "./src/astro/stripe-endpoint.ts",
+		"./astro/BuyVoucher.astro": "./src/astro/BuyVoucher.astro",
+		"./astro/VoucherCard.astro": "./src/astro/VoucherCard.astro",
+		"./astro/VoucherPage.astro": "./src/astro/VoucherPage.astro",
+		"./astro/VoucherThanks.astro": "./src/astro/VoucherThanks.astro",
+		"./astro/VouchersSetupPage.astro": "./src/astro/VouchersSetupPage.astro",
+		"./astro/buy-endpoint": "./src/astro/buy-endpoint.ts",
 		"./astro/lib/*": "./src/astro/lib/*.ts"
 	},
 	"files": [

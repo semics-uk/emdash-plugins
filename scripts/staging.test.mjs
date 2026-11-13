@@ -253,6 +253,23 @@ test("linkPro links a built Events Pro into the playground's node_modules (never
 	assert.throws(() => linkPro(site, join(dir, "missing")), /EMDASH_PRO_DIR/);
 });
 
+test("T168 linkPro links Vouchers Pro too, only when it is built", () => {
+	const dir = tmp();
+	const pro = join(dir, "pro");
+	const site = join(dir, "site");
+	for (const pkg of ["events-pro", "vouchers-pro"]) mkdirSync(join(pro, `packages/${pkg}/dist`), { recursive: true });
+	mkdirSync(site);
+	for (const file of ["index.mjs", "plugin.mjs"])
+		writeFileSync(join(pro, "packages/events-pro/dist", file), "export default {}");
+	assert.equal(linkPro(site, pro).vouchers, undefined);
+	assert.ok(!existsSync(join(site, "node_modules/@semics-tech/emdash-vouchers-pro")));
+	for (const file of ["index.mjs", "plugin.mjs"])
+		writeFileSync(join(pro, "packages/vouchers-pro/dist", file), "export default {}");
+	const target = join(site, "node_modules/@semics-tech/emdash-vouchers-pro");
+	assert.equal(linkPro(site, pro).vouchers, target);
+	assert.ok(lstatSync(target).isSymbolicLink());
+});
+
 // --- nightly measurements --------------------------------------------------------------------------
 
 test("lighthouse: accessibility score from a report, gated at 95", () => {

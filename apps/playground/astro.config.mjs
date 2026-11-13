@@ -15,8 +15,17 @@ const cloudflareTarget = process.env.PLAYGROUND_TARGET === "cloudflare";
 
 // Both products linked by the suite (T065): the Free cores, both UI kits, the pages of each product and
 // the suite's waiver page, every part told the plugin id of each core.
+// T168: with Vouchers Pro linked as well (built in the Pro checkout), gift vouchers: <BuyVoucher> on /e2e/vouchers.
+async function vouchersPro() {
+	try {
+		return (await import("@semics-tech/emdash-vouchers-pro")).default;
+	} catch {
+		return undefined;
+	}
+}
+const vouchers = process.env.EMDASH_PRO_DIR ? await vouchersPro() : undefined;
 const suite = process.env.EMDASH_PRO_DIR
-	? eventsSuite({ events: (await import("@semics-tech/emdash-events-pro")).default })
+	? eventsSuite({ events: (await import("@semics-tech/emdash-events-pro")).default, ...(vouchers ? { vouchers } : {}) })
 	: eventsSuite();
 
 async function platform() {
