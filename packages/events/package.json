@@ -1,6 +1,6 @@
 {
 	"name": "@semics-tech/emdash-events",
-	"version": "1.0.0-rc.11",
+	"version": "1.0.0-rc.12",
 	"type": "module",
 	"main": "dist/index.mjs",
 	"exports": {
