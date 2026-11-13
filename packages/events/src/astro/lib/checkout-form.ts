@@ -30,7 +30,15 @@ export interface CheckoutFormOptions {
 	newKey?: () => string;
 	/** The gift voucher hold (T166); without it a typed voucher code is refused (`VOUCHER_UNAVAILABLE`). */
 	voucher?: VoucherHook;
+	/** The suite's dry run of that hold before reserving (T168); without it the hold alone decides. */
+	check?: VoucherCheckHook;
 }
+
+/** Checks a typed gift voucher code before anything is reserved (T168): the suite's `checkVoucher`. */
+export type VoucherCheckHook = (
+	ctx: PublicRouteContext,
+	input: { code: string; eventId: string; ticketTypeIds: string[] },
+) => Promise<{ ok: true } | { ok: false; code: string }>;
 
 export interface CheckoutRedirect {
 	location: string;
@@ -195,6 +203,12 @@ export async function handleCheckoutForm(
 	// A gift voucher (T166) is held between reserve and continue; without the suite's hook it cannot be.
 	const voucherCode = text(form, "voucherCode");
 	if (voucherCode && !options.voucher) return refuse("VOUCHER_UNAVAILABLE", ["voucher"]);
+	// T168: a code the suite's check refuses never reserves, so no booking is held, cancelled and emailed.
+	if (voucherCode && options.check) {
+		const ticketTypeIds = lines.map((l) => l.ticketTypeId);
+		const checked = await options.check(ctx, { code: voucherCode, eventId, ticketTypeIds });
+		if (!checked.ok) return refuse(checked.code, ["voucher"]);
+	}
 
 	const turnstileToken = text(form, "cf-turnstile-response");
 	// Only a typed code is sent: Free's reserve refuses unknown keys, and only Pro offers the field.

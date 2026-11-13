@@ -71,6 +71,28 @@ async function settleLookups(ctx: PublicRouteContext, ids: VoucherIds, lookups: 
 	}
 }
 
+export type VoucherCheckResult = { ok: true } | { ok: false; code: string };
+
+/**
+ * T168 (from T166): asks Vouchers `public/redeem/check` before Events reserves anything, with the code and the
+ * order's ticket types, so a mistyped, expired or spent code is refused on the form: no booking held and then
+ * cancelled, so no "cancelled" email. Moves nothing; the hold after reserve still decides. A Vouchers without the
+ * route, or one that fails, never blocks the booking (the hold refuses as before).
+ */
+export async function checkVoucher(
+	ctx: PublicRouteContext,
+	input: { code: string; eventId: string; ticketTypeIds: string[] },
+	ids: Pick<VoucherIds, "vouchersPluginId">,
+): Promise<VoucherCheckResult> {
+	if (input.code.length > 64) return { ok: false, code: "VOUCHER_INVALID" };
+	const lines = input.ticketTypeIds.map((ticketTypeId) => ({ eventId: input.eventId, ticketTypeId }));
+	const out = await post(ctx, ids.vouchersPluginId, "public/redeem/check", { code: input.code, lines }).catch(
+		() => null,
+	);
+	const code = out && !out.ok ? out.error.code : "";
+	return PASSED.includes(code) ? { ok: false, code } : { ok: true };
+}
+
 export async function holdVoucher(
 	ctx: PublicRouteContext,
 	input: { code: string; bookingRef: string; accessToken: string },

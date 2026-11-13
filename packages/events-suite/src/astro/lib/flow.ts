@@ -42,7 +42,7 @@ import {
 	waiverErrorLocation,
 } from "./form.ts";
 import { voidEnvelopes } from "./reconcile.ts";
-import { holdVoucher } from "./voucher.ts";
+import { checkVoucher, holdVoucher } from "./voucher.ts";
 
 /** The steps of the flow. `pay` is the Phase 4 slot: continue's `pay` answer is followed as it is. */
 export const FLOW_STEPS = ["book", "sign", "pay", "done"] as const;
@@ -275,6 +275,18 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 	if (form.get("waiverEach") === "1") {
 		const seats = checkWaiverSeats(order);
 		if (seats) return refuse(seats.code, seats.fields);
+	}
+	// T168: a code Vouchers refuses outright never reserves either (same reason).
+	if (voucherCode && ids.vouchersPluginId) {
+		const ticketTypeIds = order.lines.map((l) => l.ticketTypeId);
+		const checked = await checkVoucher(
+			call,
+			{ code: voucherCode, eventId: order.eventId, ticketTypeIds },
+			{
+				vouchersPluginId: ids.vouchersPluginId,
+			},
+		);
+		if (!checked.ok) return refuse(checked.code, ["voucher"]);
 	}
 
 	const reserved = await post<{ bookingRef?: string; accessToken?: string }>(

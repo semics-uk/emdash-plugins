@@ -23,7 +23,9 @@ export interface EventsSuiteOptions {
 	/**
 	 * Gift vouchers (T166): the Vouchers Pro core (its descriptor, or `{ pluginId }`). Optional; without it a
 	 * site is wired exactly as before. With it the booking forms hold a "Gift voucher code" with Vouchers and the
-	 * site gets one Stripe webhook endpoint, `/_semics/stripe`, for both Events and Vouchers.
+	 * site gets one Stripe webhook endpoint, `/_semics/stripe`, for both Events and Vouchers. T168: also
+	 * `<BuyVoucher>` (posting to `/_vouchers/buy`), the voucher page `/_vouchers/v`, Stripe's return page
+	 * `/_vouchers/thanks` and `/_vouchers/setup` (activity vouchers picked from Events, at Events' prices).
 	 */
 	vouchers?: SuiteCore;
 }
@@ -74,6 +76,13 @@ export const PAIR_ROUTE = "/_events/pair";
 const RECONCILE_MODULE = "@semics-tech/emdash-events-suite/astro/lib/reconcile";
 /** The site's one Stripe webhook endpoint, routing by the session's `metadata.plugin` (T163 §4a, T166). */
 export const STRIPE_ROUTE = "/_semics/stripe";
+/** The gift voucher pages (T168): buying, the voucher itself, Stripe's return page and activity setup. */
+export const VOUCHER_PAGES: ReadonlyArray<readonly [string, string]> = [
+	["/_vouchers/buy", "buy-endpoint"],
+	["/_vouchers/v", "VoucherPage.astro"],
+	["/_vouchers/thanks", "VoucherThanks.astro"],
+	["/_vouchers/setup", "VouchersSetupPage.astro"],
+];
 /** What Events' checkout runs to hold a gift voucher (T166). */
 const VOUCHER_MODULE = "@semics-tech/emdash-events-suite/astro/lib/voucher";
 
@@ -116,6 +125,10 @@ export function suiteIntegration(
 						entrypoint: "@semics-tech/emdash-events-suite/astro/stripe-endpoint",
 						prerender: false,
 					});
+					// T168: buying (<BuyVoucher> posts here), the voucher page, Stripe's return page, activity setup.
+					for (const [pattern, entry] of VOUCHER_PAGES) {
+						injectRoute({ pattern, entrypoint: `@semics-tech/emdash-events-suite/astro/${entry}`, prerender: false });
+					}
 				}
 				updateConfig({
 					vite: {

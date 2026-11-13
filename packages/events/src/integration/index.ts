@@ -66,6 +66,8 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 			? [
 					`export const vouchersPluginId = ${JSON.stringify(options.vouchers.pluginId)};`,
 					`export { holdVoucher } from ${JSON.stringify(options.vouchers.module)};`,
+					// T168: the module's dry run, run before reserving.
+					`export { checkVoucher } from ${JSON.stringify(options.vouchers.module)};`,
 				]
 			: []),
 	].join("\n");

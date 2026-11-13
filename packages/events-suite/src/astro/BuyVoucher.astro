@@ -1,0 +1,290 @@
+---
+// <BuyVoucher /> (T168, T163 §4): the gift voucher buying form, for any page of the site. Look: Emily's draft for
+// LMSC (lmsc-site PR #31): three steps and a live preview of the card. It offers what Vouchers' settings allow
+// (`public/options`: kinds, amounts, activities at the price Vouchers charges, delivery, send date) and posts to
+// `/_vouchers/buy`, which asks Vouchers for a Stripe Checkout Session and sends the buyer there. Works without
+// JavaScript (every option is shown; the script only hides what does not apply and updates the preview).
+// Props: `brand` (the card's heading, default the site's page brand), `returnTo` (where a refusal comes back,
+// default this page).
+import * as config from "virtual:semics-events-suite/config";
+
+import VoucherCard from "./VoucherCard.astro";
+import { BUY_MESSAGES, BUY_PATH, type BuyField, formatMinor, loadBuyOptions, readBuyState } from "./lib/buy";
+
+interface Props {
+	brand?: string;
+	returnTo?: string;
+}
+
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId ?? "";
+const { brand = config.page?.brand?.name, returnTo = Astro.url.pathname } = Astro.props;
+const options = vouchersPluginId
+	? await loadBuyOptions({ locals: Astro.locals, url: Astro.url, request: Astro.request }, vouchersPluginId)
+	: null;
+const state = readBuyState(Astro.url);
+const bad = (f: BuyField) => state?.fields.includes(f) ?? false;
+const FIELD_TEXT: Partial<Record<BuyField, string>> = {
+	kind: "Choose a kind of voucher.",
+	amount: "Choose an amount, or type one within the range shown.",
+	activity: "Choose an activity.",
+	buyerName: "Type your name.",
+	buyerEmail: "Type your email address.",
+	recipientEmail: "Type the recipient's email address to email it to them.",
+	message: "Keep the message to 500 characters.",
+	address: "Type the address to post it to.",
+	sendOn: "Choose a day within the next year.",
+};
+const fieldError = (f: BuyField) => (bad(f) ? (FIELD_TEXT[f] ?? "Check this field.") : "");
+
+const currency = options?.currency ?? "GBP";
+/** £50 for whole pounds, £42.50 otherwise. */
+const money = (minor: number) => formatMinor(minor, currency).replace(/\.00$/, "");
+const symbol = money(0).replace(/[\d.,\s]/g, "") || currency;
+const offers = (k: "money" | "activity") => options?.kinds.includes(k) ?? false;
+const sells = offers("money") || (offers("activity") && (options?.activities.length ?? 0) > 0);
+const firstKind = offers("money") ? "money" : "activity";
+const presets = options?.moneyAmounts ?? [];
+const defaultAmount = presets.includes(5000) ? 5000 : presets[0];
+const DELIVERY_TEXT: Record<string, [string, string]> = {
+	print: ["Print it yourself", "We email you a link to print it or save it as a PDF"],
+	"email-buyer": ["Email it to me", "Forward it, or print it from the link"],
+	"email-recipient": ["Email it to them", "Straight to their inbox, on the day you choose"],
+	post: ["Post it", "We post a printed voucher to the address you give"],
+};
+const deliveries = options?.delivery ?? [];
+const firstDelivery = deliveries.includes("print") ? "print" : deliveries[0];
+const today = new Date().toISOString().slice(0, 10);
+const validity = options?.validityMonths ?? 12;
+const id = "semics-buy-voucher";
+---
+<section class="semics-buy-voucher" data-testid="buy-voucher-section">
+	{
+		!options || !sells ? (
+			<p class="semics-buy-closed" data-testid="buy-voucher-closed">Gift vouchers can't be bought online right now.</p>
+		) : (
+			<div class="layout">
+				<form id={id} class="builder" method="post" action={BUY_PATH} data-testid="buy-voucher" novalidate={false}>
+					<input type="hidden" name="returnTo" value={returnTo} />
+					<input type="hidden" name="currency" value={currency} />
+					{state && (
+						<p class="alert" role="alert" data-testid="buy-voucher-error">
+							{BUY_MESSAGES[state.code] ?? BUY_MESSAGES.INTERNAL}
+						</p>
+					)}
+
+					<div class="step"><span>01</span><div><h2>Choose your gift</h2><p>Pick an amount or a particular experience.</p></div></div>
+					<fieldset class="choice-grid">
+						<legend class="sr">Kind of voucher</legend>
+						{offers("money") && (
+							<label class="choice">
+								<input type="radio" name="kind" value="money" checked={firstKind === "money"} />
+								<span class="choice-icon">{symbol}</span>
+								<strong>Money voucher</strong>
+								<small>Let them choose their adventure</small>
+							</label>
+						)}
+						{offers("activity") && (options?.activities.length ?? 0) > 0 && (
+							<label class="choice">
+								<input type="radio" name="kind" value="activity" checked={firstKind === "activity"} />
+								<span class="choice-icon">✦</span>
+								<strong>Activity voucher</strong>
+								<small>Gift a particular experience</small>
+							</label>
+						)}
+					</fieldset>
+
+					{offers("money") && (
+						<fieldset class="field-group" data-for-kind="money" aria-describedby={`${id}-amount-error`}>
+							<legend>Voucher value</legend>
+							<div class="amounts">
+								{presets.map((p) => (
+									<label class="amount"><input type="radio" name="amount" value={String(p)} checked={p === defaultAmount} data-minor={p} />{money(p)}</label>
+								))}
+								{options?.moneyCustom && (
+									<label class="amount"><input type="radio" name="amount" value="other" checked={presets.length === 0} />Another amount</label>
+								)}
+							</div>
+							{options?.moneyCustom && (
+								<div class="other">
+									<label for={`${id}-other`}>Amount ({symbol})</label>
+									<input id={`${id}-other`} name="otherAmount" type="number" inputmode="decimal" step="0.01" min={options.moneyCustom.min / 100} max={options.moneyCustom.max / 100} />
+									<p class="help">Between {money(options.moneyCustom.min)} and {money(options.moneyCustom.max)}.</p>
+								</div>
+							)}
+							<p class="field-error" id={`${id}-amount-error`}>{fieldError("amount")}</p>
+						</fieldset>
+					)}
+
+					{offers("activity") && (options?.activities.length ?? 0) > 0 && (
+						<div class="field-group" data-for-kind="activity">
+							<label for={`${id}-activity`}>Choose an experience</label>
+							<select id={`${id}-activity`} name="activity" aria-invalid={bad("activity") ? "true" : undefined}>
+								<option value="">Select an activity</option>
+								{options?.activities.map((a) => (
+									<option value={`${a.eventId}/${a.ticketTypeId}`} data-label={a.label}>{a.label} · {money(a.priceMinor)}</option>
+								))}
+							</select>
+							<p class="help">Pays for one place on that activity, whatever its price on the day.</p>
+							<p class="field-error">{fieldError("activity")}</p>
+						</div>
+					)}
+
+					<div class="step"><span>02</span><div><h2>Make it personal</h2><p>Your message appears on the voucher.</p></div></div>
+					<div class="fields-two">
+						<div>
+							<label for={`${id}-recipient`}>Recipient's name</label>
+							<input id={`${id}-recipient`} name="recipientName" maxlength="120" placeholder="e.g. James" autocomplete="off" />
+						</div>
+						<div>
+							<label for={`${id}-buyer`}>Your name <em>*</em></label>
+							<input id={`${id}-buyer`} name="buyerName" maxlength="120" required autocomplete="name" aria-invalid={bad("buyerName") ? "true" : undefined} />
+							<p class="field-error">{fieldError("buyerName")}</p>
+						</div>
+					</div>
+					<label for={`${id}-message`}>Personal message</label>
+					<textarea id={`${id}-message`} name="message" maxlength="500" rows="4" placeholder="Wishing you a brilliant day out!"></textarea>
+					<p class="field-error">{fieldError("message")}</p>
+
+					<div class="step"><span>03</span><div><h2>How would you like to give it?</h2><p>Every voucher is valid for {validity} months.</p></div></div>
+					<fieldset class="choice-grid delivery">
+						<legend class="sr">Delivery</legend>
+						{deliveries.map((d) => (
+							<label class="choice">
+								<input type="radio" name="delivery" value={d} checked={d === firstDelivery} />
+								<strong>{DELIVERY_TEXT[d]?.[0] ?? d}</strong>
+								<small>{DELIVERY_TEXT[d]?.[1] ?? ""}</small>
+							</label>
+						))}
+					</fieldset>
+					<div class="fields-two">
+						<div>
+							<label for={`${id}-email`}>Your email <em>*</em></label>
+							<input id={`${id}-email`} name="buyerEmail" type="email" required autocomplete="email" aria-invalid={bad("buyerEmail") ? "true" : undefined} />
+							<p class="field-error">{fieldError("buyerEmail")}</p>
+						</div>
+						{deliveries.includes("email-recipient") && (
+							<div data-for-delivery="email-recipient">
+								<label for={`${id}-remail`}>Recipient's email</label>
+								<input id={`${id}-remail`} name="recipientEmail" type="email" autocomplete="off" aria-invalid={bad("recipientEmail") ? "true" : undefined} />
+								<p class="field-error">{fieldError("recipientEmail")}</p>
+							</div>
+						)}
+					</div>
+					{deliveries.includes("email-recipient") && options?.scheduledSend && (
+						<div data-for-delivery="email-recipient">
+							<label for={`${id}-send`}>Send it to them on (optional)</label>
+							<input id={`${id}-send`} name="sendOn" type="date" min={today} />
+							<p class="field-error">{fieldError("sendOn")}</p>
+						</div>
+					)}
+					{deliveries.includes("post") && (
+						<div data-for-delivery="post">
+							<label for={`${id}-address`}>Postal address</label>
+							<textarea id={`${id}-address`} name="address" rows="3" maxlength="500"></textarea>
+							<p class="field-error">{fieldError("address")}</p>
+						</div>
+					)}
+					{options?.turnstileSiteKey && <div class="cf-turnstile" data-sitekey={options.turnstileSiteKey}></div>}
+					<button class="primary-action" type="submit">Buy and pay securely</button>
+					<p class="help">You pay on Stripe's secure page. The voucher and its code are emailed as soon as payment is confirmed.</p>
+				</form>
+				<aside class="preview-column" aria-label="Live preview">
+					<div class="preview-head"><span>Live preview</span></div>
+					<VoucherCard
+						preview
+						brand={brand}
+						gift={firstKind === "money" && defaultAmount ? `${money(defaultAmount)} gift voucher` : "Your chosen experience"}
+						footer="SAMPLE · NOT VALID"
+						site={Astro.url.host}
+					/>
+					<p class="preview-note">The real voucher has its own code and expiry date.</p>
+				</aside>
+			</div>
+		)
+	}
+</section>
+{options?.turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
+
+<script>
+	// The live preview and the sections that apply (progressive: without this script every section shows).
+	const form = document.querySelector<HTMLFormElement>("form[data-testid=buy-voucher]");
+	const card = document.getElementById("semics-voucher-preview");
+	if (form && card) {
+		const put = (name: string, text: string) => {
+			const el = card.querySelector<HTMLElement>(`[data-preview=${name}]`);
+			if (el) el.textContent = text;
+		};
+		const value = (name: string) => {
+			const el = form.elements.namedItem(name);
+			if (el instanceof RadioNodeList) return el.value;
+			return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
+				? el.value.trim()
+				: "";
+		};
+		const update = () => {
+			const kind = value("kind");
+			for (const el of form.querySelectorAll<HTMLElement>("[data-for-kind]")) el.hidden = el.dataset.forKind !== kind;
+			const delivery = value("delivery");
+			for (const el of form.querySelectorAll<HTMLElement>("[data-for-delivery]")) el.hidden = el.dataset.forDelivery !== delivery;
+			const other = form.querySelector<HTMLElement>(".other");
+			if (other) other.hidden = value("amount") !== "other";
+			let gift = "Your chosen experience";
+			if (kind === "money") {
+				const checked = form.querySelector<HTMLInputElement>("input[name=amount]:checked");
+				const label = value("amount") === "other" ? value("otherAmount") : (checked?.parentElement?.textContent ?? "").trim();
+				const symbol = form.querySelector(".choice-icon")?.textContent ?? "";
+				gift = label ? `${value("amount") === "other" ? symbol : ""}${label} gift voucher` : "Money gift voucher";
+			} else {
+				const select = form.querySelector<HTMLSelectElement>("select[name=activity]");
+				gift = select?.selectedOptions[0]?.dataset.label ?? gift;
+			}
+			put("gift", gift);
+			put("recipient", value("recipientName") || "Someone special");
+			put("sender", value("buyerName") || "Someone who cares");
+			put("message", value("message") || "A little something to look forward to.");
+		};
+		form.addEventListener("input", update);
+		form.addEventListener("change", update);
+		update();
+	}
+</script>
+
+<style>
+	.semics-buy-voucher{--ink:#1b2b24;--muted:#66716b;--line:#e1e5de;--accent:var(--voucher-card-bg,#234b38);color:var(--ink);font:inherit}
+	.layout{display:grid;gap:2.5rem;align-items:start}
+	.builder{background:#fff;border:1px solid #e3e3db;border-radius:18px;padding:clamp(1.1rem,3vw,2.3rem);box-shadow:0 12px 35px #1935290a;min-width:0}
+	.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+	fieldset{border:0;margin:0;padding:0;min-width:0}
+	.step{display:flex;gap:1rem;align-items:start;margin:1rem 0 1.2rem}
+	.step:not(:first-of-type){border-top:1px solid #e8e9e2;padding-top:1.8rem;margin-top:2rem}
+	.step>span{display:grid;place-items:center;border-radius:50%;background:#e6eee7;color:#24503b;width:40px;height:40px;flex:none;font-weight:700}
+	.step h2{font-size:1.35rem;margin:0}
+	.step p{margin:.25rem 0 0;color:var(--muted)}
+	.choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.8rem;margin-bottom:1.2rem}
+	.choice{border:2px solid var(--line);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.3rem;cursor:pointer}
+	.choice:has(input:checked){border-color:var(--accent);background:#f1f7f0}
+	.choice input,.amount input{accent-color:var(--accent)}
+	.choice-icon{font-size:1.4rem;color:#2e6345}
+	.choice small,.help{color:var(--muted);font-size:.84rem}
+	.field-group{margin-bottom:1.2rem}
+	.builder label:not(.choice):not(.amount),.builder legend:not(.sr){display:block;font-weight:650;margin:.9rem 0 .45rem}
+	.builder input:not([type=radio]),.builder textarea,.builder select{box-sizing:border-box;width:100%;padding:.8rem 1rem;border:1px solid #cbd3ca;border-radius:9px;background:#fff;font:inherit;color:var(--ink)}
+	.builder :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+	.builder [aria-invalid=true]{border-color:#a03c2d}
+	.builder em{color:#a03c2d;font-style:normal}
+	.fields-two{display:grid;gap:0 1rem}
+	.amounts{display:flex;flex-wrap:wrap;gap:.5rem;margin:.4rem 0}
+	.amount{display:inline-flex;gap:.4rem;align-items:center;border:1px solid #cdd8cd;background:#fff;padding:.6rem .9rem;border-radius:8px;cursor:pointer;min-height:44px;box-sizing:border-box}
+	.amount:has(input:checked){background:var(--accent);color:#fff}
+	.other{max-width:14rem}
+	.field-error{color:#a03c2d;font-size:.86rem;margin:.3rem 0 0}
+	.field-error:empty{display:none}
+	.alert{background:#fbeceb;border-left:4px solid #a03c2d;padding:.8rem 1rem;border-radius:5px}
+	.primary-action{width:100%;margin-top:1.4rem;padding:.95rem 1rem;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer;min-height:44px}
+	.preview-column{position:sticky;top:2rem;min-width:0}
+	.preview-head{font-size:.82rem;color:var(--muted);margin-bottom:.8rem;letter-spacing:.1em;text-transform:uppercase}
+	.preview-note{text-align:center;color:var(--muted);font-size:.82rem;margin:1rem}
+	[hidden]{display:none!important}
+	@media (min-width:48rem){.fields-two{grid-template-columns:1fr 1fr}}
+	@media (min-width:65rem){.layout{grid-template-columns:minmax(0,1.05fr) minmax(0,.85fr)}}
+</style>

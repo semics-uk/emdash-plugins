@@ -1,0 +1,52 @@
+---
+// Injected at `/_vouchers/thanks` by `eventsSuite({ vouchers })` (T168): where Stripe Checkout sends the buyer back
+// (Vouchers' default return path). The voucher is issued by the webhook and emailed with its code and the voucher
+// page link, so nothing is read here: the code is never in this page's URL.
+import * as config from "virtual:semics-events-suite/config";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const cancelled = Astro.url.searchParams.get("cancelled") === "1";
+const stylesheet = config.page?.stylesheet;
+const brand = config.page?.brand;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<title>{cancelled ? "Payment cancelled" : "Thank you"}</title>
+		{stylesheet && <link rel="stylesheet" href={stylesheet} />}
+		<style>
+			body{margin:0;padding:2rem 1rem;background:#f7f6f1;color:#1b2b24;font:16px/1.5 system-ui,sans-serif}
+			main{max-width:34rem;margin:0 auto;background:#fff;border:1px solid #e3e3db;border-radius:14px;padding:1.5rem}
+			a{color:#24583b}
+		</style>
+	</head>
+	<body>
+		<main data-testid="voucher-thanks" data-state={cancelled ? "cancelled" : "paid"}>
+			{
+				cancelled ? (
+					<>
+						<h1>Payment cancelled</h1>
+						<p>Nothing was charged and no voucher was made. You can try again whenever you like.</p>
+					</>
+				) : (
+					<>
+						<h1>Thank you</h1>
+						<p>
+							Your gift voucher is on its way. We email it to you in the next few minutes with its code and a link to
+							print it; if you chose to email it to someone, they get it too (on the day you picked).
+						</p>
+						<p>Nothing in your inbox? Check your spam folder, or contact us with the email address you used.</p>
+					</>
+				)
+			}
+			<p><a href={brand?.href ?? "/"}>Back to {brand?.name ?? "the site"}</a></p>
+		</main>
+	</body>
+</html>

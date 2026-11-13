@@ -137,9 +137,20 @@ and Pair adopts that client (E-sign revokes the auto-pair client it replaces) in
   (when configured), anything else or unparsable → Events; hands the raw body and `stripe-signature` in process to
   that plugin's raw `webhooks/stripe` and turns its wire answer into the Response. Verifies nothing itself.
 
+- T168: `checkVoucher` (same file) asks Vouchers `public/redeem/check` with the code and the order's ticket types
+  **before reserve** (suite flow and, through the integration's `checkVoucher` export, Events' `/_events/checkout`):
+  a `VOUCHER_*` refusal goes back to the form with no booking held and cancelled; a missing or failing route never
+  blocks (the hold decides). `lib/buy.ts` + `BuyVoucher.astro` (`public/options`, posts to `/_vouchers/buy` =
+  `buy-endpoint.ts` → `public/purchase` → 303 to Stripe; refusals `?voucher_error=&voucher_fields=`),
+  `VoucherPage.astro` (`/_vouchers/v?c=`, `public/redeem/check` without lines, `VoucherCard.astro`, `@page A4`,
+  no-referrer, no-store), `VoucherThanks.astro` (`/_vouchers/thanks`), `lib/vouchers-setup.ts` +
+  `VouchersSetupPage.astro` (`/_vouchers/setup`, admin: Events' `public/events`/`public/event` → Vouchers'
+  `activityTypes` with Events' prices through the host settings write; unseen lines kept). Docs: `docs/vouchers.md`.
+
 ## Tests
 
 `tests/*.test.ts`, plain Node vitest: the flow runs the real UI helpers of both products against a fake
 `locals.emdash.handlePublicPluginApiRoute`; the "Pro" signature answers are faked there, because the
-playground (public repo) never loads Pro. Playground e2e `e2e/t065-booking-with-waiver.spec.ts`: Free
+playground (public repo) never loads Pro. Playground e2e `e2e/t168-vouchers.spec.ts` (Pro build with Vouchers linked: buy, print, full, part-pay, cancel credit,
+race, abandoned hold, refused code) and `e2e/t065-booking-with-waiver.spec.ts`: Free
 booking through the widget, the C0 refusal, and the waiver page's ceremony with an intent minted like Pro.

@@ -1,0 +1,110 @@
+---
+// Injected at `/_vouchers/setup` by `eventsSuite({ vouchers })` (T168): pick the ticket types sold as activity
+// vouchers from Events' catalogue, at Events' prices. Administrators only (the host's plugin-settings handler checks
+// `plugins:manage`). The logic is in `lib/vouchers-setup.ts`; this page renders the list and posts the choice.
+import * as config from "virtual:semics-events-suite/config";
+import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
+import { GET as readSettings, PUT as writeSettings } from "emdash/internal/routes/api/admin/plugins/_id_/settings";
+
+import { formatMinor } from "./lib/buy";
+import { saveActivities, SETUP_PATH, type SetupContext, setupView } from "./lib/vouchers-setup";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const { eventsPluginId } = config;
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId ?? "";
+const ids = { eventsPluginId, vouchersPluginId };
+const settingsUrl = (id: string) => new URL(`/_emdash/api/admin/plugins/${encodeURIComponent(id)}/settings`, Astro.url);
+const ctx: SetupContext = {
+	locals: Astro.locals,
+	url: Astro.url,
+	settings: {
+		read: (id) =>
+			readSettings({ params: { id }, locals: Astro.locals, request: new Request(settingsUrl(id)) } as never) as Promise<Response>,
+		write: (id, values) =>
+			writeSettings({
+				params: { id },
+				locals: Astro.locals,
+				request: new Request(settingsUrl(id), {
+					method: "PUT",
+					headers: { "content-type": "application/json" },
+					body: JSON.stringify({ values }),
+				}),
+			} as never) as Promise<Response>,
+	},
+};
+
+if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
+
+if (Astro.request.method === "POST") {
+	const form = await Astro.request.formData().catch(() => new FormData());
+	const chosen = form.getAll("activity").filter((v): v is string => typeof v === "string");
+	const result = await saveActivities(ctx, ids, chosen);
+	const next = new URLSearchParams({ result: result.state, ...(result.state === "saved" ? { count: String(result.count) } : {}) });
+	return Astro.redirect(`${SETUP_PATH}?${next}`, 303);
+}
+
+const view = await setupView(ctx, ids);
+const choices = view.choices ?? [];
+const kept = view.kept ?? [];
+const currency = view.currency ?? "GBP";
+if (view.state === "forbidden") Astro.response.status = 403;
+const result = Astro.url.searchParams.get("result");
+const count = /^\d{1,3}$/.test(Astro.url.searchParams.get("count") ?? "") ? Number(Astro.url.searchParams.get("count")) : -1;
+---
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Activity vouchers</title>
+		<style>
+			body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:1rem;color:#1b2b24;background:#f7f6f1}
+			main{max-width:44rem;margin:0 auto;background:#fff;border:1px solid #e3e3db;border-radius:12px;padding:1.25rem}
+			label{display:flex;gap:.6rem;align-items:baseline;padding:.5rem 0;border-top:1px solid #eee}
+			.moved{color:#a03c2d;font-size:.9rem}
+			button{font:inherit;padding:.6rem 1rem;border-radius:8px;border:0;background:#234b38;color:#fff;cursor:pointer}
+		</style>
+	</head>
+	<body>
+		<main data-testid="vouchers-setup" data-state={view.state}>
+			<h1>Activity vouchers</h1>
+			{result === "saved" && <p role="status">Saved {count === 1 ? "one activity" : `${count} activities`} with Events' prices.</p>}
+			{result === "error" && <p role="alert">The activities could not be saved. Please try again.</p>}
+			{view.state === "forbidden" && (
+				<p>Sign in to the admin as an administrator, then open this page again. <a href="/_emdash/admin">Sign in</a></p>
+			)}
+			{view.state === "error" && <p role="alert">Events' catalogue could not be read. Please try again.</p>}
+			{view.state === "ready" && (
+				<form method="post" action={SETUP_PATH}>
+					<p>
+						Tick the ticket types sold as activity vouchers. Each is sold at the price it has in Events now; press
+						Save again after changing a price in Events. An activity voucher pays for one ticket of its type at
+						whatever its price is on the day.
+					</p>
+					{choices.length === 0 && <p>Events has no upcoming paid tickets in {currency}.</p>}
+					{choices.map((c) => (
+						<label>
+							<input type="checkbox" name="activity" value={c.value} checked={c.chosen} />
+							<span>
+								<strong>{c.label}</strong> · {formatMinor(c.priceMinor, currency)}
+								{c.storedPriceMinor !== undefined && c.storedPriceMinor !== c.priceMinor && (
+									<span class="moved"> (sold at {formatMinor(c.storedPriceMinor, currency)} until you save)</span>
+								)}
+							</span>
+						</label>
+					))}
+					{kept.length > 0 && (
+						<p>Kept as typed (not in Events' current list): {kept.length}. Edit them in Vouchers' settings.</p>
+					)}
+					<button type="submit">Save with Events' prices</button>
+				</form>
+			)}
+		</main>
+	</body>
+</html>

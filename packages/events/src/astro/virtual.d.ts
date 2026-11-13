@@ -29,4 +29,12 @@ declare module "virtual:semics-events/config" {
 				ids: { eventsPluginId: string; vouchersPluginId: string },
 		  ) => Promise<import("./lib/checkout-form").VoucherHoldResult>)
 		| undefined;
+	/** T168: the suite's check of a code before reserving; exported with `holdVoucher`. */
+	export const checkVoucher:
+		| ((
+				ctx: import("./lib/call").PublicRouteContext,
+				input: { code: string; eventId: string; ticketTypeIds: string[] },
+				ids: { vouchersPluginId: string },
+		  ) => Promise<{ ok: true } | { ok: false; code: string }>)
+		| undefined;
 }
