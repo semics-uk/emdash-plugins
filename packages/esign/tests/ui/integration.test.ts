@@ -50,4 +50,20 @@ describe("esignIntegration (SU-FR-01, SU-FR-02)", () => {
 		expect(await read()).toContain('"semics-esign"');
 		expect(await read({ pluginId: "r_abc123" })).toContain('"r_abc123"');
 	});
+
+	// T169: the pages' look, checked when the site's config loads and handed to the pages through the config module.
+	it("T169 passes the checked page options to the pages, and none by default", async () => {
+		const page = async (opts?: Parameters<typeof esignIntegration>[0]) => {
+			const { plugins } = await setup(opts as never);
+			const plugin = plugins.find((p) => p.name === "semics-esign-config");
+			const source = plugin?.load(plugin.resolveId("virtual:semics-esign/config") ?? "") ?? "";
+			return JSON.parse(/^export const page = (.*);$/m.exec(source)?.[1] ?? "null");
+		};
+		expect(await page()).toEqual({});
+		const options = { theme: { accent: "#1f3a2e" }, stylesheet: "/site.css", brand: { name: "Club" } };
+		expect(await page({ page: options })).toEqual(options);
+		expect(() => esignIntegration({ page: { stylesheet: "https://evil.example/x.css" } })).toThrow(
+			"page.stylesheet is not valid",
+		);
+	});
 });
