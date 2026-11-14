@@ -4,7 +4,7 @@ title: "Vouchers UI (buy page, printable voucher), docs and Playwright journeys"
 phase: 8
 package: vouchers
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: [T166, T167]
@@ -37,7 +37,7 @@ spec: []
 
 - [x] All journeys pass on CI and with Pro linked. (CI: the Pro-only spec skips, as T135's do; Pro linked: 7/7.)
 - [x] Changesets added.
-- [ ] Ready for an rc release; LMSC told to install it. (Ready; telling LMSC is the orchestrator's, after the release.)
+- [x] Ready for an rc release; LMSC told to install it (rc.12, 2026-11-14). (Ready; telling LMSC is the orchestrator's, after the release.)
 
 ## Notes
 
