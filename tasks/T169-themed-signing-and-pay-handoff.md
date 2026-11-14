@@ -30,8 +30,8 @@ Reported from a real LMSC staging booking (2026-11-14).
 
 ## Acceptance criteria
 
-- [x] Tests first; Playwright screenshots of the themed sign, signed-copy and verify pages (`tasks/evidence/T169`). The pay
-      hand-off screenshot was not taken: the Pro e2e did not run (see Notes).
+- [x] Tests first; Playwright screenshots of the themed sign, signed-copy and verify pages and the pay hand-off card
+      (`tasks/evidence/T169`, `T169_SHOTS=1`, the hand-off on the Pro build).
 - [x] Byte deltas reported (Free Events plugin.mjs must not grow without reason).
 - [x] Changesets added; ready for rc.13.
 
@@ -56,10 +56,11 @@ Reported from a real LMSC staging booking (2026-11-14).
   303, as it already blocks `/_events/checkout`.
 - **Bytes:** Free Events `plugin.mjs` 119,392 B, unchanged (0 B). E-sign `plugin.mjs` 112,904 B, unchanged. Everything
   is Astro/site-side.
-- **Gaps:** the Pro e2e tests for the hand-off (`t169-themed-signing.spec.ts`: pay-first goes straight to Checkout;
-  sign-first shows the themed card) are written but were not run. They skip on Free, and the coordinator
-  deprioritised part 3. Unit tests cover `payHandOff` and the direct redirect. Run them with `EMDASH_PRO_DIR` before
-  rc.13 to get the hand-off screenshot. Pro needs no rebuild: nothing in the cores changed.
+- **Pro e2e** (`EMDASH_PRO_DIR`, Pro rc.12 dist, no rebuild needed: no core changed): `t169-themed-signing` 5/5 passed;
+  existing Pro specs `t135-*` (11), `t159-booking-journey` (4, including T160 pay-first) and `t168-vouchers` (7):
+  22/22 passed. Test notes: Playwright routes only a redirect chain's first request, so pay-first waits for the browser's
+  request to Checkout (`redirectedFrom` the waiver POST) instead of the fake page. The fake Checkout answers 204 in the
+  sign-first test, so the hand-off card stays on screen after its meta refresh fires.
 - The red commit's toolbar source checks expected a literal leading comment. The first e2e run showed Astro moves the
   doctype in front of it, so those two new checks were rewritten for `DOCUMENT_START` in a second test commit. No
   existing assertion was changed.

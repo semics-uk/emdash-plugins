@@ -141,26 +141,26 @@ test.afterAll(async () => {
 	await stripe?.close();
 });
 
-/** A visitor whose Checkout request is held until `release()`, so the page before it can be seen. */
+/**
+ * A visitor whose requests off the site are answered here, and recorded. The fake Checkout answers 204 No Content,
+ * which a browser does not navigate to, so a page that sends the buyer there stays on screen to be checked.
+ */
 async function visitor(browser: Browser) {
 	const context = await browser.newContext({
 		extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}` },
 	});
-	let release = () => {};
-	const held = new Promise<void>((done) => {
-		release = done;
-	});
+	const checkout: string[] = [];
 	await context.route(
 		(url) => !["127.0.0.1", "localhost"].includes(url.hostname),
-		async (route) => {
+		(route) => {
 			if (route.request().url().startsWith(`${CHECKOUT_HOST}/c/`)) {
-				await held;
-				return route.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><title>Checkout (fake)</title>" });
+				checkout.push(route.request().url());
+				return route.fulfill({ status: 204 });
 			}
 			return route.abort();
 		},
 	);
-	return { context, page: await context.newPage(), release };
+	return { context, page: await context.newPage(), checkout };
 }
 
 async function paidEvent(request: Parameters<typeof createEvent>[0], slug: string, days: number) {
@@ -197,14 +197,17 @@ test("T169 pay first: Book goes straight to Stripe Checkout, with no page betwee
 		page.on("response", (r) => {
 			if (r.request().isNavigationRequest() && r.status() === 200) pages.push(new URL(r.url()).pathname);
 		});
-		const [posted] = await Promise.all([
+		// A redirected request skips the context's route (Playwright routes only a chain's first request), so the
+		// browser's request to Checkout is awaited rather than its page.
+		const [posted, checkout] = await Promise.all([
 			page.waitForResponse((r) => r.request().method() === "POST" && r.url().includes("/_events/waiver")),
+			page.waitForRequest((r) => r.url().startsWith(`${CHECKOUT_HOST}/c/`)),
 			book(page, address("t169-first")),
 		]);
 		expect(posted.status()).toBe(303);
 		expect(posted.headers().location).toMatch(new RegExp(`^${CHECKOUT_HOST}/c/`));
-		release();
-		await page.waitForURL(new RegExp(`^${CHECKOUT_HOST}/c/`));
+		// The browser went from the POST to Checkout itself: the redirect chain has no page between.
+		expect(checkout.redirectedFrom()?.url()).toContain("/_events/waiver");
 		expect(pages.filter((p) => p.startsWith("/_events/"))).toEqual([]);
 		await context.close();
 	} finally {
@@ -218,7 +221,7 @@ test("T169 sign first: after the last signature a themed 'Taking you to secure p
 }) => {
 	test.skip(!pro, "Events Pro is not linked (build with EMDASH_PRO_DIR=<Pro checkout>)");
 	await paidEvent(request, "t169-sign-first", 17);
-	const { context, page, release } = await visitor(browser);
+	const { context, page, checkout } = await visitor(browser);
 	await page.goto("/e2e/waiver?slug=t169-sign-first");
 	await book(page, address("t169-sign"));
 	await page.waitForURL(/\/_events\/waiver\?ref=[0-9A-Z]{10}/);
@@ -243,8 +246,9 @@ test("T169 sign first: after the last signature a themed 'Taking you to secure p
 	expect(styles.decoration).toBe("none");
 	expect(styles.background).not.toBe("rgba(0, 0, 0, 0)");
 	expect((await look(page)).font).not.toMatch(/times/i);
+	// The page's meta refresh asked for Checkout by itself (the fake answers 204, so the card stays to be checked).
+	await expect.poll(() => checkout.length).toBeGreaterThan(0);
+	expect(checkout[0]).toBe(await button.getAttribute("href"));
 	await shot(page, "pay-handoff");
-	release();
-	await page.waitForURL(new RegExp(`^${CHECKOUT_HOST}/c/`));
 	await context.close();
 });
