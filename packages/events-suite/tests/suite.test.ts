@@ -224,7 +224,9 @@ describe("page options", () => {
 // esignIntegration({ page }) the Events page sheet with the site's theme, its stylesheet and its brand.
 describe("T169 page options reach e-sign's pages", () => {
 	const esignPage = (suite: ReturnType<typeof eventsSuite>) => {
-		const source = suite.integrations.map((i) => setUp(i as never).modules["virtual:semics-esign/config"]).find(Boolean);
+		const source = suite.integrations
+			.map((i) => setUp(i as never).modules["virtual:semics-esign/config"])
+			.find(Boolean);
 		const json = /^export const page = (.*);$/m.exec(source ?? "")?.[1];
 		return json === undefined ? undefined : JSON.parse(json);
 	};
