@@ -1,0 +1,49 @@
+---
+// The document around e-sign's own pages (`/sign/[token]`, `/signed/[token]`, `/verify`, T169): the site's look from
+// `esignIntegration({ page })`: one inline sheet (allowed by its hash in the page's CSP), an optional linked
+// stylesheet, the site's name or logo at the top and its name and address at the foot.
+//
+// The document starts with a comment, so EmDash's editor toolbar stays off (`DOCUMENT_START`).
+import { DOCUMENT_START, type EsignPageBrand } from "./lib/page";
+
+interface Props {
+	title: string;
+	lang: string;
+	dir: string;
+	css: string;
+	stylesheet?: string | undefined;
+	brand?: EsignPageBrand | undefined;
+}
+
+const { title, lang, dir, css, stylesheet, brand } = Astro.props;
+---
+<Fragment set:html={DOCUMENT_START} />
+<html lang={lang} dir={dir}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>{title}</title>
+		<style is:inline set:html={css}></style>
+		{stylesheet && <link rel="stylesheet" href={stylesheet} />}
+	</head>
+	<body class="semics-page">
+		{
+			brand && (
+				<header class="semics-page-brand">
+					<a href={brand.href ?? "/"}>{brand.logo ? <img src={brand.logo} alt={brand.name} /> : brand.name}</a>
+				</header>
+			)
+		}
+		<slot />
+		{
+			brand && (
+				<footer class="semics-page-organiser" data-testid="page-organiser">
+					<p>{brand.name}</p>
+					{brand.address && <address>{brand.address}</address>}
+				</footer>
+			)
+		}
+	</body>
+</html>

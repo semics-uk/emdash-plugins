@@ -3,9 +3,11 @@
 // completion email links to. Like `/sign/[token]` it is the one place a token may sit in a URL: the
 // path. It sends `Referrer-Policy: no-referrer`, is never cached, and POSTs the token to `public/session`
 // (never logged), which issues a fresh short-lived download link on every visit.
-import { pluginId } from "virtual:semics-esign/config";
+import { page, pluginId } from "virtual:semics-esign/config";
 import { pickLocale, segments, translator } from "../i18n/index.ts";
+import EsignPage from "./EsignPage.astro";
 import { ceremonyCsp } from "./lib/csp";
+import { pageView } from "./lib/page";
 import { handleSignedCopy } from "./lib/sign";
 import SigningCeremony from "./SigningCeremony.astro";
 
@@ -13,24 +15,20 @@ export const prerender = false;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
-Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
+// The site's page sheet, allowed by its hash (T169).
+const look = pageView(page, Astro.url);
+Astro.response.headers.set(
+	"Content-Security-Policy",
+	await ceremonyCsp({ styles: [look.css], stylesheet: look.stylesheet }),
+);
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
 const locale = pickLocale(Astro.currentLocale);
 const { t, lang, dir } = translator(locale);
 const view = await handleSignedCopy({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, token);
 ---
-<!doctype html>
-<html lang={lang} dir={dir}>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="robots" content="noindex" />
-		<meta name="referrer" content="no-referrer" />
-		<title>{t("signed.title")}</title>
-	</head>
-	<body>
-		<main class="semics-esign semics-signed-copy" data-testid="signed-copy-page" data-state={view.kind}>
+<EsignPage title={t("signed.title")} lang={lang} dir={dir} css={look.css} stylesheet={look.stylesheet} brand={look.brand}>
+		<main class="semics-esign semics-signed-copy semics-page-main" data-testid="signed-copy-page" data-state={view.kind}>
 			<h1>{view.kind === "closed" && view.title ? view.title : t("signed.title")}</h1>
 			{
 				view.kind === "unsigned" ? (
@@ -44,5 +42,4 @@ const view = await handleSignedCopy({ locals: Astro.locals, url: Astro.url, requ
 				)
 			}
 		</main>
-	</body>
-</html>
+</EsignPage>

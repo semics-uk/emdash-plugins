@@ -2,11 +2,13 @@
 // Injected at `/sign/[token]` by the integration (SU-FR-01). The one place a token may sit in a URL:
 // this page's path. It sends `Referrer-Policy: no-referrer`, is never cached, and passes the token
 // to the core only in POST bodies. A plain form post works without JavaScript. Its CSP allows only
-// the ceremony's own hashed script and style (SU-NFR-02).
-import { pluginId } from "virtual:semics-esign/config";
+// the ceremony's own hashed script and style (SU-NFR-02), and the site's page sheet (T169).
+import { page, pluginId } from "virtual:semics-esign/config";
 import { pickLocale, translator } from "../i18n/index.ts";
+import EsignPage from "./EsignPage.astro";
 import { ceremonyCsp } from "./lib/csp";
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
+import { pageView } from "./lib/page";
 import { ceremonyRedirect, handleSign } from "./lib/sign";
 import SigningCeremony from "./SigningCeremony.astro";
 
@@ -17,7 +19,11 @@ if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
-Astro.response.headers.set("Content-Security-Policy", await ceremonyCsp());
+const look = pageView(page, Astro.url);
+Astro.response.headers.set(
+	"Content-Security-Policy",
+	await ceremonyCsp({ styles: [look.css], stylesheet: look.stylesheet }),
+);
 
 const token = typeof Astro.params.token === "string" ? Astro.params.token : "";
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
@@ -35,19 +41,9 @@ if (back) {
 	});
 }
 ---
-<!doctype html>
-<html lang={lang} dir={dir}>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="robots" content="noindex" />
-		<meta name="referrer" content="no-referrer" />
-		<title>{t("sign.title")}</title>
-	</head>
-	<body>
-		<main class="semics-esign semics-sign" data-testid="sign-page" data-state={view.kind}>
-			<h1>{view.kind === "ready" ? view.session.envelope?.title ?? t("sign.title") : t("sign.title")}</h1>
-			<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} locale={locale} />
-		</main>
-	</body>
-</html>
+<EsignPage title={t("sign.title")} lang={lang} dir={dir} css={look.css} stylesheet={look.stylesheet} brand={look.brand}>
+	<main class="semics-esign semics-sign semics-page-main" data-testid="sign-page" data-state={view.kind}>
+		<h1>{view.kind === "ready" ? view.session.envelope?.title ?? t("sign.title") : t("sign.title")}</h1>
+		<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} locale={locale} />
+	</main>
+</EsignPage>

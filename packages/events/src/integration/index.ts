@@ -2,6 +2,8 @@ import { EVENTS_PLUGIN_ID } from "../astro/lib/call.ts";
 import { checkPageOptions, type PageOptions } from "../astro/lib/page.ts";
 
 export type { PageOptions };
+// The page sheet itself, so the suite can hand e-sign's pages the same look (T169).
+export { PAGE_CSS, pageCss } from "../astro/lib/page.ts";
 
 export interface EventsIntegrationOptions {
 	/**

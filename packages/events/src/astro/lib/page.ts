@@ -118,6 +118,7 @@ body.semics-page{margin:0;min-block-size:100vh;background:var(--events-page-bg, 
 :where(.semics-page) fieldset{min-inline-size:0;margin:0 0 1rem;padding:0;border:0}
 :where(.semics-page) legend{padding:0;margin-block-end:.5rem;font-weight:600}
 :where(.semics-page) button{font:inherit;font-weight:600;min-block-size:2.75rem;padding:.625rem 1.25rem;border:1px solid var(--events-accent, #0b57d0);border-radius:var(--events-radius, 6px);background:var(--events-accent, #0b57d0);color:var(--events-accent-fg, #ffffff);cursor:pointer}
+:where(.semics-page) a.semics-page-button{display:inline-block;font-weight:600;padding:.625rem 1.25rem;border:1px solid var(--events-accent, #0b57d0);border-radius:var(--events-radius, 6px);background:var(--events-accent, #0b57d0);color:var(--events-accent-fg, #ffffff);text-decoration:none}
 .semics-page-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem;margin-block:0 1.25rem}
 .semics-page-actions .semics-print{background:transparent;color:var(--events-accent, #0b57d0)}
 .semics-page-organiser{max-inline-size:40rem;margin-inline:auto;padding:0 1rem 3rem;color:var(--events-muted, #4a4a4a);font-size:.9375rem}

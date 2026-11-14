@@ -57,16 +57,24 @@ let cachedVerify: Promise<string> | undefined;
  * network code, so there is no `connect-src` (it falls back to `default-src 'none'`); the form posts
  * to the site, and the page cannot be framed.
  */
-export function verifyCsp(): Promise<string> {
-	cachedVerify ??= Promise.all([cspSource(VERIFY_SCRIPT), cspSource(VERIFY_CSS)]).then(([script, style]) =>
-		[
-			"default-src 'none'",
-			`script-src ${script}`,
-			`style-src ${style}`,
-			"form-action 'self'",
-			"base-uri 'none'",
-			"frame-ancestors 'none'",
-		].join("; "),
-	);
+export function verifyCsp(extras?: CeremonyCspExtras): Promise<string> {
+	if (extras) return verifyCspFor(extras);
+	cachedVerify ??= verifyCspFor();
 	return cachedVerify;
+}
+
+/** With `extras` (the site's page sheet, T169) the page may also show the site's logo and the stylesheet's fonts. */
+async function verifyCspFor(extras?: CeremonyCspExtras): Promise<string> {
+	const { styles = [], stylesheet } = extras ?? {};
+	const [script, ...sources] = await Promise.all([VERIFY_SCRIPT, VERIFY_CSS, ...styles].map(cspSource));
+	return [
+		"default-src 'none'",
+		`script-src ${script}`,
+		`style-src ${[...sources, ...(stylesheet ? [stylesheet] : [])].join(" ")}`,
+		...(extras ? ["img-src 'self'"] : []),
+		...(stylesheet ? ["font-src 'self'"] : []),
+		"form-action 'self'",
+		"base-uri 'none'",
+		"frame-ancestors 'none'",
+	].join("; ");
 }
