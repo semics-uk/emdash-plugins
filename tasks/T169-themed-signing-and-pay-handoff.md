@@ -4,7 +4,7 @@ title: "Themed waiver signing pages; clean hand-off page before Stripe Checkout"
 phase: 8
 package: esign, events-suite
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: []
