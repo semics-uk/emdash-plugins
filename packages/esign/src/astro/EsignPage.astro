@@ -23,7 +23,7 @@ const { title, lang, dir, css, stylesheet, brand } = Astro.props;
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
-		<meta name="referrer" content="no-referrer" />
+		<slot name="head" />
 		<title>{title}</title>
 		<style is:inline set:html={css}></style>
 		{stylesheet && <link rel="stylesheet" href={stylesheet} />}

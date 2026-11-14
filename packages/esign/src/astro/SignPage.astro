@@ -42,6 +42,7 @@ if (back) {
 }
 ---
 <EsignPage title={t("sign.title")} lang={lang} dir={dir} css={look.css} stylesheet={look.stylesheet} brand={look.brand}>
+	<meta name="referrer" content="no-referrer" slot="head" />
 	<main class="semics-esign semics-sign semics-page-main" data-testid="sign-page" data-state={view.kind}>
 		<h1>{view.kind === "ready" ? view.session.envelope?.title ?? t("sign.title") : t("sign.title")}</h1>
 		<SigningCeremony view={view} action={Astro.url.pathname} token={token} pluginId={pluginId} locale={locale} />

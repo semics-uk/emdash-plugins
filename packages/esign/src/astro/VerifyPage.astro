@@ -31,6 +31,7 @@ const { t, lang, dir } = translator(locale);
 const view = await handleVerify({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, form);
 ---
 <EsignPage title={t("verify.title")} lang={lang} dir={dir} css={look.css} stylesheet={look.stylesheet} brand={look.brand}>
+	<meta name="referrer" content="no-referrer" slot="head" />
 	<main class="semics-page-main" data-testid="verify-page">
 		<h1>{t("verify.title")}</h1>
 		<VerifyDocument view={view} locale={locale} />

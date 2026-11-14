@@ -98,7 +98,7 @@ change in a minor release. The defaults meet WCAG AA contrast with each other; k
 | `--events-success` | | Confirmations | `#146c2e` |
 | `--events-radius` | `--esign-radius` | Corner radius | `6px` |
 | `--events-font` | `--esign-font` | Font family | `system-ui, sans-serif` |
-| `--events-page-bg` | | Page background of `/booking` and `/_events/waiver` | `#f5f4f0` |
+| `--events-page-bg` | `--esign-page-bg` | Page background of `/booking`, `/_events/waiver` and e-sign's pages | `#f5f4f0` |
 | `--events-heading-font` | | Headings of those pages | `inherit` |
 | `--events-heading-fg` | | Heading colour of those pages | `inherit` |
 | `--events-widget-max` | | Widest the booking widgets (`<BookingWidget>`, `<BookingWithWaiver>`) grow; they fill their column up to it | `none` |
@@ -133,3 +133,9 @@ const suite = eventsSuite({
 `theme` takes the properties in the table above, without `--events-`. Paths must be on your site. The signing page
 allows only these styles and fonts from your own origin. It does not use your site's layout, because its security
 policy would block your layout's scripts, and an emailed booking link's one-time code is in the URL of `/booking`.
+
+E-sign's own pages (`/sign/[token]`, `/signed/[token]`, `/verify`) work the same way. `eventsSuite({ page })` gives
+them the same look, brand and stylesheet. On a site with E-sign alone, pass `page` to `esignIntegration()`: a `theme`
+(the `--esign-*` properties above, without the prefix, plus `page-bg`), `brand` and `stylesheet` as above, or `css`, a
+whole stylesheet of your own in place of the default one. EmDash's editor toolbar is not added to these pages or to
+`/_events/waiver`.
