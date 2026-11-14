@@ -29,6 +29,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-14 LMSC Agency licence lic_001eca6436c53835bcf9fd7c (staging, apex, www; updates to 2027-11-14) confirmed licensed on staging.leamarstonshootingclub.com; lic_ae46a730151fbef7e879e048 issued first and unused (key lost). New ADMIN_TOKEN on the licence Worker, kept in Oli's ~/.semics-admin-token. Upstream note: @emdash-cms/cloudflare cloudflareEmail needs from as { email, name }
 - 2026-11-14 rc.12 published (T164–T168 gift vouchers): npm Free and Pro incl. new vouchers-pro (npm bootstrap done by Oli), EmDash registry; Pro release needed a GitHub billing fix; LMSC told
 - 2026-11-11 rc.11 published (T162 shrink, #27): npm Free and Pro (Pro rebuilt on Free, no Pro changes), EmDash registry; LMSC staging still on rc.9
 - 2026-11-11 T161 size investigation (#24), T162 shrink pass (#25, Events 123,871 → 119,444 bytes, size table in CI) and data deletion notices fix (#27) merged; Oli: no feature freeze, weigh size on every change
