@@ -1,5 +1,23 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.12
+
+### Minor Changes
+
+- 145ebd3: Gift vouchers in the booking flow (T166). Events declares the `vouchersPairing` secret that Events Pro reads (R44; the Free backend is unchanged), and its widget shows a "Gift voucher code" field when `public/event` answers `vouchers: true` (Events Pro paired with Vouchers). The booking page shows a "Gift voucher" line in the totals. `eventsIntegration({ vouchers: { pluginId, module } })` lets the no-JS checkout hold the code between reserve and continue; `callPublicRoute` keeps a refusal's extra fields in `error.details`.
+  
+  The suite takes `eventsSuite({ vouchers })`: its booking flow holds the code with Vouchers (settling abandoned holds through Events' lookup first), the booking page settles each hold's outcome, and the site gets one Stripe webhook endpoint, `POST /_semics/stripe`, which passes each delivery to the plugin its session is tagged for (Events by default). Without `vouchers` a site is wired exactly as before.
+- 702758c: Gift vouchers on the site (T168). The suite adds `<BuyVoucher />` (the buying form, with a live preview of the card;
+  no JavaScript needed), `POST /_vouchers/buy` (asks Vouchers for a Stripe Checkout Session and sends the buyer there),
+  the voucher page `/_vouchers/v?c=<code>` linked from the emails, with print styles ("Print or save as PDF", one A4
+  page), Stripe's return page `/_vouchers/thanks`, and `/_vouchers/setup`, where an administrator picks the activity
+  vouchers from Events' catalogue at Events' prices. All only with `eventsSuite({ vouchers })`.
+  
+  A gift voucher code is now checked with Vouchers before anything is reserved, in the suite's booking flow and in
+  Events' no-JS checkout (`eventsIntegration({ vouchers })` also exports the module's `checkVoucher`): a mistyped,
+  expired or spent code is refused on the form, so no booking is held and cancelled and no "cancelled" email is sent.
+  Setup, settings and the accounting note: `docs/vouchers.md`.
+
 ## 1.0.0-rc.11
 
 ### Patch Changes
