@@ -4,7 +4,7 @@ title: "Themed waiver signing pages; clean hand-off page before Stripe Checkout"
 phase: 8
 package: esign, events-suite
 edition: free
-status: in-progress
+status: review
 model: opus-5.5
 size: S
 depends_on: []
@@ -30,6 +30,37 @@ Reported from a real LMSC staging booking (2026-11-14).
 
 ## Acceptance criteria
 
-- [ ] Tests first; Playwright screenshots of the themed sign page and the pay hand-off.
-- [ ] Byte deltas reported (Free Events plugin.mjs must not grow without reason).
-- [ ] Changesets added; ready for rc.13.
+- [x] Tests first; Playwright screenshots of the themed sign, signed-copy and verify pages and the pay hand-off card
+      (`tasks/evidence/T169`, `T169_SHOTS=1`, the hand-off on the Pro build).
+- [x] Byte deltas reported (Free Events plugin.mjs must not grow without reason).
+- [x] Changesets added; ready for rc.13.
+
+## Notes
+
+- **1. Themed pages.** `esignIntegration({ page })` (new, `src/astro/lib/page.ts`): `theme` (`--esign-*`), `css` (a whole
+  sheet), `stylesheet`, `brand`; checked at config time. `/sign`, `/signed` and `/verify` render in `EsignPage.astro`
+  (`body.semics-page`, brand header, name and address footer) and hash the sheet into `ceremonyCsp`/`verifyCsp`
+  (`verifyCsp` now takes the same extras, plus `img-src 'self'` for the logo). `eventsSuite()` always passes Events'
+  `pageCss(page)` (now exported from `@semics-tech/emdash-events/integration`), so an unthemed suite site gets the plain
+  page sheet too. Standalone e-sign sites get e-sign's own small sheet.
+- **2. Toolbar.** EmDash 1.2 has no per-page opt-out (only site-wide `toolbar: false`). It injects only into a response
+  starting with `<!doctype`/`<html` (`injectBeforeBodyEnd`). So the pages start with `DOCUMENT_START`: a comment, then
+  the doctype, in one `set:html` chunk. Astro strips a literal doctype and prefixes its own unless the first chunk names
+  one. The e2e test checks standards mode (`CSS1Compat`) and that a signed-in admin gets no toolbar on `/sign`, `/verify`
+  and `/_events/waiver`, while the toolbar still shows on `/`. This depends on EmDash's check: re-check on an EmDash upgrade.
+- **3. Pay hand-off.** The page was the suite's `/_events/waiver` "Continue to payment" page (T155: meta refresh plus a bare
+  link). It was rendered for every off-site redirect, including the Book post from the site's own page. LMSC is
+  pay-first, so every paid booking hit it. Book now 303s straight to Checkout, as Events' `/_events/checkout` already
+  does. The hand-off stays only after a signature on the waiver page (that page's CSP blocks the redirect), now a themed
+  "Taking you to secure payment…" card with a button. A site whose own pages set `form-action 'self'` would block Book's
+  303, as it already blocks `/_events/checkout`.
+- **Bytes:** Free Events `plugin.mjs` 119,392 B, unchanged (0 B). E-sign `plugin.mjs` 112,904 B, unchanged. Everything
+  is Astro/site-side.
+- **Pro e2e** (`EMDASH_PRO_DIR`, Pro rc.12 dist, no rebuild needed: no core changed): `t169-themed-signing` 5/5 passed;
+  existing Pro specs `t135-*` (11), `t159-booking-journey` (4, including T160 pay-first) and `t168-vouchers` (7):
+  22/22 passed. Test notes: Playwright routes only a redirect chain's first request, so pay-first waits for the browser's
+  request to Checkout (`redirectedFrom` the waiver POST) instead of the fake page. The fake Checkout answers 204 in the
+  sign-first test, so the hand-off card stays on screen after its meta refresh fires.
+- The red commit's toolbar source checks expected a literal leading comment. The first e2e run showed Astro moves the
+  doctype in front of it, so those two new checks were rewritten for `DOCUMENT_START` in a second test commit. No
+  existing assertion was changed.

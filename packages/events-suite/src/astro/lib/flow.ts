@@ -71,7 +71,13 @@ export interface CookieOp {
 }
 
 export type WaiverOutcome =
-	| { type: "redirect"; location: string; cookies: CookieOp[] }
+	| {
+			type: "redirect";
+			location: string;
+			cookies: CookieOp[];
+			/** The post came from the site's own booking form, not this page: a plain 303 can leave the site (T169). */
+			direct?: boolean;
+	  }
 	/** Show `view` in `<SigningCeremony>`; `remaining` signers follow this one. */
 	| {
 			type: "render";
@@ -112,6 +118,16 @@ export interface BookingAnswer {
  */
 export function leavesSite(location: string, site: URL): boolean {
 	return new URL(location, site).origin !== site.origin;
+}
+
+/**
+ * The payment page to show a hand-off for (T169), or undefined to redirect as usual. Only a post from this page (the
+ * ceremony, Try again) is under its CSP's `form-action 'self'`; the booking form's post goes straight to the provider.
+ */
+export function payHandOff(outcome: WaiverOutcome, site: URL): string | undefined {
+	return outcome.type === "redirect" && !outcome.direct && leavesSite(outcome.location, site)
+		? outcome.location
+		: undefined;
 }
 
 /** Booking statuses with nothing left to sign for: the places are gone (T151). */
@@ -547,7 +563,10 @@ export async function handleWaiverRequest(
 	// Every post here is a form post: refuse one another site made (CSRF, as the Events pages do).
 	if (isCrossSiteRequest(ctx.request, ctx.url)) return { type: "forbidden" };
 	const form = ctx.request.method === "POST" ? await ctx.request.formData().catch(() => new FormData()) : null;
-	if (form?.get("intent") === "book") return book(ctx, form, ids, deps);
+	if (form?.get("intent") === "book") {
+		const booked = await book(ctx, form, ids, deps);
+		return booked.type === "redirect" ? { ...booked, direct: true } : booked;
+	}
 	if (form?.get("intent") === "retry") return retry(ctx, ids);
 	return sign(ctx, ids, form, deps);
 }

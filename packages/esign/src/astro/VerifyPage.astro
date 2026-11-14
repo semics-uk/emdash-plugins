@@ -2,10 +2,12 @@
 // Injected at `/verify` by the integration (SU-FR-02, ES-US-6). Works without JavaScript: the visitor
 // pastes the signed PDF's SHA-256; with scripts, they choose or drop the PDF and it is fingerprinted
 // in the browser (never uploaded). Its CSP allows only the page's own hashed script and style.
-import { pluginId } from "virtual:semics-esign/config";
+import { page, pluginId } from "virtual:semics-esign/config";
 import { pickLocale, translator } from "../i18n/index.ts";
+import EsignPage from "./EsignPage.astro";
 import { verifyCsp } from "./lib/csp";
 import { crossSiteResponse, isCrossSiteRequest } from "./lib/csrf";
+import { pageView } from "./lib/page";
 import { handleVerify } from "./lib/sign";
 import VerifyDocument from "./VerifyDocument.astro";
 
@@ -16,26 +18,22 @@ if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
-Astro.response.headers.set("Content-Security-Policy", await verifyCsp());
+// The site's page sheet, allowed by its hash (T169).
+const look = pageView(page, Astro.url);
+Astro.response.headers.set(
+	"Content-Security-Policy",
+	await verifyCsp({ styles: [look.css], stylesheet: look.stylesheet }),
+);
 
 const form = Astro.request.method === "POST" ? await Astro.request.formData().catch(() => new FormData()) : null;
 const locale = pickLocale(Astro.currentLocale);
 const { t, lang, dir } = translator(locale);
 const view = await handleVerify({ locals: Astro.locals, url: Astro.url, request: Astro.request, pluginId }, form);
 ---
-<!doctype html>
-<html lang={lang} dir={dir}>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<meta name="robots" content="noindex" />
-		<meta name="referrer" content="no-referrer" />
-		<title>{t("verify.title")}</title>
-	</head>
-	<body>
-		<main data-testid="verify-page">
-			<h1>{t("verify.title")}</h1>
-			<VerifyDocument view={view} locale={locale} />
-		</main>
-	</body>
-</html>
+<EsignPage title={t("verify.title")} lang={lang} dir={dir} css={look.css} stylesheet={look.stylesheet} brand={look.brand}>
+	<meta name="referrer" content="no-referrer" slot="head" />
+	<main class="semics-page-main" data-testid="verify-page">
+		<h1>{t("verify.title")}</h1>
+		<VerifyDocument view={view} locale={locale} />
+	</main>
+</EsignPage>

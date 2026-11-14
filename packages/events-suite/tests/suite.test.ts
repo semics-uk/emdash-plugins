@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import esignCore from "@semics-tech/emdash-esign";
 import { esignUi } from "@semics-tech/emdash-esign/ui";
 import eventsCore from "@semics-tech/emdash-events";
+import { PAGE_CSS, pageCss } from "@semics-tech/emdash-events/integration";
 import { eventsUi } from "@semics-tech/emdash-events/ui";
 import { describe, expect, it } from "vitest";
 
@@ -216,5 +217,35 @@ describe("page options", () => {
 	it("default to none", () => {
 		const sources = eventsSuite().integrations.flatMap((i) => Object.values(setUp(i as never).modules));
 		expect(sources.filter((s) => s.includes("export const page = {};"))).toHaveLength(2);
+	});
+});
+
+// T169: e-sign's own pages (/sign, /signed, /verify) look like the booking and waiver pages: the suite hands
+// esignIntegration({ page }) the Events page sheet with the site's theme, its stylesheet and its brand.
+describe("T169 page options reach e-sign's pages", () => {
+	const esignPage = (suite: ReturnType<typeof eventsSuite>) => {
+		const source = suite.integrations
+			.map((i) => setUp(i as never).modules["virtual:semics-esign/config"])
+			.find(Boolean);
+		const json = /^export const page = (.*);$/m.exec(source ?? "")?.[1];
+		return json === undefined ? undefined : JSON.parse(json);
+	};
+
+	it("T169 the site's theme, stylesheet and brand, as the exact sheet the waiver page sends", () => {
+		const page = {
+			theme: { accent: "#1f3a2e", "heading-font": "Georgia, serif" },
+			stylesheet: "/brand/fonts.css",
+			brand: { name: "Lea Marston Shooting Club", logo: "/brand/logo.png", address: "Blackgreaves Lane" },
+			eventPath: "/activities/{slug}",
+		};
+		expect(esignPage(eventsSuite({ page }))).toEqual({
+			css: pageCss(page),
+			stylesheet: "/brand/fonts.css",
+			brand: page.brand,
+		});
+	});
+
+	it("T169 a site with no page options still gets the plain page sheet, never a bare page", () => {
+		expect(esignPage(eventsSuite())).toEqual({ css: PAGE_CSS });
 	});
 });

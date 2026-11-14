@@ -1,4 +1,7 @@
 import { ESIGN_PLUGIN_ID } from "../astro/lib/call.ts";
+import { checkEsignPage, type EsignPageOptions } from "../astro/lib/page.ts";
+
+export type { EsignPageBrand, EsignPageOptions, EsignThemeProperty } from "../astro/lib/page.ts";
 
 export interface EsignIntegrationOptions {
 	/**
@@ -6,6 +9,11 @@ export interface EsignIntegrationOptions {
 	 * Registry installs get an `r_…` id: pass it here.
 	 */
 	pluginId?: string;
+	/**
+	 * How `/sign/[token]`, `/signed/[token]` and `/verify` look on this site (T169): a theme, a whole inline sheet,
+	 * a stylesheet on this site, the site's name or logo. `eventsSuite({ page })` fills it from its own page options.
+	 */
+	page?: EsignPageOptions;
 }
 
 const VIRTUAL = "virtual:semics-esign/config";
@@ -28,6 +36,10 @@ export interface EsignAstroIntegration {
  */
 export function esignIntegration(options: EsignIntegrationOptions = {}): EsignAstroIntegration {
 	const pluginId = options.pluginId ?? ESIGN_PLUGIN_ID;
+	const config = [
+		`export const pluginId = ${JSON.stringify(pluginId)};`,
+		`export const page = ${JSON.stringify(checkEsignPage(options.page))};`,
+	].join("\n");
 	return {
 		name: "semics-esign",
 		hooks: {
@@ -58,8 +70,7 @@ export function esignIntegration(options: EsignIntegrationOptions = {}): EsignAs
 							{
 								name: "semics-esign-config",
 								resolveId: (id: string) => (id === VIRTUAL ? RESOLVED : undefined),
-								load: (id: string) =>
-									id === RESOLVED ? `export const pluginId = ${JSON.stringify(pluginId)};` : undefined,
+								load: (id: string) => (id === RESOLVED ? config : undefined),
 							},
 						],
 					},

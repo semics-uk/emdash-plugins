@@ -154,3 +154,12 @@ and Pair adopts that client (E-sign revokes the auto-pair client it replaces) in
 playground (public repo) never loads Pro. Playground e2e `e2e/t168-vouchers.spec.ts` (Pro build with Vouchers linked: buy, print, full, part-pay, cancel credit,
 race, abandoned hold, refused code) and `e2e/t065-booking-with-waiver.spec.ts`: Free
 booking through the widget, the C0 refusal, and the waiver page's ceremony with an intent minted like Pro.
+
+## Pay hand-off and e-sign's look (T169)
+
+- `handleWaiverRequest` marks the booking form's own post (`intent=book`) `direct: true`. `payHandOff(outcome, url)`
+  returns the provider URL only for an off-site redirect of a post from the waiver page itself (sign, Try again),
+  which its CSP's `form-action 'self'` would block. That gets the themed "Taking you to secure payment…" card
+  (meta refresh + `a.semics-page-button`). Book goes straight to Checkout by 303, as Events' `/_events/checkout` does.
+- `eventsSuite()` passes `esignIntegration({ page: { css: pageCss(page), stylesheet, brand } })`, so e-sign's pages
+  match. `WaiverPage.astro` starts with e-sign's `DOCUMENT_START`, which keeps EmDash's editor toolbar off.

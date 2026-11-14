@@ -2,7 +2,7 @@ import esignCore from "@semics-tech/emdash-esign";
 import { esignIntegration } from "@semics-tech/emdash-esign/integration";
 import { esignUi } from "@semics-tech/emdash-esign/ui";
 import eventsCore from "@semics-tech/emdash-events";
-import { eventsIntegration, type PageOptions } from "@semics-tech/emdash-events/integration";
+import { eventsIntegration, type PageOptions, pageCss } from "@semics-tech/emdash-events/integration";
 import { eventsUi } from "@semics-tech/emdash-events/ui";
 import type { PluginDescriptor } from "emdash";
 
@@ -175,7 +175,15 @@ export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 				...(options.page ? { page: options.page } : {}),
 				...(vouchers ? { vouchers: { pluginId: vouchers.id, module: VOUCHER_MODULE } } : {}),
 			}),
-			esignIntegration({ pluginId: esign.id }),
+			// T169: e-sign's own pages get the booking pages' look: the same sheet, stylesheet and brand.
+			esignIntegration({
+				pluginId: esign.id,
+				page: {
+					css: pageCss(options.page),
+					...(options.page?.stylesheet ? { stylesheet: options.page.stylesheet } : {}),
+					...(options.page?.brand ? { brand: options.page.brand } : {}),
+				},
+			}),
 			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id, ...voucherIds }, options.page),
 		],
 		pluginIds: { events: events.id, esign: esign.id, ...(vouchers ? { vouchers: vouchers.id } : {}) },

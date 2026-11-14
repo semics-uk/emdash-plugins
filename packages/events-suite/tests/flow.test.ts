@@ -6,6 +6,7 @@ import {
 	flowCookieName,
 	handleWaiverRequest,
 	leavesSite,
+	payHandOff,
 	retryCookieName,
 	type WaiverOutcome,
 } from "../src/astro/lib/flow";
@@ -1035,5 +1036,46 @@ describe("the waiver page's look", () => {
 
 	it("T151 'Book again' follows the site's own event page", () => {
 		expect(page).toContain("eventPath: page.eventPath");
+	});
+});
+
+// T169: pressing Book on the site's own page posts here; the payment page follows by a plain 303 (no page between,
+// as Events' `/_events/checkout` does). Only a post from this page (the ceremony, Try again) is under the
+// signing CSP's `form-action 'self'`, so only those get the themed "Taking you to secure payment" hand-off.
+describe("the pay hand-off (T169)", () => {
+	const site = new URL(`${ORIGIN}${WAIVER_PATH}?ref=${REF}`);
+	const page = readFileSync(resolve(import.meta.dirname, "../src/astro/WaiverPage.astro"), "utf8");
+	const payNext = () =>
+		ok({ bookingRef: REF, status: "awaiting_payment", next: { type: "pay", url: "https://pay.example/s/1" } });
+
+	it("T169 the booking form's post goes straight to the payment page: no hand-off page", async () => {
+		const h = host({ [`${EVENTS} public/checkout/reserve`]: reserve, [`${EVENTS} public/checkout/continue`]: payNext });
+		const outcome = await run(h, post(WAIVER_PATH, ORDER));
+		expect(expectRedirect(outcome).location).toBe("https://pay.example/s/1");
+		expect(payHandOff(outcome, site)).toBeUndefined();
+	});
+
+	it("T169 the last signature's post gets the hand-off page; a redirect within the site never does", async () => {
+		const h = ceremonyHost({ [`${EVENTS} public/checkout/continue`]: payNext });
+		const outcome = await run(h, post(`${WAIVER_PATH}?ref=${REF}`, SIGN_FORM), {
+			[flowCookieName(REF)]: SIGNING(2),
+			[`semics_booking_${REF}`]: ACCESS,
+		});
+		expect(payHandOff(outcome, site)).toBe("https://pay.example/s/1");
+		expect(payHandOff({ type: "redirect", location: `/booking?ref=${REF}`, cookies: [] }, site)).toBeUndefined();
+		expect(payHandOff({ type: "forbidden" }, site)).toBeUndefined();
+	});
+
+	it("T169 the page redirects the form's post directly, and themes the hand-off as a card", () => {
+		expect(page).toContain("const payment = payHandOff(outcome, Astro.url);");
+		expect(page).toContain("Taking you to secure payment");
+		expect(page).toContain('class="semics-page-button"');
+		expect(page).toContain('<section class="semics-pay-handoff"');
+	});
+
+	it("T169 EmDash's editor toolbar stays off the page: it starts with e-sign's comment-then-doctype", () => {
+		const markup = page.slice(page.indexOf("---", 3) + 3).trimStart();
+		expect(markup.startsWith("<Fragment set:html={DOCUMENT_START} />")).toBe(true);
+		expect(page).toContain('import { DOCUMENT_START } from "@semics-tech/emdash-esign/astro/lib/page";');
 	});
 });

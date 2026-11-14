@@ -259,3 +259,14 @@ Security review (T100, R61, R62, `tasks/reviews/security.md`): the retention pas
 rate-limit counters (the ceremony and verify limiters' hashed IPs; 3 a tick). `from-intent` stays without a rate limit
 (malformed 0 calls, unknown `cid` 2, tested). `src/astro/lib/markdown.ts` must import nothing (the core imports it for the
 signed PDF; `scripts/security.test.mjs`), and errors the core throws must stay fixed strings (same test). Backend 105.3 KiB.
+
+## Page look (T169)
+
+`/sign/[token]`, `/signed/[token]` and `/verify` render inside `EsignPage.astro` with the site's look from
+`esignIntegration({ page })` (`src/astro/lib/page.ts`: `theme` → `--esign-*`, or a whole `css` sheet, plus
+`stylesheet` and `brand`; checked at config time, exported through `virtual:semics-esign/config` as `page`). The inline
+sheet is hashed into `ceremonyCsp({ styles, stylesheet })` / `verifyCsp({ styles, stylesheet })` (verify then also allows
+`img-src 'self'` for the logo). `eventsSuite({ page })` passes Events' `pageCss(page)` as `css`, so the pages match
+`/booking`. The document starts with `DOCUMENT_START` (a comment, then the doctype, in one `set:html` chunk). EmDash 1.2
+injects its editor toolbar only into a response starting with `<!doctype`/`<html`, and Astro drops a literal doctype
+and prefixes its own unless the first chunk names one. The suite's `WaiverPage.astro` uses the same constant.
