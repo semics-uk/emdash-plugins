@@ -1073,8 +1073,9 @@ describe("the pay hand-off (T169)", () => {
 		expect(page).toContain('<section class="semics-pay-handoff"');
 	});
 
-	it("T169 EmDash's editor toolbar stays off the page: the document does not start with a doctype", () => {
+	it("T169 EmDash's editor toolbar stays off the page: it starts with e-sign's comment-then-doctype", () => {
 		const markup = page.slice(page.indexOf("---", 3) + 3).trimStart();
-		expect(markup).toMatch(/^<!--[^>]*-->\s*<!doctype html>/);
+		expect(markup.startsWith("<Fragment set:html={DOCUMENT_START} />")).toBe(true);
+		expect(page).toContain('import { DOCUMENT_START } from "@semics-tech/emdash-esign/astro/lib/page";');
 	});
 });

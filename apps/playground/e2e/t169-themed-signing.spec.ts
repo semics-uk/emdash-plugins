@@ -29,7 +29,13 @@ async function shot(page: Page, name: string) {
 const look = (page: Page) =>
 	page.evaluate(() => {
 		const body = getComputedStyle(document.body);
-		return { font: body.fontFamily, background: body.backgroundColor, bodyClass: document.body.className };
+		return {
+			font: body.fontFamily,
+			background: body.backgroundColor,
+			bodyClass: document.body.className,
+			// The comment before the doctype must not put the page in quirks mode.
+			mode: document.compatMode,
+		};
 	});
 
 /** Signs the browser context in as the seeded admin through the real magic-link flow (mail capture), as T145 does. */
@@ -60,6 +66,7 @@ test("T169 /sign/<token> takes the site's look: the page sheet, a card, no brows
 	await expect(page.getByTestId("signing-ceremony")).toHaveAttribute("data-state", "ready");
 	const seen = await look(page);
 	expect(seen.bodyClass).toBe("semics-page");
+	expect(seen.mode).toBe("CSS1Compat");
 	expect(seen.font).not.toMatch(/times/i);
 	expect(seen.font).toMatch(/system-ui|sans-serif/);
 	// The page background is the sheet's (`--events-page-bg`), not the browser's white.
@@ -92,6 +99,7 @@ test("T169 /signed/<token> and /verify take the same look", async ({ page, reque
 	await expect(page.getByTestId("verify-page")).toBeVisible();
 	const seen = await look(page);
 	expect(seen.bodyClass).toBe("semics-page");
+	expect(seen.mode).toBe("CSS1Compat");
 	expect(seen.font).not.toMatch(/times/i);
 	await shot(page, "verify-page");
 });
@@ -105,9 +113,10 @@ test("T169 a signed-in editor gets no EmDash toolbar on the signing pages (it st
 	await signIn(page, baseURL as string);
 	await page.goto("/");
 	await expect(page.locator("#emdash-toolbar")).toHaveCount(1);
-	for (const path of [`/sign/${sent.token}`, "/verify", "/_events/waiver?ref=ABCDEFGHJK"]) {
+	for (const path of [`/sign/${sent.token}`, "/verify", "/_events/waiver?ref=ABCDEFGHJK&error=SIGNING_UNAVAILABLE"]) {
 		const response = await page.goto(path);
 		expect(response?.status(), path).toBeLessThan(500);
+		expect(new URL(page.url()).pathname, path).toBe(path.split("?")[0]);
 		await expect(page.locator("#emdash-toolbar"), path).toHaveCount(0);
 		expect(await response?.text(), path).not.toContain("emdash-toolbar");
 	}

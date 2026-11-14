@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { VERIFY_CSS, VERIFY_SCRIPT } from "../../src/astro/lib/assets";
 import { cspSource, verifyCsp } from "../../src/astro/lib/csp";
-import { checkEsignPage, ESIGN_PAGE_CSS, esignPageCss, pageView } from "../../src/astro/lib/page";
+import { checkEsignPage, DOCUMENT_START, ESIGN_PAGE_CSS, esignPageCss, pageView } from "../../src/astro/lib/page";
 
 // T169: /sign/[token], /signed/[token] and /verify ran with no theme at all (the browser's Times New Roman and
 // blue links). They now take the site's look from `esignIntegration({ page })`: one exact inline sheet allowed by
@@ -114,8 +114,10 @@ describe("T169 the pages render the site's look", () => {
 		expect(layout).toContain('<footer class="semics-page-organiser"');
 	});
 
-	it("T169 EmDash's editor toolbar stays off: the document does not start with a doctype", () => {
+	it("T169 EmDash's editor toolbar stays off: the document starts with a comment, then the doctype, in one chunk", () => {
+		// Astro drops a literal doctype and prefixes its own unless the first chunk names one: one set:html string.
+		expect(DOCUMENT_START).toMatch(/^<!--[^>]*--><!doctype html>$/);
 		const markup = layout.slice(layout.indexOf("---", 3) + 3).trimStart();
-		expect(markup).toMatch(/^<!--[^>]*-->\s*<!doctype html>/);
+		expect(markup.startsWith("<Fragment set:html={DOCUMENT_START} />")).toBe(true);
 	});
 });
