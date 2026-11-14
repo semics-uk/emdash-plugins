@@ -67,6 +67,7 @@ test("T169 /sign/<token> takes the site's look: the page sheet, a card, no brows
 	const seen = await look(page);
 	expect(seen.bodyClass).toBe("semics-page");
 	expect(seen.mode).toBe("CSS1Compat");
+	await expect(page.locator('head meta[name="referrer"][content="no-referrer"]')).toHaveCount(1);
 	expect(seen.font).not.toMatch(/times/i);
 	expect(seen.font).toMatch(/system-ui|sans-serif/);
 	// The page background is the sheet's (`--events-page-bg`), not the browser's white.
