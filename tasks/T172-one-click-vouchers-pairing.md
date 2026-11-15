@@ -59,3 +59,8 @@ same site, so copy-paste is needless friction.
 - Follow-up, not done: Events Pro's `voucherClient` could trim the stored string (a few bytes in Events Pro), so a
   hand-pasted string with a trailing line break works. Left out because the one-click page writes it exactly and the
   page now explains the rejection.
+- **Bytes:** Free Events `plugin.mjs` 119,392 B, unchanged (0 B: the change is Astro/site-side). Events Pro
+  252,061 B, unchanged. Vouchers Pro `plugin.mjs` 71,201 → 71,564 B (+363 B: the admin link and copy).
+- **e2e:** Pro build (`EMDASH_PRO_DIR` = the T172 Pro worktree): `t172-vouchers-pairing` 1/1 and `t168-vouchers`
+  7/7 passed; `t145-auto-pairing` 2/3, the third being T150's Free-only assertion ("templates need Events Pro"),
+  which fails on any Pro build. Free build: `t145-auto-pairing` 3/3 passed, `t172` skipped as designed.
