@@ -32,6 +32,28 @@ With `vouchers` the suite adds:
 The booking forms get a **Gift voucher code** field once Events Pro is paired with Vouchers (step 4), with a
 "Have a gift voucher?" link above the form that jumps to it. Without `vouchers`, nothing about the site changes.
 
+### Theming the card and the form
+
+`<BuyVoucher />` lays itself out by the width it is given, not the viewport's (container queries): the live preview
+sits beside the form from 56rem wide, and pairs of fields sit side by side when the form is 32rem wide or more. In a
+narrow page column it stays one column. The card keeps its portrait shape and grows taller when the message needs it.
+Set these custom properties on the page (or on `.semics-buy-voucher` / `.semics-voucher-card`) to match the site:
+
+| Property | What it styles | Default |
+| --- | --- | --- |
+| `--voucher-card-bg` | The card's background (also the form's accent) | `#203d31` (`#234b38` as the form's accent) |
+| `--voucher-card-fg` | The card's text | `#fff` |
+| `--voucher-card-accent` | The eyebrow, rule and code | `#d3b879` |
+| `--voucher-card-panel` | The To / From panel | `#f3eee2` |
+| `--voucher-card-ink` | The panel's text | `#20372c` |
+| `--voucher-card-font` | The card's text | `system-ui, sans-serif` |
+| `--voucher-card-title-font` | The card's heading and the message | `Georgia, serif` |
+| `--voucher-buy-action-bg` | The **Buy and pay securely** button | the form's accent |
+| `--voucher-buy-action-fg` | That button's text | `#fff` |
+| `--events-border` | The form's field borders (keep 3:1 or more against white, WCAG 1.4.11) | `#6d7366` |
+
+The card on the voucher page (`/_vouchers/v`) uses the same `--voucher-card-*` properties.
+
 ### Book with this voucher (T171, optional)
 
 For a site that takes bookings online, wrap the core and turn on `book`:

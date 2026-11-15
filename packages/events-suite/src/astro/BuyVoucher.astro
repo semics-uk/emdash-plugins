@@ -5,7 +5,10 @@
 // `/_vouchers/buy`, which asks Vouchers for a Stripe Checkout Session and sends the buyer there. Works without
 // JavaScript (every option is shown; the script only hides what does not apply and updates the preview).
 // Props: `brand` (the card's heading, default the site's page brand), `returnTo` (where a refusal comes back,
-// default this page).
+// default this page). Its columns follow the width it is given, not the viewport's (container queries, T175), so it
+// stays one column in a narrow page column. Theming: the card's --voucher-card-* properties, --voucher-buy-action-bg and
+// --voucher-buy-action-fg (the Buy button), and --events-border (the fields' borders, default #6d7366: 3:1 or more on
+// white, WCAG 1.4.11).
 import * as config from "virtual:semics-events-suite/config";
 
 import VoucherCard from "./VoucherCard.astro";
@@ -250,9 +253,9 @@ const id = "semics-buy-voucher";
 </script>
 
 <style>
-	.semics-buy-voucher{--ink:#1b2b24;--muted:#66716b;--line:#e1e5de;--accent:var(--voucher-card-bg,#234b38);color:var(--ink);font:inherit}
+	.semics-buy-voucher{--ink:#1b2b24;--muted:#66716b;--line:#e1e5de;--field-line:var(--events-border,#6d7366);--accent:var(--voucher-card-bg,#234b38);container:semics-buy-voucher/inline-size;width:100%;box-sizing:border-box;color:var(--ink);font:inherit}
 	.layout{display:grid;gap:2.5rem;align-items:start}
-	.builder{background:#fff;border:1px solid #e3e3db;border-radius:18px;padding:clamp(1.1rem,3vw,2.3rem);box-shadow:0 12px 35px #1935290a;min-width:0}
+	.builder{background:#fff;border:1px solid #e3e3db;border-radius:18px;padding:clamp(1.1rem,3vw,2.3rem);box-shadow:0 12px 35px #1935290a;min-width:0;container:semics-buy-voucher-form/inline-size}
 	.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 	fieldset{border:0;margin:0;padding:0;min-width:0}
 	.step{display:flex;gap:1rem;align-items:start;margin:1rem 0 1.2rem}
@@ -261,14 +264,15 @@ const id = "semics-buy-voucher";
 	.step h2{font-size:1.35rem;margin:0}
 	.step p{margin:.25rem 0 0;color:var(--muted)}
 	.choice-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:.8rem;margin-bottom:1.2rem}
-	.choice{border:2px solid var(--line);border-radius:12px;padding:1rem;display:flex;flex-direction:column;gap:.3rem;cursor:pointer}
+	.choice{border:2px solid var(--line);border-radius:12px;padding:1rem 2.75rem 1rem 1rem;display:flex;flex-direction:column;gap:.3rem;cursor:pointer;position:relative}
 	.choice:has(input:checked){border-color:var(--accent);background:#f1f7f0}
 	.choice input,.amount input{accent-color:var(--accent)}
+	.choice input{position:absolute;top:1rem;right:1rem;margin:0}
 	.choice-icon{font-size:1.4rem;color:#2e6345}
 	.choice small,.help{color:var(--muted);font-size:.84rem}
 	.field-group{margin-bottom:1.2rem}
 	.builder label:not(.choice):not(.amount),.builder legend:not(.sr){display:block;font-weight:650;margin:.9rem 0 .45rem}
-	.builder input:not([type=radio]),.builder textarea,.builder select{box-sizing:border-box;width:100%;padding:.8rem 1rem;border:1px solid #cbd3ca;border-radius:9px;background:#fff;font:inherit;color:var(--ink)}
+	.builder input:not([type=radio]),.builder textarea,.builder select{box-sizing:border-box;width:100%;padding:.8rem 1rem;border:1px solid var(--field-line);border-radius:9px;background:#fff;font:inherit;color:var(--ink)}
 	.builder :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 	.builder [aria-invalid=true]{border-color:#a03c2d}
 	.builder em{color:#a03c2d;font-style:normal}
@@ -280,11 +284,12 @@ const id = "semics-buy-voucher";
 	.field-error{color:#a03c2d;font-size:.86rem;margin:.3rem 0 0}
 	.field-error:empty{display:none}
 	.alert{background:#fbeceb;border-left:4px solid #a03c2d;padding:.8rem 1rem;border-radius:5px}
-	.primary-action{width:100%;margin-top:1.4rem;padding:.95rem 1rem;border:0;border-radius:10px;background:var(--accent);color:#fff;font:inherit;font-weight:700;cursor:pointer;min-height:44px}
+	.cf-turnstile{margin-top:1rem}
+	.primary-action{width:100%;margin-top:1.4rem;padding:.95rem 1rem;border:0;border-radius:10px;background:var(--voucher-buy-action-bg,var(--accent));color:var(--voucher-buy-action-fg,#fff);font:inherit;font-weight:700;cursor:pointer;min-height:44px}
 	.preview-column{position:sticky;top:2rem;min-width:0}
 	.preview-head{font-size:.82rem;color:var(--muted);margin-bottom:.8rem;letter-spacing:.1em;text-transform:uppercase}
 	.preview-note{text-align:center;color:var(--muted);font-size:.82rem;margin:1rem}
 	[hidden]{display:none!important}
-	@media (min-width:48rem){.fields-two{grid-template-columns:1fr 1fr}}
-	@media (min-width:65rem){.layout{grid-template-columns:minmax(0,1.05fr) minmax(0,.85fr)}}
+	@container semics-buy-voucher-form (min-width:32rem){.fields-two{grid-template-columns:1fr 1fr}}
+	@container semics-buy-voucher (min-width:56rem){.layout{grid-template-columns:minmax(0,1.05fr) minmax(0,.85fr)}}
 </style>
