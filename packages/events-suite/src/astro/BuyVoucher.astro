@@ -7,7 +7,7 @@
 // Props: `brand` (the card's heading, default the site's page brand), `returnTo` (where a refusal comes back,
 // default this page). Its columns follow the width it is given, not the viewport's (container queries, T175), so it
 // stays one column in a narrow page column. Theming: the card's --voucher-card-* properties, --voucher-buy-action-bg and
-// --voucher-buy-action-fg (the Buy button), and --events-border (the fields' borders, default #6d7366: 3:1 or more on
+// --voucher-buy-action-fg (the Buy button), and --events-border (the fields' borders, default #6b6b6b: 3:1 or more on
 // white, WCAG 1.4.11).
 import * as config from "virtual:semics-events-suite/config";
 
@@ -253,7 +253,7 @@ const id = "semics-buy-voucher";
 </script>
 
 <style>
-	.semics-buy-voucher{--ink:#1b2b24;--muted:#66716b;--line:#e1e5de;--field-line:var(--events-border,#6d7366);--accent:var(--voucher-card-bg,#234b38);container:semics-buy-voucher/inline-size;width:100%;box-sizing:border-box;color:var(--ink);font:inherit}
+	.semics-buy-voucher{--ink:#1b2b24;--muted:#66716b;--line:#e1e5de;--field-line:var(--events-border,#6b6b6b);--accent:var(--voucher-card-bg,#234b38);container:semics-buy-voucher/inline-size;width:100%;box-sizing:border-box;color:var(--ink);font:inherit}
 	.layout{display:grid;gap:2.5rem;align-items:start}
 	.builder{background:#fff;border:1px solid #e3e3db;border-radius:18px;padding:clamp(1.1rem,3vw,2.3rem);box-shadow:0 12px 35px #1935290a;min-width:0;container:semics-buy-voucher-form/inline-size}
 	.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

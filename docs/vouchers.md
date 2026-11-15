@@ -50,7 +50,7 @@ Set these custom properties on the page (or on `.semics-buy-voucher` / `.semics-
 | `--voucher-card-title-font` | The card's heading and the message | `Georgia, serif` |
 | `--voucher-buy-action-bg` | The **Buy and pay securely** button | the form's accent |
 | `--voucher-buy-action-fg` | That button's text | `#fff` |
-| `--events-border` | The form's field borders (keep 3:1 or more against white, WCAG 1.4.11) | `#6d7366` |
+| `--events-border` | The form's field borders (keep 3:1 or more against white, WCAG 1.4.11) | `#6b6b6b` (the default the Events widgets use) |
 
 The card on the voucher page (`/_vouchers/v`) uses the same `--voucher-card-*` properties.
 

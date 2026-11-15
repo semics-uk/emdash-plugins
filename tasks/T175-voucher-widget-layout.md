@@ -44,8 +44,9 @@ Also: expose the card's fonts and the Buy button's colour as custom properties, 
   shrink-to-fit parent) and `.builder` the `semics-buy-voucher-form` container. Preview beside the form from a 56rem
   container (was a 65rem viewport); fields side by side from a 32rem form (was a 48rem viewport).
 - **Radios:** absolutely positioned top right (`top:1rem; right:1rem`), the card padded 2.75rem on the right.
-- **Borders:** `var(--events-border,#6d7366)` (the property the Events widgets already use for field borders),
-  about 4.9:1 on white. The amount buttons' borders are unchanged: their own radio dot identifies them.
+- **Borders:** `var(--events-border,#6b6b6b)` (the property the Events widgets already use for field borders),
+  about 5.3:1 on white, with the same default as elsewhere (`scripts/theming.test.mjs` allows one per property). The
+  amount buttons' borders are unchanged: their own radio dot identifies them.
 - **New properties:** `--voucher-card-font`, `--voucher-card-title-font` (heading and message),
   `--voucher-buy-action-bg` (default the form's accent), `--voucher-buy-action-fg` (default `#fff`).
 - **e2e:** run against the Pro build (`EMDASH_PRO_DIR`); skipped on the Free build like t168.
