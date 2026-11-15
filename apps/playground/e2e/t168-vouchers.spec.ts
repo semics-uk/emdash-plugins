@@ -6,6 +6,7 @@ import {
 	BOOKING_URL,
 	bookingByRef,
 	createEvent,
+	EVENTS,
 	linkIn,
 	mailTo,
 	patchBooking,
@@ -43,6 +44,8 @@ const SLUG = "t168-clay-taster";
 const TICKET = "Taster session";
 const PRICE = 3000;
 let stripe: FakeStripe | undefined;
+let eventId = "";
+let ticketTypeId = "";
 
 test.beforeAll(async ({ request }) => {
 	if (!(await hasVouchers(request))) return;
@@ -51,12 +54,20 @@ test.beforeAll(async ({ request }) => {
 	await saveVoucherSettings(request, { stripeSecretKey: SECRET_KEY, stripeWebhookSecret: WEBHOOK_SECRET });
 	await saveSettings(request, { stripeSecretKey: SECRET_KEY, stripeWebhookSecret: WEBHOOK_SECRET });
 	await pairVouchers(request);
-	await createEvent(request, {
+	eventId = await createEvent(request, {
 		slug: SLUG,
 		title: "Clay Taster",
 		startsAt: "2031-07-04T10:00:00.000Z",
 		config: { status: "on_sale", capacity: 40, currency: "GBP", signature: { required: false } },
 		ticketTypes: [{ name: TICKET, priceMinor: PRICE, capacity: 40, maxPerOrder: 4 }],
+	});
+	// T171: the event's ticket type sold as an activity voucher, and the emails' "Book with this voucher" link.
+	const res = await request.get(`${EVENTS}/public/event?eventId=${encodeURIComponent(eventId)}`);
+	expect(res.ok(), await res.text()).toBe(true);
+	ticketTypeId = ((await res.json()) as { data: { ticketTypes: Array<{ id: string }> } }).data.ticketTypes[0]?.id ?? "";
+	await saveVoucherSettings(request, {
+		activityTypes: `${eventId}, ${ticketTypeId}, ${PRICE}, Clay taster session`,
+		emailBookLink: true,
 	});
 });
 
@@ -94,16 +105,28 @@ async function paid(request: APIRequestContext, session: Session) {
 }
 
 /** Buys a money voucher of `amount` pence through <BuyVoucher>; returns its code (from the buyer's email). */
-async function buy(browser: Browser, request: APIRequestContext, amount: number, buyer = address("buyer")) {
+async function buy(
+	browser: Browser,
+	request: APIRequestContext,
+	amount: number,
+	buyer = address("buyer"),
+	/** T171: buy the activity voucher `eventId/ticketTypeId` instead (it costs `amount`). */
+	activity?: string,
+) {
 	const { context, page } = await visitor(browser);
 	await page.goto("/e2e/vouchers");
 	const form = page.getByTestId("buy-voucher");
-	await form.getByLabel("Money voucher").check();
-	const preset = form.getByRole("radio", { name: `£${amount / 100}`, exact: true });
-	if (await preset.count()) await preset.check();
-	else {
-		await form.getByLabel("Another amount").check();
-		await form.getByLabel("Amount (£)").fill(String(amount / 100));
+	if (activity) {
+		await form.getByLabel("Activity voucher").check();
+		await form.getByLabel("Choose an experience").selectOption(activity);
+	} else {
+		await form.getByLabel("Money voucher").check();
+		const preset = form.getByRole("radio", { name: `£${amount / 100}`, exact: true });
+		if (await preset.count()) await preset.check();
+		else {
+			await form.getByLabel("Another amount").check();
+			await form.getByLabel("Amount (£)").fill(String(amount / 100));
+		}
 	}
 	await form.getByLabel("Recipient's name").fill("James");
 	await form.getByLabel("Your name").fill("Grace Hopper");
@@ -127,7 +150,7 @@ async function buy(browser: Browser, request: APIRequestContext, amount: number,
 	const code = CODE.exec(mail.text)?.[0];
 	expect(code, "a code in the receipt").toBeTruthy();
 	expect(download).toBe(`/_vouchers/v?c=${code}`);
-	return { code: code as string, link: linkIn(mail, "/_vouchers/v") };
+	return { code: code as string, link: linkIn(mail, "/_vouchers/v"), text: mail.text };
 }
 
 /** Books one ticket on the event page with the code; `pay` stops on Checkout and returns the session. */
@@ -144,6 +167,8 @@ async function book(page: Page, code: string, email: string) {
 const refOf = (page: Page) => BOOKING_URL.exec(page.url())?.[1] as string;
 
 let first: { code: string; link: string };
+/** T171: the voucher the race spends in full. */
+let spent: { code: string; link: string };
 let fullRef = "";
 let fullPage: Page | undefined;
 
@@ -220,7 +245,8 @@ test("T168 R16 a cancelled booking puts what the voucher paid back on the vouche
 
 test("T168 R16 two bookings racing for one balance: one gets it, the other is refused", async ({ browser, request }) => {
 	await requireVouchers(request);
-	const { code } = await buy(browser, request, 3000);
+	spent = await buy(browser, request, 3000);
+	const { code } = spent;
 	const a = await visitor(browser);
 	const b = await visitor(browser);
 	const [wa, wb] = [await book(a.page, code, address("race-a")), await book(b.page, code, address("race-b"))];
@@ -282,5 +308,70 @@ test("T168 R16 a mistyped code is refused on the form: nothing reserved, no canc
 		messages: unknown[];
 	};
 	expect(messages).toEqual([]);
+	await context.close();
+});
+
+// T171: "Book with this voucher" (the playground wires `vouchers: { core, book: true }` and Vouchers'
+// `emailBookLink`). The code never travels in a booking URL: the voucher page's own link with `&book=1` puts it in a
+// short-lived HttpOnly cookie and redirects; the booking form fills its Gift voucher field from that cookie.
+const BOOK_LINK = /\/_vouchers\/v\?c=[0-9A-Z-]{19}&book=1/;
+
+test("T171 R16 an activity voucher's email link opens its event's booking form, code and ticket filled in", async ({ browser, request }) => {
+	await requireVouchers(request);
+	const { code, text } = await buy(browser, request, PRICE, address("activity-buyer"), `${eventId}/${ticketTypeId}`);
+	const link = BOOK_LINK.exec(text)?.[0] as string;
+	expect(link, "a Book with this voucher link in the receipt").toBe(`/_vouchers/v?c=${code}&book=1`);
+	const target = `/events/${SLUG}?ticketType=${ticketTypeId}#book-${eventId}`;
+
+	// The hand-off itself: a 303 with no referrer, the code only in an HttpOnly cookie.
+	const hop = await request.get(link, { maxRedirects: 0 });
+	expect(hop.status()).toBe(303);
+	expect(hop.headers().location).toBe(target);
+	expect(hop.headers()["referrer-policy"]).toBe("no-referrer");
+	expect(hop.headers()["set-cookie"]).toMatch(/semics_voucher=[0-9A-Z-]{19};.*HttpOnly/i);
+
+	const { context, page } = await visitor(browser);
+	await page.goto(link);
+	await expect(page).toHaveURL(new RegExp(`/events/${SLUG}\\?ticketType=`));
+	expect(page.url()).not.toContain(code);
+	const widget = page.getByTestId("booking-widget");
+	await expect(widget.getByLabel("Gift voucher code")).toHaveValue(code);
+	await expect(widget.getByLabel(new RegExp(TICKET))).toHaveValue("1");
+	await widget.getByTestId("have-voucher").click();
+	await expect(page).toHaveURL(/-voucher$/);
+	await widget.getByLabel("Your name").fill("Ada Lovelace");
+	await widget.getByLabel("Email").fill(address("activity"));
+	await widget.getByRole("button", { name: "Book" }).click();
+	await expect(page).toHaveURL(BOOKING_URL);
+	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "confirmed");
+	await expect(page.getByTestId("booking-voucher")).toContainText("£30.00");
+	// Used: the booking page forgot the code.
+	expect((await context.cookies()).map((c) => c.name)).not.toContain("semics_voucher");
+	await context.close();
+});
+
+test("T171 R16 a money voucher's button lists the activities, and the code follows to the event's form", async ({ browser, request }) => {
+	await requireVouchers(request);
+	const { code, link } = await buy(browser, request, 2500, address("money-buyer"));
+	const { context, page } = await visitor(browser);
+	await page.goto(link);
+	await expect(page.getByTestId("voucher-facts")).toContainText("Book with the button below");
+	await page.getByTestId("voucher-book").click();
+	await expect(page).toHaveURL(/\/events$/);
+	await page.locator(`a[href="/events/${SLUG}"]`).first().click();
+	await expect(page.getByTestId("booking-widget").getByLabel("Gift voucher code")).toHaveValue(code);
+	await context.close();
+});
+
+test("T171 R16 a spent voucher has no button and keeps the how-to-use line", async ({ browser, request }) => {
+	await requireVouchers(request);
+	// The race spent this one in full.
+	const { context, page } = await visitor(browser);
+	await page.goto(spent.link);
+	await expect(page.getByTestId("voucher-facts")).toContainText("Enter the code in the Gift voucher field when you book.");
+	await expect(page.getByTestId("voucher-book")).toHaveCount(0);
+	// And `&book=1` just shows the voucher.
+	await page.goto(`${spent.link}&book=1`);
+	await expect(page.getByTestId("voucher-card")).toContainText(spent.code);
 	await context.close();
 });

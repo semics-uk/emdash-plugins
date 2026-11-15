@@ -35,6 +35,7 @@ export const en = {
 	"widget.promo.apply": "Apply code",
 	"widget.promo.update": "Update code",
 	"widget.voucher.label": "Gift voucher code",
+	"widget.voucher.have": "Have a gift voucher?",
 	"widget.tickets": "Tickets",
 	"widget.soldOut": "Sold out",
 	"widget.name": "Your name",

@@ -34,6 +34,7 @@ export const ar: Messages = {
 	"widget.promo.apply": "تطبيق الرمز",
 	"widget.promo.update": "تحديث الرمز",
 	"widget.voucher.label": "رمز قسيمة الهدية",
+	"widget.voucher.have": "هل لديك قسيمة هدية؟",
 	"widget.tickets": "التذاكر",
 	"widget.soldOut": "نفدت التذاكر",
 	"widget.name": "اسمك",

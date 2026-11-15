@@ -51,6 +51,9 @@ export interface VoucherView {
 	toName: string | null;
 	fromName: string;
 	message: string | null;
+	/** An activity voucher's event and ticket type (T171; Vouchers Pro builds before T171 leave them out). */
+	eventId?: string | null;
+	ticketTypeId?: string | null;
 }
 
 /** The messages a refused purchase shows, by code; anything else is INTERNAL's. */

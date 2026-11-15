@@ -13,6 +13,16 @@ import type { PluginDescriptor } from "emdash";
  */
 export type SuiteCore = PluginDescriptor | { pluginId: string };
 
+/**
+ * Vouchers with options (T171): `book` turns on "Book with this voucher" on the voucher page (and, with Vouchers'
+ * `emailBookLink` setting, in its emails). Off by default, for a site that takes no bookings online. `true` sends
+ * a money voucher to `/events`; `{ listPath }` to another page listing the activities.
+ */
+export interface VouchersOptions {
+	core: SuiteCore;
+	book?: boolean | { listPath?: string };
+}
+
 export interface EventsSuiteOptions {
 	/** Default: the Free Events core of `@semics-tech/emdash-events`. */
 	events?: SuiteCore;
@@ -27,7 +37,7 @@ export interface EventsSuiteOptions {
 	 * `<BuyVoucher>` (posting to `/_vouchers/buy`), the voucher page `/_vouchers/v`, Stripe's return page
 	 * `/_vouchers/thanks` and `/_vouchers/setup` (activity vouchers picked from Events, at Events' prices).
 	 */
-	vouchers?: SuiteCore;
+	vouchers?: SuiteCore | VouchersOptions;
 }
 
 /** The slice of Astro's integration API the injected pages need (no `astro` dependency). */
@@ -93,12 +103,14 @@ const VOUCHER_MODULE = "@semics-tech/emdash-events-suite/astro/lib/voucher";
 export function suiteIntegration(
 	ids: { eventsPluginId: string; esignPluginId: string; vouchersPluginId?: string },
 	page: PageOptions = {},
+	voucherBook?: { listPath: string },
 ): SuiteAstroIntegration {
 	const config = [
 		`export const eventsPluginId = ${JSON.stringify(ids.eventsPluginId)};`,
 		`export const esignPluginId = ${JSON.stringify(ids.esignPluginId)};`,
 		`export const page = ${JSON.stringify(page)};`,
 		...(ids.vouchersPluginId ? [`export const vouchersPluginId = ${JSON.stringify(ids.vouchersPluginId)};`] : []),
+		...(ids.vouchersPluginId && voucherBook ? [`export const voucherBook = ${JSON.stringify(voucherBook)};`] : []),
 	].join("\n");
 	return {
 		name: "semics-events-suite",
@@ -146,6 +158,18 @@ export function suiteIntegration(
 	};
 }
 
+/** A plain path on this site: no scheme or host, query, fragment, or anything that ends an HTML attribute. */
+const LIST_PATH = /^\/(?!\/)[^\s"'<>\\?#]*$/;
+
+function voucherBookOf(book: VouchersOptions["book"]): { listPath: string } | undefined {
+	if (!book) return undefined;
+	const listPath = book === true ? "/events" : (book.listPath ?? "/events");
+	if (typeof listPath !== "string" || !LIST_PATH.test(listPath)) {
+		throw new Error(`eventsSuite: vouchers.book.listPath ${JSON.stringify(listPath)} is not a path on this site`);
+	}
+	return { listPath };
+}
+
 /**
  * Events and E-sign on one site (SX-FR-01). Every part is told the id of each core it calls, taken
  * from the descriptor or the registry id given here, never assumed:
@@ -160,7 +184,10 @@ export function suiteIntegration(
 export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 	const events = resolveCore(options.events ?? eventsCore);
 	const esign = resolveCore(options.esign ?? esignCore);
-	const vouchers = options.vouchers ? resolveCore(options.vouchers) : undefined;
+	const wrapped = options.vouchers && "core" in options.vouchers ? options.vouchers : undefined;
+	const vouchersCore = wrapped ? wrapped.core : (options.vouchers as SuiteCore | undefined);
+	const vouchers = vouchersCore ? resolveCore(vouchersCore) : undefined;
+	const voucherBook = voucherBookOf(wrapped?.book);
 	const voucherIds = vouchers ? { vouchersPluginId: vouchers.id } : {};
 	return {
 		sandboxed: [events.descriptor, esign.descriptor, vouchers?.descriptor].filter(
@@ -184,7 +211,11 @@ export function eventsSuite(options: EventsSuiteOptions = {}): EventsSuite {
 					...(options.page?.brand ? { brand: options.page.brand } : {}),
 				},
 			}),
-			suiteIntegration({ eventsPluginId: events.id, esignPluginId: esign.id, ...voucherIds }, options.page),
+			suiteIntegration(
+				{ eventsPluginId: events.id, esignPluginId: esign.id, ...voucherIds },
+				options.page,
+				voucherBook,
+			),
 		],
 		pluginIds: { events: events.id, esign: esign.id, ...(vouchers ? { vouchers: vouchers.id } : {}) },
 	};

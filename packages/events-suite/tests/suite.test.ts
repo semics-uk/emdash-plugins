@@ -249,3 +249,40 @@ describe("T169 page options reach e-sign's pages", () => {
 		expect(esignPage(eventsSuite())).toEqual({ css: PAGE_CSS });
 	});
 });
+
+// T171: "Book with this voucher" is opt-in, so a site that takes no bookings online (staff redeem by hand) sees no
+// change: `vouchers: { core, book: true }` or `book: { listPath }` (where a money voucher's button goes).
+describe("T171 R16 eventsSuite({ vouchers: { core, book } })", () => {
+	it("R16 without book: no booking link in the suite config", () => {
+		expect(wiring(eventsSuite({ vouchers: { pluginId: "r_vouchers1" } })).suite).not.toHaveProperty("voucherBook");
+		expect(
+			wiring(eventsSuite({ vouchers: { core: { pluginId: "r_vouchers1" }, book: false } })).suite,
+		).not.toHaveProperty("voucherBook");
+	});
+
+	it("R16 the core may be wrapped: same ids and loading as before", () => {
+		const vouchers = { ...eventsCore, id: "semics-vouchers", entrypoint: "@semics-tech/emdash-vouchers-pro/sandbox" };
+		const suite = eventsSuite({ vouchers: { core: vouchers, book: true } });
+		expect(suite.sandboxed).toEqual([eventsCore, esignCore, vouchers]);
+		expect(suite.pluginIds.vouchers).toBe("semics-vouchers");
+		expect(wiring(suite).suite).toMatchObject({ vouchersPluginId: "semics-vouchers" });
+	});
+
+	it("R16 book: true lists activities at /events; a site path may replace it", () => {
+		const on = wiring(eventsSuite({ vouchers: { core: { pluginId: "r_vouchers1" }, book: true } })).suite;
+		expect(on.voucherBook).toEqual({ listPath: "/events" });
+		const list = wiring(
+			eventsSuite({ vouchers: { core: { pluginId: "r_vouchers1" }, book: { listPath: "/whats-on" } } }),
+		).suite;
+		expect(list.voucherBook).toEqual({ listPath: "/whats-on" });
+	});
+
+	it("R16 refuses a list path that is not a plain path on this site", () => {
+		for (const listPath of ["https://evil.example/", "//evil.example", "/a?b=1", "/a#x", "events"]) {
+			expect(
+				() => eventsSuite({ vouchers: { core: { pluginId: "r_vouchers1" }, book: { listPath } } }),
+				listPath,
+			).toThrow(/vouchers\.book\.listPath/);
+		}
+	});
+});

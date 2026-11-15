@@ -146,6 +146,13 @@ and Pair adopts that client (E-sign revokes the auto-pair client it replaces) in
   no-referrer, no-store), `VoucherThanks.astro` (`/_vouchers/thanks`), `lib/vouchers-setup.ts` +
   `VouchersSetupPage.astro` (`/_vouchers/setup`, admin: Events' `public/events`/`public/event` → Vouchers'
   `activityTypes` with Events' prices through the host settings write; unseen lines kept). Docs: `docs/vouchers.md`.
+- T171 "Book with this voucher" (opt-in: `vouchers: { core, book: true | { listPath } }` → suite config `voucherBook`).
+  `lib/book.ts` `bookingTarget`: activity → Events `public/events` row (on sale, slug) → `eventPageHref` +
+  `?ticketType=` + `#book-<event>`; money → `listPath` (default `/events`); else null (no button). The button is
+  `/_vouchers/v?c=<code>&book=1` (voucher/1 §8's one URL): the page sets Events' `semics_voucher` cookie
+  (`astro/lib/book-link.ts`: HttpOnly, Lax, `/`, 30 min) and 303s with no-referrer. Both booking forms fill the
+  field from it server side (`presetVoucher`), preselect `?ticketType=`, have `id=book-<event>` on the form and a
+  "Have a gift voucher?" anchor to the field; Events' `/booking` deletes the cookie once a booking used a voucher.
 
 - T172 one-click Vouchers pairing: `lib/vouchers-pair.ts`, a "Gift vouchers" section (`#vouchers`, `data-testid="vouchers-pair"`)
   of `/_events/pair`, only with `eventsSuite({ vouchers })`. GET: the host's settings read of Events (the admin check), then
