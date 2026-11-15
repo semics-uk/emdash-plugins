@@ -16,8 +16,12 @@ const ok = (data: Record<string, unknown>) => ({ success: true, data: { ok: true
 
 function site({ admin = true, stored = "" } = {}) {
 	const writes: Array<{ id: string; values: Record<string, unknown> }> = [];
-	const handler = async (id: string, _m: string, path: string, request: Request) => {
-		const body = (await request.json().catch(() => ({}))) as { eventId?: string };
+	// Events' catalogue routes are GET-only, as in the real core: anything else is refused (lmsc-site#56).
+	const handler = async (id: string, method: string, path: string, request: Request) => {
+		if (id === EVENTS && method !== "GET") {
+			return { success: false, error: { code: "METHOD_NOT_ALLOWED", message: "Method not allowed" } };
+		}
+		const body = { eventId: new URL(request.url).searchParams.get("eventId") ?? undefined };
 		if (id !== EVENTS) return { success: true, data: { ok: false, error: { code: "NOT_FOUND" } } };
 		if (path === "public/events") {
 			return ok({
