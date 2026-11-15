@@ -8,10 +8,12 @@ import {
 	displayCode,
 	handleBuyRequest,
 	loadBuyOptions,
+	loadThanks,
 	loadVoucher,
 	readBuyForm,
 	readBuyState,
 	THANKS_PATH,
+	THANKS_TRIES,
 } from "../src/astro/lib/buy";
 
 // T168 (T163 §4, §5): <BuyVoucher> posts to /_vouchers/buy, which asks Vouchers' public/purchase in process and
@@ -257,5 +259,92 @@ describe("T168 R16 the pages", () => {
 		expect(page).toContain("@page");
 		expect(page).toContain("A4");
 		expect(page).toContain("Print or save as PDF");
+	});
+});
+
+describe("T170 R16 /_vouchers/thanks: print it yourself, straight after paying", () => {
+	const ORDER = `vo_${"a".repeat(32)}`;
+	const SESSION = "cs_test_a1B2c3D4e5F6g7H8";
+	const thanksUrl = (q: string) => new URL(`${ORIGIN}${THANKS_PATH}?${q}`);
+	const paidQuery = `order=${ORDER}&session_id=${SESSION}`;
+	const answer = (data: Record<string, unknown>) => () => ok(data);
+	const load = (h: ReturnType<typeof host>, url: URL) =>
+		loadThanks({ locals: h.locals, url, request: new Request(url) }, VOUCHERS);
+
+	it("R16 asks Vouchers' public/order in process (POST), with the order and the session from Stripe's return", async () => {
+		const h = host({ [`${VOUCHERS} public/order`]: answer({ state: "pending", delivery: "print" }) });
+		await load(h, thanksUrl(paidQuery));
+		expect(h.calls).toHaveLength(1);
+		expect(h.calls[0]?.request.method).toBe("POST");
+		expect(h.calls[0]?.body).toEqual({ order: ORDER, session: SESSION });
+	});
+
+	it("R16 print, issued: a link to the voucher page with the code, the only URL it goes in", async () => {
+		const h = host({
+			[`${VOUCHERS} public/order`]: answer({ state: "issued", delivery: "print", code: "ABCD-0123-EFGH-4567" }),
+		});
+		expect(await load(h, thanksUrl(paidQuery))).toEqual({ state: "ready", link: "/_vouchers/v?c=ABCD-0123-EFGH-4567" });
+	});
+
+	it("R16 print, pending: refresh in 4 s with the try counted, then after THANKS_TRIES it is on its way by email", async () => {
+		const h = host({ [`${VOUCHERS} public/order`]: answer({ state: "pending", delivery: "print" }) });
+		const first = await load(h, thanksUrl(paidQuery));
+		expect(first).toEqual({ state: "preparing", refresh: `${THANKS_PATH}?${paidQuery}&try=1` });
+		const later = await load(h, thanksUrl(`${paidQuery}&try=7`));
+		expect(later).toEqual({ state: "preparing", refresh: `${THANKS_PATH}?${paidQuery}&try=8` });
+		expect(THANKS_TRIES).toBe(15);
+		expect(await load(h, thanksUrl(`${paidQuery}&try=15`))).toEqual({ state: "emailed" });
+		expect(await load(h, thanksUrl(`${paidQuery}&try=999`))).toEqual({ state: "emailed" });
+		// A junk counter starts again from 0; it never reaches the refresh URL.
+		expect(await load(h, thanksUrl(`${paidQuery}&try=x"><script>`))).toEqual({
+			state: "preparing",
+			refresh: `${THANKS_PATH}?${paidQuery}&try=1`,
+		});
+	});
+
+	it("R16 print, issued but no code (too late, or the seal did not open): on its way by email", async () => {
+		const h = host({ [`${VOUCHERS} public/order`]: answer({ state: "issued", delivery: "print" }) });
+		expect(await load(h, thanksUrl(paidQuery))).toEqual({ state: "emailed" });
+		const bad = host({ [`${VOUCHERS} public/order`]: answer({ state: "issued", delivery: "print", code: "x/../y" }) });
+		expect(await load(bad, thanksUrl(paidQuery))).toEqual({ state: "emailed" });
+	});
+
+	it("R16 other deliveries, an unknown order, a missing session or no Vouchers: the usual thanks", async () => {
+		const emailed = host({ [`${VOUCHERS} public/order`]: answer({ state: "issued", delivery: "email-buyer" }) });
+		expect(await load(emailed, thanksUrl(paidQuery))).toEqual({ state: "paid" });
+		const pending = host({ [`${VOUCHERS} public/order`]: answer({ state: "pending", delivery: "email-recipient" }) });
+		expect(await load(pending, thanksUrl(paidQuery))).toEqual({ state: "paid" });
+		const unknown = host({});
+		expect(await load(unknown, thanksUrl(paidQuery))).toEqual({ state: "paid" });
+		const none = host({ [`${VOUCHERS} public/order`]: answer({ state: "issued", delivery: "print", code: "X" }) });
+		expect(await load(none, thanksUrl(`order=${ORDER}`))).toEqual({ state: "paid" });
+		expect(await load(none, thanksUrl(`order=${ORDER}&session_id={CHECKOUT_SESSION_ID}`))).toEqual({ state: "paid" });
+		expect(none.calls).toHaveLength(0);
+		expect(await loadThanks({ locals: none.locals, url: thanksUrl(paidQuery) }, "")).toEqual({ state: "paid" });
+	});
+
+	it("R16 a closed order (payment failed, or not the amount charged) says so; cancelled stays cancelled", async () => {
+		const h = host({ [`${VOUCHERS} public/order`]: answer({ state: "closed", delivery: "print" }) });
+		expect(await load(h, thanksUrl(paidQuery))).toEqual({ state: "closed" });
+		expect(await load(h, thanksUrl(`order=${ORDER}&cancelled=1`))).toEqual({ state: "cancelled" });
+	});
+
+	it("R16 the page: refreshes itself without JavaScript, keeps the code out of referrers and caches", () => {
+		const page = readFileSync(resolve(import.meta.dirname, "../src/astro/VoucherThanks.astro"), "utf8");
+		expect(page).toContain('"Referrer-Policy", "no-referrer"');
+		expect(page).toContain('"Cache-Control", "private, no-store"');
+		expect(page).toContain('http-equiv="refresh"');
+		expect(page).toMatch(/content=\{`4; url=\$\{view\.refresh\}`\}/);
+		expect(page).toContain("loadThanks(");
+		expect(page).toContain('data-testid="voucher-download"');
+		expect(page).toContain("Download / print your voucher");
+		expect(page).not.toMatch(/<script/);
+	});
+
+	it("R16 the buying form says a print voucher can be downloaded straight after paying, and is emailed too", () => {
+		const page = readFileSync(resolve(import.meta.dirname, "../src/astro/BuyVoucher.astro"), "utf8");
+		const line = page.split("\n").find((l) => l.includes('print: ["Print it yourself"')) ?? "";
+		expect(line).toMatch(/straight after (you pay|paying)/i);
+		expect(line).toMatch(/email/i);
 	});
 });
