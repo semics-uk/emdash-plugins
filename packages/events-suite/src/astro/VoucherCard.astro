@@ -1,8 +1,10 @@
 ---
 // The gift voucher card (T168): the voucher page's printout and <BuyVoucher>'s live preview share it. The look
 // follows Emily's draft for LMSC (lmsc-site PR #31): a dark card, a light lower panel with To / From and the message.
-// Colours are custom properties a site may override: --voucher-card-bg, --voucher-card-fg, --voucher-card-accent,
-// --voucher-card-panel, --voucher-card-ink.
+// Colours and fonts are custom properties a site may override: --voucher-card-bg, --voucher-card-fg,
+// --voucher-card-accent, --voucher-card-panel, --voucher-card-ink, --voucher-card-font (the card's text, default
+// system-ui) and --voucher-card-title-font (the heading and the message, default Georgia). The card keeps its portrait
+// shape when the content fits and grows taller when it does not (T175: it used to clip the To / From panel).
 interface Props {
 	brand?: string | undefined;
 	gift: string;
@@ -39,20 +41,20 @@ const { brand, gift, toName, fromName, message, code, footer, site, preview = fa
 </div>
 
 <style>
-	.semics-voucher-card{--bg:var(--voucher-card-bg,#203d31);--fg:var(--voucher-card-fg,#fff);--accent:var(--voucher-card-accent,#d3b879);--panel:var(--voucher-card-panel,#f3eee2);--ink:var(--voucher-card-ink,#20372c);background:var(--bg);color:var(--fg);display:flex;flex-direction:column;overflow:hidden;border-radius:14px;box-shadow:0 25px 50px #10271c35;position:relative;aspect-ratio:.72;max-width:30rem;width:100%;margin:0 auto;font-family:system-ui,sans-serif}
+	.semics-voucher-card{--bg:var(--voucher-card-bg,#203d31);--fg:var(--voucher-card-fg,#fff);--accent:var(--voucher-card-accent,#d3b879);--panel:var(--voucher-card-panel,#f3eee2);--ink:var(--voucher-card-ink,#20372c);background:var(--bg);color:var(--fg);display:flex;flex-direction:column;contain:paint;container-type:inline-size;border-radius:14px;box-shadow:0 25px 50px #10271c35;position:relative;aspect-ratio:.72;max-width:30rem;width:100%;margin:0 auto;font-family:var(--voucher-card-font,system-ui,sans-serif)}
 	.semics-voucher-card::before{content:"";position:absolute;width:350px;height:350px;border:1px solid #ffffff20;border-radius:50%;right:-190px;top:15%;box-shadow:0 0 0 55px #ffffff08,0 0 0 110px #ffffff06;pointer-events:none}
 	.card-top{padding:1.5rem 1.7rem 0}
 	.brand{font-size:1.1rem;letter-spacing:.13em;font-weight:800;line-height:1.1;text-transform:uppercase}
 	.card-middle{padding:2rem 1.7rem 1.2rem;flex:1}
 	.card-eyebrow{font-size:.72rem;letter-spacing:.24em;color:var(--accent)}
-	.card-title{font-family:Georgia,serif;font-size:clamp(1.8rem,6vw,2.8rem);line-height:1.13;margin:1rem 0 1.2rem}
+	.card-title{font-family:var(--voucher-card-title-font,Georgia,serif);font-size:clamp(1.8rem,6vw,2.8rem);font-size:clamp(1.8rem,9cqi,2.8rem);line-height:1.13;margin:1rem 0 1.2rem}
 	.card-rule{height:2px;width:60px;background:var(--accent);margin-bottom:1.1rem}
 	.card-gift{font-size:1.25rem;font-weight:750;overflow-wrap:anywhere}
 	.card-code{margin-top:.9rem;font:700 1.25rem/1.2 ui-monospace,Menlo,monospace;letter-spacing:.08em;color:var(--accent)}
-	.card-bottom{background:var(--panel);color:var(--ink);padding:1.3rem 1.7rem;min-height:33%}
+	.card-bottom{background:var(--panel);color:var(--ink);padding:1.3rem 1.7rem;min-height:33%;border-radius:0 0 14px 14px}
 	.card-person{margin-bottom:.6rem;display:flex;gap:.8rem;align-items:baseline;overflow-wrap:anywhere}
 	.card-person small{letter-spacing:.14em;opacity:.7;font-size:.65rem;width:40px;flex:none}
-	.card-message{font-family:Georgia,serif;font-style:italic;overflow-wrap:anywhere;white-space:pre-wrap;margin:1rem 0}
+	.card-message{font-family:var(--voucher-card-title-font,Georgia,serif);font-style:italic;overflow-wrap:anywhere;white-space:pre-wrap;margin:1rem 0}
 	.card-footer{border-top:1px solid #0002;padding-top:.7rem;display:flex;justify-content:space-between;gap:.4rem;font-size:.62rem;letter-spacing:.05em}
 	@media print{.semics-voucher-card{box-shadow:none;print-color-adjust:exact;-webkit-print-color-adjust:exact;break-inside:avoid;max-width:16cm}}
 </style>

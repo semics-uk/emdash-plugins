@@ -4,7 +4,7 @@ title: "Print it yourself: the voucher straight from the thanks page"
 phase: 8
 package: events-suite, vouchers-pro
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: []

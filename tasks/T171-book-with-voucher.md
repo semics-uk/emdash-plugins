@@ -4,7 +4,7 @@ title: "Book with this voucher: from the voucher to the booking form"
 phase: 8
 package: events-suite, events, vouchers-pro
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: []
