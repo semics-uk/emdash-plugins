@@ -4,7 +4,9 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- Vouchers (T163–T168) released in rc.12; LMSC installing on staging. Follow-ups: voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
+- T171 (Book with this voucher: button on voucher page and email, ?voucher= prefill, Have a voucher? link) and T172 (one-click Vouchers pairing) in progress for rc.16, from LMSC staging feedback
+- LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
+- Vouchers follow-ups: voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
 
 ## Next
 - Oli to decide: move the admin setup check page (about 3.2 KB) to a site-side page to save Events backend bytes (T162)
@@ -29,6 +31,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-15 rc.15 published (T170 print delivery: thanks page links to the voucher via public/order and a sealed code; #38, Pro #8). rc.14 published (activity vouchers: /_vouchers/setup read Events with POST, Events only takes GET; #36, lmsc-site#56). Oli: release and merge Pro without asking. LMSC told both
 - 2026-11-14 T169 merged (#34): themed /sign, /signed, /verify (esignIntegration({ page }) fed by the suite), EmDash toolbar kept off ceremony pages (relies on EmDash only injecting into responses starting <!doctype; recheck on EmDash upgrades), Book goes straight to Stripe (no pause page). Free bytes unchanged. rc.13 published (npm Free and Pro, version PR #35); cutover session told
 - 2026-11-14 LMSC Agency licence lic_001eca6436c53835bcf9fd7c (staging, apex, www; updates to 2027-11-14) confirmed licensed on staging.leamarstonshootingclub.com; lic_ae46a730151fbef7e879e048 issued first and unused (key lost). New ADMIN_TOKEN on the licence Worker, kept in Oli's ~/.semics-admin-token. Upstream note: @emdash-cms/cloudflare cloudflareEmail needs from as { email, name }
 - 2026-11-14 rc.12 published (T164–T168 gift vouchers): npm Free and Pro incl. new vouchers-pro (npm bootstrap done by Oli), EmDash registry; Pro release needed a GitHub billing fix; LMSC told
