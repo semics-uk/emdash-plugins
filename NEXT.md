@@ -4,7 +4,8 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T171 (Book with this voucher: button on voucher page and email, ?voucher= prefill, Have a voucher? link) and T172 (one-click Vouchers pairing) in progress for rc.16, from LMSC staging feedback
+- LMSC staging to try rc.16: one-click pairing at /_events/pair#vouchers, then Book with this voucher (book: true, emailBookLink)
+- Follow-ups: Events Pro does not trim a pasted vouchersPairing (T172 note); t145 e2e asserts a Free-only message so fails on Pro builds; booking form with a cookie-filled code could be stored by a cache that ignores cookies (docs/vouchers.md); one t168 run hit chrome-error on the T170 thanks page (passed on rerun); board.json not regenerated for T169–T172
 - LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
 - Vouchers follow-ups: voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
 
@@ -31,6 +32,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-15 rc.16 published (T171 Book with this voucher via &book=1 cookie hand-off, #40, Pro #10; T172 one-click Vouchers pairing, #41, Pro #9); LMSC told
 - 2026-11-15 rc.15 published (T170 print delivery: thanks page links to the voucher via public/order and a sealed code; #38, Pro #8). rc.14 published (activity vouchers: /_vouchers/setup read Events with POST, Events only takes GET; #36, lmsc-site#56). Oli: release and merge Pro without asking. LMSC told both
 - 2026-11-14 T169 merged (#34): themed /sign, /signed, /verify (esignIntegration({ page }) fed by the suite), EmDash toolbar kept off ceremony pages (relies on EmDash only injecting into responses starting <!doctype; recheck on EmDash upgrades), Book goes straight to Stripe (no pause page). Free bytes unchanged. rc.13 published (npm Free and Pro, version PR #35); cutover session told
 - 2026-11-14 LMSC Agency licence lic_001eca6436c53835bcf9fd7c (staging, apex, www; updates to 2027-11-14) confirmed licensed on staging.leamarstonshootingclub.com; lic_ae46a730151fbef7e879e048 issued first and unused (key lost). New ADMIN_TOKEN on the licence Worker, kept in Oli's ~/.semics-admin-token. Upstream note: @emdash-cms/cloudflare cloudflareEmail needs from as { email, name }
