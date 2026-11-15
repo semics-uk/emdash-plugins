@@ -4,7 +4,7 @@ title: "One-click pairing of Events Pro with Vouchers Pro on the same site"
 phase: 8
 package: events-suite, vouchers-pro
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: []
