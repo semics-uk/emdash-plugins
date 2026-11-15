@@ -71,7 +71,11 @@ code in the Gift voucher field when you book", and customers could not see how t
 - **Emails.** With `emailBookLink`, both the receipt and the gift email add
   `Book with this voucher: <origin>/_vouchers/v?c=<code>&book=1` after "View or print it". The how-to-use line stays.
 - **Bytes:** Free Events `plugin.mjs` 119,392 B before and after (the changes are UI-side: `src/astro`, i18n). Vouchers
-  Pro `backend.js`: see the PR (measured on the branch from Pro main, which does not have T170 yet).
-- **Pro e2e:** see the PR.
+  Pro `plugin.mjs` 69,680 → 69,903 B (+223 B) on Pro `main`; with T170 as well, 71,201 → 71,424 B (budget 100 KiB).
+- **Pro e2e** (`EMDASH_PRO_DIR` = a throwaway Pro checkout of T170's branch plus these commits, since public `main`
+  already expects T170's thanks page): `t168-vouchers` 10/10 passed, including the three new T171 journeys (activity
+  voucher from the email's link, money voucher through the list, spent voucher without a button). One earlier run
+  failed once inside the shared `buy()` helper (the thanks page navigation was interrupted, `chrome-error://`), before
+  any T171 step; the rerun passed.
 - **Pro branch base.** Pro `main` does not have T170 yet (PR #8 open); this branch is from `main` as briefed. Both
   touch `webhook.ts` (`finishIssue`), so whichever lands second rebases.
