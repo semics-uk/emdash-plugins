@@ -1,5 +1,9 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.17
+
+No changes in this release.
+
 ## 1.0.0-rc.16
 
 ### Patch Changes
