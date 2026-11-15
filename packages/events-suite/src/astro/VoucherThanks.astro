@@ -1,17 +1,31 @@
 ---
 // Injected at `/_vouchers/thanks` by `eventsSuite({ vouchers })` (T168): where Stripe Checkout sends the buyer back
-// (Vouchers' default return path). The voucher is issued by the webhook and emailed with its code and the voucher
-// page link, so nothing is read here: the code is never in this page's URL.
+// (Vouchers' default return path, `?order=<id>&session_id=<cs_…>`). The voucher is issued by the webhook and emailed
+// with its code and the voucher page link. T170: for "Print it yourself" this page asks Vouchers' `public/order`
+// (`loadThanks`, POST in process) and, once the voucher is issued, links to the voucher page `/_vouchers/v?c=<code>`
+// (the only URL a code may be in, voucher/1 §8). Until then it refreshes itself every 4 s (a meta refresh, no
+// JavaScript) up to THANKS_TRIES times, then says it is on its way by email.
 import * as config from "virtual:semics-events-suite/config";
+
+import { loadThanks } from "./lib/buy";
 
 export const prerender = false;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
 
-const cancelled = Astro.url.searchParams.get("cancelled") === "1";
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId ?? "";
+const view = await loadThanks({ locals: Astro.locals, url: Astro.url, request: Astro.request }, vouchersPluginId);
 const stylesheet = config.page?.stylesheet;
 const brand = config.page?.brand;
+const TITLES: Record<typeof view.state, string> = {
+	cancelled: "Payment cancelled",
+	paid: "Thank you",
+	preparing: "Thank you",
+	ready: "Thank you",
+	emailed: "Thank you",
+	closed: "Payment not completed",
+};
 ---
 <!doctype html>
 <html lang="en">
@@ -19,33 +33,79 @@ const brand = config.page?.brand;
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
-		<title>{cancelled ? "Payment cancelled" : "Thank you"}</title>
+		{view.state === "preparing" && <meta http-equiv="refresh" content={`4; url=${view.refresh}`} />}
+		<title>{TITLES[view.state]}</title>
 		{stylesheet && <link rel="stylesheet" href={stylesheet} />}
 		<style>
 			body{margin:0;padding:2rem 1rem;background:#f7f6f1;color:#1b2b24;font:16px/1.5 system-ui,sans-serif}
 			main{max-width:34rem;margin:0 auto;background:#fff;border:1px solid #e3e3db;border-radius:14px;padding:1.5rem}
 			a{color:#24583b}
+			.download{display:inline-block;margin:.25rem 0 .5rem;padding:.75rem 1.25rem;border-radius:10px;background:#24583b;color:#fff;font-weight:600;text-decoration:none}
+			.download:hover,.download:focus-visible{background:#1b4430}
 		</style>
 	</head>
 	<body>
-		<main data-testid="voucher-thanks" data-state={cancelled ? "cancelled" : "paid"}>
-			{
-				cancelled ? (
-					<>
-						<h1>Payment cancelled</h1>
-						<p>Nothing was charged and no voucher was made. You can try again whenever you like.</p>
-					</>
-				) : (
-					<>
-						<h1>Thank you</h1>
-						<p>
-							Your gift voucher is on its way. We email it to you in the next few minutes with its code and a link to
-							print it; if you chose to email it to someone, they get it too (on the day you picked).
-						</p>
-						<p>Nothing in your inbox? Check your spam folder, or contact us with the email address you used.</p>
-					</>
-				)
-			}
+		<main data-testid="voucher-thanks" data-state={view.state}>
+			{view.state === "cancelled" && (
+				<>
+					<h1>Payment cancelled</h1>
+					<p>Nothing was charged and no voucher was made. You can try again whenever you like.</p>
+				</>
+			)}
+			{view.state === "paid" && (
+				<>
+					<h1>Thank you</h1>
+					<p>
+						Your gift voucher is on its way. We email it to you in the next few minutes with its code and a link to
+						print it; if you chose to email it to someone, they get it too (on the day you picked).
+					</p>
+					<p>Nothing in your inbox? Check your spam folder, or contact us with the email address you used.</p>
+				</>
+			)}
+			{view.state === "preparing" && (
+				<>
+					<h1>Thank you</h1>
+					<p role="status">
+						Your voucher is being prepared. This takes a few seconds: this page updates itself and then shows a link
+						to download or print it.
+					</p>
+					<p>We're also emailing you its code and the same link, so you can print it again later.</p>
+					<p><a href={view.refresh}>Check again</a></p>
+				</>
+			)}
+			{view.state === "ready" && (
+				<>
+					<h1>Thank you: your voucher is ready</h1>
+					<p>
+						<a class="download" href={view.link} rel="noreferrer" data-testid="voucher-download">
+							Download / print your voucher
+						</a>
+					</p>
+					<p>
+						It opens on its own page: print it, or choose "Save as PDF" when you print. We've also emailed you its code
+						and this link, so you can print it again later.
+					</p>
+				</>
+			)}
+			{view.state === "emailed" && (
+				<>
+					<h1>Thank you</h1>
+					<p>
+						Your voucher is on its way by email. It's taking a little longer than usual to prepare: in the next few
+						minutes we email you its code and a link to download or print it.
+					</p>
+					<p>Nothing in your inbox? Check your spam folder, or contact us with the email address you used.</p>
+				</>
+			)}
+			{view.state === "closed" && (
+				<>
+					<h1>Payment not completed</h1>
+					<p>
+						We couldn't make your voucher for this payment. If you were charged, contact us with the email address you
+						used and we'll sort it out.
+					</p>
+				</>
+			)}
 			<p><a href={brand?.href ?? "/"}>Back to {brand?.name ?? "the site"}</a></p>
 		</main>
 	</body>

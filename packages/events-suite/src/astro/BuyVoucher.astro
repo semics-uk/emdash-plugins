@@ -46,7 +46,7 @@ const firstKind = offers("money") ? "money" : "activity";
 const presets = options?.moneyAmounts ?? [];
 const defaultAmount = presets.includes(5000) ? 5000 : presets[0];
 const DELIVERY_TEXT: Record<string, [string, string]> = {
-	print: ["Print it yourself", "We email you a link to print it or save it as a PDF"],
+	print: ["Print it yourself", "Download or print it straight after paying; we email you the link too"],
 	"email-buyer": ["Email it to me", "Forward it, or print it from the link"],
 	"email-recipient": ["Email it to them", "Straight to their inbox, on the day you choose"],
 	post: ["Post it", "We post a printed voucher to the address you give"],
