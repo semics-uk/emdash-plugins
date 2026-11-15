@@ -77,5 +77,6 @@ code in the Gift voucher field when you book", and customers could not see how t
   voucher from the email's link, money voucher through the list, spent voucher without a button). One earlier run
   failed once inside the shared `buy()` helper (the thanks page navigation was interrupted, `chrome-error://`), before
   any T171 step; the rerun passed.
-- **Pro branch base.** Pro `main` does not have T170 yet (PR #8 open); this branch is from `main` as briefed. Both
-  touch `webhook.ts` (`finishIssue`), so whichever lands second rebases.
+- **Pro branch base.** T170 landed in Pro `main` (rc.15) while this was in progress; the Pro branch is rebased onto
+  it (the `webhook.ts` conflict: `secret` then `bookLink`) and its verify re-run: passed, vouchers-pro 151/151.
+- **PRs:** public semics-uk/emdash-plugins#40, Pro semics-uk/emdash-plugins-pro#10.
