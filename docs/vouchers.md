@@ -71,10 +71,19 @@ whatever the price is on the day it is used. Prices never come from the buyer's 
 
 ## 4. Pairing
 
-In Vouchers' admin, **Pairing**, create the pairing string (shown once) and paste it into Events' settings,
-*Vouchers pairing string (Pro)* (`vouchersPairing`). From then on Events Pro shows the Gift voucher code field, and booking
-holds, settles and credits run between the two. To change it, create a new one, paste it, settle any open holds
-(admin, **Unsettled**), then revoke the old one.
+Sign in to the admin, open `/_events/pair` and press **Pair with Vouchers on this site** (the Gift vouchers
+section). The page asks Vouchers for a new pairing and stores it in Events' encrypted *Vouchers pairing string (Pro)*
+(`vouchersPairing`) on the server: there is nothing to copy, and the string never reaches the browser. From then on
+Events Pro shows the Gift voucher code field, and booking holds, settles and credits run between the two.
+
+The section says whether Events is paired, not paired, or holds a pairing for a client that is no longer Vouchers'
+active one (Vouchers was paired again or the client was revoked); press the button again to fix it. If a string was
+pasted by hand and Events cannot use it, it says why (a space or line break around it, an E-sign string, or not a
+whole string), without showing it.
+
+By hand, as before: in Vouchers' admin, **Pairing**, create the pairing string (shown once) and paste it, exactly
+and with nothing around it, into Events' *Vouchers pairing string (Pro)*. Either way, an older client is left
+active for bookings that already used it: settle any open holds (admin, **Unsettled**), then revoke it.
 
 ## 5. How redeeming works
 
