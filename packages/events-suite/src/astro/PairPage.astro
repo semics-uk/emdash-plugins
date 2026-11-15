@@ -3,18 +3,22 @@
 // Administrators only (the host's own plugin-settings handler checks `plugins:manage`). The pairing
 // string goes from E-sign to Events' encrypted setting inside this request and is never sent to the
 // browser. The logic is in `lib/pair.ts`; this page only renders the state and posts the button.
-import { esignPluginId, eventsPluginId } from "virtual:semics-events-suite/config";
+// T172: with `eventsSuite({ vouchers })` the page also pairs Events with Vouchers (`#vouchers`, `lib/vouchers-pair.ts`).
+import * as config from "virtual:semics-events-suite/config";
 import { crossSiteResponse, isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
 import { getPluginSetting } from "emdash";
 import { GET as readSettings, PUT as writeSettings } from "emdash/internal/routes/api/admin/plugins/_id_/settings";
 
 import { PAIR_PATH, type PairContext, type PairView, pairAction, pairingStatus } from "./lib/pair";
+import { pairVouchers, type VouchersPairContext, type VouchersPairView, vouchersPairingStatus } from "./lib/vouchers-pair";
 
 export const prerender = false;
 
 Astro.response.headers.set("Referrer-Policy", "no-referrer");
 Astro.response.headers.set("Cache-Control", "private, no-store");
 
+const { esignPluginId, eventsPluginId } = config;
+const vouchersPluginId = (config as Partial<typeof config>).vouchersPluginId ?? "";
 const ids = { eventsPluginId, esignPluginId };
 // The host's handlers for `/_emdash/api/admin/plugins/<id>/settings`, run with this visitor's locals.
 const settingsUrl = (id: string) => new URL(`/_emdash/api/admin/plugins/${encodeURIComponent(id)}/settings`, Astro.url);
@@ -40,6 +44,17 @@ const ctx: PairContext = {
 	},
 };
 
+// T172: Events' stored `vouchersPairing` (decrypted) and Vouchers' active client id, both server side and read by
+// `lib/vouchers-pair.ts` only after the admin check; only client ids and a reason ever reach the page.
+const vouchersIds = { eventsPluginId, vouchersPluginId };
+const vouchersCtx: VouchersPairContext = {
+	locals: Astro.locals,
+	url: Astro.url,
+	settings: ctx.settings,
+	readPairing: () => getPluginSetting(eventsPluginId, "vouchersPairing"),
+	readActiveClient: () => getPluginSetting(vouchersPluginId, "pairingClientId"),
+};
+
 if (isCrossSiteRequest(Astro.request, Astro.url)) return crossSiteResponse();
 
 const CODE = /^[A-Z0-9_]{1,64}$/;
@@ -48,6 +63,12 @@ const STATES = new Set(["paired", "unpaired", "revoked", "esign-missing", "forbi
 if (Astro.request.method === "POST") {
 	const form = await Astro.request.formData().catch(() => new FormData());
 	const action = form.get("action");
+	if (action === "vouchers-pair" && vouchersPluginId) {
+		const made = await pairVouchers(vouchersCtx, vouchersIds);
+		const next = new URLSearchParams({ vresult: made.state });
+		if (made.code) next.set("vcode", made.code);
+		return Astro.redirect(`${PAIR_PATH}?${next}#vouchers`, 303);
+	}
 	const result = await pairAction(ctx, ids, action);
 	const next = new URLSearchParams({ result: result.state });
 	if (result.code) next.set("code", result.code);
@@ -68,6 +89,17 @@ const refreshed = query.get("did") === "templates";
 const loaded = /^\d{1,3}$/.test(query.get("templates") ?? "") ? Number(query.get("templates")) : -1;
 const loadCode = CODE.test(query.get("tcode") ?? "") ? (query.get("tcode") as string) : "";
 if (view.state === "forbidden") Astro.response.status = 403;
+const vouchersView: VouchersPairView | null = vouchersPluginId ? await vouchersPairingStatus(vouchersCtx, vouchersIds) : null;
+const heading = vouchersPluginId ? "Pair Events with E-sign and Vouchers" : "Pair Events with E-sign";
+const vresult = query.get("vresult") ?? "";
+const vcode = CODE.test(query.get("vcode") ?? "") ? (query.get("vcode") as string) : "";
+const REJECTED: Record<string, string> = {
+	spaces: "it has a space or line break before or after it (Events reads the string exactly as pasted)",
+	esign: "it is an E-sign pairing string, not a Vouchers one",
+	malformed: "it is not a whole Vouchers pairing string (they start voucher1. and are copied in full)",
+};
+const vouchersErrorText = (code: string) =>
+	(code && ERRORS[code]) || "Pairing with Vouchers did not finish. Please try again; if it keeps failing, check that Vouchers is up to date.";
 
 const templatesText =
 	loaded === 0
@@ -96,11 +128,11 @@ const errorText = (code?: string) =>
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="robots" content="noindex" />
 		<meta name="referrer" content="no-referrer" />
-		<title>Pair Events with E-sign</title>
+		<title>{heading}</title>
 	</head>
 	<body>
 		<main data-testid="pair-page" data-state={view.state}>
-			<h1>Pair Events with E-sign</h1>
+			<h1>{heading}</h1>
 			{done === "paired" && !refreshed && <p role="status" data-testid="pair-done">Paired. Events can now ask for signed waivers.</p>}
 			{templatesText && <p role="status" data-testid="pair-templates">{templatesText}</p>}
 			{done === "unpaired" && <p role="status" data-testid="pair-done">Unpaired. Events no longer sends waivers to E-sign.</p>}
@@ -148,6 +180,40 @@ const errorText = (code?: string) =>
 						<button type="submit" data-testid="unpair-button">Unpair</button>
 					</form>
 				</>
+			)}
+			{vouchersView && (
+				<section id="vouchers" data-testid="vouchers-pair" data-state={vouchersView.state}>
+					<h2>Gift vouchers</h2>
+					{vresult === "paired" && <p role="status" data-testid="vouchers-pair-done">Paired. The booking forms now take a Gift voucher code.</p>}
+					{vresult === "vouchers-missing" && <p role="alert" data-testid="vouchers-pair-error">Vouchers is not installed or not enabled on this site.</p>}
+					{vresult === "error" && <p role="alert" data-testid="vouchers-pair-error">{vouchersErrorText(vcode)}</p>}
+					{vouchersView.state === "forbidden" && <p>Sign in as an administrator to pair Events with Vouchers.</p>}
+					{vouchersView.state === "paired" && (
+						<p data-testid="vouchers-pair-status">Events is paired with Vouchers on this site (client <code>{vouchersView.clientId}</code>). Redeeming gift vouchers in bookings is on.</p>
+					)}
+					{vouchersView.state === "unpaired" && (
+						<p data-testid="vouchers-pair-status">Events is not paired with Vouchers yet, so the booking forms have no Gift voucher code.</p>
+					)}
+					{vouchersView.state === "stale" && (
+						<p data-testid="vouchers-pair-status">
+							Events holds a pairing for client <code>{vouchersView.clientId}</code>, but Vouchers{" "}
+							{vouchersView.activeClientId ? <>now uses client <code>{vouchersView.activeClientId}</code></> : "has no active client"}
+							{" "}(it was paired again or revoked). Pair again to switch Events to a working one.
+						</p>
+					)}
+					{vouchersView.state === "rejected" && (
+						<p data-testid="vouchers-pair-status">
+							Events has a Vouchers pairing string it cannot use: {REJECTED[vouchersView.reason ?? "malformed"]}. Pair
+							here instead: it writes a working one.
+						</p>
+					)}
+					{vouchersView.state !== "paired" && vouchersView.state !== "forbidden" && (
+						<form method="post" action={PAIR_PATH}>
+							<input type="hidden" name="action" value="vouchers-pair" />
+							<button type="submit" data-testid="vouchers-pair-button">Pair with Vouchers on this site</button>
+						</form>
+					)}
+				</section>
 			)}
 		</main>
 	</body>

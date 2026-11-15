@@ -74,12 +74,13 @@ type RouteHandler = (
 	user?: unknown,
 ) => Promise<HandlerResponse>;
 
-interface Admin {
+export interface Admin {
 	call: RouteHandler;
 	user: unknown;
 }
 
-function adminOf(locals: unknown): Admin | null {
+/** The signed-in visitor and the host's in-process route runner, or null (also used by `vouchers-pair.ts`). */
+export function adminOf(locals: unknown): Admin | null {
 	const l = (locals ?? {}) as { user?: unknown; emdash?: { handlePluginApiRoute?: unknown } };
 	const call = l.emdash?.handlePluginApiRoute;
 	return typeof call === "function" && l.user ? { call: call as RouteHandler, user: l.user } : null;

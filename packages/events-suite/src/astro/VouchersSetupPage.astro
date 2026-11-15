@@ -105,6 +105,10 @@ const count = /^\d{1,3}$/.test(Astro.url.searchParams.get("count") ?? "") ? Numb
 					<button type="submit">Save with Events' prices</button>
 				</form>
 			)}
+			<p>
+				Redeeming vouchers in bookings needs Events paired with Vouchers.{" "}
+				<a href="/_events/pair#vouchers">Pair them in one click</a> (no string to copy).
+			</p>
 		</main>
 	</body>
 </html>

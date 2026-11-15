@@ -147,6 +147,15 @@ and Pair adopts that client (E-sign revokes the auto-pair client it replaces) in
   `VouchersSetupPage.astro` (`/_vouchers/setup`, admin: Events' `public/events`/`public/event` → Vouchers'
   `activityTypes` with Events' prices through the host settings write; unseen lines kept). Docs: `docs/vouchers.md`.
 
+- T172 one-click Vouchers pairing: `lib/vouchers-pair.ts`, a "Gift vouchers" section (`#vouchers`, `data-testid="vouchers-pair"`)
+  of `/_events/pair`, only with `eventsSuite({ vouchers })`. GET: the host's settings read of Events (the admin check), then
+  `getPluginSetting(events, "vouchersPairing")` (decrypted, only its client id kept) against `getPluginSetting(vouchers,
+  "pairingClientId")` → `paired` / `unpaired` / `stale` (another or no active client) / `rejected` with a `reason`
+  (`spaces`: Events Pro parses the string untrimmed; `esign`; `malformed`). POST `action=vouchers-pair`: no-op when paired,
+  else Vouchers' private `pairing/create` in process as the admin, the string written to `vouchersPairing` by the host's
+  settings write, PRG to `?vresult=#vouchers`. Old clients are never revoked here (bookings that used them still settle).
+  `/_vouchers/setup` and Vouchers' admin Pairing page link to it.
+
 ## Tests
 
 `tests/*.test.ts`, plain Node vitest: the flow runs the real UI helpers of both products against a fake
