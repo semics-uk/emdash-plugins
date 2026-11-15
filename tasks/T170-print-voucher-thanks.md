@@ -79,3 +79,5 @@ Design (decided by the orchestrator):
   the emailed code's voucher page.
 - **Bytes:** Vouchers Pro `backend.js` 69,680 → 71,201 B (+1,521 B; budget 100 KiB). Free Events `plugin.mjs`
   unchanged (no Events change); the suite's changes are Astro/site-side.
+- **Pro e2e** (`EMDASH_PRO_DIR` = the Pro T170 branch, built by its verify): `t168-vouchers` 7/7 passed, including
+  the new thanks-page download link for a print voucher.
