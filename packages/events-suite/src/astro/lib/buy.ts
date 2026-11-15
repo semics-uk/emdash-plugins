@@ -7,7 +7,8 @@
  *   `public/purchase` (which checks everything against its settings and prices activities itself) and sends the
  *   buyer to Stripe Checkout with a 303. A refusal goes back to the form with its code and the fields to fix,
  *   never what was typed (`?voucher_error=&voucher_fields=`).
- * - `/_vouchers/thanks`: Stripe's return page. The voucher arrives by email (the webhook issues it).
+ * - `/_vouchers/thanks` (`loadThanks`): Stripe's return page. The voucher arrives by email (the webhook issues
+ *   it); for "Print it yourself" the page also links to the voucher page once it is issued (T170).
  * - `/_vouchers/v?c=<code>` (`loadVoucher`): the voucher page from Vouchers' `public/redeem/check`, with print styles.
  *
  * Web APIs only, no `@semics-tech/shared` (R35); prices and rules stay in Vouchers.
@@ -267,4 +268,53 @@ export async function loadVoucher(
 	}).catch(() => null);
 	if (out?.ok && out.data.voucher) return { ok: true, voucher: out.data.voucher, display };
 	return { ok: false, code: out && !out.ok && CODE.test(out.error.code) ? out.error.code : "VOUCHER_UNAVAILABLE" };
+}
+
+/** How many times the thanks page refreshes itself (every 4 s) while a print voucher is being issued (T170). */
+export const THANKS_TRIES = 15;
+const ORDER_ID = /^vo_[0-9a-f]{32}$/;
+const SESSION_ID = /^cs_(test|live)_\w{1,250}$/;
+
+/**
+ * What `/_vouchers/thanks` shows (T170):
+ * - `cancelled`: the buyer left Stripe without paying;
+ * - `paid`: the usual "on its way by email" (every delivery but print, or nothing to go on);
+ * - `preparing`: print, the webhook has not issued it yet; the page refreshes itself to `refresh`;
+ * - `ready`: print, issued: `link` is the voucher page `/_vouchers/v?c=<code>` (the one URL a code may be in);
+ * - `emailed`: print, but no code to link to (tries used up, or past Vouchers' hour): it is on its way by email;
+ * - `closed`: Vouchers made no voucher for this payment.
+ */
+export type ThanksView =
+	| { state: "cancelled" | "paid" | "emailed" | "closed" }
+	| { state: "preparing"; refresh: string }
+	| { state: "ready"; link: string };
+
+/**
+ * The thanks page's read: Vouchers' `public/order` with `?order=` and `?session_id=` (Stripe's
+ * `{CHECKOUT_SESSION_ID}`), in process and by POST, so the session id goes into no further URL but the page's own.
+ */
+export async function loadThanks(ctx: PublicRouteContext, vouchersPluginId: string): Promise<ThanksView> {
+	const q = ctx.url.searchParams;
+	if (q.get("cancelled") === "1") return { state: "cancelled" };
+	const order = q.get("order") ?? "";
+	const session = q.get("session_id") ?? "";
+	if (!vouchersPluginId || !ORDER_ID.test(order) || !SESSION_ID.test(session)) return { state: "paid" };
+	const out = await callPublicRoute<{ state?: unknown; delivery?: unknown; code?: unknown }>(ctx, {
+		method: "POST",
+		path: "public/order",
+		pluginId: vouchersPluginId,
+		body: { order, session },
+	}).catch(() => null);
+	if (!out?.ok) return { state: "paid" };
+	const { state, delivery, code } = out.data;
+	if (state === "closed") return { state: "closed" };
+	if (delivery !== "print") return { state: "paid" };
+	if (state === "issued") {
+		const display = typeof code === "string" ? displayCode(code) : null;
+		return display ? { state: "ready", link: `${VOUCHER_PAGE_PATH}?c=${display}` } : { state: "emailed" };
+	}
+	const tries = /^\d{1,3}$/.test(q.get("try") ?? "") ? Number(q.get("try")) : 0;
+	if (tries >= THANKS_TRIES) return { state: "emailed" };
+	const next = new URLSearchParams({ order, session_id: session, try: String(tries + 1) });
+	return { state: "preparing", refresh: `${ctx.url.pathname}?${next}` };
 }

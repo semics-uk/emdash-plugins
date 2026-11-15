@@ -116,12 +116,17 @@ async function buy(browser: Browser, request: APIRequestContext, amount: number,
 	expect(session.amount).toBe(amount);
 	await paid(request, session);
 	const back = new URL(session.form.get("success_url") as string);
-	await page.goto(`${back.pathname}${back.search}`);
+	// T170: Stripe fills in its session id; "Print it yourself" (the form's first delivery) links to the voucher
+	// page from the thanks page as soon as the webhook has issued it.
+	expect(back.search).toContain("session_id={CHECKOUT_SESSION_ID}");
+	await page.goto(`${back.pathname}${back.search.replace("{CHECKOUT_SESSION_ID}", session.id)}`);
 	await expect(page.getByTestId("voucher-thanks")).toContainText(/Thank you/);
+	const download = await page.getByTestId("voucher-download").getAttribute("href");
 	await context.close();
 	const mail = await mailTo(request, buyer, /gift voucher/i, "semics-vouchers");
 	const code = CODE.exec(mail.text)?.[0];
 	expect(code, "a code in the receipt").toBeTruthy();
+	expect(download).toBe(`/_vouchers/v?c=${code}`);
 	return { code: code as string, link: linkIn(mail, "/_vouchers/v") };
 }
 
