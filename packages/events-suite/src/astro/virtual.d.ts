@@ -8,4 +8,6 @@ declare module "virtual:semics-events-suite/config" {
 	export const page: import("@semics-tech/emdash-events/astro/lib/page").PageOptions;
 	/** The Vouchers core's plugin id (T166); only exported with `eventsSuite({ vouchers })`. */
 	export const vouchersPluginId: string | undefined;
+	/** "Book with this voucher" (T171); only exported with `eventsSuite({ vouchers: { core, book } })`. */
+	export const voucherBook: { listPath: string } | undefined;
 }

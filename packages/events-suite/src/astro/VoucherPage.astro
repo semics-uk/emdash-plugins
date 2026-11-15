@@ -4,8 +4,10 @@
 // value or activity, what is left, the expiry and the message, with print styles: "Print or save as PDF" gives one
 // A4 page with just the card (no server-made PDF in v1). The code stays out of referrers and caches.
 import * as config from "virtual:semics-events-suite/config";
+import { VOUCHER_COOKIE, voucherCookieOptions } from "@semics-tech/emdash-events/astro/lib/book-link";
 
 import VoucherCard from "./VoucherCard.astro";
+import { bookHref, bookingTarget, wantsBooking } from "./lib/book";
 import { formatMinor, loadVoucher } from "./lib/buy";
 
 export const prerender = false;
@@ -22,6 +24,26 @@ const loaded = typed
 	? await loadVoucher({ locals: Astro.locals, url: Astro.url, request: Astro.request }, typed, vouchersPluginId)
 	: ({ ok: false, code: "VOUCHER_INVALID" } as const);
 if (!loaded.ok) Astro.response.status = loaded.code === "VOUCHER_INVALID" ? 404 : 503;
+
+// "Book with this voucher" (T171), only with `eventsSuite({ vouchers: { core, book } })`: the button is this page's
+// own link with `&book=1`, which hands the code to the booking form in an HttpOnly cookie (voucher/1 §8: no
+// booking URL holds it) and redirects there. Nowhere to book: no button, and `&book=1` just shows the voucher.
+const book = (config as Partial<typeof config>).voucherBook;
+const target =
+	loaded.ok && book
+		? await bookingTarget({ locals: Astro.locals, url: Astro.url, request: Astro.request }, loaded.voucher, {
+				eventsPluginId: config.eventsPluginId,
+				listPath: book.listPath,
+				eventPath: config.page?.eventPath,
+			})
+		: null;
+if (loaded.ok && target && wantsBooking(Astro.url)) {
+	Astro.cookies.set(VOUCHER_COOKIE, loaded.display, voucherCookieOptions(Astro.url));
+	return new Response(null, {
+		status: 303,
+		headers: { Location: target, "Referrer-Policy": "no-referrer", "Cache-Control": "private, no-store" },
+	});
+}
 
 const day = (iso: string) =>
 	new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
@@ -54,8 +76,10 @@ const left = v
 			body{margin:0;padding:1.5rem 1rem;background:#f7f6f1;color:#1b2b24;font:16px/1.5 system-ui,sans-serif}
 			main{max-width:34rem;margin:0 auto}
 			.voucher-facts{margin:1.2rem auto;padding:0;list-style:none;text-align:center}
-			.voucher-actions{text-align:center;margin:1rem 0}
-			.voucher-actions button{font:inherit;padding:.8rem 1.4rem;border-radius:9px;border:0;background:#234b38;color:#fff;cursor:pointer}
+			.voucher-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:.75rem;margin:1rem 0}
+			.voucher-actions button,.voucher-book{font:inherit;padding:.8rem 1.4rem;border-radius:9px;border:0;background:#234b38;color:#fff;cursor:pointer}
+			.voucher-book{text-decoration:none;font-weight:600}
+			.voucher-book~button{background:#fff;color:#234b38;box-shadow:inset 0 0 0 1px #234b38}
 			.voucher-help{color:#5d685f;font-size:.9rem;text-align:center}
 			@page{size:A4;margin:15mm}
 			@media print{body{background:#fff;padding:0}.voucher-actions,.voucher-help,h1{display:none}.voucher-facts{margin:.6cm 0 0}}
@@ -79,9 +103,18 @@ const left = v
 						/>
 						<ul class="voucher-facts" data-testid="voucher-facts">
 							<li>{left}</li>
-							<li>Enter the code in the Gift voucher field when you book.</li>
+							<li>
+								{target
+									? "Book with the button below: the code is filled in for you. Or enter it in the Gift voucher field when you book."
+									: "Enter the code in the Gift voucher field when you book."}
+							</li>
 						</ul>
 						<div class="voucher-actions">
+							{target && loaded.ok && (
+								<a class="voucher-book" href={bookHref(loaded.display)} rel="nofollow" data-testid="voucher-book">
+									Book with this voucher
+								</a>
+							)}
 							<button type="button" id="semics-voucher-print">Print or save as PDF</button>
 						</div>
 						<p class="voucher-help">Keep the code safe: anyone who has it can use the voucher.</p>

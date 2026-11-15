@@ -226,7 +226,9 @@ An invalid, unknown, expired or void code is answered with the one code `VOUCHER
 
 Tokens and codes travel only in JSON POST bodies passed in-process by the suite. They MUST NOT appear in query
 strings, paths or logs, with one exception: the voucher page link `/_vouchers/v?c=<code>` in the voucher's own
-email, which serves `Referrer-Policy: no-referrer`. Error bodies are
+email, which serves `Referrer-Policy: no-referrer`. The same page with `&book=1` ("Book with this voucher", T171) is
+that link too: it answers a 303 to the booking form with `Referrer-Policy: no-referrer` and hands the code over in an
+HttpOnly cookie, so no booking URL carries it. Error bodies are
 `{ "ok": false, "error": { "code": "VOUCHER_INVALID", "message": "…" } }`; as in `esign-intent/1` §9, a sandboxed
 core answers them inside the host's `{ "success": true, "data": … }` wrapper with status 200, so callers branch on
 `ok` and `error.code`.

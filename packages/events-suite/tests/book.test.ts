@@ -50,7 +50,10 @@ function site(events: Array<Record<string, unknown>> | null) {
 	};
 	return {
 		calls,
-		ctx: { locals: { emdash: { handlePublicPluginApiRoute: handler } } as never, url: new URL(`${ORIGIN}/_vouchers/v`) },
+		ctx: {
+			locals: { emdash: { handlePublicPluginApiRoute: handler } } as never,
+			url: new URL(`${ORIGIN}/_vouchers/v`),
+		},
 	};
 }
 
@@ -88,7 +91,9 @@ describe("T171 R16 where Book with this voucher goes", () => {
 		).toBeNull();
 		expect(await bookingTarget(site(null).ctx, clay(), OPTS)).toBeNull();
 		// A Vouchers build that does not say which event (before T171) gets no button either.
-		expect(await bookingTarget(site(LISTED).ctx, clay({ eventId: undefined, ticketTypeId: undefined }), OPTS)).toBeNull();
+		expect(
+			await bookingTarget(site(LISTED).ctx, clay({ eventId: undefined, ticketTypeId: undefined }), OPTS),
+		).toBeNull();
 	});
 
 	it("R16 no button for a voucher with nothing left to use, or not active", async () => {
@@ -109,8 +114,7 @@ describe("T171 R16 the button's link is the voucher page's own (voucher/1 §8)",
 	});
 });
 
-const source = (file: string) =>
-	readFileSync(fileURLToPath(new URL(`../src/astro/${file}`, import.meta.url)), "utf8");
+const source = (file: string) => readFileSync(fileURLToPath(new URL(`../src/astro/${file}`, import.meta.url)), "utf8");
 
 describe("T171 the voucher page", () => {
 	const page = source("VoucherPage.astro");

@@ -29,8 +29,33 @@ With `vouchers` the suite adds:
 | `/_vouchers/setup` | Administrators: pick the activity vouchers from Events' catalogue, at Events' prices |
 | `POST /_semics/stripe` | The site's one Stripe webhook endpoint |
 
-The booking forms get a **Gift voucher code** field once Events Pro is paired with Vouchers (step 4). Without
-`vouchers`, nothing about the site changes.
+The booking forms get a **Gift voucher code** field once Events Pro is paired with Vouchers (step 4), with a
+"Have a gift voucher?" link above the form that jumps to it. Without `vouchers`, nothing about the site changes.
+
+### Book with this voucher (T171, optional)
+
+For a site that takes bookings online, wrap the core and turn on `book`:
+
+```js
+eventsSuite({ events: eventsPro, vouchers: { core: vouchersPro, book: true } }); // or book: { listPath: "/whats-on" }
+```
+
+The voucher page then shows **Book with this voucher**. An activity voucher goes to its event's page
+(`page.eventPath`, default `/events/{slug}`) with its ticket type chosen, at the booking form; a money voucher goes
+to the page listing your activities (`listPath`, default `/events`). The code is filled in for the buyer. The button
+is hidden (and the page says to enter the code when booking) when the voucher has nothing left, or when Events does
+not list the activity's event on sale with a slug, for example an activity line typed with ids Events does not
+know. Leave `book` off where staff redeem vouchers by hand.
+
+To put the same link in the voucher emails, also tick Vouchers' setting **Add a Book with this voucher link to
+voucher emails** (`emailBookLink`, off by default).
+
+How the code gets there: voucher/1 §8 allows a code in one URL only, the voucher page's own. The button is that page
+with `&book=1`; it sets a 30-minute HttpOnly cookie (`semics_voucher`, SameSite=Lax) and redirects (303, no referrer,
+not cached) to the form, which fills the field from the cookie on the server. No booking URL carries the code, and no
+JavaScript is needed. A form that filled in a code sends `Cache-Control: private, no-store` where it still can; do not
+put event pages behind a shared cache that ignores cookies. The booking page clears the cookie once a booking has used
+a voucher.
 
 ## 2. Stripe: one account, two keys, one webhook endpoint
 

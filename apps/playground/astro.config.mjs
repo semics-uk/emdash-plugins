@@ -25,7 +25,11 @@ async function vouchersPro() {
 }
 const vouchers = process.env.EMDASH_PRO_DIR ? await vouchersPro() : undefined;
 const suite = process.env.EMDASH_PRO_DIR
-	? eventsSuite({ events: (await import("@semics-tech/emdash-events-pro")).default, ...(vouchers ? { vouchers } : {}) })
+	? eventsSuite({
+			events: (await import("@semics-tech/emdash-events-pro")).default,
+			// T171: "Book with this voucher" on the voucher page.
+			...(vouchers ? { vouchers: { core: vouchers, book: true } } : {}),
+		})
 	: eventsSuite();
 
 async function platform() {

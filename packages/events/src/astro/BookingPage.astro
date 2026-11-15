@@ -31,6 +31,7 @@ import {
 } from "./lib/checkout-form";
 import AttendeeList from "./AttendeeList.astro";
 import { handleAttendeeAction, signingRows, waiverStep } from "./lib/attendees";
+import { VOUCHER_COOKIE } from "./lib/book-link";
 import { eventPageHref, pageCss } from "./lib/page";
 import { paymentView } from "./lib/payment";
 import { forwardReceipt } from "./lib/receipt";
@@ -168,6 +169,8 @@ if (ref && token) {
 	missing = true;
 }
 if (booking) booking = asOfNow(booking, Date.now());
+// T171: a booking that used a gift voucher forgets the code "Book with this voucher" left for the form.
+if ((booking?.totals?.voucherMinor ?? 0) > 0) Astro.cookies.delete(VOUCHER_COOKIE, { path: "/" });
 // The attendee signing list's forms (T133): Sign now, Resend and Save, against the fresh answer.
 if (booking && form && ref && token) {
 	const done = await handleAttendeeAction(ctx, form, { ref, token }, { pluginId, esignPluginId }, booking);
