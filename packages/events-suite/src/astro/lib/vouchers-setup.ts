@@ -89,9 +89,10 @@ interface CatalogueEntry {
 /** Events' upcoming events in `currency` with their paid ticket types. */
 async function catalogue(ctx: SetupContext, ids: SetupIds, currency: string): Promise<CatalogueEntry[] | null> {
 	const call = { locals: ctx.locals as never, url: ctx.url };
-	const post = <T>(path: string, body: unknown) =>
-		callPublicRoute<T>(call, { method: "POST", path, pluginId: ids.eventsPluginId, body }).catch(() => null);
-	const list = await post<{ events?: Array<{ eventId: string; title?: string; currency?: string }> }>(
+	// Both catalogue routes are GET-only; a POST is refused with 405 (lmsc-site#56).
+	const get = <T>(path: string, body: unknown) =>
+		callPublicRoute<T>(call, { path, pluginId: ids.eventsPluginId, body }).catch(() => null);
+	const list = await get<{ events?: Array<{ eventId: string; title?: string; currency?: string }> }>(
 		"public/events",
 		{},
 	);
@@ -99,7 +100,7 @@ async function catalogue(ctx: SetupContext, ids: SetupIds, currency: string): Pr
 	const events = (list.data.events ?? []).filter((e) => e.currency === currency).slice(0, MAX_EVENTS);
 	const details = await Promise.all(
 		events.map((e) =>
-			post<{ title?: string; currency?: string; ticketTypes?: CatalogueEntry["ticketTypes"] }>("public/event", {
+			get<{ title?: string; currency?: string; ticketTypes?: CatalogueEntry["ticketTypes"] }>("public/event", {
 				eventId: e.eventId,
 			}),
 		),
