@@ -29,6 +29,9 @@ export function collectFields(fields: Iterable<KeptField>): Record<string, strin
 		if (!f.name || f.type === "hidden" || f.type === "submit" || f.type === "button") continue;
 		if (f.type === "checkbox") {
 			if (f.checked) out[f.name] = true;
+		} else if (f.type === "radio") {
+			// A group of radios shares a name (a request's time window, T174a): only the checked one counts.
+			if (f.checked) out[f.name] = f.value;
 		} else if (f.value) out[f.name] = f.value;
 	}
 	return out;
@@ -39,6 +42,7 @@ export function applyFields(fields: Iterable<KeptField>, kept: Record<string, st
 		const value = kept[f.name];
 		if (value === undefined || f.type === "hidden") continue;
 		if (f.type === "checkbox") f.checked = value === true;
+		else if (f.type === "radio") f.checked = value === f.value;
 		else if (typeof value === "string" && ![...(f.options ?? [])].some((o) => o.value === value && o.disabled)) {
 			f.value = value;
 		}

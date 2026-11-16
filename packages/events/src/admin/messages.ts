@@ -12,8 +12,8 @@ const ISSUE_MESSAGES: Record<string, string> = {
 	INVALID_WINDOW: "A date must end after it starts.",
 	INVALID_RECURRENCE: "Use a rule such as FREQ=WEEKLY;BYDAY=MO;COUNT=10.",
 	INVALID_SCHEDULE:
-		"A schedule needs days (MO-SU), times (09:00), minutes, places, 1-90 days ahead, no RRULE or dates.",
-	INVALID_REQUESTS: "Requests need windows (AM 10:00-12:00), days (MO-SU), no schedule or dates.",
+		"A schedule needs days (MO,TU,…), times (09:00), minutes, places, 1-90 days ahead, no RRULE or dates.",
+	INVALID_REQUESTS: "Requests need windows (AM 10:00-12:00), days (MO,TU,…), no schedule or dates.",
 	INVALID_NAME: "A ticket type needs a name (max 100).",
 	INVALID_CURRENCY: "Use a currency code such as GBP.",
 	ITEM_IN_USE: "That item has bookings and cannot be removed.",

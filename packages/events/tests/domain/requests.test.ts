@@ -195,6 +195,19 @@ describe("T174a panel's Booking requests fields", () => {
 		expect(requestsInput({}, REQUESTS)).toBe(REQUESTS);
 		expect(parseRequests(requestsInput({ ...values, rq_windows: "Morning" }, null))).toBeNull();
 	});
+
+	it("T174a the days field's label shows the comma list it takes, not a range it refuses (LMSC staging rc.18)", () => {
+		const days = requestFields(null).find((f) => (f as { action_id?: string }).action_id === "rq_days") as {
+			label?: string;
+		};
+		expect(days.label).toBe("Requests: days (MO,TU,…)");
+		expect(days.label).not.toContain("MO-SU");
+		// What the label shows is what parses: every weekday, comma-separated.
+		const all = requestsInput({ rq_windows: "AM 10:00-12:00", rq_days: "MO,TU,WE,TH,FR,SA,SU" }, null);
+		expect(parseRequests(all)?.days).toEqual(["MO", "TU", "WE", "TH", "FR", "SA", "SU"]);
+		// A range is still refused (accepting one would cost the Free backend about 140 B).
+		expect(parseRequests(requestsInput({ rq_windows: "AM 10:00-12:00", rq_days: "MO-SU" }, null))).toBeNull();
+	});
 });
 
 describe("T174a approval deadline of a request", () => {
