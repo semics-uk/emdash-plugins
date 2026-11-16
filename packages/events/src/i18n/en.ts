@@ -114,6 +114,16 @@ export const en = {
 	"booking.decideBy": "The organiser will approve or decline your request by {time}; we will email you.",
 	"booking.requestSent": "Request sent: we'll confirm a time with you.",
 	"booking.requested": "Requested: {when}, time to be agreed.",
+	"booking.proposal.title": "The organiser proposed another time",
+	"booking.proposal.lead": "We can't do the time you asked for, but can offer this one:",
+	"booking.proposal.answerBy":
+		"Please answer by {time}. If you don't, the request lapses and any payment is refunded in full.",
+	"booking.proposal.accept": "Accept this time",
+	"booking.proposal.refuse": "That doesn't work",
+	"booking.proposal.refuseNote": "Your request is cancelled and any payment refunded in full.",
+	"booking.proposal.accepted": "Thank you: your booking is confirmed for the new time.",
+	"booking.proposal.refused": "Your request was cancelled. Any payment will be refunded in full.",
+	"booking.proposal.failed": "We could not record your answer. Please try again.",
 	"booking.declinedReason": "The organiser's reason: {reason}",
 	"booking.notCharged": "Your card was not charged.",
 	"booking.lapsed":

@@ -96,3 +96,21 @@ page); BST/GMT change for window starts (test the last Sunday in October).
   `requestStart` + `wallMs` (~0.8 KB), Confirm time and the Bookings row (~0.7 KB), reserve rules (~0.35 KB), emails,
   booking page and ICS (~0.5 KB). Trimmed by sharing the schedule's day/closed-date validation and panel helpers.
   T174d (+0.8 KB) no longer fits Free as it stands: move the T162 setup check page first, or put T174d in Pro.
+
+## T174c notes (2026-11-16)
+
+- **Shapes.** `booking.request.proposed = { startsAt, endsAt?, at }` (Pro writes it; Free's schema type is unchanged). The
+  deadline (`holdExpiresAt` = `approval.until`, so Free's `undecided` still holds) moves to the earlier of now +
+  `proposalHours` (Pro setting, default 72, 1–720) and the proposed start; a card authorised at checkout (`hold: manual`)
+  is never given a later deadline (gap: a manual hold cannot be extended past its authorisation).
+- **Admin.** Block Kit forms have one submit, so Pro copies Free's Confirm time form into a second form, "Propose another
+  time" (`bookings.propose:<id>`), block id `p:<zone>` (block ids are React keys and must differ). Propose rewrites
+  `lapse-<id>` for the new deadline, queues `propose-<id>` (`time_proposed`), and moves the settle one-shot.
+- **Buyer.** `public/booking/request/accept` / `.../refuse` (Pro, in flight). Accept: Free's `approveBooking` (paid) or
+  Pro's `approveHeld` (held) with the proposal as `time`; a lost race answers through Free's approve again (double accept
+  ok; after decline, expiry or refusal `HOLD_EXPIRED`). Refuse: Free's cancel with the refund step (status `cancelled`,
+  the refund email), only while a proposal waits. `public/booking` answers `proposed`; `BookingStatus` shows it with two
+  plain forms (`intent=accept-time|refuse-time`) that `BookingPage` answers with the cookie's token.
+- **Race left open.** An accept read just before a re-proposal confirms the time the buyer saw (the old proposal).
+- **Bytes.** Free backend unchanged (Astro and i18n only). Pro 257,470 → 257,928 B: T174c +2,451, paid for by a shared-helper
+  refactor (−1,993; `src/route-util.ts`). 4,216 B left for T174d/e.

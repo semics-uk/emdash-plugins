@@ -2,7 +2,9 @@
 // <BookingStatus>: a booking's summary card (EU-FR-06). Rendered by the `/booking` page from the
 // `public/booking` answer. It leads with the event and the booked session, in the event's zone, and the
 // place (T157), then the state, the order and its total. With `cancelAction` it ends with the quiet cancel
-// action (`<CancelBooking>`); the booking page instead puts that at its foot.
+// action (`<CancelBooking>`); the booking page instead puts that at its foot. A request awaiting approval with another
+// time the organiser proposed (Events Pro, T174c) shows it with Accept and "That doesn't work": with `proposalAction`,
+// two plain forms (`intent=accept-time` / `refuse-time`) that post there, so they work without JavaScript.
 import { around, pickLocale, translator } from "../i18n/index";
 import CancelBooking from "./CancelBooking.astro";
 import { zonedAt } from "./lib/list";
@@ -12,6 +14,8 @@ interface Props {
 	booking: BookingView;
 	/** Shown as cancelled (the page just cancelled it). */
 	cancelled?: boolean;
+	/** Where the Accept / "That doesn't work" forms of a proposed time post; without it they are not shown. */
+	proposalAction?: string;
 	/** Where the cancel form posts; without it the card has no cancel action. */
 	cancelAction?: string;
 	/** Ticket type names by id, when the page knows them. */
@@ -23,12 +27,18 @@ interface Props {
 	locale?: string;
 }
 
-const { booking, cancelled = false, cancelAction, ticketNames = {}, bookAgain, showAttendees = true } = Astro.props;
+const { booking, cancelled = false, cancelAction, proposalAction, ticketNames = {}, bookAgain, showAttendees = true } =
+	Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, plural, lang, dir } = translator(locale);
+// Another time the organiser proposed (Pro, T174c): the buyer's answer is due by the deadline.
+const proposed =
+	!cancelled && booking.status === "awaiting_approval" && booking.proposed && Number.isFinite(Date.parse(booking.proposed.startsAt))
+		? booking.proposed
+		: undefined;
 // A request awaiting approval (T131) holds its places until the organiser's deadline.
 const [heldBefore, heldAfter] = around(
-	t(booking.status === "awaiting_approval" ? "booking.decideBy" : "booking.heldUntil"),
+	t(proposed ? "booking.proposal.answerBy" : booking.status === "awaiting_approval" ? "booking.decideBy" : "booking.heldUntil"),
 	"time",
 );
 const tickets = booking.lines.reduce((n, line) => n + line.qty, 0);
@@ -64,7 +74,27 @@ const names = showAttendees && new Set(named).size > 1 ? named : [];
 		</p>
 	</div>
 	{/* A booking request (T174a) waiting for the organiser to agree a time. */}
-	{status === "awaiting_approval" && booking.requested && <p class="semics-booking-note" data-testid="booking-request">{t("booking.requestSent")}</p>}
+	{status === "awaiting_approval" && booking.requested && !proposed && <p class="semics-booking-note" data-testid="booking-request">{t("booking.requestSent")}</p>}
+	{proposed && (
+		<section class="semics-booking-proposal" data-testid="booking-proposal" aria-labelledby="semics-booking-proposal-title">
+			<h3 id="semics-booking-proposal-title">{t("booking.proposal.title")}</h3>
+			<p>{t("booking.proposal.lead")}</p>
+			<p class="semics-booking-when"><time datetime={proposed.startsAt} data-testid="booking-proposed">{at(proposed.startsAt)}</time></p>
+			{proposalAction && (
+				<div class="semics-booking-proposal-actions">
+					<form method="post" action={proposalAction}>
+						<input type="hidden" name="intent" value="accept-time" />
+						<button type="submit" data-testid="booking-proposal-accept">{t("booking.proposal.accept")}</button>
+					</form>
+					<form method="post" action={proposalAction}>
+						<input type="hidden" name="intent" value="refuse-time" />
+						<button type="submit" class="semics-booking-refuse" data-testid="booking-proposal-refuse">{t("booking.proposal.refuse")}</button>
+					</form>
+				</div>
+			)}
+			{proposalAction && <p class="semics-booking-note">{t("booking.proposal.refuseNote")}</p>}
+		</section>
+	)}
 	{
 		!cancelled && booking.holdExpiresAt && (
 			<p class="semics-booking-note" data-testid="booking-hold">
@@ -162,6 +192,29 @@ const names = showAttendees && new Set(named).size > 1 ? named : [];
 	}
 	.semics-booking-note {
 		color: var(--events-muted, #4a4a4a);
+	}
+	.semics-booking-proposal {
+		margin-block: 1rem;
+		padding: 0.75rem 1rem;
+		border: 1px solid color-mix(in srgb, var(--events-border, #6b6b6b) 40%, transparent);
+		border-radius: 0.5rem;
+	}
+	.semics-booking-proposal h3 {
+		margin: 0 0 0.5rem;
+		font-size: 1rem;
+	}
+	.semics-booking-proposal-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		margin-block: 0.75rem 0.5rem;
+	}
+	.semics-booking-proposal-actions form {
+		margin: 0;
+	}
+	.semics-booking-proposal-actions .semics-booking-refuse {
+		background: transparent;
+		color: var(--events-accent, #0b57d0);
 	}
 	.semics-booking-order {
 		margin-block-start: 1.25rem;

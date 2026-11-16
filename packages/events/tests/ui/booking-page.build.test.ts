@@ -63,6 +63,24 @@ describe("booking page", () => {
 		expect(page).toContain("<PageOrganiser brand={page.brand} locale={locale} />");
 	});
 
+	it("T174c shows a proposed time with Accept and That doesn't work, as plain forms posting to the page", () => {
+		const status = read("BookingStatus.astro");
+		expect(status).toContain('booking.status === "awaiting_approval" && booking.proposed');
+		expect(status).toContain('data-testid="booking-proposal"');
+		expect(status).toContain("at(proposed.startsAt)");
+		for (const intent of ["accept-time", "refuse-time"]) {
+			expect(status).toMatch(
+				new RegExp(
+					`<form method="post" action=\\{proposalAction\\}>\\s*<input type="hidden" name="intent" value="${intent}" />`,
+				),
+			);
+		}
+		expect(page).toContain("proposalAction={`/booking?ref=${ref}`}");
+		expect(page).toContain('path: `public/booking/request/${accept ? "accept" : "refuse"}`');
+		// The token is the cookie's, never a form field.
+		expect(page.indexOf('answer === "accept-time"')).toBeGreaterThan(page.indexOf("if (ref && token && form)"));
+	});
+
 	it("T157 puts Cancel booking at the foot, behind a confirmation", () => {
 		expect(page).not.toContain("cancelAction={");
 		expect(page.indexOf("<CancelBooking")).toBeGreaterThan(page.indexOf("<TicketPass"));

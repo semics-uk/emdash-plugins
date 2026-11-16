@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { address, admin, BOOKING_URL, bookingByRef, createEvent, EVENTS, mailTo } from "./harness/pro";
+import { address, admin, BOOKING_URL, bookingByRef, createEvent, EVENTS, mailTo, requirePro } from "./harness/pro";
 
 // T174a: an event that takes booking requests (a preferred date and a time window, no fixed date).
 // The buyer asks through the event page's widget, the booking waits for the organiser with the time
 // to be agreed, the admin's "Confirm time" confirms it with a time, and the booking page then shows it.
-// Runs on the Free build (and on Pro: nothing here is edition-specific).
+// Runs on the Free build (and on Pro: nothing here is edition-specific). T174c (Events Pro only): the admin proposes
+// another time instead, the buyer gets an email and accepts it, or says it doesn't work, on the booking page.
 
 test.describe.configure({ mode: "serial" });
 
@@ -86,4 +87,71 @@ test("T174a request a date and window, the admin confirms a time, the booking pa
 	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "confirmed");
 	await expect(page.getByTestId("booking-when")).toContainText("10:30");
 	await context.close();
+});
+
+/** Requests the first offered date's AM window for one place through the widget; the page, its ref and the stored id. */
+async function requestOne(browser: import("@playwright/test").Browser, who: string) {
+	const context = await browser.newContext({
+		extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}` },
+	});
+	const page = await context.newPage();
+	const email = address(who);
+	await page.goto(`/events/${SLUG}`);
+	const widget = page.getByTestId("booking-widget");
+	const date = widget.getByLabel("Date", { exact: true });
+	const day = (await date.locator("option:not([value=''])").first().getAttribute("value")) as string;
+	await date.selectOption(day);
+	await widget.getByRole("radio", { name: /AM/ }).check();
+	await widget.getByLabel(/Trek place/).fill("1");
+	await widget.getByLabel("Your name").fill("Grace Hopper");
+	await widget.getByLabel("Email").fill(email);
+	await widget.getByRole("button", { name: "Book" }).click();
+	await expect(page).toHaveURL(BOOKING_URL);
+	const ref = BOOKING_URL.exec(page.url())?.[1] as string;
+	return { context, page, email, ref, id: bookingByRef(ref).id, day };
+}
+
+const proposeTime = async (request: import("@playwright/test").APIRequestContext, id: string) => {
+	const res = await request.post(`${EVENTS}/admin`, {
+		headers: admin,
+		data: {
+			type: "form_submit",
+			action_id: `bookings.propose:${id}`,
+			block_id: "p:Europe/London",
+			values: { date: "2030-12-14", start: "14:00", end: "15:30" },
+		},
+	});
+	expect(res.ok()).toBe(true);
+	expect(JSON.stringify(await res.json())).toContain("time proposed");
+};
+
+test("T174c the admin proposes another time, the buyer accepts it on the booking page", async ({ browser, request }) => {
+	await requirePro(request);
+	const r = await requestOne(browser, "propose-accept");
+	await proposeTime(request, r.id);
+	const mail = await mailTo(request, r.email, /another time/i);
+	expect(mail.text).toContain("Sat 14 Dec 2030, 14:00");
+
+	await r.page.reload();
+	const proposal = r.page.getByTestId("booking-proposal");
+	await expect(proposal).toBeVisible();
+	await expect(r.page.getByTestId("booking-proposed")).toContainText("14:00");
+	await proposal.getByRole("button", { name: "Accept this time" }).click();
+	await expect(r.page.getByTestId("booking-notice")).toContainText("confirmed for the new time");
+	await expect(r.page.getByTestId("booking-status")).toHaveAttribute("data-status", "confirmed");
+	await expect(r.page.getByTestId("booking-when")).toContainText("14:00");
+	await expect(r.page.getByTestId("booking-proposal")).toHaveCount(0);
+	expect(bookingByRef(r.ref).data.time).toMatchObject({ startsAt: "2030-12-14T14:00:00.000Z" });
+	await r.context.close();
+});
+
+test("T174c the buyer says the proposed time doesn't work: the request is cancelled", async ({ browser, request }) => {
+	await requirePro(request);
+	const r = await requestOne(browser, "propose-refuse");
+	await proposeTime(request, r.id);
+	await r.page.reload();
+	await r.page.getByTestId("booking-proposal").getByRole("button", { name: "That doesn't work" }).click();
+	await expect(r.page.getByTestId("booking-notice")).toContainText("Your request was cancelled");
+	await expect(r.page.getByTestId("booking-status")).toHaveAttribute("data-status", "cancelled");
+	await r.context.close();
 });
