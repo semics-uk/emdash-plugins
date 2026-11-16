@@ -90,7 +90,9 @@ test("T106 in rc pre mode the changesets Changesets moved to .changeset/pre/ sti
 // A pull request's checkout has no local main, so `main...HEAD` could not be read and verify stopped here (PR #3).
 test("CI gives the changeset check a base branch on pull requests", () => {
 	const ci = readFileSync(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8");
-	const verify = ci.slice(ci.indexOf("name: pnpm verify"), ci.indexOf("name: Playwright"));
+	// The changeset check runs in the lint group's job (verify.mjs --group lint).
+	const verify = ci.slice(ci.indexOf("\n  gates:"), ci.indexOf("\n  packages:"));
+	assert.match(verify, /verify\.mjs --group lint/);
 	assert.match(verify, /fetch-depth: 0/);
 	assert.match(verify, /git fetch --no-tags origin "\$BASE_REF:\$BASE_REF"/);
 });
