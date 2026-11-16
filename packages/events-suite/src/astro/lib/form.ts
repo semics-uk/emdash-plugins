@@ -9,6 +9,8 @@ export const WAIVER_PATH = "/_events/waiver";
 /** Attendee rows the widget offers (one booking holds at most this many seats). */
 export const MAX_SEATS = 10;
 export const DEFAULT_SEATS = 4;
+/** Most of one add-on an order may ask for (Events' most per line); Events Pro caps it at the places. */
+export const MAX_ADDON_QTY = 50;
 
 export type SeatPart = "ticketTypeId" | "name" | "email" | "minor";
 /** The form control (and field id) of one part of attendee row `row` (1-based). */
@@ -106,10 +108,20 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 		rows.push(row);
 	}
 	if (!plain && attendees.length === 0) bad.push("attendees");
+	// Per-person add-ons (Events Pro, T174d): `addon:<id>` quantities, posted as lines after the places. Events Pro
+	// refuses more than the places (or add-ons alone), and the widget caps them live.
+	const addons: Array<[string, number]> = [];
+	for (const [key, value] of form) {
+		if (!key.startsWith("addon:")) continue;
+		const qty = Number(typeof value === "string" ? value.trim() : "");
+		if (!(Number.isInteger(qty) && qty >= 0 && qty <= MAX_ADDON_QTY)) bad.push("tickets");
+		else if (qty > 0) addons.push([key.slice(6), qty]);
+	}
 	if (bad.length > 0) return { ok: false, code: control ? "CONTROL_CHARACTERS" : "BAD_REQUEST", fields: bad };
 
 	const counts = new Map<string, number>(plain ? [[plainType, plainQty]] : []);
 	for (const a of attendees) counts.set(a.ticketTypeId, (counts.get(a.ticketTypeId) ?? 0) + 1);
+	for (const [ticketTypeId, qty] of addons) counts.set(ticketTypeId, (counts.get(ticketTypeId) ?? 0) + qty);
 	const turnstileToken = text(form, "cf-turnstile-response");
 	return {
 		ok: true,

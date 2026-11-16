@@ -29,6 +29,7 @@ import { translator } from "@semics-tech/emdash-events/i18n";
 
 import {
 	DEFAULT_SEATS,
+	MAX_ADDON_QTY,
 	MAX_SEATS,
 	readWaiverState,
 	safeReturnPath,
@@ -72,8 +73,11 @@ const alert = state.code ? (WAIVER_MESSAGES[state.code] ?? WAIVER_MESSAGES.INTER
 const bad = (field: string) => (state.fields.includes(field) ? "true" : undefined);
 const returnTo = safeReturnPath(`${Astro.url.pathname}${Astro.url.search}`, Astro.url.origin) ?? "";
 const ticketTypes = (data?.ticketTypes ?? []).filter((t) => t.available !== 0);
+// Per-person add-ons (Events Pro, T174d) are not places: quantities under the tickets or attendees, capped by the places.
+const places = ticketTypes.filter((t) => !t.addon);
+const addonTypes = ticketTypes.filter((t) => t.addon);
 const occurrences = data?.occurrences ?? [];
-const onSale = data?.status === "on_sale" && ticketTypes.length > 0;
+const onSale = data?.status === "on_sale" && places.length > 0;
 const siteKey = data?.turnstileSiteKey ?? "";
 const price = (minor: number) => formatMoney(minor, data?.currency ?? "GBP", locale);
 // A slot schedule (or two starts a day): a month calendar of days, then the day's times. Without
@@ -105,7 +109,7 @@ const later = needsWaiver && Boolean(requests);
 const rows = needsWaiver && !later ? Array.from({ length: seats }, (_, i) => i + 1) : [];
 // The order of signing and paying (Events Pro, T160): after payment only when the event says so and a ticket has a price.
 const copy = waiverCopy(needsWaiver && data?.waiverAfter === true && ticketTypes.some((t) => t.priceMinor > 0));
-const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
+const single = places.length === 1 ? places[0] : undefined;
 // The first row shows; the others wait behind "Add another person" (T157). Without JavaScript they sit in a
 // `<details>`, open when the server marked one of them.
 const [firstRow, ...moreRows] = rows;
@@ -123,7 +127,7 @@ if (presetCode) {
 }
 const presetType = presetTicketType(
 	Astro.url,
-	ticketTypes.map((t) => t.id),
+	places.map((t) => t.id),
 );
 ---
 <section id={id} class="semics-events semics-waiver-widget" aria-labelledby={`${id}-title`} data-testid="booking-with-waiver">
@@ -313,7 +317,7 @@ const presetType = presetTicketType(
 							<div class="semics-field">
 								<label for={`${id}-plain-type`}>Ticket</label>
 								<select id={`${id}-plain-type`} name="ticketTypeId" aria-invalid={bad("tickets")}>
-									{ticketTypes.map((t) => (
+									{places.map((t) => (
 										<option value={t.id} selected={t.id === presetType || undefined} data-price-minor={String(t.priceMinor)}>{t.name} ({price(t.priceMinor)})</option>
 									))}
 								</select>
@@ -346,7 +350,7 @@ const presetType = presetTicketType(
 										<div class="semics-field">
 											<label for={`${id}-${n}-type`}><span class="semics-sr">Attendee {n} </span>Ticket</label>
 											<select id={`${id}-${n}-type`} name={seatField(n, "ticketTypeId")} aria-invalid={bad(seatField(n, "ticketTypeId"))}>
-												{ticketTypes.map((t) => (
+												{places.map((t) => (
 													<option value={t.id} selected={(n === 1 && t.id === presetType) || undefined} data-price-minor={String(t.priceMinor)}>{t.name} ({price(t.priceMinor)})</option>
 												))}
 											</select>
@@ -383,6 +387,22 @@ const presetType = presetTicketType(
 							</button>
 						)}
 					</div>
+				)}
+
+				{addonTypes.length > 0 && (
+					<fieldset class="semics-group" data-testid="waiver-addons">
+						<legend>Add-ons</legend>
+						<p class="semics-note">Per person, up to one each for the places you book.</p>
+						{addonTypes.map((t) => {
+							const most = Math.min(t.maxPerOrder ?? MAX_ADDON_QTY, t.available ?? MAX_ADDON_QTY, MAX_ADDON_QTY);
+							return (
+								<div class="semics-field">
+									<label for={`${id}-addon-${t.id}`}>{t.name} ({price(t.priceMinor)} a person)</label>
+									<input id={`${id}-addon-${t.id}`} name={`addon:${t.id}`} type="number" inputmode="numeric" min="0" max={String(most)} value="0" data-addon-max={String(most)} data-price-minor={String(t.priceMinor)} aria-invalid={bad("tickets")} />
+								</div>
+							);
+						})}
+					</fieldset>
 				)}
 
 				{data?.vouchers === true && (

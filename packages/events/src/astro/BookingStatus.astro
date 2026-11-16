@@ -41,7 +41,8 @@ const [heldBefore, heldAfter] = around(
 	t(proposed ? "booking.proposal.answerBy" : booking.status === "awaiting_approval" ? "booking.decideBy" : "booking.heldUntil"),
 	"time",
 );
-const tickets = booking.lines.reduce((n, line) => n + line.qty, 0);
+// A per-person add-on line (T174d) is listed but is not a ticket.
+const tickets = booking.lines.reduce((n, line) => n + (line.addon ? 0 : line.qty), 0);
 const status = cancelled ? "cancelled" : booking.status;
 const zone = booking.event?.timezone;
 const at = (iso: string) => zonedAt(iso, zone, locale);

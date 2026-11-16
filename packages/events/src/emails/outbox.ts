@@ -39,6 +39,7 @@ import type { CronEvent, PluginContext } from "emdash/plugin";
 
 import { type EventInfo, type EventInfoDeps, loadEventInfo } from "../domain/event-info";
 import { heldGuard } from "../domain/holds";
+import { seatCount } from "../domain/inventory";
 import { AWAITING_APPROVAL, allOf, CANCELLED, CONFIRMED, EXPIRED, HELD, isFin, isStr, uriEnc } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
@@ -347,7 +348,7 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 		...addressee(booking),
 		event,
 		bookingUrl,
-		seats: booking.lines.reduce((n, l) => n + l.qty, 0),
+		seats: seatCount(booking.lines),
 		expiresAt: until,
 		siteName: d.siteName,
 	});

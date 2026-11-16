@@ -21,6 +21,8 @@ import {
 // another time instead, the buyer gets an email and accepts it, or says it doesn't work, on the booking page.
 // T174e (Events Pro only): a waiver request is booked without names (the suite's <BookingWithWaiver> shows no attendee
 // rows); nothing is listed or sent while it waits; once confirmed the buyer names a seat and that person is invited.
+// T174d (Events Pro only): a per-person add-on (quad trekking) shows under the tickets, its quantity capped live by the
+// places chosen; the request books 4 places and 4 add-ons, priced 4 x base + 4 x add-on, with 4 attendees.
 
 test.describe.configure({ mode: "serial" });
 
@@ -253,5 +255,80 @@ test("T174e a waiver request is booked without names; once confirmed a named sea
 		if (invited === 0) await runCron(request, "outbox-drain", "semics-esign");
 	}
 	expect(invited).toBe(1);
+	await context.close();
+});
+
+test("T174d a per-person add-on is capped by the places chosen and booked with the request", async ({ browser, request }) => {
+	await requirePro(request);
+	const slug = `t174d-quad-addon-${Date.now().toString(36)}`;
+	const eventId = await createEvent(request, {
+		slug,
+		title: "Quad Trek Add-on Request",
+		startsAt: "2031-01-01T09:00:00.000Z",
+		config: {
+			status: "on_sale",
+			capacity: 20,
+			currency: "GBP",
+			signature: { required: false },
+			requests: {
+				windows: [{ id: "am", label: "AM", start: "10:00", end: "12:00" }],
+				days: ["SA", "SU"],
+				aheadDays: 60,
+				noticeDays: 2,
+				closedDates: [],
+			},
+		},
+		ticketTypes: [
+			{ name: "Trek place", priceMinor: 0, capacity: 20, maxPerOrder: 5 },
+			{ name: "Quad trekking", priceMinor: 0, capacity: 10, sort: 1 },
+		],
+	});
+	const got = (await (await request.post(`${EVENTS}/config/get`, { headers: admin, data: { eventId } })).json()) as {
+		data?: { ticketTypes: Array<{ id: string; name: string }> };
+		ticketTypes?: Array<{ id: string; name: string }>;
+	};
+	const quad = (got.data ?? got).ticketTypes?.find((t) => t.name === "Quad trekking")?.id as string;
+	expect(quad).toBeTruthy();
+	const marked = await request.post(`${EVENTS}/admin`, {
+		headers: admin,
+		data: { type: "form_submit", action_id: "addons.save", block_id: `event:${eventId}:9:addons`, values: { [`addon:${quad}`]: true } },
+	});
+	expect(marked.ok()).toBe(true);
+	expect(JSON.stringify(await marked.json())).toContain("Add-ons saved");
+
+	const context = await browser.newContext({
+		extraHTTPHeaders: { "x-forwarded-for": `198.51.100.${Math.floor(Math.random() * 250) + 1}` },
+	});
+	const page = await context.newPage();
+	await page.goto(`/events/${slug}`);
+	const widget = page.getByTestId("booking-widget");
+	const addons = widget.getByTestId("booking-addons");
+	await expect(addons).toBeVisible();
+	const quads = addons.getByLabel(/Quad trekking/);
+	// No places chosen yet: no add-ons either.
+	await expect(quads).toHaveAttribute("max", "0");
+	await widget.getByLabel(/Trek place/).fill("4");
+	await expect(quads).toHaveAttribute("max", "4");
+	await quads.fill("5");
+	await quads.blur();
+	await expect(quads).toHaveValue("4");
+	const date = widget.getByLabel("Date", { exact: true });
+	await date.selectOption((await date.locator("option:not([value=''])").first().getAttribute("value")) as string);
+	await widget.getByRole("radio", { name: /AM/ }).check();
+	await widget.getByLabel("Your name").fill("Grace Hopper");
+	await widget.getByLabel("Email").fill(address("t174d-addon"));
+	await widget.getByRole("button", { name: "Book" }).click();
+	await expect(page).toHaveURL(BOOKING_URL);
+	const ref = BOOKING_URL.exec(page.url())?.[1] as string;
+	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "awaiting_approval");
+	await expect(page.getByText("4 × Quad trekking")).toBeVisible();
+	const stored = bookingByRef(ref);
+	expect(stored.data.lines).toHaveLength(2);
+	expect(stored.data.lines).toEqual(
+		expect.arrayContaining([
+			expect.objectContaining({ qty: 4, unitPriceMinor: 0 }),
+			expect.objectContaining({ ticketTypeId: quad, qty: 4, addon: true }),
+		]),
+	);
 	await context.close();
 });

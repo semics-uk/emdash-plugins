@@ -72,6 +72,14 @@ export function orderTotalMinor(lines: ReadonlyArray<{ qty: number; priceMinor: 
 	return total;
 }
 
+/**
+ * The most of a per-person add-on (T174d) the buyer may order: one each for the places chosen, within the add-on's
+ * own limit. Pro's reserve refuses more (`INVALID_QUANTITY`), so without this script the server says so.
+ */
+export function addonMax(places: number, own: number): number {
+	return Math.max(0, Math.min(own, places));
+}
+
 /** `free` is the page's word for a zero total (the widget renders it as `data-free`, T102). */
 export function formatMinor(minor: number, currency: string, locale: string, free: string): string {
 	if (minor === 0) return free;
@@ -131,6 +139,17 @@ export function enhance(form: HTMLFormElement): void {
 	if (button) button.disabled = false;
 
 	const qtyInputs = Array.from(form.querySelectorAll<HTMLInputElement>('input[name^="qty:"]'));
+	// Per-person add-ons (T174d) are not places: capped live by the places chosen.
+	const addons = qtyInputs.filter((i) => i.dataset.addon !== undefined);
+	const places = qtyInputs.filter((i) => i.dataset.addon === undefined);
+	const capAddons = () => {
+		const chosen = places.reduce((n, i) => n + Math.max(qtyOf(i), 0), 0);
+		for (const a of addons) {
+			const most = addonMax(chosen, Number(a.dataset.max) || 50);
+			a.max = String(most);
+			if (qtyOf(a) > most) a.value = String(most);
+		}
+	};
 	const total = form.querySelector<HTMLElement>("[data-total]");
 	const totalValue = total?.querySelector<HTMLElement>("[data-total-value]");
 	const updateTotal = () => {
@@ -146,8 +165,12 @@ export function enhance(form: HTMLFormElement): void {
 		);
 		total.hidden = false;
 	};
-	for (const input of qtyInputs) input.addEventListener("input", updateTotal);
-	updateTotal();
+	const changed = () => {
+		capAddons();
+		updateTotal();
+	};
+	for (const input of qtyInputs) input.addEventListener("input", changed);
+	changed();
 
 	form.addEventListener("submit", (event) => {
 		if (form.dataset.submitting) {
@@ -158,7 +181,8 @@ export function enhance(form: HTMLFormElement): void {
 			...validateBooking({
 				name: fieldValue(form, "name"),
 				email: fieldValue(form, "email"),
-				lines: qtyInputs.filter((i) => qtyOf(i) > 0).length,
+				// Add-ons alone are no order: only places count as lines here.
+				lines: places.filter((i) => qtyOf(i) > 0).length,
 				needsOccurrence: fieldValue(form, "needsOccurrence") === "1",
 				occurrenceId: fieldValue(form, "occurrenceId"),
 			}),

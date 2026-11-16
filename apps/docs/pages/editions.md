@@ -21,6 +21,7 @@ audit trail, retention and deletion, CSV export and the public API stay free.
 | Public JSON routes and the UI components | Yes | Yes |
 | Paid tickets: Stripe Checkout, refunds, late payments ([Paid tickets](payments.md)) | | Yes |
 | Promo codes and hidden tickets | | Yes |
+| Per-person add-ons (an extra per place, such as quad trekking) | | Yes |
 | Custom attendee questions, with answers in the export | | Yes |
 | Required waivers through E-sign ([Waivers](waivers.md)) | | Yes |
 | QR ticket passes and the phone check-in screen | | Yes |

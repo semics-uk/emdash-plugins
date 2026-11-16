@@ -94,4 +94,8 @@ asks only for a ticket count, not attendee rows. With Events Pro nothing is sign
 staff confirm the time, the buyer adds everyone's names and emails (and who is under 18) on `/booking`, and each
 adult named with their own address is emailed their waiver then.
 
+Per-person add-ons (Events Pro marks them): listed under the tickets or attendees as quantities, at most one each
+for the places booked (the cap follows the places with JavaScript; without it Events Pro refuses more). They are
+not attendees and have no waiver.
+
 The suite's own pages are English only for now.

@@ -88,6 +88,11 @@ export interface EventConfigDoc {
 	waitlistEnabled: boolean;
 	/** Bookings wait for an admin's approval, at most `deadlineHours` (and never past the start, T131). */
 	approval?: { required: boolean; deadlineHours: number } | null;
+	/**
+	 * Events Pro (T174d): the ticket types sold as per-person add-ons, not places. Pro's ticket panel writes it and
+	 * Pro marks those types `addon` in the catalog its reserve plans from; Free's own save never touches it.
+	 */
+	addons?: string[];
 	recurrence?: string | null;
 	/** Slot schedule (T129, `src/domain/schedule.ts`); never beside `recurrence`. */
 	schedule?: ScheduleDoc | null;
@@ -147,7 +152,10 @@ export interface EventInfoDoc {
 export type CatalogTicketType = Pick<
 	TicketTypeDoc,
 	"capacity" | "priceMinor" | "hidden" | "minPerOrder" | "maxPerOrder" | "salesStart" | "salesEnd"
->;
+> & {
+	/** A per-person add-on (T174d): set by Events Pro on the catalog it serves reserve, never stored. */
+	addon?: boolean;
+};
 
 /** What checkout needs from an occurrence, copied onto the event config. */
 export type CatalogOccurrence = Pick<OccurrenceDoc, "capacity" | "startsAt" | "status">;
@@ -210,6 +218,11 @@ export interface BookingLine {
 	ticketTypeId: string;
 	qty: number;
 	unitPriceMinor: number;
+	/**
+	 * A per-person add-on (T174d, Events Pro): priced and counted on its own ticket type as usual, but not a place,
+	 * so the occurrence and event counters, attendees and waiver seats leave it out (`seatCount`, `countersForBooking`).
+	 */
+	addon?: boolean;
 }
 
 export interface BookingDoc {

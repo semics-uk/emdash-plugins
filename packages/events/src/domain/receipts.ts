@@ -9,6 +9,7 @@
  */
 import type { AttendeeDoc, BookingDoc } from "../storage/schema";
 import { attendeeId } from "./booking-state";
+import { seatCount } from "./inventory";
 import { EACH_ATTENDEE } from "./names";
 
 export type ReceiptStatus = "completed" | "declined" | "voided" | "expired";
@@ -35,16 +36,18 @@ export function parseReceiptRef(ref: string): { bookingRef: string; seat?: numbe
 	return m[2] ? { bookingRef: m[1] as string, seat: Number(m[2]) } : { bookingRef: m[1] as string };
 }
 
-/** Every attendee document of a booking: one per seat, `<bookingId>-1..n`. */
-export function seatIds(bookingId: string, booking: { lines: ReadonlyArray<{ qty: number }> }): string[] {
-	const total = booking.lines.reduce((sum, line) => sum + line.qty, 0);
-	return Array.from({ length: total }, (_, i) => attendeeId(bookingId, i + 1));
+/** Every attendee document of a booking: one per seat (not per add-on, T174d), `<bookingId>-1..n`. */
+export function seatIds(
+	bookingId: string,
+	booking: { lines: ReadonlyArray<{ qty: number; addon?: boolean }> },
+): string[] {
+	return Array.from({ length: seatCount(booking.lines) }, (_, i) => attendeeId(bookingId, i + 1));
 }
 
 /** The attendees a receipt signs for, or `null` when the booking never issued that ref. */
 export function receiptAttendeeIds(
 	bookingId: string,
-	booking: Pick<BookingDoc, "waiver"> & { lines: ReadonlyArray<{ qty: number }> },
+	booking: Pick<BookingDoc, "waiver"> & { lines: ReadonlyArray<{ qty: number; addon?: boolean }> },
 	ref: { bookingRef?: string; seat?: number },
 ): string[] | null {
 	const seats = seatIds(bookingId, booking);
