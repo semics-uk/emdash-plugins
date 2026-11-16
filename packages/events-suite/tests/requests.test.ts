@@ -184,3 +184,34 @@ describe("T174a keep-form keeps the chosen window", () => {
 		]);
 	});
 });
+
+// T174e: attendees after approval. A waiver event that takes requests books by ticket type and quantity (the plain
+// group, no attendee rows and no seat rules), and says the names come after staff confirm the time. Without
+// JavaScript it is the same plain form. Events Pro signs the waiver after approval and names the seats then.
+describe("T174e a waiver request skips the attendee rows", () => {
+	it("T174e the rows and the seat check are only for a waiver event that is not a request", () => {
+		expect(source).toContain("const later = needsWaiver && Boolean(requests);");
+		expect(source).toContain(
+			"const rows = needsWaiver && !later ? Array.from({ length: seats }, (_, i) => i + 1) : [];",
+		);
+		expect(source).toContain('{data?.waiverEach && !later && <input type="hidden" name="waiverEach" value="1" />}');
+		expect(source).toContain("{(!needsWaiver || later) && (");
+		expect(source).toContain('data-testid="waiver-later"');
+		expect(source).toMatch(/names and emails/);
+	});
+
+	it("T174e the plain request posts no attendees, so Events Pro leaves them for after approval", async () => {
+		const h = host({
+			[`${EVENTS} public/checkout/reserve`]: () => ok({ bookingRef: REF, accessToken: ACCESS }),
+			[`${EVENTS} public/checkout/continue`]: () =>
+				ok({
+					bookingRef: REF,
+					status: "awaiting_payment",
+					next: { type: "pay", url: "https://checkout.stripe.com/c/pay/x" },
+				}),
+		});
+		expect(location(await run(h, PLAIN))).toBe("https://checkout.stripe.com/c/pay/x");
+		expect(h.calls[1]?.path).toBe("public/checkout/continue");
+		expect(h.calls[1]?.body).not.toHaveProperty("attendees");
+	});
+});
