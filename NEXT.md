@@ -4,8 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T174 booking requests (lmsc-site#59): T174a merged (#45, Free now 122,978 B, 926 B headroom; T174d add-ons moves to Pro); T174b charge-at-request in Pro in progress; release a+b together as rc.18
-- CI speed-up PR in progress (light version-PR CI, parallel verify)
+- T174 booking requests (lmsc-site#59): T174a and T174b released in rc.18 (Free 123,119 B, 785 B headroom; Pro events 257,470 B, about 4.7 KB headroom vs about 4.8 KB estimated for c+d+e: trim needed). Next T174c propose a time, then T174e, then T174d (in Pro)
 - LMSC staging to try rc.16: one-click pairing at /_events/pair#vouchers, then Book with this voucher (book: true, emailBookLink)
 - Follow-ups: Events Pro promo rate-limit test flaky in a slow full verify (passed on rerun); Events Pro does not trim a pasted vouchersPairing (T172 note); t145 e2e asserts a Free-only message so fails on Pro builds; booking form with a cookie-filled code could be stored by a cache that ignores cookies (docs/vouchers.md); one t168 run hit chrome-error on the T170 thanks page (passed on rerun); board.json not regenerated for T169–T172
 - LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
@@ -35,6 +34,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-16 rc.18 published (T174a booking requests and Confirm time, #45; T174b charge at request and refund on decline or lapse, #48, Pro #12). CI split into parallel jobs (#47): about 4-6 min instead of 10-13; version PR light path worked (about 1 min). LMSC cutover told
 - 2026-11-15 rc.17 published (T173 staff issue vouchers by hand, Pro #11, lmsc-site#66; T175 Buy a Voucher layout, #43, lmsc-site #65; T170–T172 marked done); both LMSC sessions told
 - 2026-11-15 rc.16 published (T171 Book with this voucher via &book=1 cookie hand-off, #40, Pro #10; T172 one-click Vouchers pairing, #41, Pro #9); LMSC told
 - 2026-11-15 rc.15 published (T170 print delivery: thanks page links to the voucher via public/order and a sealed code; #38, Pro #8). rc.14 published (activity vouchers: /_vouchers/setup read Events with POST, Events only takes GET; #36, lmsc-site#56). Oli: release and merge Pro without asking. LMSC told both
