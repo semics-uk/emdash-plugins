@@ -30,7 +30,16 @@ import { iso, msOf } from "../domain/time";
 import { type ConfigStorage, type EventState, loadEventState, saveConfig } from "../routes/config";
 import type { EventConfigDoc, OccurrenceDoc, TicketTypeDoc } from "../storage/schema";
 import { NOTHING_TO_SAVE, SAVED, saveRefused } from "./messages";
-import { dayPanel, dayPicker, localText, scheduleFields, scheduleInput, zoneOf } from "./schedule";
+import {
+	dayPanel,
+	dayPicker,
+	localText,
+	requestFields,
+	requestsInput,
+	scheduleFields,
+	scheduleInput,
+	zoneOf,
+} from "./schedule";
 import {
 	countColumns,
 	EVENT_STATUS_OPTIONS,
@@ -277,6 +286,7 @@ function panelForm(state: EventState, extra: Block[], waivers: WaiverAvailabilit
 					}),
 				]),
 		...scheduleFields(config.schedule),
+		...requestFields(config.requests),
 		...waiverFields(config, waivers),
 		...tickets.flatMap(({ id, data: t }) => [
 			textInput(`tt_name:${id}`, `${t.name}: name`, initial(t.name)),
@@ -406,6 +416,8 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 	if (hours !== approvalHours(stored)) changed++;
 	const schedule = scheduleInput(values, stored.schedule, capacity);
 	if (toJson(schedule) !== toJson(stored.schedule ?? null)) changed++;
+	const requests = requestsInput(values, stored.requests);
+	if (toJson(requests) !== toJson(stored.requests ?? null)) changed++;
 	const storedSignature = stored.signature ?? { required: false, mode: EACH_ATTENDEE };
 	let signature = storedSignature;
 	if (waivers.available) {
@@ -512,7 +524,7 @@ async function savePanel(deps: PanelDeps, eventId: string, values: Obj, blockId?
 		deps,
 		eventId,
 		{
-			config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule, approval },
+			config: { ...base, status, capacity, waitlistEnabled, signature, recurrence, schedule, requests, approval },
 			ticketTypes,
 			occurrences,
 		},

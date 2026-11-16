@@ -13,6 +13,7 @@ import type { BookingDoc, BookingLine, EventConfigDoc } from "../storage/schema"
 import { type Counter, planReservation, type ReserveStep, seatsByType } from "./inventory";
 import { BAD_REQUEST, INVALID_TYPE, isArr, isNum, isStr, keysOf, ON_SALE, OPEN, SOLD_OUT } from "./names";
 import { cmp } from "./order";
+import { requestStart } from "./schedule";
 import { iso, msOf } from "./time";
 
 /** Most lines and seats per line one order may carry. */
@@ -163,6 +164,8 @@ const accessToken = text({ pattern: /^[A-Za-z0-9_-]{43}$/ });
 export interface ReserveInput {
 	eventId: string;
 	occurrenceId?: string | undefined;
+	/** A booking request (T174a): a local date and a window id, for an event that takes them. */
+	request?: { date: string; window: string } | undefined;
 	lines: Array<{ ticketTypeId: string; qty: number }>;
 	buyer: { name: string; email: string };
 	idempotencyKey: string;
@@ -173,6 +176,7 @@ export const parseReserveInput = parser(
 	strict<ReserveInput>({
 		eventId: docId,
 		occurrenceId: optional(docId),
+		request: optional(strict({ date: text({ pattern: /^\d{4}-\d\d-\d\d$/ }), window: docId })),
 		lines: list(strict({ ticketTypeId: docId, qty: int(1, MAX_QTY_PER_LINE) }), 1, MAX_LINES),
 		buyer: strict({ name: personName, email }),
 		idempotencyKey: text({ pattern: /^[A-Za-z0-9_-]{32,128}$/ }),
@@ -319,6 +323,17 @@ export function planCheckout(
 		}
 		counters.set(ticketTypeId, { capacity: type.capacity, reserved: 0 });
 		lines.push({ ticketTypeId, qty, unitPriceMinor: type.priceMinor });
+	}
+
+	// A request (T174a): only for an event that takes them, which takes nothing else.
+	const r = input.request;
+	const q = config.requests;
+	if (r || q) {
+		if (!q || input.occurrenceId !== undefined) return bad("REQUEST_NOT_TAKEN");
+		if (!r) return bad("REQUEST_REQUIRED");
+		if (!(requestStart(config, r, now) > 0)) {
+			return bad(q.windows.some((w) => w.id === r.window) ? "REQUEST_DATE" : "REQUEST_WINDOW");
+		}
 	}
 
 	let occurrence: Counter | undefined;

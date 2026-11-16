@@ -46,11 +46,17 @@ export const badRequest = (issues: InputIssue[]) => ({ ...fail(BAD_REQUEST), iss
 
 /**
  * The answer to an order `planCheckout` refused (reserve and waitlist join): a bad date names
- * `occurrenceId`, another bad request `path`; other refusals are their code.
+ * `occurrenceId`, a refused booking request `request` (T174a), another bad request `path`; other
+ * refusals are their code.
  */
 export const planRefusal = (e: CheckoutError, path: string) =>
 	e.code === BAD_REQUEST
-		? badRequest([{ path: e.reason.includes("OCCURRENCE") ? "occurrenceId" : path, code: e.reason }])
+		? badRequest([
+				{
+					path: e.reason.includes("OCCURRENCE") ? "occurrenceId" : e.reason.startsWith("REQUEST") ? "request" : path,
+					code: e.reason,
+				},
+			])
 		: fail(e.code);
 
 /** The host's `fetch`, refused when `network:request` is not granted. */

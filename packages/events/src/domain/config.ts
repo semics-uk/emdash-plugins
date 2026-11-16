@@ -39,8 +39,11 @@ import {
 	OPEN,
 } from "./names";
 import { cmp } from "./order";
-import { parseSchedule } from "./schedule";
+import { parseRequests, parseSchedule } from "./schedule";
 import { msOf } from "./time";
+
+const REQUESTS_PATH = "config.requests";
+const INVALID_REQUESTS = "INVALID_REQUESTS";
 
 export type ConfigIssueCode =
 	| "INVALID_INPUT"
@@ -52,6 +55,7 @@ export type ConfigIssueCode =
 	| "INVALID_WINDOW"
 	| "INVALID_RECURRENCE"
 	| "INVALID_SCHEDULE"
+	| "INVALID_REQUESTS"
 	| "INVALID_APPROVAL"
 	| "INVALID_NAME"
 	| "INVALID_QUANTITY_LIMITS"
@@ -198,6 +202,12 @@ function validateConfig(raw: unknown, stored: EventConfigDoc | null, issues: Iss
 		const schedule = parseSchedule(base.schedule);
 		if (!schedule || config.recurrence) issues.add("config.schedule", "INVALID_SCHEDULE");
 		else config.schedule = schedule;
+	}
+	// Booking requests (T174a): never with a schedule or repeats (nor dates: `validateConfigInput`).
+	if (base.requests != null) {
+		const requests = parseRequests(base.requests);
+		if (!requests || config.recurrence || config.schedule) issues.add(REQUESTS_PATH, INVALID_REQUESTS);
+		else config.requests = requests;
 	}
 	// Approval (T131): { required, deadlineHours } in whole hours, 1 to 720 (default 48).
 	const ap = base.approval;
@@ -388,6 +398,7 @@ export function validateConfigInput(
 
 	// A schedule's slots are its own (T129): the event has no other dates.
 	if (config.schedule && occurrences.items.length > 0) issues.add("config.schedule", "INVALID_SCHEDULE");
+	if (config.requests && occurrences.items.length > 0) issues.add(REQUESTS_PATH, INVALID_REQUESTS);
 	if (issues.list.length > 0) return err(issues.list);
 	return ok({
 		config,

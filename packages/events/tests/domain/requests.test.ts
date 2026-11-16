@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { requestFields, requestsInput } from "../../src/admin/schedule";
 import { approvalOf } from "../../src/domain/booking-state";
 import { referenceStart } from "../../src/domain/cancel-policy";
 import { parseReserveInput, planCheckout, type ReserveInput } from "../../src/domain/checkout";
@@ -49,7 +50,13 @@ const config = (over: Partial<EventConfigDoc> = {}): EventConfigDoc => ({
 	signature: { required: false, mode: "each_attendee" },
 	waitlistEnabled: false,
 	requests: REQUESTS,
-	info: { title: "Quad trek", startsAt: "2026-01-01T09:00:00.000Z", endsAt: null, timezone: "Europe/London", venue: null },
+	info: {
+		title: "Quad trek",
+		startsAt: "2026-01-01T09:00:00.000Z",
+		endsAt: null,
+		timezone: "Europe/London",
+		venue: null,
+	},
 	catalog: catalogOf([{ id: "tt_a", data: tt }], []),
 	...over,
 });
@@ -103,8 +110,7 @@ describe("T174a planCheckout request rules", () => {
 	});
 
 	it("T174a refuses a wrong weekday, too little notice, too far ahead and a closed date", () => {
-		const refused = (date: string, c = config()) =>
-			plan(c, input({ request: { date, window: "am" } }));
+		const refused = (date: string, c = config()) => plan(c, input({ request: { date, window: "am" } }));
 		const reason = { error: { code: "BAD_REQUEST", reason: "REQUEST_DATE" } };
 		expect(refused("2026-12-11")).toMatchObject(reason); // a Friday
 		expect(refused("2026-12-02")).toMatchObject(reason); // a Wednesday, and too soon
@@ -171,6 +177,26 @@ describe("T174a request config", () => {
 	});
 });
 
+describe("T174a panel's Booking requests fields", () => {
+	it("T174a windows are `Label HH:MM-HH:MM` lines (id from the label); the form round-trips unchanged", () => {
+		const values = {
+			rq_windows: "AM 10:00-12:00\n  PM 12:00 - 15:30 \n",
+			rq_days: "sa, su",
+			rq_ahead: "90",
+			rq_notice: "2",
+			rq_closed: "2026-12-26",
+		};
+		const asked = requestsInput(values, null);
+		expect(parseRequests(asked)).toEqual(REQUESTS);
+		expect(asked).toEqual(REQUESTS);
+		const fields = JSON.stringify(requestFields(REQUESTS));
+		expect(fields).toContain("AM 10:00-12:00\\nPM 12:00-15:30");
+		expect(requestsInput({ rq_windows: "", rq_days: "" }, REQUESTS)).toBeNull();
+		expect(requestsInput({}, REQUESTS)).toBe(REQUESTS);
+		expect(parseRequests(requestsInput({ ...values, rq_windows: "Morning" }, null))).toBeNull();
+	});
+});
+
 describe("T174a approval deadline of a request", () => {
 	it("T174a a request needs approval even when the event's approval is off", () => {
 		const c = config({ approval: { required: false, deadlineHours: 48 } });
@@ -213,10 +239,18 @@ describe("T174a approval deadline of a request", () => {
 });
 
 describe("T174a agreed time", () => {
-	const doc = { title: "Quad trek", startsAt: "2026-01-01T09:00:00.000Z", endsAt: "2026-01-01T11:00:00.000Z", timezone: "Europe/London", venue: "Farm" };
+	const doc = {
+		title: "Quad trek",
+		startsAt: "2026-01-01T09:00:00.000Z",
+		endsAt: "2026-01-01T11:00:00.000Z",
+		timezone: "Europe/London",
+		venue: "Farm",
+	};
 
 	it("T174a eventInfoOf takes the agreed time like an occurrence", () => {
-		expect(eventInfoOf(doc, { startsAt: "2026-12-12T10:30:00.000Z", endsAt: "2026-12-12T12:00:00.000Z" })).toMatchObject({
+		expect(
+			eventInfoOf(doc, { startsAt: "2026-12-12T10:30:00.000Z", endsAt: "2026-12-12T12:00:00.000Z" }),
+		).toMatchObject({
 			startsAt: Date.parse("2026-12-12T10:30:00.000Z"),
 			endsAt: Date.parse("2026-12-12T12:00:00.000Z"),
 		});

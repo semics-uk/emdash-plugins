@@ -86,6 +86,20 @@ Admins named in **Admin notification emails** (up to 5) are emailed about reques
 if **Notify admins about** says so; the email links to the Bookings page, so only signed-in staff can act.
 Admin notifications work without approval too. With Events Pro, a paid booking that is declined is refunded.
 
+### Booking requests (a time to be agreed)
+
+For an activity booked by request, fill in **Booking requests** in the panel instead of dates or a schedule:
+the time windows, one a line (`AM 10:00-12:00`, `PM 12:00-15:30`), the days they run (`SA, SU`), how many
+days ahead people may ask (default 90), the days' notice you need, and closed dates (`2026-12-25`). The
+booking form then asks for a date (only the days you take) and a window, and the buyer sees "Request sent:
+we'll confirm a time with you." A request always waits for approval, even with **Approval hours** at 0 (then
+48 hours), and never past the start of the window asked for. Its emails say "time to be agreed".
+
+On the **Bookings** page a request shows what was asked for ("Requested: Sat 12 Dec, AM"). Its **Approve**
+opens **Confirm time**: a date and start time (from the request, in the event's time zone) and an optional end.
+Confirming sends the usual confirmation with that time, which the booking page, the calendar file and the
+cancel cutoff then use. **Decline** works as for any request.
+
 ## Waitlist
 
 Turn on **Waitlist when sold out** in the panel. When the event (or a date) is sold out, the booking form

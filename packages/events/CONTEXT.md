@@ -212,6 +212,14 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
   (manual capture within `authoriseWithinDays`, else a saved card; `payment.hold` on the booking) and charges it in its own wrapper of
   `bookings.approve`; Free's approve refuses any booking with `payment` (`PAYMENT_FAILED`), so a held request is never confirmed unpaid
   after a downgrade. Retention erases `declineReason`.
+- Booking requests (T174a): `config.requests = { windows [{id,label,start,end}], days, aheadDays, noticeDays, closedDates }`
+  (`parseRequests`, never with a schedule, RRULE or dates; panel fields `rq_*`). Reserve takes `request: { date, window }` instead
+  of `occurrenceId` (`planCheckout`: `REQUEST_NOT_TAKEN|REQUIRED|WINDOW|DATE`, `requestStart` in `src/domain/schedule.ts` checks
+  the zone's today, notice, weekday, closed dates and a window not yet started) and stamps `booking.request`. `approvalOf` always
+  sets a deadline for a request (approval hours or 48, capped at the window start via `wallMs`). No new status: Approve on a request
+  is `bookings.time_ask` → form → `bookings.confirm:<id>` (block id = the event's zone), which writes `booking.time` in the same
+  `heldGuard` write; a plain approve of a request is `BAD_REQUEST`. Readers use `occurrence ?? booking.time` (`loadEventInfo`'s
+  `time` option, cancel cutoff, booking page); without a time, emails say "<date, window>, time to be agreed" (`EventInfo.when`).
 - Error codes (R97): routes answer through `fail`/`routeError` (`src/routes/reply.ts`) over `EVENTS_ERROR_CODES`; never import
   `toRouteError` in the core (it pulls the whole registry). An edition needing the e-sign/protocol messages calls `useErrorCodes`.
 - Event editor admin page (R97): "Edit" renders the Tickets & booking panel (`panelPage` in `src/admin/pages.ts`); every block id

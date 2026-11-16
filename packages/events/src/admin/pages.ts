@@ -14,6 +14,7 @@ import {
 	select,
 	table,
 	textInput,
+	validZone,
 } from "@semics-tech/shared";
 
 import { eraseBookings, type RetentionStorage } from "../cron/retention";
@@ -35,14 +36,17 @@ import {
 	WAIVER_PENDING,
 	WARNING,
 } from "../domain/names";
+import { wallMs } from "../domain/schedule";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
+import { requestText } from "../emails/confirmation";
 import { type ApprovalDeps, approveBooking, declineBooking } from "../routes/approval";
 import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "../routes/attendees";
 import type { RefundStep } from "../routes/booking";
 import type { ConfigStorage } from "../routes/config";
 import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
 import { handlePanel, type PanelDeps, type PanelInteraction, type WaiverCheck } from "./panel";
+import { zoneOf } from "./schedule";
 import { initial, note, optionsOf, respond, say, soldMeter, str } from "./ui";
 
 /**
@@ -174,9 +178,15 @@ function bookingRows(items: Page["items"], configs: Map<string, unknown>) {
 	return items.map(({ id, data }) => {
 		const b = data as BookingDoc;
 		const waiting = b.status === AWAITING_APPROVAL;
+		const c = configs.get(b.eventId) as EventConfigDoc | undefined;
+		const r = b.request;
+		// A request's Approve asks for the time first (T174a), starting from the date and window asked for.
+		const s = c?.requests?.windows.find((w) => w.id === r?.window)?.start;
 		return {
 			...(waiting && {
-				approve: button("bookings.approve", "Approve", { style: "primary", value: id }),
+				approve: r
+					? button("bookings.time_ask", "Approve", { style: "primary", value: { id, d: r.date, s, z: zoneOf(c) } })
+					: button("bookings.approve", "Approve", { style: "primary", value: id }),
 				decline: button("bookings.decline_ask", "Decline", { style: "danger", value: id }),
 			}),
 			ref: b.ref,
@@ -185,7 +195,7 @@ function bookingRows(items: Page["items"], configs: Map<string, unknown>) {
 			status: b.status,
 			total: b.totals ? formatMoney(b.totals.totalMinor, b.totals.currency) : "",
 			// The name; the id only for an event with no stored info (deleted, or older than the copy).
-			event: (configs.get(b.eventId) as EventConfigDoc | undefined)?.info?.title ?? b.eventId,
+			event: `${c?.info?.title ?? b.eventId}${r ? ` (Requested: ${requestText(r, c)})` : ""}`,
 			created: b.createdAt,
 			id,
 		};
@@ -250,10 +260,13 @@ async function bookingsPage(
 
 const approvalDeps = (deps: AdminDeps) => deps as unknown as ApprovalDeps;
 
-/** Approve or decline, then the waiting bookings with the outcome (the list and its event names are two more calls). */
-async function decide(deps: AdminDeps, id: string, reason?: string): Promise<AdminResponse> {
+/**
+ * Approve (with a request's agreed `time`, T174a) or decline, then the waiting bookings with the outcome
+ * (the list and its event names are two more calls).
+ */
+async function decide(deps: AdminDeps, id: string, reason?: string, time?: BookingDoc["time"]): Promise<AdminResponse> {
 	const out = (await (reason === undefined
-		? approveBooking(approvalDeps(deps), id)
+		? approveBooking(approvalDeps(deps), id, time)
 		: declineBooking(approvalDeps(deps), id, reason, 2))) as {
 		ok: boolean;
 		bookingRef?: string;
@@ -615,6 +628,19 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 				return retentionPreview(deps, str(v.target));
 			case "bookings.decline":
 				return decide(deps, suffix, str(v.reason, 300));
+			case "bookings.confirm": {
+				// "Confirm time" (T174a): local date and times in the event's zone, carried as the form's block id.
+				const zone = validZone(interaction.block_id) ?? "UTC";
+				const day = str(v.date);
+				const at = wallMs(day, str(v.start), zone);
+				const end = wallMs(day, str(v.end), zone);
+				return decide(
+					deps,
+					suffix,
+					undefined,
+					at ? { startsAt: iso(at), ...(end > at && { endsAt: iso(end) }) } : undefined,
+				);
+			}
 		}
 	} else {
 		const value = interaction.value;
@@ -630,6 +656,20 @@ export async function handleAdmin(deps: AdminDeps, interaction: AdminInteraction
 						submit: { label: "Decline", actionId: `bookings.decline:${str(value)}` },
 					}),
 				]);
+			case "bookings.time_ask": {
+				const o = (value ?? {}) as Record<string, unknown>;
+				return bookingsPage(deps, { status: AWAITING_APPROVAL }, [
+					form({
+						fields: [
+							textInput("date", "Date (YYYY-MM-DD)", initial(str(o.d))),
+							textInput("start", `Start (HH:MM, ${str(o.z)})`, initial(str(o.s))),
+							textInput("end", "End (optional)"),
+						],
+						submit: { label: "Confirm time", actionId: `bookings.confirm:${str(o.id)}` },
+						blockId: str(o.z),
+					}),
+				]);
+			}
 			case "attendees.open":
 				return attendeesPage(deps, eventIdOf(value));
 			case "attendees.page":

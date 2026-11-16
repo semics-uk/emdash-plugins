@@ -91,6 +91,8 @@ export interface EventConfigDoc {
 	recurrence?: string | null;
 	/** Slot schedule (T129, `src/domain/schedule.ts`); never beside `recurrence`. */
 	schedule?: ScheduleDoc | null;
+	/** Booking requests (T174a): a date and a window instead of a date; never beside a schedule or dates. */
+	requests?: RequestsDoc | null;
 	/** Bumped by every write of a schedule-owned catalog; the cron's write is guarded on it (T129). */
 	slotsRev?: number;
 	/** Slots the cron took out of the catalog, deleted after a grace period unless booked (T129). */
@@ -115,6 +117,18 @@ export interface ScheduleDoc {
 	capacity: number;
 	bookAheadDays: number;
 	/** Local `YYYY-MM-DD` dates with no slots. */
+	closedDates: string[];
+}
+
+/**
+ * What a booking request may ask for (T174a): one of `windows` (local `HH:MM`, id from the label) on one
+ * of `days` (`MO`..`SU`), `noticeDays` to `aheadDays` ahead, never on `closedDates` (local `YYYY-MM-DD`).
+ */
+export interface RequestsDoc {
+	windows: Array<{ id: string; label: string; start: string; end: string }>;
+	days: string[];
+	aheadDays: number;
+	noticeDays: number;
 	closedDates: string[];
 }
 
@@ -203,6 +217,10 @@ export interface BookingDoc {
 	ref: string;
 	eventId: string;
 	occurrenceId?: string;
+	/** A booking request (T174a): the asked date (local) and window id; always awaits approval. */
+	request?: { date: string; window: string };
+	/** The time staff agreed for a request (T174a "Confirm time"); used where an occurrence's start would be. */
+	time?: { startsAt: string; endsAt?: string };
 	status: BookingStatus;
 	holdExpiresAt?: string;
 	holdCeilingAt?: string;

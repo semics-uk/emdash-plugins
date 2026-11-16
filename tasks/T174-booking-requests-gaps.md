@@ -68,3 +68,31 @@ each its own rc, in priority order:
 Risks: Pro settle and sweep never ran with a paid `awaiting_approval` booking (audit first); Stripe keeps its fee
 on refunds (about 1.5% + 20p, tell LMSC); Free ends with about 1.9 KB left (fallback: move the T162 setup check
 page); BST/GMT change for window starts (test the last Sunday in October).
+
+## T174a notes (2026-11-16)
+
+- **Shapes.** `config.requests` and `booking.request = { date, window }` as planned (`proposed?` left for T174c); the agreed
+  time is `booking.time = { startsAt, endsAt? }`. `parseRequests` (`src/domain/schedule.ts`): 1–8 windows (id
+  `[a-z0-9-]{1,32}`, label ≤ 40, `start < end`), 1–7 days, `aheadDays` 1–365 (default 90), `noticeDays` 0–365 (default 0).
+  Refused (`INVALID_REQUESTS`) beside a schedule, an RRULE or dates.
+- **Reserve.** Reasons `REQUEST_NOT_TAKEN` (no `requests`, or an `occurrenceId` with one), `REQUEST_REQUIRED`, `REQUEST_WINDOW`,
+  `REQUEST_DATE` (weekday, notice, days ahead, closed date, or the window already started), issue path `request`. "Today"
+  is the event zone's. `sameOrder` does not compare `request` (a reused idempotency key returns the first booking).
+- **Deadline.** A request always gets `approval.until`: `deadlineHours` when set (even with approval off), else 48, capped
+  at the window start (`wallMs`, DST like the schedule; tested across 25 Oct 2026).
+- **Confirm time.** No modal in Block Kit, so Approve on a request (`bookings.time_ask`, value `{ id, d, s, z }`) shows a
+  form on the Bookings page like Decline does; `bookings.confirm:<id>` carries the event's zone as the form's block id (no
+  extra config read: approve stays at 9 calls). A plain `bookings.approve` of a request is `BAD_REQUEST`.
+- **Readers.** `loadEventInfo(…, { time })` (emails, ICS), the booking page (`event.startsAt` = the time, or absent with
+  `requested: "Sat 12 Dec, AM"`), and the cancel cutoff use `occurrence ?? time`. Emails before a time say "When: Sat 12 Dec,
+  AM, time to be agreed" (`EventInfo.when`).
+- **Widget.** Request mode is a `<select>` of the allowed dates (works without JS, so weekdays and closed dates are enforced
+  without a script) plus window radios; the no-JS checkout posts `request` when the form has `needsRequest`.
+- **For T174b (Pro).** Free's approve still refuses any booking with `payment` (`PAYMENT_FAILED`); a request charged at
+  reserve needs Pro's approve wrapper to pass `time` through to `approveBooking(deps, id, time)` (the new third argument) and
+  treat a paid (not held) request as approvable. The time form's action is `bookings.confirm:<id>` with the zone in `block_id`.
+- **Bytes.** Free backend 119,392 → 122,978 B (+3,586, twice the plan's +1.8 KB); 926 B left under budget less
+  hotfix room. Where it goes: the panel's five request fields and their parsing (~0.9 KB), `parseRequests` +
+  `requestStart` + `wallMs` (~0.8 KB), Confirm time and the Bookings row (~0.7 KB), reserve rules (~0.35 KB), emails,
+  booking page and ICS (~0.5 KB). Trimmed by sharing the schedule's day/closed-date validation and panel helpers.
+  T174d (+0.8 KB) no longer fits Free as it stands: move the T162 setup check page first, or put T174d in Pro.

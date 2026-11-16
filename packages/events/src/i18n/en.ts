@@ -22,6 +22,7 @@ export const en = {
 	"widget.date": "Date",
 	"widget.chooseDate": "Choose a date",
 	"widget.dateSoldOut": "{date} (sold out)",
+	"widget.window": "Time of day",
 	"widget.picker.earlier": "Earlier dates",
 	"widget.picker.later": "Later dates",
 	"widget.picker.hint": "Choose a day to see its times.",
@@ -111,6 +112,8 @@ export const en = {
 	"booking.reference": "Reference",
 	"booking.heldUntil": "Your tickets are held until {time}.",
 	"booking.decideBy": "The organiser will approve or decline your request by {time}; we will email you.",
+	"booking.requestSent": "Request sent: we'll confirm a time with you.",
+	"booking.requested": "Requested: {when}, time to be agreed.",
 	"booking.declinedReason": "The organiser's reason: {reason}",
 	"booking.notCharged": "Your card was not charged.",
 	"booking.lapsed":

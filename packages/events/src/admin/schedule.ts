@@ -59,10 +59,7 @@ const num = (v: unknown) => (v === undefined || v === "" ? undefined : Number(v)
 const pad = pad2;
 
 /** The event's zone, from the copy of its entry's info; UTC when it has none. */
-export const zoneOf = (config: EventConfigDoc): string => {
-	const zone = config.info?.timezone;
-	return validZone(zone) ?? "UTC";
-};
+export const zoneOf = (config?: EventConfigDoc | null): string => validZone(config?.info?.timezone) ?? "UTC";
 
 /** `2026-12-01 19:30` in the zone. */
 export function localText(iso: string, zone: string): string {
@@ -70,8 +67,12 @@ export function localText(iso: string, zone: string): string {
 	return `${p.year}-${pad(p.month)}-${pad(p.day)} ${pad(p.hour)}:${pad(p.minute)}`;
 }
 
+/** A list as the panel's comma-separated starting value. */
+const list = (v?: string[]) => initial(v?.join(", ") ?? "");
+/** Weekdays typed in a panel field, upper-cased. */
+const days = (v: unknown) => split(v).map((d) => d.toUpperCase());
+
 export function scheduleFields(s: EventConfigDoc["schedule"]): FormField[] {
-	const list = (v?: string[]) => ({ initialValue: v?.join(", ") ?? "" });
 	return [
 		textInput("sc_days", "Schedule: days (MO to SU)", list(s?.days)),
 		textInput("sc_times", "Schedule: start times (09:00, 10:30)", list(s?.times)),
@@ -85,11 +86,11 @@ export function scheduleFields(s: EventConfigDoc["schedule"]): FormField[] {
 /** The schedule a panel save asks for (null: none), from the form values and the stored one. */
 export function scheduleInput(values: Obj, stored: EventConfigDoc["schedule"], capacity: number): unknown {
 	if (values.sc_days === undefined && values.sc_times === undefined) return stored ?? null;
-	const days = split(values.sc_days).map((d) => d.toUpperCase());
+	const weekdays = days(values.sc_days);
 	const times = split(values.sc_times);
-	if (days.length + times.length === 0) return null;
+	if (weekdays.length + times.length === 0) return null;
 	const s = {
-		days,
+		days: weekdays,
 		times,
 		durationMinutes: num(values.sc_length) ?? stored?.durationMinutes,
 		capacity: num(values.sc_places) ?? stored?.capacity ?? capacity,
@@ -97,6 +98,43 @@ export function scheduleInput(values: Obj, stored: EventConfigDoc["schedule"], c
 		closedDates: split(values.sc_closed),
 	};
 	return parseSchedule(s) ?? s;
+}
+
+/** The panel's "Booking requests" fields (T174a): windows as `Label HH:MM-HH:MM` lines. */
+export function requestFields(r: EventConfigDoc["requests"]): FormField[] {
+	return [
+		textInput("rq_windows", "Booking requests: windows (AM 10:00-12:00, a line each)", {
+			initialValue: r?.windows.map((w) => `${w.label} ${w.start}-${w.end}`).join("\n"),
+			multiline: true,
+		}),
+		textInput("rq_days", "Requests: days (MO-SU)", list(r?.days)),
+		numberInput("rq_ahead", "Requests: days ahead", { initialValue: r?.aheadDays ?? 90, min: 1 }),
+		numberInput("rq_notice", "Requests: days' notice", { initialValue: r?.noticeDays ?? 0, min: 0 }),
+		textInput("rq_closed", "Requests: closed dates", list(r?.closedDates)),
+	];
+}
+
+/** The requests a panel save asks for (null: none); a line that does not parse is refused by the validator. */
+export function requestsInput(values: Obj, stored: EventConfigDoc["requests"]): unknown {
+	if (values.rq_windows === undefined && values.rq_days === undefined) return stored ?? null;
+	const windows = str(values.rq_windows, 4000)
+		.split(/\s*\n\s*/)
+		.filter(Boolean)
+		.map((l) => {
+			const [, label = l, start, end] = /(.+?) +(\d\d:\d\d) *- *(\d\d:\d\d)$/.exec(l) ?? [];
+			return { id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label, start, end };
+		});
+	const weekdays = days(values.rq_days);
+	// In the stored shape's key order, so an unchanged form compares equal; `config/save` validates it.
+	return windows.length + weekdays.length
+		? {
+				windows,
+				days: weekdays,
+				aheadDays: num(values.rq_ahead) ?? 90,
+				noticeDays: num(values.rq_notice) ?? 0,
+				closedDates: split(values.rq_closed),
+			}
+		: null;
 }
 
 const dayField = (day: string) => textInput("day", "Day (YYYY-MM-DD)", initial(day));

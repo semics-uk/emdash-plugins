@@ -48,9 +48,10 @@ const names = showAttendees && new Set(named).size > 1 ? named : [];
 	) : (
 		<h2 id="semics-booking-status-title" class="semics-visually-hidden">{t("booking.status")}</h2>
 	)}
-	{(startsAt || event?.venue) && (
+	{(startsAt || event?.venue || booking.requested) && (
 		<div class="semics-booking-session" data-testid="booking-session">
 			{startsAt && <p class="semics-booking-when"><time datetime={startsAt} data-testid="booking-when">{at(startsAt)}</time></p>}
+			{booking.requested && <p class="semics-booking-when" data-testid="booking-requested">{t("booking.requested", { when: booking.requested })}</p>}
 			{event?.venue && <p class="semics-booking-venue" data-testid="booking-venue">{event.venue}</p>}
 		</div>
 	)}
@@ -62,6 +63,8 @@ const names = showAttendees && new Set(named).size > 1 ? named : [];
 			{t("booking.reference")} <strong data-testid="booking-ref">{booking.bookingRef}</strong>
 		</p>
 	</div>
+	{/* A booking request (T174a) waiting for the organiser to agree a time. */}
+	{status === "awaiting_approval" && booking.requested && <p class="semics-booking-note" data-testid="booking-request">{t("booking.requestSent")}</p>}
 	{
 		!cancelled && booking.holdExpiresAt && (
 			<p class="semics-booking-note" data-testid="booking-hold">
