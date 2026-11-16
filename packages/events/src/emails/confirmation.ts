@@ -161,7 +161,9 @@ export function approvalEmail(
 		approval_expired: ["Booking request expired", " was not approved in time."],
 	};
 	const n = notice[kind];
-	const closing = `${b.notCharged ? "Your card was not charged. " : ""}${NOT_YOU}`;
+	// A request paid in full before approval (Pro, T174b) is refunded in full on decline or lapse.
+	const refunded = b.payment && !b.payment.hold && kind !== "approval_requested";
+	const closing = `${b.notCharged ? "Your card was not charged. " : refunded ? "Your payment has been refunded in full. " : ""}${NOT_YOU}`;
 	return n ? compose(i, n[0], ["Your booking request for ", n[1]], { closing }) : null;
 }
 

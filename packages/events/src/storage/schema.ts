@@ -237,7 +237,8 @@ export interface BookingDoc {
 	email: string;
 	lines: BookingLine[];
 	totals: { subtotalMinor: number; discountMinor: number; totalMinor: number; currency: string };
-	payment?: { provider: string; ref: string };
+	/** `hold` (Pro, T132): the card is only held; without it the booking is paid (T174b: a request may be paid before approval). */
+	payment?: { provider: string; ref: string; hold?: string };
 	answers: Record<string, string>;
 	/**
 	 * The waiver the event required when the booking was made (`signature` on the event config,

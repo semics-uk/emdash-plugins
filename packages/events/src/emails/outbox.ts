@@ -362,7 +362,8 @@ async function renderOffer(d: DrainDeps, tick: Tick, bookingId: string): Promise
 async function renderApproval(d: DrainDeps, tick: Tick, doc: OutboxDoc, bookingId: string) {
 	const b = await loadBooking(d, tick, bookingId);
 	const waiting = b?.status === AWAITING_APPROVAL;
-	if (!b || (doc.kind === "approval_expired" && b.status !== EXPIRED)) {
+	// A paid request's lapse may be refunded (Pro, T174b) before this goes: still tell the buyer.
+	if (!b || (doc.kind === "approval_expired" && b.status !== EXPIRED && b.status !== "refunded_unavailable")) {
 		if (waiting) throw new Error("not expired yet");
 		return null;
 	}
