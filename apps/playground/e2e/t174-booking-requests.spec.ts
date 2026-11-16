@@ -321,7 +321,7 @@ test("T174d a per-person add-on is capped by the places chosen and booked with t
 	await expect(page).toHaveURL(BOOKING_URL);
 	const ref = BOOKING_URL.exec(page.url())?.[1] as string;
 	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "awaiting_approval");
-	await expect(page.getByTestId("booking-status")).toContainText("Quad trekking");
+	await expect(page.getByText("4 × Quad trekking")).toBeVisible();
 	const stored = bookingByRef(ref);
 	expect(stored.data.lines).toHaveLength(2);
 	expect(stored.data.lines).toEqual(
