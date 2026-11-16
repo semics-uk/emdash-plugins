@@ -36,6 +36,7 @@ payment and stays behind `ONLINE_BOOKING`. Nothing here blocks the site. This fi
 
 ## Notes
 
+- **Payment (decided, lmsc-site#59, 2026-11-16):** charge in full at request time, not a card hold; the booking stays pending until staff confirm a time; Decline, or no time agreed, refunds in full through the existing Pro refund. So the 7-day hold expiry does not apply.
 - 1 and 2 are the core feature ("request a time, staff confirm"). They overlap with Pro approval holds: the card
   hold expiry (about 7 days) limits how long a time can stay unagreed.
 - Weigh Free Events bytes on any change (125 KiB budget, about 119 KB used). 1, 2 and 5 may fit better as Pro or
