@@ -99,7 +99,10 @@ const when = (iso: string) => {
 // Attendee rows are only for an event whose waiver is required (`public/event` says so, T066); any other
 // event is booked by ticket type and quantity, as a plain booking.
 const needsWaiver = data?.waiver === true;
-const rows = needsWaiver ? Array.from({ length: seats }, (_, i) => i + 1) : [];
+// A waiver event that takes requests (T174e): booked by ticket type and quantity like a plain booking; Events Pro
+// leaves the names for after staff confirm the time, and the waiver is signed then.
+const later = needsWaiver && Boolean(requests);
+const rows = needsWaiver && !later ? Array.from({ length: seats }, (_, i) => i + 1) : [];
 // The order of signing and paying (Events Pro, T160): after payment only when the event says so and a ticket has a price.
 const copy = waiverCopy(needsWaiver && data?.waiverAfter === true && ticketTypes.some((t) => t.priceMinor > 0));
 const single = ticketTypes.length === 1 ? ticketTypes[0] : undefined;
@@ -140,7 +143,7 @@ const presetType = presetTicketType(
 				<input type="hidden" name="eventId" value={eventId} />
 				<input type="hidden" name="returnTo" value={returnTo} />
 				<input type="hidden" name="idempotencyKey" value={newIdempotencyKey()} />
-				{data?.waiverEach && <input type="hidden" name="waiverEach" value="1" />}
+				{data?.waiverEach && <input type="hidden" name="waiverEach" value="1" disabled={later || undefined} />}
 
 				{picker && (
 					<div class="semics-field semics-picker-field">
@@ -297,9 +300,14 @@ const presetType = presetTicketType(
 					</div>
 				</fieldset>
 
-				{!needsWaiver && (
+				{(!needsWaiver || later) && (
 					<fieldset class="semics-group" data-testid="waiver-plain">
 						<legend>Tickets</legend>
+						{later && (
+							<p class="semics-note" data-testid="waiver-later">
+								Once we confirm your time, you add everyone's names and emails on your booking page, and each person signs the waiver then.
+							</p>
+						)}
 						<input type="hidden" name="plain" value="1" />
 						<div class="semics-pair">
 							<div class="semics-field">
@@ -318,7 +326,7 @@ const presetType = presetTicketType(
 					</fieldset>
 				)}
 
-				{needsWaiver && (
+				{needsWaiver && !later && (
 					<div class="semics-group semics-attendees">
 						<h3 class="semics-group-title">Who is coming</h3>
 						{copy.steps.length > 0 && (

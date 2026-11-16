@@ -17,6 +17,10 @@
  *   mints, per changed seat, a `replace` intent (e-sign voids the old envelope) and, for an emailed
  *   adult, the new invitation's intent, redeemed in that order.
  *
+ * A booking request (T174e) is booked without names: once confirmed, a seat still in the buyer's name signs by
+ * `none` (no Sign now, the row asks for a name and email), and the edit form may mark a seat under 18
+ * (`signingList.minors`).
+ *
  * Every outcome is a redirect to `/booking?ref=` with a code, never a typed value. Web APIs only (R35).
  */
 import { callPublicRoute, type PublicRouteContext } from "./call";
@@ -31,8 +35,8 @@ export interface SigningAttendee {
 	email?: string;
 	minor?: boolean;
 	signing?: "signed" | "waiting";
-	/** `email`: an adult e-sign invites by email; `inline`: signed on the buyer's device. */
-	signs?: "inline" | "email";
+	/** `email`: an adult e-sign invites by email; `inline`: signed on the buyer's device; `none`: not named yet (T174e). */
+	signs?: "inline" | "email" | "none";
 }
 
 export interface SigningRow {
@@ -41,6 +45,8 @@ export interface SigningRow {
 	email: string;
 	minor: boolean;
 	signed: boolean;
+	/** A booking request's seat not named yet (T174e). */
+	unnamed?: boolean;
 	canSign: boolean;
 	canResend: boolean;
 	canEdit: boolean;
@@ -50,6 +56,7 @@ export interface AttendeeEdit {
 	seat: string;
 	name: string;
 	email?: string;
+	minor?: boolean;
 }
 
 /** Statuses in which a waiver can still be signed: the holds', and a confirmed booking's pending seats. */
@@ -74,8 +81,9 @@ export function waiverStep(booking: BookingView): { sign: boolean; invite: boole
 	const waiting = (booking.attendees as SigningAttendee[]).filter(
 		(a) => a.signing === "waiting" && rows?.some((r) => r.seat === a.seat),
 	);
-	if (waiting.length === 0) return null;
-	return { sign: waiting.some((a) => a.signs !== "email"), invite: waiting.some((a) => a.signs === "email") };
+	const sign = waiting.some((a) => a.signs !== "email" && a.signs !== "none");
+	const invite = waiting.some((a) => a.signs === "email");
+	return sign || invite ? { sign, invite } : null;
 }
 
 /** The list's rows, or null when the answer has no signing list (Free, or not a waiver booking). */
@@ -94,7 +102,8 @@ export function signingRows(booking: BookingView): SigningRow[] | null {
 			email: a.email ?? "",
 			minor: a.minor === true,
 			signed,
-			canSign: waiting,
+			unnamed: waiting && a.signs === "none",
+			canSign: waiting && a.signs !== "none",
 			canResend: waiting && a.signs === "email",
 			canEdit: waiting && list.editable === true,
 		});
@@ -107,12 +116,21 @@ const text = (form: FormData, key: string): string | undefined => {
 	return typeof value === "string" ? value.trim().slice(0, MAX_TEXT) : undefined;
 };
 
-/** The edit form's values for the editable seats (`name:<seat>`, `email:<seat>`); a minor has no email. */
-export function readAttendeeEdits(form: FormData, rows: readonly SigningRow[]): AttendeeEdit[] {
+/**
+ * The edit form's values for the editable seats (`name:<seat>`, `email:<seat>`); a minor has no email. With `minors`
+ * (a booking request, T174e) each seat also says whether it is under 18 (`minor:<seat>`).
+ */
+export function readAttendeeEdits(form: FormData, rows: readonly SigningRow[], minors = false): AttendeeEdit[] {
 	return rows
 		.filter((r) => r.canEdit)
 		.map((r) => {
 			const name = text(form, `name:${r.seat}`) ?? r.name;
+			if (minors) {
+				const minor = form.get(`minor:${r.seat}`) === "on";
+				return minor
+					? { seat: r.seat, name, minor }
+					: { seat: r.seat, name, email: text(form, `email:${r.seat}`) ?? r.email, minor };
+			}
 			if (r.minor) return { seat: r.seat, name };
 			return { seat: r.seat, name, email: text(form, `email:${r.seat}`) ?? r.email };
 		});
@@ -154,7 +172,7 @@ export async function handleAttendeeAction(
 	if (intent === "sign-waiver") return signWaiver(ctx, auth, options, booking);
 
 	if (intent === "attendees") {
-		const attendees = readAttendeeEdits(form, rows);
+		const attendees = readAttendeeEdits(form, rows, booking.signingList?.minors === true);
 		if (attendees.length === 0) return back(ref, "error", "ATTENDEES_LOCKED");
 		const saved = await post<Minted>(ctx, options.pluginId, "public/booking/attendees", { ...auth, attendees });
 		if (!saved.ok) {

@@ -159,7 +159,8 @@ export interface BookingView {
 	 * `seat`, `signing`, `signs`, `email` and `minor` (`SigningAttendee` in `lib/attendees.ts`);
 	 * `editable` says whether names and emails may still be changed, until `editUntil`.
 	 */
-	signingList?: { editable: boolean; editUntil?: string };
+	/** `minors` (T174e): a booking request, whose seats the edit form may also mark under 18. */
+	signingList?: { editable: boolean; editUntil?: string; minors?: boolean };
 }
 
 /** A custom question's field is `q:<question id>` (T080). */

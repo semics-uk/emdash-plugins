@@ -114,3 +114,26 @@ page); BST/GMT change for window starts (test the last Sunday in October).
 - **Race left open.** An accept read just before a re-proposal confirms the time the buyer saw (the old proposal).
 - **Bytes.** Free backend unchanged (Astro and i18n only). Pro 257,470 → 257,928 B: T174c +2,451, paid for by a shared-helper
   refactor (−1,993; `src/route-util.ts`). 4,216 B left for T174d/e.
+
+## T174e notes (2026-11-16)
+
+- **Shape.** No new field: a request's per-attendee waiver is stamped `after: true` at reserve (Pro, `stampWaiver`), paid or
+  free and whatever `waiverTiming` says (`off` still drops it; a buyer-signed waiver keeps signing first, inline, nothing
+  emailed). Continue goes straight to payment (or, free, to the organiser); Pro writes a free request's seats `pending`
+  (Free's `done` step writes `valid`), so check-in still asks for the waiver.
+- **Unnamed seats.** Free plans a continue without attendees in the buyer's name and address. `planWaiverIntents({ later })`
+  skips a request's adult seat with the buyer's address past seat 1 (the buyer's own) instead of `WAIVER_EMAIL_REQUIRED`;
+  the signing list reports it `signs: "none"`, and Sign now refuses it.
+- **Nothing before confirm.** `listed` is false for a request until `confirmed`: no signing list on `public/booking`, and
+  Sign, Resend and edits answer `ATTENDEES_LOCKED`. Free's request-received email is untouched.
+- **After confirm** (Confirm time, accepting a proposal, or a paid approve, all through Free's approve): the
+  confirmation email gets "add each attendee's names and emails" with the booking link; the edit window runs to the cutoff
+  before `booking.time`; `signingList.minors` lets the edit mark a request's seat under 18 (`minor` is refused on other
+  bookings); an edit invites only seats given their own address.
+- **Widget.** Events' `<BookingWidget>` has no attendee step (no change). The suite's `<BookingWithWaiver>` shows the plain
+  ticket and quantity group for a waiver request (the `waiverEach` input disabled, so no seat check), plus a note; it is
+  the same plain form without JavaScript. The booking page's `AttendeeList` gets the unnamed note and the Under 18 box.
+- **Bytes.** Free backend unchanged (Astro and i18n only). Pro 257,940 -> 258,549 B (+609); 3,595 B left for T174d.
+- **Gaps.** A seat still unnamed at the door gets the door link in the buyer's name (as before for any seat in the
+  buyer's name); after the edit cutoff an unnamed seat can only be signed that way. The "Sign the waiver" step hides
+  while only unnamed seats wait.

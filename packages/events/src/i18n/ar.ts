@@ -179,6 +179,8 @@ export const ar: Messages = {
 	"booking.attendees.saved": "حُفظت بيانات الحضور. كل من تغيّرت بياناته سيصله طلب توقيع جديد.",
 	"booking.attendees.resent": "أعدنا إرسال دعوة التوقيع.",
 	"booking.attendees.pending": "التنازل بانتظار التوقيع",
+	"booking.attendees.unnamed": "أضف اسم هذا الشخص وبريده الإلكتروني أدناه: تُرسل إليه دعوة توقيع التنازل عند الحفظ.",
+	"booking.attendees.under18": "دون 18 عامًا",
 	"booking.attendees.invited": "أرسلنا التنازل بالبريد الإلكتروني إلى البالغين الآخرين لتوقيعه.",
 	"booking.waiverStep.title": "الخطوة الأخيرة: وقّع التنازل",
 	"booking.waiverStep.lead":
