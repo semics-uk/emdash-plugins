@@ -4,7 +4,8 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- T174 booking requests (lmsc-site#59): a, b released rc.18, suite fix rc.19, c (propose a time; Pro #13, #51; Pro refactor saved about 2 KB) rc.20. Pro events about 257,928 B (4.2 KB headroom). Now T174e (attendees after approval), then T174d (add-on, in Pro)
+- T174 booking requests (lmsc-site#59): all parts released by rc.22 (a, b rc.18; suite fix rc.19; c rc.20; e and d rc.22, rc.21 skipped). Free 123,094 B (810 B headroom); Pro events about 260,555 B after the waiver fix (1.6 KB headroom). Gaps: Bookings list and confirmation email show no lines; unnamed seats sign in the buyer's name at the door
+- Waiver order fix (Free ticket save reset Pro waiverTiming / waiverAllowDecline): Pro #16 merged, ships next rc
 - LMSC staging to try rc.16: one-click pairing at /_events/pair#vouchers, then Book with this voucher (book: true, emailBookLink)
 - Follow-ups: after Confirm time the lapse- approval_expired outbox row stays pending until its time and is then dropped (harmless; deleting it would cost Free bytes); Events Pro promo rate-limit test flaky in a slow full verify (passed on rerun); Events Pro does not trim a pasted vouchersPairing (T172 note); t145 e2e asserts a Free-only message so fails on Pro builds; booking form with a cookie-filled code could be stored by a cache that ignores cookies (docs/vouchers.md); one t168 run hit chrome-error on the T170 thanks page (passed on rerun); board.json not regenerated for T169–T172
 - LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
@@ -34,6 +35,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Waiting on Oli
 
 ## Done
+- 2026-11-16 rc.22 published (T174e attendees after approval, Pro #14, #53; T174d per-person add-on, Pro #15, #55). rc.21 skipped: the release merged a stale version PR; release script now waits for a version PR containing main. LMSC told
 - 2026-11-16 rc.20 published (T174c propose another time, customer Accept / That does not work; LMSC told)
 - 2026-11-16 LMSC staging rc.19: request → pay → Confirm time passed (WPRQYYH5BC, paid once, confirmed with time, no second charge). Decline/refund still to test. rc.19 published (suite BookingWithWaiver request mode, days label, #49)
 - 2026-11-16 rc.18 published (T174a booking requests and Confirm time, #45; T174b charge at request and refund on decline or lapse, #48, Pro #12). CI split into parallel jobs (#47): about 4-6 min instead of 10-13; version PR light path worked (about 1 min). LMSC cutover told
