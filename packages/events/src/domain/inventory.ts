@@ -105,9 +105,6 @@ const MANAGED_FIELDS = new Set([
 	"kept",
 	// Events Pro's add-on list (T174d): its own form writes it.
 	"addons",
-	// Events Pro's waiver order (T160): its own form writes them.
-	"waiverTiming",
-	"waiverAllowDecline",
 ]);
 
 /** Designs target ≤ 8 bridge calls per invocation (R22). */
