@@ -19,11 +19,18 @@ runs every gate, cheapest first, and stops at the first failure:
 2. Task board check (`pnpm tasks:check`)
 3. Script tests (`pnpm test:scripts`)
 4. Changeset check (`pnpm changeset:check`; skipped on `main`, where there is nothing to compare)
-5. For each package: `emdash-plugin validate`, typecheck, tests with coverage thresholds, build
-6. Release dry run (`pnpm release:dry-run`): packs and audits what would be published
-7. Playground typecheck
+5. Fixed package versions in lockstep (`node scripts/version-pr.mjs lockstep`)
+6. For each package: `emdash-plugin validate`, typecheck, tests with coverage thresholds, build
+7. Docs, product site, release dry run (`pnpm release:dry-run`: packs and audits what would be published)
+8. Playground typecheck
 
-CI (`.github/workflows/ci.yml`) runs the same command, plus `actionlint` and Playwright.
+CI (`.github/workflows/ci.yml`) runs the same gates in parallel jobs, split with
+`node scripts/verify.mjs --group lint|packages|build` (one job per package; the build job builds every
+package first), plus `actionlint` and Playwright. The "pnpm verify" job is the aggregator: it fails
+unless every gate job passed. The Changesets version PR (branch `changeset-release/main`) whose diff only
+bumps `package.json` versions and touches `CHANGELOG.md` and `.changeset/` files takes a light path: the
+lint group only (which includes the lockstep check); the package suites, build and Playwright run again on
+`main` after the merge, before the Release workflow publishes anything.
 
 Useful single steps: `pnpm check` (Biome lint, format and import sorting, with fixes), `pnpm lint`,
 `pnpm format`, and in a package `pnpm test`, `pnpm test:coverage`, `pnpm verify`.
@@ -61,7 +68,8 @@ Nothing is published from a laptop. Releases run in GitHub Actions, from the pub
 **Flow**
 
 1. Every change to a published package carries a changeset (see above).
-2. `.github/workflows/release.yml` runs on each push to `main`. It builds, then runs the dry run
+2. `.github/workflows/release.yml` runs on each push to `main`. It first waits for CI's "pnpm verify" to pass
+   on that commit (`node scripts/version-pr.mjs wait-ci`; CI never cancels a run on `main`), then builds and runs the dry run
    (`pnpm release:dry-run --build`), then `changesets/action`:
    - while changesets are pending it opens or updates the "Version Packages" PR (`pnpm version-packages`);
    - when that PR is merged nothing is pending, so, once the owner has set the repository variable

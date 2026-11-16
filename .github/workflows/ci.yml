@@ -1,5 +1,14 @@
 name: CI
 
+# `pnpm verify` split across parallel jobs (scripts/verify.mjs --group): lint, one job per package, and the
+# build-dependent checks. "pnpm verify" is the aggregator: it fails unless every one of them passed.
+#
+# Light path: the Changesets "version packages" PR (head branch changeset-release/main in this repo) whose
+# diff only bumps package.json versions and touches CHANGELOG.md and .changeset/ files runs the lint group
+# (Biome, board, script tests, changeset and lockstep checks) and skips the package suites, the build and
+# Playwright. "pnpm verify", "Playwright" and "Lint workflows" still report, so required checks never hang.
+# Pushes to main and every other PR always take the full path.
+
 on:
   push:
     branches: [main]
@@ -9,7 +18,9 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  # On main every push gets its own group, so no run is cancelled: release.yml waits for "pnpm verify" on
+  # the commit it releases. Pull requests still cancel superseded runs.
+  group: ci-${{ github.ref }}-${{ github.event_name == 'push' && github.sha || '' }}
   cancel-in-progress: true
 
 jobs:
@@ -23,10 +34,29 @@ jobs:
         with:
           args: -color
 
-  verify:
-    name: pnpm verify
+  scope:
+    name: Detect a version-only PR
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
+    outputs:
+      light: ${{ steps.scope.outputs.light || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+        if: github.event_name == 'pull_request' && github.head_ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
+        with:
+          # The PR's merge commit and its first parent (the base branch tip): exactly what the PR changes.
+          fetch-depth: 2
+      - name: Classify the diff
+        id: scope
+        if: github.event_name == 'pull_request' && github.head_ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
+        run: node scripts/version-pr.mjs scope >> "$GITHUB_OUTPUT"
+
+  gates:
+    name: Lint, board, script tests, changesets
+    needs: scope
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,21 +75,20 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # qpdf: the T016 PDF writer test checks its output with `qpdf --check` when qpdf is installed (T111).
-      - name: Install qpdf
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq qpdf
-      - name: Run every quality gate
-        run: pnpm verify
-      # Size stays visible without a freeze (T162): this run's backend bytes in the job summary; a pull
-      # request compares with the same table in main's latest CI run.
-      - name: Report backend bundle sizes
-        if: always()
-        run: node scripts/bundle-size.mjs >> "$GITHUB_STEP_SUMMARY"
+      - name: Run the lint group
+        run: node scripts/verify.mjs --group lint
 
-  e2e:
-    name: Playwright
+  packages:
+    name: Package ${{ matrix.package }}
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.light != 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # Every packages/* dir with a verify script (scripts/verify.test.mjs checks this list).
+        package: [esign, events, events-suite, shared]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -70,15 +99,93 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # qpdf: the T016 PDF writer test in packages/shared checks its output with `qpdf --check` when qpdf is installed (T111).
+      - name: Install qpdf
+        if: matrix.package == 'shared'
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq qpdf
+      - name: Validate, typecheck, test with coverage and build
+        env:
+          PACKAGE: ${{ matrix.package }}
+          # One package per 4-vCPU runner, so vitest may use every core (vitest.limits.mjs defaults to 2).
+          VITEST_MAX_WORKERS: "4"
+        run: node scripts/verify.mjs --group packages --package "$PACKAGE"
+
+  build:
+    name: Build, docs, site, release dry run
+    needs: scope
+    if: ${{ !cancelled() && needs.scope.outputs.light != 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build every package, then the build group
+        run: node scripts/verify.mjs --group build
+      # Size stays visible without a freeze (T162): this run's backend bytes in the job summary; a pull
+      # request compares with the same table in main's latest CI run.
+      - name: Report backend bundle sizes
+        if: always()
+        run: node scripts/bundle-size.mjs >> "$GITHUB_STEP_SUMMARY"
+
+  verify:
+    name: pnpm verify
+    needs: [scope, gates, packages, build]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+      - name: Every gate passed
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+          LIGHT: ${{ needs.scope.outputs.light }}
+        run: node scripts/version-pr.mjs gates
+
+  e2e:
+    name: Playwright
+    needs: scope
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      LIGHT: ${{ needs.scope.outputs.light }}
+    steps:
+      - name: Version-only PR
+        if: env.LIGHT == 'true'
+        run: echo "Only versions, changelogs and changesets changed; the end-to-end tests run on main after the merge."
+      - uses: actions/checkout@v4
+        if: env.LIGHT != 'true'
+      - uses: pnpm/action-setup@v4
+        if: env.LIGHT != 'true'
+        with:
+          version: 10.23.0
+      - uses: actions/setup-node@v4
+        if: env.LIGHT != 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: env.LIGHT != 'true'
       - name: Detect Playwright config
         id: playwright
+        if: env.LIGHT != 'true'
         run: |
           # Either location is enough: `ls a b` fails when one of them is missing, which skipped e2e on every run.
           for f in playwright.config.* apps/playground/playwright.config.*; do
             if [ -e "$f" ]; then echo "present=true" >> "$GITHUB_OUTPUT"; break; fi
           done
-      # The playground suite uses the runner's system Chrome (`channel: "chrome"`), so no browser download.
-      # `pnpm --filter playground e2e` builds the packages and the site, seeds, serves and runs Playwright.
+      # The playground suite uses the runner's system Chrome (`channel: "chrome"`), so no browser download
+      # (and nothing to cache). `pnpm --filter playground e2e` builds the packages and the site, seeds,
+      # serves and runs Playwright.
       - name: Run end-to-end tests
-        if: steps.playwright.outputs.present == 'true'
+        if: env.LIGHT != 'true' && steps.playwright.outputs.present == 'true'
         run: pnpm --filter playground e2e

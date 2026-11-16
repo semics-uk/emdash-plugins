@@ -32,8 +32,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Nothing is versioned or published until CI has passed on this commit: CI's "pnpm verify" job is the
+  # aggregator of every gate (ci.yml). The Changesets version PR may take CI's light path before it is
+  # merged, so the full checks for the commit being released are the ones CI runs on this push to main.
+  checks:
+    name: Wait for CI on this commit
+    if: github.repository == 'semics-uk/emdash-plugins'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      checks: read
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts
+      - name: Wait for CI's "pnpm verify" to pass
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/version-pr.mjs wait-ci
+
   release:
     name: Version PR or npm publish
+    needs: checks
     # Only the public repository releases; a fork or the private Pro repo has nothing to publish here.
     if: github.repository == 'semics-uk/emdash-plugins'
     runs-on: ubuntu-latest
