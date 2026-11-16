@@ -3,7 +3,8 @@
 // by the `/booking` page only when Events Pro's `public/booking` carries a signing list. Every button
 // is a plain form POST back to the page (no JavaScript): Sign now opens that attendee's signing on
 // this device, Resend asks e-sign to email an invited adult again, and the edit form corrects names
-// and emails of attendees who have not signed, until the cutoff. Rows come from `signingRows`.
+// and emails of attendees who have not signed, until the cutoff. Rows come from `signingRows`. A booking request
+// (T174e, `minors`) was booked without names: unnamed rows ask for one, and each seat can be marked under 18.
 import { around, pickLocale, translator } from "../i18n/index";
 import type { SigningRow } from "./lib/attendees";
 import { zonedAt } from "./lib/list";
@@ -19,9 +20,11 @@ interface Props {
 	locale?: string;
 	/** A waiver after payment (T160): a seat not signed reads "Waiver pending" (else "Waiting"). */
 	pending?: boolean;
+	/** A booking request (T174e): the edit form also asks whether each person is under 18. */
+	minors?: boolean;
 }
 
-const { rows, action, editUntil, zone, pending } = Astro.props;
+const { rows, action, editUntil, zone, pending, minors } = Astro.props;
 const locale = pickLocale(Astro.props.locale, Astro.currentLocale);
 const { t, lang, dir } = translator(locale);
 const editable = rows.filter((r) => r.canEdit);
@@ -38,6 +41,7 @@ const at = (iso: string) => zonedAt(iso, zone, locale);
 					<span class="semics-attendee-name" id={`semics-attendee-${row.seat}`}>{row.name}</span>
 					<span class="semics-status-badge">{row.signed ? t("booking.attendees.signed") : t(pending ? "booking.attendees.pending" : "booking.attendees.waiting")}</span>
 					{row.minor && <p class="semics-attendee-note">{t("booking.attendees.minor")}</p>}
+					{row.unnamed && <p class="semics-attendee-note" data-testid="attendee-unnamed">{t("booking.attendees.unnamed")}</p>}
 					{row.canResend && row.email && (
 						<p class="semics-attendee-note">
 							{emailedBefore}<span>{row.email}</span>{emailedAfter}
@@ -85,11 +89,22 @@ const at = (iso: string) => zonedAt(iso, zone, locale);
 						<legend>{row.name}</legend>
 						<label for={`semics-attendee-name-${row.seat}`}>{t("booking.attendees.name")}</label>
 						<input id={`semics-attendee-name-${row.seat}`} name={`name:${row.seat}`} value={row.name} required maxlength={200} autocomplete="off" />
-						{!row.minor && (
+						{minors ? (
 							<>
 								<label for={`semics-attendee-email-${row.seat}`}>{t("booking.attendees.email")}</label>
-								<input id={`semics-attendee-email-${row.seat}`} name={`email:${row.seat}`} type="email" value={row.email} required maxlength={254} autocomplete="off" />
+								<input id={`semics-attendee-email-${row.seat}`} name={`email:${row.seat}`} type="email" value={row.email} maxlength={254} autocomplete="off" />
+								<span class="semics-attendee-minor">
+									<input id={`semics-attendee-minor-${row.seat}`} name={`minor:${row.seat}`} type="checkbox" checked={row.minor} />
+									<label for={`semics-attendee-minor-${row.seat}`}>{t("booking.attendees.under18")}</label>
+								</span>
 							</>
+						) : (
+							!row.minor && (
+								<>
+									<label for={`semics-attendee-email-${row.seat}`}>{t("booking.attendees.email")}</label>
+									<input id={`semics-attendee-email-${row.seat}`} name={`email:${row.seat}`} type="email" value={row.email} required maxlength={254} autocomplete="off" />
+								</>
+							)
 						)}
 					</fieldset>
 				))}
@@ -150,5 +165,14 @@ const at = (iso: string) => zonedAt(iso, zone, locale);
 		box-sizing: border-box;
 		inline-size: 100%;
 		padding: 0.25rem 0.5rem;
+	}
+	.semics-attendee-minor {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.semics-attendee-edit .semics-attendee-minor input {
+		inline-size: 1.5rem;
+		min-block-size: 1.5rem;
 	}
 </style>

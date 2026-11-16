@@ -254,6 +254,7 @@ const passes = booking && confirmed ? booking.attendees.filter((a) => a.code) : 
 								zone={booking.event?.timezone}
 								locale={locale}
 								pending={booking.waiverAfter === true}
+								minors={booking.signingList?.minors === true}
 							/>
 						)}
 						{passes.length > 0 && (

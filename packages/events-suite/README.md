@@ -89,4 +89,9 @@ After booking (Events Pro), `/booking` lists every attendee as Signed or Waiting
 names and emails of attendees who have not signed until `attendeeEditCutoffHours` before the start. It
 needs the integration's `esignPluginId`, which `eventsSuite()` sets.
 
+Booking requests (an event that takes a preferred date and time window): with a per-attendee waiver the form
+asks only for a ticket count, not attendee rows. With Events Pro nothing is signed while the request waits; once
+staff confirm the time, the buyer adds everyone's names and emails (and who is under 18) on `/booking`, and each
+adult named with their own address is emailed their waiver then.
+
 The suite's own pages are English only for now.

@@ -194,7 +194,9 @@ describe("T174e a waiver request skips the attendee rows", () => {
 		expect(source).toContain(
 			"const rows = needsWaiver && !later ? Array.from({ length: seats }, (_, i) => i + 1) : [];",
 		);
-		expect(source).toContain('{data?.waiverEach && !later && <input type="hidden" name="waiverEach" value="1" />}');
+		expect(source).toContain(
+			'{data?.waiverEach && <input type="hidden" name="waiverEach" value="1" disabled={later || undefined} />}',
+		);
 		expect(source).toContain("{(!needsWaiver || later) && (");
 		expect(source).toContain('data-testid="waiver-later"');
 		expect(source).toMatch(/names and emails/);

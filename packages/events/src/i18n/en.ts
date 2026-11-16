@@ -184,6 +184,9 @@ export const en = {
 	"booking.attendees.saved": "Attendee details saved. Anyone whose details changed gets a new signing request.",
 	"booking.attendees.resent": "We have sent the signing invitation again.",
 	"booking.attendees.pending": "Waiver pending",
+	"booking.attendees.unnamed":
+		"Add this person's name and email below: their waiver invitation goes out when you save.",
+	"booking.attendees.under18": "Under 18",
 	"booking.attendees.invited": "We have emailed the waiver to the other adults to sign.",
 	"booking.waiverStep.title": "Last step: sign the waiver",
 	"booking.waiverStep.lead":
