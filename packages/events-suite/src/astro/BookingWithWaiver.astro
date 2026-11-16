@@ -18,7 +18,13 @@ import {
 	pickerView,
 	usesPicker,
 } from "@semics-tech/emdash-events/astro/lib/picker";
-import { fieldMessage, formatMoney, newIdempotencyKey, type PublicEvent } from "@semics-tech/emdash-events/astro/lib/widget";
+import {
+	fieldMessage,
+	formatMoney,
+	newIdempotencyKey,
+	type PublicEvent,
+	requestDates,
+} from "@semics-tech/emdash-events/astro/lib/widget";
 import { translator } from "@semics-tech/emdash-events/i18n";
 
 import {
@@ -77,6 +83,10 @@ const picker = usesPicker(data, zone)
 	? pickerView(occurrences, { zone, locale, start: pickerStart, now: Date.now(), more: data?.more === true })
 	: null;
 const monthId = `${id}-month`;
+// Booking requests (T174a), as Events' <BookingWidget>: the dates the event takes (allowed weekdays, notice, days
+// ahead, not closed) as a select that works without JavaScript, then the time windows as radios; posts `request`.
+const requests = data?.requests;
+const requestDays = requests ? requestDates(requests, zone, Date.now(), locale) : [];
 const errId = `${id}-occurrence-error`;
 const when = (iso: string) => {
 	const options = { dateStyle: "full", timeStyle: "short" } as const;
@@ -242,6 +252,35 @@ const presetType = presetTicketType(
 							))}
 						</select>
 					</div>
+				)}
+
+				{requests && (
+					<>
+						<div class="semics-field">
+							<input type="hidden" name="needsRequest" value="1" />
+							<label for={`${id}-occurrence`}>{t("widget.date")}</label>
+							<select
+								id={`${id}-occurrence`}
+								name="requestDate"
+								required
+								aria-invalid={bad("occurrence")}
+								aria-describedby={bad("occurrence") ? errId : undefined}
+							>
+								<option value="">{t("widget.chooseDate")}</option>
+								{requestDays.map((d) => <option value={d.value}>{d.label}</option>)}
+							</select>
+							{bad("occurrence") && <p class="semics-field-error" id={errId}>{fieldMessage("occurrence", locale)}</p>}
+						</div>
+						<fieldset class="semics-group semics-windows" data-testid="booking-windows">
+							<legend>{t("widget.window")}</legend>
+							{requests.windows.map((w) => (
+								<div class="semics-check">
+									<input id={`${id}-window-${w.id}`} type="radio" name="requestWindow" value={w.id} required checked={requests.windows.length === 1} />
+									<label for={`${id}-window-${w.id}`}>{w.label} ({w.start}–{w.end})</label>
+								</div>
+							))}
+						</fieldset>
+					</>
 				)}
 
 				<fieldset class="semics-group">
@@ -486,14 +525,14 @@ const presetType = presetTicketType(
 		align-items: center;
 		gap: 0.5rem;
 	}
-	.semics-waiver-widget input:not([type="checkbox"]),
+	.semics-waiver-widget input:not([type="checkbox"]):not([type="radio"]),
 	.semics-waiver-widget select,
 	.semics-waiver-widget button {
 		font: inherit;
 		min-block-size: 2.75rem;
 		max-inline-size: 100%;
 	}
-	.semics-waiver-widget input:not([type="checkbox"]),
+	.semics-waiver-widget input:not([type="checkbox"]):not([type="radio"]),
 	.semics-waiver-widget select {
 		inline-size: 100%;
 		padding: 0.5rem 0.75rem;
@@ -502,7 +541,8 @@ const presetType = presetTicketType(
 		background: var(--_bg);
 		color: var(--_fg);
 	}
-	.semics-waiver-widget input[type="checkbox"] {
+	.semics-waiver-widget input[type="checkbox"],
+	.semics-waiver-widget input[type="radio"] {
 		inline-size: 1.25rem;
 		block-size: 1.25rem;
 		margin: 0;

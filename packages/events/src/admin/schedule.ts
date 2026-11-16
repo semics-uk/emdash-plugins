@@ -107,7 +107,7 @@ export function requestFields(r: EventConfigDoc["requests"]): FormField[] {
 			initialValue: r?.windows.map((w) => `${w.label} ${w.start}-${w.end}`).join("\n"),
 			multiline: true,
 		}),
-		textInput("rq_days", "Requests: days (MO-SU)", list(r?.days)),
+		textInput("rq_days", "Requests: days (MO,TU,…)", list(r?.days)),
 		numberInput("rq_ahead", "Requests: days ahead", { initialValue: r?.aheadDays ?? 90, min: 1 }),
 		numberInput("rq_notice", "Requests: days' notice", { initialValue: r?.noticeDays ?? 0, min: 0 }),
 		textInput("rq_closed", "Requests: closed dates", list(r?.closedDates)),

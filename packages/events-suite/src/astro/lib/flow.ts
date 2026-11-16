@@ -231,7 +231,7 @@ function fieldsOf(issues: ReadonlyArray<{ path?: unknown }> | undefined, order: 
 		else if (path.startsWith("attendees")) out.add("attendees");
 		else if (path.startsWith("buyer.name")) out.add("name");
 		else if (path.startsWith("buyer.email")) out.add("email");
-		else if (path.startsWith("occurrenceId")) out.add("occurrence");
+		else if (path.startsWith("occurrenceId") || path.startsWith("request")) out.add("occurrence");
 		else if (path.startsWith("lines")) out.add(order.rows.length > 0 ? "attendees" : "tickets");
 	}
 	return [...out];
@@ -312,6 +312,7 @@ async function book(ctx: WaiverRequestContext, form: FormData, ids: SuiteIds, de
 		{
 			eventId: order.eventId,
 			...(order.occurrenceId ? { occurrenceId: order.occurrenceId } : {}),
+			...(order.request ? { request: order.request } : {}),
 			lines: order.lines,
 			buyer: order.buyer,
 			idempotencyKey: order.idempotencyKey || (deps.newKey ?? newIdempotencyKey)(),

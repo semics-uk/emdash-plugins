@@ -41,6 +41,8 @@ export interface WaiverAttendee {
 export interface WaiverOrder {
 	eventId: string;
 	occurrenceId?: string;
+	/** A booking request (T174a): a preferred date (local `YYYY-MM-DD`) and a window id, instead of an occurrence. */
+	request?: { date: string; window: string };
 	buyer: { name: string; email: string };
 	attendees: WaiverAttendee[];
 	/** Seats per ticket type, in the order the types first appear. */
@@ -75,6 +77,10 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 	if (!eventId) bad.push("event");
 	const occurrenceId = text(form, "occurrenceId");
 	if (form.get("needsOccurrence") === "1" && !occurrenceId) bad.push("occurrence");
+	// A booking request (T174a): both the date and the window, reported on the date field as Events' widget does.
+	const asks = form.get("needsRequest") === "1";
+	const request = { date: text(form, "requestDate"), window: text(form, "requestWindow") };
+	if (asks && !(request.date && request.window)) bad.push("occurrence");
 	const buyer = { name: text(form, "name"), email: text(form, "email") };
 	check("name", buyer.name, buyer.name.length >= 1 && buyer.name.length <= 200);
 	check("email", buyer.email, buyer.email.length <= 254 && EMAIL.test(buyer.email));
@@ -110,6 +116,7 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 		order: {
 			eventId,
 			...(occurrenceId ? { occurrenceId } : {}),
+			...(asks ? { request } : {}),
 			buyer,
 			idempotencyKey: text(form, "idempotencyKey"),
 			...(turnstileToken ? { turnstileToken } : {}),
