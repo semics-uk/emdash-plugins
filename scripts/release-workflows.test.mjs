@@ -131,3 +131,15 @@ test("root scripts quote their pnpm --filter globs (an unquoted ./packages/** is
 		assert.doesNotMatch(command, /--filter\s+[^"'\s]*\*/, `script "${name}" has an unquoted --filter glob`);
 	}
 });
+
+test("release.yml versions and publishes only after CI's pnpm verify has passed on the commit", () => {
+	const text = read("release.yml");
+	assert.match(text, /^ {2}checks:\n/m);
+	assert.match(text, /node scripts\/version-pr\.mjs wait-ci/);
+	assert.match(text, /^ {2}release:\n\s+name: [^\n]+\n\s+needs: checks\n/m);
+	// Main pushes are never cancelled, so the commit being released always gets its CI result.
+	assert.match(
+		read("ci.yml"),
+		/group: ci-\$\{\{ github\.ref \}\}-\$\{\{ github\.event_name == 'push' && github\.sha \|\| '' \}\}/,
+	);
+});

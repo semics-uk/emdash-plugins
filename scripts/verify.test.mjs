@@ -196,3 +196,44 @@ test("T103: verify builds the docs and runs their link, snippet and listing test
 	assert.ok(docs !== -1, "a docs gate exists");
 	assert.ok(docs > packages, "the docs gate runs after the packages are built (snippets import their dist)");
 });
+
+test("every gate belongs to a CI group, and the groups together are exactly the full run", async () => {
+	const { GROUPS, groupSteps, steps, verifiablePackages } = await import("./verify.mjs");
+	const all = steps(repoRoot);
+	for (const step of all) assert.ok(GROUPS.includes(step.group), `${step.name} has no CI group`);
+	const grouped = GROUPS.flatMap((group) => groupSteps(repoRoot, group).map((s) => s.name));
+	for (const step of all) assert.ok(grouped.includes(step.name), `${step.name} runs in no CI group`);
+	// The per-package CI jobs together run every package's verify script.
+	for (const pkg of verifiablePackages(repoRoot)) {
+		const last = groupSteps(repoRoot, "packages", pkg).at(-1);
+		assert.deepEqual(last.args, ["--filter", `./packages/${pkg}`, "verify"]);
+	}
+	// The build group builds the packages before the gates that read their dist.
+	assert.deepEqual(groupSteps(repoRoot, "build")[0].args, ["run", "build"]);
+});
+
+test("a package's CI job first builds the workspace packages it depends on", async () => {
+	const { buildDependencies } = await import("./verify.mjs");
+	assert.deepEqual(buildDependencies("events-suite", repoRoot), [
+		"@semics-tech/emdash-esign",
+		"@semics-tech/emdash-events",
+	]);
+	assert.deepEqual(buildDependencies("shared", repoRoot), []);
+});
+
+test("ci.yml runs every verify group, one job per package, and the pnpm verify aggregator needs them all", async () => {
+	const { verifiablePackages } = await import("./verify.mjs");
+	const ci = readFileSync(join(repoRoot, ".github", "workflows", "ci.yml"), "utf8");
+	const matrix = /^\s+package: \[([^\]]*)\]/m
+		.exec(ci)?.[1]
+		.split(",")
+		.map((s) => s.trim());
+	assert.deepEqual(matrix, verifiablePackages(repoRoot), "the package matrix lists every package with a verify script");
+	assert.match(ci, /verify\.mjs --group lint\b/);
+	assert.match(ci, /verify\.mjs --group packages --package "\$PACKAGE"/);
+	assert.match(ci, /verify\.mjs --group build\b/);
+	assert.match(ci, /name: pnpm verify\n\s+needs: \[scope, gates, packages, build\]\n\s+if: always\(\)/);
+	assert.match(ci, /version-pr\.mjs gates/);
+	// The required check names still exist.
+	for (const name of ["pnpm verify", "Playwright", "Lint workflows"]) assert.match(ci, new RegExp(`name: ${name}\\n`));
+});
