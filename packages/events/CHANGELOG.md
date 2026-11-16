@@ -1,5 +1,12 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.18
+
+### Patch Changes
+
+- bacf5e6: Booking requests (T174a). An event can take requests for a preferred date and a named time window instead of a fixed date: set the windows, days, days ahead, notice and closed dates under **Booking requests** in the Tickets & booking panel. The booking widget then offers only those dates and the windows, and posts `request: { date, window }` to `public/checkout/reserve`, which checks them in the event's time zone. A request always waits for approval (the deadline is never past the window's start) and its emails say "time to be agreed". On the Bookings page a request shows what was asked for, and its Approve opens **Confirm time**, which confirms the booking with the agreed time; the booking page, calendar file, emails and cancel cutoff then use that time.
+- a95a61d: A booking request that Events Pro charged in full when the buyer asked (T174b) can now be confirmed with **Confirm time** on the Bookings page: Free's approve refuses only a payment whose card is merely held, so a paid request is confirmed with its time and nothing more is charged. When such a request is declined or expires, the buyer's email says their payment has been refunded in full, and the expiry email still goes if the refund came first.
+
 ## 1.0.0-rc.17
 
 No changes in this release.
