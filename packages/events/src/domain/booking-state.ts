@@ -131,7 +131,8 @@ export function planAttendees(
 	attendees: readonly AttendeeInput[] | undefined,
 	{ status, newCode }: { status: AttendeeStatus; newCode: () => string },
 ): Result<Array<{ id: string; data: AttendeeDoc }>, InputIssue[]> {
-	const seats = seatsByType(booking.lines);
+	// An add-on line (T174d) is not a seat: nobody attends it.
+	const seats = seatsByType(booking.lines.filter((l) => !l.addon));
 	const buyer = { name: booking.buyer.name, email: booking.buyer.email };
 	const people = new Map<string, Array<{ name: string; email: string; minor?: boolean }>>();
 	if (attendees === undefined) {

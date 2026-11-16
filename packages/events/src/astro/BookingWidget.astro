@@ -87,7 +87,10 @@ const ticketTypes = [
 	...(data?.ticketTypes ?? []),
 	...(takesCodes ? (promo?.hiddenTypes ?? []) : []).filter((t) => !listed.has(t.id)),
 ] as PublicEvent["ticketTypes"];
-const onSale = data?.status === "on_sale" && ticketTypes.length > 0;
+// Per-person add-ons (Events Pro, T174d) are not places: listed under the tickets, capped by the places chosen.
+const placeTypes = ticketTypes.filter((t) => !t.addon);
+const addonTypes = ticketTypes.filter((t) => t.addon);
+const onSale = data?.status === "on_sale" && placeTypes.length > 0;
 // "Book with this voucher" (T171): the voucher page left the code in an HttpOnly cookie (never a URL) and may
 // name a ticket type, which starts at one ticket. A page that filled in a code must not be cached.
 let presetCode = "";
@@ -122,8 +125,8 @@ const fullDates = occurrences.filter((o) => o.available === 0 && (!picker || pic
 const waitlist =
 	onSale &&
 	data?.waitlist === true &&
-	(ticketTypes.every((t) => t.available === 0) || fullDates.length > 0);
-const waitlistDates = ticketTypes.every((t) => t.available === 0)
+	(placeTypes.every((t) => t.available === 0) || fullDates.length > 0);
+const waitlistDates = placeTypes.every((t) => t.available === 0)
 	? occurrences.filter((o) => !picker || pickerIds.has(o.id))
 	: fullDates;
 const waitlistOutcome = readWaitlistState(Astro.url, eventId);
@@ -389,7 +392,7 @@ const when = (iso: string) => {
 
 				<fieldset class="semics-tickets" data-field="tickets" aria-invalid={invalid("tickets")} aria-describedby={errId("tickets")}>
 					<legend>{t("widget.tickets")}</legend>
-					{ticketTypes.map((type) => {
+					{placeTypes.map((type) => {
 						const soldOut = type.available === 0;
 						const max = Math.min(type.maxPerOrder ?? 50, type.available ?? 50, 50);
 						return (
@@ -417,6 +420,39 @@ const when = (iso: string) => {
 						{bad("tickets") ? fieldText("tickets") : ""}
 					</p>
 				</fieldset>
+
+				{addonTypes.length > 0 && (
+					<fieldset class="semics-tickets" data-testid="booking-addons">
+						<legend>{t("widget.addons")}</legend>
+						<p class="semics-hint">{t("widget.addonsHint")}</p>
+						{addonTypes.map((type) => {
+							const soldOut = type.available === 0;
+							const max = Math.min(type.maxPerOrder ?? 50, type.available ?? 50, 50);
+							return (
+								<div class="semics-ticket">
+									<label for={`${id}-qty-${type.id}`}>
+										<span class="semics-ticket-name">{type.name}</span>
+										<span class="semics-ticket-price">{t("widget.addonPrice", { price: formatMoney(type.priceMinor, data?.currency ?? "GBP", locale) })}</span>
+										{soldOut && <span class="semics-ticket-soldout">{t("widget.soldOut")}</span>}
+									</label>
+									<input
+										id={`${id}-qty-${type.id}`}
+										type="number"
+										inputmode="numeric"
+										name={`${QTY_PREFIX}${type.id}`}
+										value="0"
+										min="0"
+										max={String(max)}
+										disabled={soldOut}
+										data-addon=""
+										data-max={String(max)}
+										data-price-minor={String(type.priceMinor)}
+									/>
+								</div>
+							);
+						})}
+					</fieldset>
+				)}
 
 				<div class="semics-field">
 					<label for={`${id}-name`}>{t("widget.name")}</label>
@@ -556,12 +592,12 @@ const when = (iso: string) => {
 							</select>
 						</div>
 					)}
-					{ticketTypes.length > 1 && (
+					{placeTypes.length > 1 && (
 						<div class="semics-field">
 							<label for={`${id}-wl-type`}>{t("waitlist.ticket")}</label>
 							<select id={`${id}-wl-type`} name="ticketTypeId">
 								<option value="">{t("waitlist.anyTicket")}</option>
-								{ticketTypes.map((type) => <option value={type.id}>{type.name}</option>)}
+								{placeTypes.map((type) => <option value={type.id}>{type.name}</option>)}
 							</select>
 						</div>
 					)}

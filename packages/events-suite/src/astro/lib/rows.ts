@@ -30,6 +30,11 @@ export function people(n: number, one: string, many: string): string {
 	return (n === 1 ? one : many).replace("{n}", new Intl.NumberFormat().format(n));
 }
 
+/** The most of a per-person add-on (T174d) the buyer may order: one each for the places, within its own limit. */
+export function addonCap(places: number, own: number): number {
+	return Math.max(0, Math.min(own, places));
+}
+
 /** A row someone typed in, ticked, or the server marked as wrong. */
 const hasValue = (row: HTMLElement) =>
 	row.querySelector('[aria-invalid="true"]') !== null ||
@@ -69,8 +74,32 @@ export function enhanceRows(form: HTMLFormElement): void {
 		reveal();
 	}
 
+	/** The places the form books now: the plain quantity, or the named attendee rows. */
+	const placesChosen = () => {
+		const plainQty = form.querySelector<HTMLInputElement>('input[name="qty"]');
+		if (plainQty) return Math.max(0, Math.trunc(Number(plainQty.value) || 0));
+		return rows.filter(
+			(row) => !row.hidden && row.querySelector<HTMLInputElement>('input[name$=".name"]')?.value.trim(),
+		).length;
+	};
+	// Per-person add-ons (T174d): capped by the places; with no summary they are still capped.
+	const addons = [...form.querySelectorAll<HTMLInputElement>("input[data-addon-max]")];
 	const update = () => {
-		if (!summary) return;
+		const capped = (places: number) => {
+			let extra = 0;
+			for (const a of addons) {
+				const most = addonCap(places, Number(a.dataset.addonMax) || 50);
+				a.max = String(most);
+				const qty = Math.trunc(Number(a.value) || 0);
+				if (qty > most) a.value = String(most);
+				extra += Math.min(Math.max(qty, 0), most) * (Number(a.dataset.priceMinor) || 0);
+			}
+			return extra;
+		};
+		if (!summary) {
+			capped(placesChosen());
+			return;
+		}
 		const { currency = "GBP", locale = "en-GB", one = "", many = "", free = "" } = summary.dataset;
 		const single = Number(summary.dataset.priceMinor ?? Number.NaN);
 		let count = 0;
@@ -97,6 +126,7 @@ export function enhanceRows(form: HTMLFormElement): void {
 				total = price(rows[0]);
 			}
 		}
+		total += capped(placesChosen());
 		const when = summary.querySelector<HTMLElement>("[data-summary-when]");
 		const select = form.querySelector<HTMLSelectElement>('select[name="occurrenceId"]');
 		const option = select?.value ? select.selectedOptions[0] : undefined;

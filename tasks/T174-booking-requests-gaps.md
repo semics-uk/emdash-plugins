@@ -137,3 +137,32 @@ page); BST/GMT change for window starts (test the last Sunday in October).
 - **Gaps.** A seat still unnamed at the door gets the door link in the buyer's name (as before for any seat in the
   buyer's name); after the edit cutoff an unnamed seat can only be signed that way. The "Sign the waiver" step hides
   while only unnamed seats wait.
+
+## T174d notes (2026-11-16)
+
+- **Where it lives.** Free has only the hook (net −37 B): a booking line may carry `addon: true`; `seatCount(lines)` (places
+  only) feeds `countersForBooking` (the occurrence and event totals; the add-on keeps its own ticket-type counter), so
+  reserve, release, confirm, the webhook's late re-reserve and drift repair all agree; `planAttendees` and the receipt
+  `seatIds` skip add-on lines; the approval and offer emails count places. `planCheckout` copies `addon` from the
+  catalog type onto the line (and plans the reservation from those lines). `addons` (the event's add-on ticket type ids)
+  is in `MANAGED_FIELDS`, so Free's own ticket form save never touches it.
+- **Pro (`src/addons.ts`).** The ticket panel and the Event editor page get an "Add-ons" form: a toggle per ticket type,
+  "<name>: Add-on (per person, not a place)", `addons.save` (licence first; `saveConfigFields`, shared with the waiver
+  order form) writes `config.addons`. Reserve (inside `reserveWithAnswers`, no extra call): the config read comes back with
+  the listed catalog types marked `addon`; when Free writes the draft, an add-on line above the order's places, or add-ons
+  alone, is refused `BAD_REQUEST` with `{ path: "lines", code: "INVALID_QUANTITY" }` (after rate limit and Turnstile,
+  before any seat). `public/event` marks add-on types `addon: true`. The webhook's attendee fallback, the reminder's ticket
+  count and the reports' `tickets` count places (`byType` keeps the add-on's line and revenue).
+- **Widgets.** `<BookingWidget>`: an "Add-ons" fieldset under the tickets (`data-testid="booking-addons"`, "£54 a person"),
+  each input capped live at the places chosen (`addonMax`); add-ons alone fail the client's tickets check; the waitlist
+  lists places only. `<BookingWithWaiver>`: `addon:<id>` quantities under the tickets or attendees, posted as lines after
+  the places, capped live (`addonCap`) by the plain quantity or the named rows. Without JavaScript the server refuses.
+  The booking page lists the add-on line and counts only places as tickets.
+- **Bytes.** Free backend 123,131 → 123,094 B (−37; 810 B under budget less hotfix room). Pro 258,549 → 260,221 B
+  (+1,672; 1,923 B left under 256 KiB), after moving the waiver order's save into a shared helper.
+- **Gaps.** The admin Bookings table still shows no lines (the total only; the booking page and Pro's reports by type
+  show the add-on). A waitlist join with "any ticket" picks the catalog's first visible type, which could be an
+  add-on (the widget lists places only; an offer's line carries no mark, so it would count as places). Marking or
+  unmarking a type changes new bookings only. Found while testing, not fixed here: Free's ticket form save sets the
+  event's `waiverTiming` and `waiverAllowDecline` (T160, Pro) to null, because `counterlessChanges` nulls config keys
+  the form does not send; adding both to `MANAGED_FIELDS` (about +40 B) would fix it.

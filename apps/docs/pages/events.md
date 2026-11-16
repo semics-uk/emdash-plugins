@@ -100,6 +100,15 @@ opens **Confirm time**: a date and start time (from the request, in the event's 
 Confirming sends the usual confirmation with that time, which the booking page, the calendar file and the
 cancel cutoff then use. **Decline** works as for any request.
 
+### Per-person add-ons (Events Pro)
+
+An extra sold per person rather than as a place, such as quad trekking at £54 a person, is a ticket type marked
+**Add-on (per person, not a place)** in the panel's **Add-ons** form. The booking form lists add-ons under the
+tickets, and a booking can have at most one of each for every place it books (an order of add-ons alone is
+refused). An add-on is priced like any ticket (quantity × price) and shows on the booking page, but it takes no
+place from the event or the date and has no attendee or waiver. Its own capacity is its stock. Requests and
+normal bookings both take add-ons.
+
 ## Waitlist
 
 Turn on **Waitlist when sold out** in the panel. When the event (or a date) is sold out, the booking form

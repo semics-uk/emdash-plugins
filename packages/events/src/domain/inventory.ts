@@ -103,6 +103,8 @@ const MANAGED_FIELDS = new Set([
 	"slotsRev",
 	"unlisted",
 	"kept",
+	// Events Pro's add-on list (T174d): its own form writes it.
+	"addons",
 ]);
 
 /** Designs target ≤ 8 bridge calls per invocation (R22). */
@@ -303,10 +305,14 @@ export function seatsByType(lines: Iterable<{ ticketTypeId: string; qty: number 
 	return seats;
 }
 
-/** The counters a booking holds, in reservation order. */
+/** The places order lines take: an add-on line (T174d) is per person, not a place. */
+export const seatCount = (lines: ReadonlyArray<{ qty: number; addon?: boolean }>) =>
+	lines.reduce((n, l) => n + (l.addon ? 0 : l.qty), 0);
+
+/** The counters a booking holds, in reservation order. Add-on lines count on their own ticket type only (T174d). */
 export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurrenceId" | "lines">): CounterRef[] {
 	const perType = seatsByType(booking.lines);
-	const total = [...perType.values()].reduce((a, b) => a + b, 0);
+	const total = seatCount(booking.lines);
 	const refs: CounterRef[] = [...perType.keys()]
 		.sort()
 		.map((id) => ({ collection: "ticket_types", id, qty: perType.get(id) as number }));

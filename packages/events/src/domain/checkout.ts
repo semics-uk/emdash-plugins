@@ -322,7 +322,8 @@ export function planCheckout(
 			return bad("INVALID_QUANTITY");
 		}
 		counters.set(ticketTypeId, { capacity: type.capacity, reserved: 0 });
-		lines.push({ ticketTypeId, qty, unitPriceMinor: type.priceMinor });
+		// A per-person add-on (T174d): Events Pro marks its type in the catalog it serves; the line carries the mark.
+		lines.push({ ticketTypeId, qty, unitPriceMinor: type.priceMinor, ...(type.addon && { addon: true }) });
 	}
 
 	// A request (T174a): only for an event that takes them, which takes nothing else.
@@ -352,7 +353,7 @@ export function planCheckout(
 			event: { capacity: config.capacity, reserved: config.reserved },
 			...(input.occurrenceId !== undefined ? { occurrenceId: input.occurrenceId, occurrence } : {}),
 			ticketTypes: counters,
-			lines: [...merged].map(([ticketTypeId, qty]) => ({ ticketTypeId, qty })),
+			lines,
 		},
 		{ maxCalls: maxSteps, compensation: "bounded" },
 	);
