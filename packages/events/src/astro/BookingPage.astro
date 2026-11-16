@@ -122,6 +122,20 @@ const token = ref && !opening ? (Astro.cookies.get(bookingCookieName(ref))?.valu
 
 let cancelled = false;
 if (ref && token && form) {
+	// Another time the organiser proposed (Events Pro, T174c): accepted, or "That doesn't work" (cancelled and refunded).
+	const answer = form.get("intent");
+	if (answer === "accept-time" || answer === "refuse-time") {
+		const accept = answer === "accept-time";
+		const result = await callPublicRoute(ctx, {
+			method: "POST",
+			path: `public/booking/request/${accept ? "accept" : "refuse"}`,
+			pluginId,
+			body: { bookingRef: ref, accessToken: token },
+		});
+		notice = result.ok
+			? t(accept ? "booking.proposal.accepted" : "booking.proposal.refused")
+			: errorText(result.error.code, "booking.proposal.failed");
+	}
 	if (form.get("intent") === "cancel") {
 		const result = await callPublicRoute(ctx, {
 			method: "POST",
@@ -219,7 +233,7 @@ const passes = booking && confirmed ? booking.attendees.filter((a) => a.code) : 
 					</form>
 				) : booking ? (
 					<>
-						<BookingStatus booking={booking} cancelled={cancelled} ticketNames={names} bookAgain={eventPageHref(booking.event?.slug, page.eventPath)} showAttendees={!signingList} locale={locale} />
+						<BookingStatus booking={booking} cancelled={cancelled} proposalAction={`/booking?ref=${ref}`} ticketNames={names} bookAgain={eventPageHref(booking.event?.slug, page.eventPath)} showAttendees={!signingList} locale={locale} />
 						{payment && <PaymentReturn view={payment} bookingRef={ref} action={`/booking?ref=${ref}`} locale={locale} />}
 						{waiverNext && (
 							<section class="semics-events semics-waiver-step" data-testid="waiver-step" aria-labelledby="semics-waiver-step-title">

@@ -129,6 +129,11 @@ export interface BookingView {
 	event?: { title?: string; startsAt?: string; timezone?: string | null; venue?: string | null; slug?: string | null };
 	/** A booking request whose time is still to be agreed (T174a): what was asked for, "Sat 12 Dec, AM". */
 	requested?: string;
+	/**
+	 * Events Pro (T174c): another time the organiser proposed for a request awaiting approval. The buyer accepts it or
+	 * says it doesn't work (`public/booking/request/accept` / `.../refuse`) by `holdExpiresAt`.
+	 */
+	proposed?: { startsAt: string; endsAt?: string };
 	/** Why the organiser declined (`status: "declined"`), when they said. */
 	declineReason?: string | null;
 	/** Declined, a price was due and no money was taken (`closeBooking`). */
