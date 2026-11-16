@@ -41,3 +41,30 @@ payment and stays behind `ONLINE_BOOKING`. Nothing here blocks the site. This fi
   hold expiry (about 7 days) limits how long a time can stay unagreed.
 - Weigh Free Events bytes on any change (125 KiB budget, about 119 KB used). 1, 2 and 5 may fit better as Pro or
   suite features.
+
+## Plan (2026-11-16)
+
+No new booking status: a request is `awaiting_approval` with `booking.request = { date, window, proposed? }`; the
+agreed time is `booking.time = { startsAt, endsAt? }` (not an occurrence). Event config `requests = { windows
+[{id,label,start,end}], days, aheadDays, noticeDays, closedDates }` (request events have no schedule). Sub-tasks,
+each its own rc, in priority order:
+
+- **T174a · Request bookings and Confirm time (Free, widget; about +1.8 KB Free).** `request` in reserve
+  (`domain/checkout.ts`, `routes/checkout-reserve.ts`), validated against `config.requests`; forces approval with
+  the deadline at the earlier of `deadlineHours` and the window start (`approvalOf`). Panel "Booking requests" form.
+  Approve on a request opens "Confirm time" (writes `time` with the confirm, `heldGuard`). Emails, ICS and booking
+  page use `occurrence ?? time`; "time to be agreed" before that. Widget request mode (date picker and window radios).
+- **T174b · Charge at request, refund on Decline or lapse (Pro, about +1.8 KB).** `requestPayment: charge | hold`
+  (default charge) in `holdMode()`; Free approve refuses only a held payment; lapse refund via a settle one-shot at
+  the deadline; `isSettled` treats a paid `awaiting_approval` as settled. Emails say "refunded in full".
+- **T174c · Propose a time, customer accepts (Pro, Astro; about +2.8 KB).** `bookings.propose:<id>` writes
+  `request.proposed` and moves the deadline (now + `proposalHours`, default 72); `time_proposed` email with a booking
+  link; `public/booking/request/accept|refuse`; `BookingStatus.astro` shows Accept / "That doesn't work".
+- **T174d · Per-person add-on (Free, about +0.8 KB).** `addon: true` ticket types: not seats, quantity capped by the
+  order's seats, kept out of event and date capacity but keep their own counter.
+- **T174e · Attendees after approval (Pro, about +1.2 KB).** Request bookings use `waiver.after`; the widget skips
+  attendees; on confirm the buyer adds names on the booking page and invitations go then.
+
+Risks: Pro settle and sweep never ran with a paid `awaiting_approval` booking (audit first); Stripe keeps its fee
+on refunds (about 1.5% + 20p, tell LMSC); Free ends with about 1.9 KB left (fallback: move the T162 setup check
+page); BST/GMT change for window starts (test the last Sunday in October).
