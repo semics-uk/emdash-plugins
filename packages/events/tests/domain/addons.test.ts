@@ -139,6 +139,12 @@ describe("T174d counters: add-ons keep their own counter, never the event's or t
 	it("T174d the event's add-on list belongs to Pro: a Free config save never diffs it", () => {
 		expect(counterlessChanges({ capacity: 10, addons: ["tt_q"] }, { capacity: 10 })).toBeNull();
 	});
+
+	it("T160 the waiver order belongs to Pro: a Free config save never resets it", () => {
+		const stored = { capacity: 10, waiverTiming: "after-payment", waiverAllowDecline: "on" };
+		expect(counterlessChanges(stored, { capacity: 10 })).toBeNull();
+		expect(counterlessChanges(stored, { capacity: 12 })).toEqual({ capacity: 12 });
+	});
 });
 
 describe("T174d an add-on is not a seat", () => {
