@@ -1,5 +1,14 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.19
+
+### Patch Changes
+
+- d20d1d2: `<BookingWithWaiver>` now takes booking requests (T174a), as Events' `<BookingWidget>` does: for an event set up for requests it shows a select of the dates the event takes (allowed weekdays, notice, days ahead, without closed dates, from Events' `requestDates`) and the time windows as radios, and posts `request` instead of a date, so the booking waits for the organiser with "Request sent: we'll confirm a time with you." on the booking page. It works without JavaScript, the waiver steps are unchanged, and a refused form keeps the chosen window. In the Events panel, the **Requests: days** field (and the schedule and requests error messages) now show the comma list it takes, `MO,TU,…`, instead of a `MO-SU` range it refused.
+- Updated dependencies [d20d1d2]
+  - @semics-tech/emdash-events@1.0.0-rc.19
+  - @semics-tech/emdash-esign@1.0.0-rc.19
+
 ## 1.0.0-rc.18
 
 ### Patch Changes
