@@ -182,6 +182,44 @@ describe("approval notices (T131)", () => {
 	});
 });
 
+describe("T174b a request paid in full at request time", () => {
+	const booking = (over: Partial<BookingDoc>) =>
+		({
+			ref: "ABCDEFGHJK",
+			status: "declined",
+			holdExpiresAt: "2026-07-02T11:00:00.000Z",
+			buyer: { name: "Ada Lovelace", email: "ada@example.com" },
+			email: "ada@example.com",
+			lines: [{ ticketTypeId: "tt", qty: 2, unitPriceMinor: 2000 }],
+			...over,
+		}) as BookingDoc;
+	const send = (kind: string, b: BookingDoc) =>
+		approvalEmail({ kind, to: "ada@example.com" }, b, event("Europe/London"), "Town Hall", "https://site.test/admin");
+	const charged = { payment: { provider: "stripe", ref: "cs_1" }, notCharged: false };
+
+	it("T174b declined or expired: says the payment was refunded in full", () => {
+		for (const [kind, status] of [
+			["approval_declined", "declined"],
+			["approval_expired", "expired"],
+			["approval_expired", "refunded_unavailable"],
+		] as const) {
+			const m = send(kind, booking({ ...charged, status }));
+			expect(m?.text, kind).toContain("Your payment has been refunded in full.");
+			expect(m?.html, kind).toContain("Your payment has been refunded in full.");
+		}
+	});
+
+	it("T174b not for a held card, a booking with no payment, or the 'request received' notice", () => {
+		const held = { payment: { provider: "stripe", ref: "cs_1", hold: "manual" } };
+		expect(send("approval_expired", booking({ ...held, status: "expired" }))?.text).not.toContain("refunded");
+		expect(send("approval_declined", booking({ notCharged: true, ...held }))?.text).toContain("not charged");
+		expect(send("approval_declined", booking({}))?.text).not.toContain("refunded");
+		expect(send("approval_requested", booking({ ...charged, status: "awaiting_approval" }))?.text).not.toContain(
+			"refunded",
+		);
+	});
+});
+
 describe("T174a booking request emails", () => {
 	it("T174a a request with no agreed time says what was asked for and that the time is to be agreed", () => {
 		const requests = { windows: [{ id: "am", label: "AM", start: "10:00", end: "12:00" }] };

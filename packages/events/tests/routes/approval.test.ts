@@ -36,7 +36,8 @@ async function world({
 	settings = [{ key: "adminNotifyEmails", value: "boss@example.com" }] as Array<{ key: string; value: unknown }>,
 }: {
 	status?: string;
-	paid?: boolean;
+	/** `true`: a held payment (Pro's authorisation, T132); `"charged"`: paid in full at request time (T174b). */
+	paid?: boolean | "charged";
 	settings?: Array<{ key: string; value: unknown }>;
 } = {}) {
 	const storage = makeStore();
@@ -64,7 +65,7 @@ async function world({
 		approval: { until: at(48) },
 		accessTokenHash: await hashToken(token),
 		createdAt: at(0),
-		...(paid ? { payment: { provider: "stripe", ref: "cs_1" } } : {}),
+		...(paid ? { payment: { provider: "stripe", ref: "cs_1", ...(paid === true && { hold: "manual" }) } } : {}),
 	});
 	const settingsStore = {
 		list: async () => {
@@ -183,6 +184,17 @@ describe("T131 approve", () => {
 		expect(w.booking()).toEqual(before);
 		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ sold: 0 });
 		expect(w.storage.outbox.docs.has(`confirm-${ID}`)).toBe(false);
+	});
+
+	it("T174b a request paid in full at request time (not held) is approved with its time; the payment is kept", async () => {
+		const w = await world({ status: "awaiting_approval", paid: "charged" });
+		w.booking().request = { date: "2026-11-07", window: "am" };
+		const time = { startsAt: "2026-11-07T10:00:00.000Z" };
+		const { body } = await metered(() => approveBooking(w.deps(T0 + HOUR), ID, time));
+		expect(body).toMatchObject({ ok: true, status: "confirmed" });
+		expect(w.booking()).toMatchObject({ status: "confirmed", time, payment: { provider: "stripe", ref: "cs_1" } });
+		expect(w.counter("ticket_types", "tt_a")).toMatchObject({ sold: 2 });
+		expect(w.storage.outbox.docs.has(`confirm-${ID}`)).toBe(true);
 	});
 
 	it("T131 approving a booking that is not waiting (declined, unknown) is refused", async () => {
@@ -318,6 +330,22 @@ describe("T131 approval emails through the outbox", () => {
 		lapse.nextAttemptAt = at(0);
 		const late = await drain(w, T0 + HOUR);
 		expect(late.sent.map((m) => m.subject)).toEqual([expect.stringMatching(/expired/i)]);
+	});
+
+	it("T174b the expiry notice still goes once a paid request's lapse was refunded (refunded_unavailable)", async () => {
+		const w = await world({ status: "awaiting_approval", paid: "charged" });
+		w.storage.outbox.set(`lapse-${ID}`, {
+			kind: "approval_expired",
+			to: "ada@example.com",
+			payload: { bookingId: ID, bookingRef: REF },
+			attempts: 0,
+			nextAttemptAt: at(0),
+			status: "pending",
+		});
+		w.booking().status = "refunded_unavailable";
+		const { sent } = await drain(w, T0);
+		expect(sent.map((m) => m.subject)).toEqual([expect.stringMatching(/expired/i)]);
+		expect(sent[0]?.text).toContain("Your payment has been refunded in full.");
 	});
 
 	it("T131 the expiry notice is dropped for a request decided in time", async () => {

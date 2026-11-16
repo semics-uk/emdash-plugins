@@ -21,8 +21,9 @@ import { fail } from "./reply";
  *   `APPROVE_COUNTERS` counters are counted, event and date first.
  * - **decline**: `closeBooking` (the cancel protocol: claim, refund a paid booking through the
  *   edition's `RefundStep`, release, move to `declined`, queue `decline-<id>`). Get + 4 + counters.
- * - A request whose payment is held (`payment` set: Pro's card authorisation or saved card, T132, R98)
- *   is approved by the edition, which charges first; Free (also after a downgrade) refuses it.
+ * - A request whose payment is held (`payment.hold`: Pro's card authorisation or saved card, T132, R98)
+ *   is approved by the edition, which charges first; Free (also after a downgrade) refuses it. A request
+ *   Pro charged in full at request time (`payment` without `hold`, T174b) is approved here, charging nothing.
  * - **expire**: the sweeper's, like any lapsed hold (`awaiting_approval` is a hold state whose
  *   `holdExpiresAt` is the deadline); the expiry notice was queued for the deadline by `settle`.
  *
@@ -58,7 +59,8 @@ export async function approveBooking(deps: ApprovalDeps, id: string, time?: Book
 	const open = b.status === AWAITING_APPROVAL && !b.releaseClaimedAt && msOf(b.holdExpiresAt) > now;
 	if (!open) return fail(HOLD_EXPIRED);
 	// A held payment (Pro, R98) is captured by the edition before it confirms; Free never confirms it.
-	if (b.payment) return fail(PAYMENT_FAILED);
+	// A request paid in full at request time (Pro, T174b) has nothing left to charge: Free confirms it.
+	if (b.payment?.hold) return fail(PAYMENT_FAILED);
 	if (b.request && !time) return fail(BAD_REQUEST);
 	const { applied } = await storage.bookings.updateIf(id, {
 		where: heldGuard(b),
