@@ -116,7 +116,8 @@ export const en = {
 	"booking.requested": "Requested: {when}, time to be agreed.",
 	"booking.proposal.title": "The organiser proposed another time",
 	"booking.proposal.lead": "We can't do the time you asked for, but can offer this one:",
-	"booking.proposal.answerBy": "Please answer by {time}. If you don't, the request lapses and any payment is refunded in full.",
+	"booking.proposal.answerBy":
+		"Please answer by {time}. If you don't, the request lapses and any payment is refunded in full.",
 	"booking.proposal.accept": "Accept this time",
 	"booking.proposal.refuse": "That doesn't work",
 	"booking.proposal.refuseNote": "Your request is cancelled and any payment refunded in full.",

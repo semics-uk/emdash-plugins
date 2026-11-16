@@ -70,7 +70,9 @@ describe("booking page", () => {
 		expect(status).toContain("at(proposed.startsAt)");
 		for (const intent of ["accept-time", "refuse-time"]) {
 			expect(status).toMatch(
-				new RegExp(`<form method="post" action=\\{proposalAction\\}>\\s*<input type="hidden" name="intent" value="${intent}" />`),
+				new RegExp(
+					`<form method="post" action=\\{proposalAction\\}>\\s*<input type="hidden" name="intent" value="${intent}" />`,
+				),
 			);
 		}
 		expect(page).toContain("proposalAction={`/booking?ref=${ref}`}");
