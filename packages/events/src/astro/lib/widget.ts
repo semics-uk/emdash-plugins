@@ -32,6 +32,8 @@ export interface PublicEvent {
 	more?: boolean;
 	/** The event sells slots of a schedule (T129): the form uses the day-then-time picker (T130). */
 	slots?: boolean;
+	/** The event takes booking requests (T174a): the form asks for a date and a time window instead of a date. */
+	requests?: PublicRequests;
 	/** Public Turnstile site key, when the site owner configured one. */
 	turnstileSiteKey?: string;
 	/** True when the event requires a signed waiver (T066): the booking form then asks for attendees. */
@@ -48,6 +50,46 @@ export interface PublicEvent {
 	waitlist?: boolean;
 	/** Custom attendee questions (Events Pro, T080): the buyer answers them once per booking. */
 	questions?: PublicQuestion[];
+}
+
+/** What an event takes booking requests for (T174a): windows in local `HH:MM`, weekdays `MO`..`SU`. */
+export interface PublicRequests {
+	windows: Array<{ id: string; label: string; start: string; end: string }>;
+	days: string[];
+	aheadDays: number;
+	noticeDays: number;
+	closedDates: string[];
+}
+
+const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
+
+/**
+ * The dates a request may ask for (T174a), as the core checks them: allowed weekdays from `noticeDays` to
+ * `aheadDays` after today in the event's zone, without closed dates. `value` is the local `YYYY-MM-DD`.
+ */
+export function requestDates(
+	r: PublicRequests,
+	zone: string,
+	now: number,
+	locale?: string,
+): Array<{ value: string; label: string }> {
+	let today: string;
+	try {
+		today = new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(new Date(now));
+	} catch {
+		today = new Date(now).toISOString().slice(0, 10);
+	}
+	const start = Date.parse(`${today}T00:00:00Z`);
+	const label = new Intl.DateTimeFormat(locale, { dateStyle: "full", timeZone: "UTC" });
+	const out: Array<{ value: string; label: string }> = [];
+	for (let i = r.noticeDays; i <= r.aheadDays; i++) {
+		const day = new Date(start + i * 864e5);
+		const value = day.toISOString().slice(0, 10);
+		if (r.days.includes(WEEKDAYS[day.getUTCDay()] as string) && !r.closedDates.includes(value)) {
+			out.push({ value, label: label.format(day) });
+		}
+	}
+	return out;
 }
 
 /**
@@ -85,6 +127,8 @@ export interface BookingView {
 	holdExpiresAt?: string;
 	/** The event's public info: the booked session (`startsAt`, in `timezone`) and `venue` lead the page (T157); `slug` for "Book again". */
 	event?: { title?: string; startsAt?: string; timezone?: string | null; venue?: string | null; slug?: string | null };
+	/** A booking request whose time is still to be agreed (T174a): what was asked for, "Sat 12 Dec, AM". */
+	requested?: string;
 	/** Why the organiser declined (`status: "declined"`), when they said. */
 	declineReason?: string | null;
 	/** Declined, a price was due and no money was taken (`closeBooking`). */
@@ -252,6 +296,8 @@ export function validateCheckoutFields(v: CheckoutFieldValues): WidgetField[] {
 
 const ISSUE_FIELDS: Array<[RegExp, WidgetField]> = [
 	[/^occurrenceId/, "occurrence"],
+	// A refused booking request's date or window (T174a): the request's date field is the "occurrence" one.
+	[/^request/, "occurrence"],
 	[/^lines/, "tickets"],
 	[/^buyer\.name/, "name"],
 	[/^buyer\.email/, "email"],

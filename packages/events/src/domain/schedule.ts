@@ -8,9 +8,9 @@
  * or with slots made by one, is schedule-owned: `config/save` leaves its occurrences to this module.
  * DST: a slot time that does not exist that day is skipped; a repeated one takes the first instant.
  */
-import { utcOffsetMinutes, utcParts, utcToZoned, WEEKDAYS, zonedToUtc } from "@semics-tech/shared";
+import { utcOffsetMinutes, utcParts, utcToZoned, validZone, WEEKDAYS, zonedToUtc } from "@semics-tech/shared";
 
-import type { EventConfigDoc, ScheduleDoc } from "../storage/schema";
+import type { BookingDoc, EventConfigDoc, RequestsDoc, ScheduleDoc } from "../storage/schema";
 import { isArr, isInt, isStr, keysOf } from "./names";
 import { msOf } from "./time";
 
@@ -38,6 +38,24 @@ const dayMs = (d: string) => {
 	const t = DATE.test(d) ? msOf(d) : Number.NaN;
 	return t >= 0 && new Date(t).toISOString().startsWith(d) ? t : Number.NaN;
 };
+const mins = (t: string) => +t.slice(0, 2) * 60 + +t.slice(3);
+/** The weekday (`MO`..`SU`) of a naive day's ms. */
+const weekday = (t: number) => DAYS[(new Date(t).getUTCDay() + 6) % 7] as string;
+
+/** The instant of local `HH:MM` on local `YYYY-MM-DD` in the zone (DST like `zonedToUtc`), else NaN. */
+export const wallMs = (day: string, time: string, zone: string): number => {
+	const t = dayMs(day) + mins(time) * 6e4;
+	return TIME.test(time) && t >= 0 ? zonedToUtc(utcParts(t), zone) : Number.NaN;
+};
+
+/** Weekdays (at least one), 1 to `max` days ahead and closed local dates: schedules' and requests' (T174a). */
+const dated = (days: unknown, ahead: unknown, max: number, closed: unknown) =>
+	list(days, 7, (d) => DAYS.includes(d)) &&
+	(days as string[]).length > 0 &&
+	int(ahead, 1, max) &&
+	isArr(closed) &&
+	closed.length <= 366 &&
+	closed.every((d) => isStr(d) && dayMs(d) >= 0);
 
 /** A valid schedule (times sorted, defaults filled), or null. */
 export function parseSchedule(raw: unknown): ScheduleDoc | null {
@@ -46,16 +64,11 @@ export function parseSchedule(raw: unknown): ScheduleDoc | null {
 	const closed = s.closedDates ?? [];
 	const ok =
 		typeof raw === "object" &&
-		list(s.days, 7, (d) => DAYS.includes(d)) &&
 		list(s.times, 24, (t) => TIME.test(t)) &&
-		(s.days as string[]).length > 0 &&
 		(s.times as string[]).length > 0 &&
 		int(s.durationMinutes, 1, 1440) &&
 		int(s.capacity, 1, 1e6) &&
-		int(ahead, 1, 90) &&
-		isArr(closed) &&
-		closed.length <= 366 &&
-		closed.every((d) => isStr(d) && dayMs(d) >= 0);
+		dated(s.days, ahead, 90, closed);
 	return ok
 		? {
 				days: s.days as string[],
@@ -83,11 +96,10 @@ export function slotStarts(s: ScheduleDoc, zone: string, now: number): number[] 
 		offs.push(off(i + 1));
 		const day = first + i * DAY;
 		const stamp = new Date(day).toISOString().slice(0, 10);
-		if (!s.days.includes(DAYS[(new Date(day).getUTCDay() + 6) % 7] as string) || s.closedDates.includes(stamp))
-			continue;
+		if (!s.days.includes(weekday(day)) || s.closedDates.includes(stamp)) continue;
 		const [a, b] = [offs[i] as number, offs[i + 2] as number];
 		for (const time of s.times) {
-			const w = day + (+time.slice(0, 2) * 60 + +time.slice(3)) * 60_000;
+			const w = day + mins(time) * 60_000;
 			// Each offset in force around the day gives a candidate; a valid one maps back to the same wall time.
 			const at = Math.min(
 				...(a === b ? [a] : [a, b])
@@ -104,8 +116,67 @@ export function slotStarts(s: ScheduleDoc, zone: string, now: number): number[] 
 export function dayBounds(day: string, zone: string): [number, number] | null {
 	const t = dayMs(day);
 	if (!(t >= 0)) return null;
-	const at = (ms: number) => zonedToUtc({ ...utcParts(ms), hour: 0, minute: 0, second: 0 }, zone);
+	const at = (ms: number) => zonedToUtc(utcParts(ms), zone);
 	return [at(t), at(t + DAY)];
+}
+
+/** Valid booking requests (T174a; defaults filled), or null. */
+export function parseRequests(raw: unknown): RequestsDoc | null {
+	const r = (raw ?? 0) as Record<string, unknown>;
+	const w = r.windows as Array<Record<string, string>>;
+	const ahead = r.aheadDays ?? 90;
+	const notice = r.noticeDays ?? 0;
+	const closed = r.closedDates ?? [];
+	const ok =
+		isArr(w) &&
+		w.length > 0 &&
+		list(
+			w.map((x) => x?.id),
+			8,
+			(id) => /^[a-z0-9-]{1,32}$/.test(id),
+		) &&
+		// Exactly id, label, start and end: stored as given.
+		w.every(
+			(x) =>
+				keysOf(x).length === 4 &&
+				isStr(x.label) &&
+				x.label.length <= 40 &&
+				TIME.test(x.start) &&
+				TIME.test(x.end) &&
+				x.end > x.start,
+		) &&
+		int(notice, 0, 365) &&
+		dated(r.days, ahead, 365, closed);
+	return ok
+		? {
+				windows: w as unknown as RequestsDoc["windows"],
+				days: r.days as string[],
+				aheadDays: ahead as number,
+				noticeDays: notice as number,
+				closedDates: closed as string[],
+			}
+		: null;
+}
+
+/**
+ * The instant a request's window starts (T174a), or NaN when the event does not take that window on that
+ * date at `now`: a listed weekday `noticeDays` to `aheadDays` after today in the event's zone, not closed,
+ * and the window not started yet.
+ */
+export function requestStart(
+	c: Pick<EventConfigDoc, "requests" | "info">,
+	r: NonNullable<BookingDoc["request"]>,
+	now: number,
+): number {
+	const q = c.requests;
+	const w = q?.windows.find((x) => x.id === r.window);
+	const zone = validZone(c.info?.timezone) ?? "UTC";
+	const t = dayMs(r.date);
+	const p = utcToZoned(now, zone);
+	const ahead = (t - Date.UTC(p.year, p.month - 1, p.day)) / DAY;
+	const at = w ? wallMs(r.date, w.start, zone) : Number.NaN;
+	const open = q && ahead >= q.noticeDays && ahead <= q.aheadDays && q.days.includes(weekday(t));
+	return open && !q.closedDates.includes(r.date) && at > now ? at : Number.NaN;
 }
 
 /** Whether the event's occurrences belong to a schedule (it has one, or slots one made). */

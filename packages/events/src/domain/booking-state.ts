@@ -37,6 +37,7 @@ import {
 	PENDING,
 } from "./names";
 import { cmp } from "./order";
+import { requestStart } from "./schedule";
 import { iso, msOf } from "./time";
 
 /**
@@ -208,18 +209,20 @@ export const APPROVAL_HOURS = 48;
 /**
  * The approval a new booking needs (T131), copied onto it at reserve (and by a waitlist offer) like
  * the waiver, so a later change to the event does not change it: decided by `until`, the earlier of
- * `deadlineHours` from now and the start of the booked date (or of the event).
+ * `deadlineHours` from now and the start of the booked date (or of the event). A booking request (T174a)
+ * always needs approval, even with approval off (then within `APPROVAL_HOURS`), and starts at its window.
  */
 export function approvalOf(
-	config: Pick<EventConfigDoc, "approval" | "catalog" | "info">,
+	config: Pick<EventConfigDoc, "approval" | "catalog" | "info" | "requests">,
 	occurrenceId: string | undefined,
 	now: number,
+	request?: BookingDoc["request"],
 ): Pick<BookingDoc, "approval"> {
-	if (!config.approval?.required) return {};
-	const until = now + (config.approval.deadlineHours || APPROVAL_HOURS) * 3_600_000;
-	const start = msOf(
-		(occurrenceId ? config.catalog?.occurrences[occurrenceId]?.startsAt : config.info?.startsAt) ?? "",
-	);
+	if (!config.approval?.required && !request) return {};
+	const until = now + (config.approval?.deadlineHours || APPROVAL_HOURS) * 3_600_000;
+	const start = request
+		? requestStart(config, request, now)
+		: msOf((occurrenceId ? config.catalog?.occurrences[occurrenceId]?.startsAt : config.info?.startsAt) ?? "");
 	return { approval: { until: iso(start < until ? start : until) } };
 }
 

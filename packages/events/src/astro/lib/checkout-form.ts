@@ -198,6 +198,10 @@ export async function handleCheckoutForm(
 		needsOccurrence: form.get("needsOccurrence") === "1",
 		occurrenceId,
 	});
+	// A booking request (T174a): a date and a window instead of an occurrence; both are needed.
+	const request = { date: text(form, "requestDate"), window: text(form, "requestWindow") };
+	const asks = form.get("needsRequest") === "1";
+	if (asks && !(request.date && request.window)) invalid.push("occurrence");
 	if (invalid.length > 0) return refuse("BAD_REQUEST", invalid);
 
 	// A gift voucher (T166) is held between reserve and continue; without the suite's hook it cannot be.
@@ -222,6 +226,7 @@ export async function handleCheckoutForm(
 		body: {
 			eventId,
 			...(occurrenceId ? { occurrenceId } : {}),
+			...(asks ? { request } : {}),
 			lines,
 			buyer,
 			idempotencyKey: text(form, "idempotencyKey") || (options.newKey ?? newIdempotencyKey)(),

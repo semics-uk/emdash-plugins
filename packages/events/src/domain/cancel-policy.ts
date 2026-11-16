@@ -24,7 +24,7 @@ type PolicyConfig = Pick<EventConfigDoc, "catalog" | "salesEnd">;
 
 /** The instant the booking's event starts (ms), or `null` when the config does not say. */
 export function referenceStart(
-	booking: Pick<BookingDoc, "occurrenceId">,
+	booking: Pick<BookingDoc, "occurrenceId" | "time">,
 	config: PolicyConfig | null | undefined,
 ): number | null {
 	const occurrences = config?.catalog?.occurrences;
@@ -32,7 +32,9 @@ export function referenceStart(
 		booking.occurrenceId !== undefined && occurrences && Object.hasOwn(occurrences, booking.occurrenceId)
 			? occurrences[booking.occurrenceId]
 			: undefined;
-	const start = occ?.startsAt ?? (booking.occurrenceId === undefined ? config?.salesEnd : undefined);
+	// A request's agreed time (T174a) is its start.
+	const start =
+		booking.time?.startsAt ?? occ?.startsAt ?? (booking.occurrenceId === undefined ? config?.salesEnd : undefined);
 	const ms = msOf(start);
 	return isFin(ms) ? ms : null;
 }
@@ -42,7 +44,7 @@ export type CancelDecision =
 	| { allowed: false; reason: "STATUS" | "TOO_LATE"; cancelBy: string | null };
 
 export function cancelDecision(
-	booking: Pick<BookingDoc, "status" | "occurrenceId">,
+	booking: Pick<BookingDoc, "status" | "occurrenceId" | "time">,
 	config: PolicyConfig | null | undefined,
 	cutoffHours: number,
 	now: number,

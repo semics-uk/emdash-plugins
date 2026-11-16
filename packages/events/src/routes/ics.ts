@@ -110,7 +110,7 @@ export async function bookingIcs(deps: IcsDeps, query: URLSearchParams): Promise
 	const { items } = await deps.storage.bookings.query({ where: { ref }, limit: 1 });
 	const booking = items[0]?.data as BookingDoc | undefined;
 	if (booking?.status !== CONFIRMED) return failure(NOT_FOUND);
-	const info = await loadEventInfo(deps, booking.eventId, booking.occurrenceId);
+	const info = await loadEventInfo(deps, booking.eventId, booking.occurrenceId, booking);
 	if (!info) return failure(NOT_FOUND);
 	const body = calendar(info.title, [
 		calendarEvent(`booking-${ref}@semics-events`, deps.now, info, { description: `Booking reference ${ref}` }),

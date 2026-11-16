@@ -188,6 +188,8 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 		...(occurrences ? { occurrences } : {}),
 		...(next?.hasMore ? { more: true } : {}),
 		...(config.schedule ? { slots: true } : {}),
+		// Booking requests (T174a): the widget asks for a date and a window instead.
+		...(config.requests && { requests: config.requests }),
 		...(siteKey ? { turnstileSiteKey: siteKey } : {}),
 	};
 }

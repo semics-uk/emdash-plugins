@@ -24,6 +24,7 @@ import {
 } from "../domain/names";
 import { readSettings } from "../domain/settings";
 import { iso, msOf } from "../domain/time";
+import { requestText } from "../emails/confirmation";
 import type { BookingDoc, EventConfigDoc } from "../storage/schema";
 import { bookingCalendarQuery } from "./ics";
 import { badRequest, fail, publicPost } from "./reply";
@@ -205,10 +206,18 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 		status: b.status,
 		eventId: b.eventId,
 		...(b.occurrenceId !== undefined ? { occurrenceId: b.occurrenceId } : {}),
-		// The event's public info; `startsAt` is the booked date's (absent once that date leaves the catalog).
+		// The event's public info; `startsAt` is the booked date's (absent once that date leaves the catalog),
+		// or a request's agreed time (absent until staff confirm one, T174a).
 		...(info && {
-			event: b.occurrenceId ? { ...info, startsAt: config.catalog?.occurrences[b.occurrenceId]?.startsAt } : info,
+			event: {
+				...info,
+				...(b.occurrenceId
+					? { startsAt: config.catalog?.occurrences[b.occurrenceId]?.startsAt }
+					: b.request && { startsAt: b.time?.startsAt, endsAt: b.time?.endsAt ?? null }),
+			},
 		}),
+		// What a request asked for while its time is to be agreed: "Sat 12 Dec, AM".
+		...(b.request && !b.time && { requested: requestText(b.request, config) }),
 		buyer: b.buyer,
 		lines: b.lines,
 		totals: b.totals,

@@ -1,7 +1,7 @@
 import { confirmationMessage, confirmationOutboxId } from "../domain/booking-state";
 import { heldGuard } from "../domain/holds";
 import { confirmSold, countersForBooking } from "../domain/inventory";
-import { AWAITING_APPROVAL, CONFIRMED, HOLD_EXPIRED, NOT_FOUND, PAYMENT_FAILED } from "../domain/names";
+import { AWAITING_APPROVAL, BAD_REQUEST, CONFIRMED, HOLD_EXPIRED, NOT_FOUND, PAYMENT_FAILED } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { BookingDoc } from "../storage/schema";
 import { type BookingDeps, type BookingRouteStorage, closeBooking } from "./booking";
@@ -40,7 +40,11 @@ export const APPROVE_COUNTERS = 5;
 
 const answer = (b: BookingDoc, status: string) => ({ ok: true, bookingRef: b.ref, status });
 
-export async function approveBooking(deps: ApprovalDeps, id: string): Promise<unknown> {
+/**
+ * Approve `id`. A booking request (T174a) needs the agreed `time` ("Confirm time": `bookings.confirm:<id>`),
+ * written in the same guarded write as the confirm; without one it is refused (`BAD_REQUEST`).
+ */
+export async function approveBooking(deps: ApprovalDeps, id: string, time?: BookingDoc["time"]): Promise<unknown> {
 	const { storage, now } = deps;
 	const b = (await storage.bookings.get(id)) as BookingDoc | null;
 	if (!b) return fail(NOT_FOUND);
@@ -55,9 +59,10 @@ export async function approveBooking(deps: ApprovalDeps, id: string): Promise<un
 	if (!open) return fail(HOLD_EXPIRED);
 	// A held payment (Pro, R98) is captured by the edition before it confirms; Free never confirms it.
 	if (b.payment) return fail(PAYMENT_FAILED);
+	if (b.request && !time) return fail(BAD_REQUEST);
 	const { applied } = await storage.bookings.updateIf(id, {
 		where: heldGuard(b),
-		set: { status: CONFIRMED, confirmedAt: iso(now) },
+		set: { status: CONFIRMED, confirmedAt: iso(now), ...(time && { time }) },
 	});
 	if (!applied) return fail(HOLD_EXPIRED);
 	// What fits under the limit once the page's list and names are counted; drift repair settles the rest.

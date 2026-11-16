@@ -116,7 +116,7 @@ export function newBooking(
 		totals: plan.totals,
 		answers: {},
 		...waiverOf(config),
-		...approvalOf(config, occurrenceId, now),
+		...approvalOf(config, occurrenceId, now, extra.request),
 		accessTokenHash,
 		...extra,
 		createdAt: iso(now),
@@ -211,7 +211,8 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		config,
 		now,
 		attempt.tokenHash,
-		{ ipHash },
+		// A booking request (T174a): the date and window asked for, until staff confirm a time.
+		{ ipHash, ...(input.request && { request: input.request }) },
 	);
 	let created: { applied: boolean };
 	try {

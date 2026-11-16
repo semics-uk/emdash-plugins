@@ -1,4 +1,4 @@
-import type { EventConfigDoc, EventInfoDoc, OccurrenceDoc } from "../storage/schema";
+import type { BookingDoc, EventConfigDoc, EventInfoDoc, OccurrenceDoc } from "../storage/schema";
 import { isObj } from "./config";
 import { DRAFT, isFin, isStr } from "./names";
 import { iso, msOf } from "./time";
@@ -17,6 +17,8 @@ import { iso, msOf } from "./time";
 export interface EventInfo {
 	title: string;
 	startsAt: number;
+	/** Shown instead of `startsAt` while a booking request's time is to be agreed (T174a). */
+	when?: string;
 	endsAt?: number;
 	timeZone?: string;
 	venue?: string;
@@ -99,8 +101,11 @@ export async function readEntryInfo(
 	return entry ? infoOfEntry(entry as unknown as Record<string, unknown>, mapping) : null;
 }
 
-/** A stored info as the emails' shape, with the occurrence's start when the booking has one. */
-export function eventInfoOf(doc: EventInfoDoc, occurrence?: OccurrenceDoc | null): EventInfo | null {
+/** A stored info as the emails' shape, with the occurrence's start (or a request's agreed time, T174a) when the booking has one. */
+export function eventInfoOf(
+	doc: EventInfoDoc,
+	occurrence?: Pick<OccurrenceDoc, "startsAt" | "endsAt"> | null,
+): EventInfo | null {
 	const entryStart = instant(doc.startsAt);
 	const startsAt = occurrence ? (instant(occurrence.startsAt) ?? entryStart) : entryStart;
 	if (startsAt === undefined) return null;
@@ -124,7 +129,7 @@ export async function loadEventInfo(
 	deps: EventInfoDeps,
 	eventId: string,
 	occurrenceId?: string,
-	{ publicOnly = false }: { publicOnly?: boolean } = {},
+	{ publicOnly = false, time }: { publicOnly?: boolean; time?: BookingDoc["time"] } = {},
 ): Promise<EventInfo | null> {
 	const config = (await deps.storage.event_configs.get(eventId)) as EventConfigDoc | null;
 	// What anyone may see (public/event/ics): a configured event out of draft that is still live,
@@ -133,5 +138,5 @@ export async function loadEventInfo(
 	const doc = config?.info ?? (await readEntryInfo(deps, eventId));
 	if (!doc) return null;
 	const occurrence = occurrenceId ? ((await deps.storage.occurrences.get(occurrenceId)) as OccurrenceDoc | null) : null;
-	return eventInfoOf(doc, occurrence);
+	return eventInfoOf(doc, occurrence ?? time);
 }

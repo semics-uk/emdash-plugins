@@ -42,7 +42,7 @@ import { heldGuard } from "../domain/holds";
 import { AWAITING_APPROVAL, allOf, CANCELLED, CONFIRMED, EXPIRED, HELD, isFin, isStr, uriEnc } from "../domain/names";
 import { iso, msOf } from "../domain/time";
 import type { AttendeeDoc, BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
-import { approvalEmail, cancellationEmail, confirmationEmail, offerEmail } from "./confirmation";
+import { approvalEmail, cancellationEmail, confirmationEmail, offerEmail, requestText } from "./confirmation";
 
 export const OUTBOX_TASK = "outbox-drain";
 /** Every minute; a tick with nothing due costs one storage call. */
@@ -255,10 +255,19 @@ function eventDeps(d: DrainDeps, tick: Tick): EventInfoDeps {
 	};
 }
 
-/** The booking's event (or date) for an email; a missing entry fails the row so the drain retries it. */
+/**
+ * The booking's event (or date, or agreed time) for an email; a missing entry fails the row so the drain
+ * retries it. A request with no time yet (T174a) says what was asked for, "time to be agreed".
+ */
 async function eventOf(d: DrainDeps, tick: Tick, booking: BookingDoc): Promise<EventInfo> {
-	const event = await loadEventInfo(eventDeps(d, tick), booking.eventId, booking.occurrenceId);
+	const deps = eventDeps(d, tick);
+	const event = await loadEventInfo(deps, booking.eventId, booking.occurrenceId, booking);
 	if (!event) throw new Error("no event");
+	const r = booking.time ? undefined : booking.request;
+	if (r) {
+		const config = (await deps.storage.event_configs.get(booking.eventId)) as EventConfigDoc | null;
+		event.when = `${requestText(r, config)}, time to be agreed`;
+	}
 	return event;
 }
 

@@ -21,6 +21,7 @@ import {
 	newIdempotencyKey,
 	type PublicEvent,
 	readWidgetState,
+	requestDates,
 	safeReturnTo,
 	type WidgetField,
 } from "./lib/widget";
@@ -110,6 +111,10 @@ const zone = data?.timezone ?? "UTC";
 const picker = usesPicker(data, zone)
 	? pickerView(occurrences, { zone, locale, start: pickerStart, now: Date.now(), more: data?.more === true })
 	: null;
+// Booking requests (T174a): the dates the event takes (allowed weekdays, notice, days ahead, not closed) as a
+// select that works without JavaScript, then the time windows as radios; the form posts `request`.
+const requests = data?.requests;
+const requestDays = requests ? requestDates(requests, zone, Date.now(), locale) : [];
 const pickerIds = new Set(picker?.days.flatMap((d) => d.slots.map((s) => s.id)));
 const monthId = `${id}-month`;
 // The waitlist (T081): offered when the core takes one and the tickets, or some dates, are sold out.
@@ -292,6 +297,38 @@ const when = (iso: string) => {
 							{bad("occurrence") ? fieldText("occurrence") : ""}
 						</p>
 					</div>
+				)}
+
+				{requests && (
+					<>
+						<div class="semics-field">
+							<input type="hidden" name="needsRequest" value="1" />
+							<label for={`${id}-occurrence`}>{t("widget.date")}</label>
+							<select
+								id={`${id}-occurrence`}
+								name="requestDate"
+								required
+								data-field="occurrence"
+								aria-invalid={invalid("occurrence")}
+								aria-describedby={errId("occurrence")}
+							>
+								<option value="">{t("widget.chooseDate")}</option>
+								{requestDays.map((d) => <option value={d.value}>{d.label}</option>)}
+							</select>
+							<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={fieldText("occurrence")}>
+								{bad("occurrence") ? fieldText("occurrence") : ""}
+							</p>
+						</div>
+						<fieldset class="semics-windows" data-testid="booking-windows">
+							<legend>{t("widget.window")}</legend>
+							{requests.windows.map((w) => (
+								<div class="semics-field semics-check">
+									<input id={`${id}-window-${w.id}`} type="radio" name="requestWindow" value={w.id} required checked={requests.windows.length === 1} />
+									<label for={`${id}-window-${w.id}`}>{w.label} ({w.start}–{w.end})</label>
+								</div>
+							))}
+						</fieldset>
+					</>
 				)}
 
 				{takesCodes && (
@@ -620,6 +657,7 @@ const when = (iso: string) => {
 		color: var(--_muted);
 	}
 	.semics-tickets,
+	.semics-windows,
 	.semics-questions {
 		display: grid;
 		gap: 0.75rem;

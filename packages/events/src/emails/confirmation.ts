@@ -3,7 +3,7 @@ import { type OutboxMessage, pad2, utcToZoned, validZone } from "@semics-tech/sh
 import type { EventInfo } from "../domain/event-info";
 import { AWAITING_APPROVAL } from "../domain/names";
 import { msOf } from "../domain/time";
-import type { BookingDoc, OutboxDoc } from "../storage/schema";
+import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 
 /**
  * Booking emails (EV-FR-08, EV-FR-09). Bodies are built with a plain `fill`, not `renderTemplate`,
@@ -37,6 +37,9 @@ const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const pad = pad2;
 
+/** "Sat 12 Dec" of a UTC midnight. */
+const dayText = (d: Date) => `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
+
 /**
  * "Sat 14 Nov 2026, 19:00 (Europe/London)": plain local time in the event's own zone (UTC when it has
  * none or it is invalid). Built from zone parts, not `Intl` names, so workerd and Node agree.
@@ -44,9 +47,14 @@ const pad = pad2;
 export function formatWhen(event: Pick<EventInfo, "startsAt" | "timeZone">): string {
 	const zone = validZone(event.timeZone) ?? "UTC";
 	const t = utcToZoned(event.startsAt, zone);
-	const weekday = DAYS[new Date(Date.UTC(t.year, t.month - 1, t.day)).getUTCDay()];
-	return `${weekday} ${t.day} ${MONTHS[t.month - 1]} ${t.year}, ${pad(t.hour)}:${pad(t.minute)} (${zone})`;
+	return `${dayText(new Date(Date.UTC(t.year, t.month - 1, t.day)))} ${t.year}, ${pad(t.hour)}:${pad(t.minute)} (${zone})`;
 }
+
+/** "Sat 12 Dec, AM": a booking request's date and window (T174a); the window's id once the event drops it. */
+export const requestText = (
+	r: NonNullable<BookingDoc["request"]>,
+	c: Pick<EventConfigDoc, "requests"> | null | undefined,
+): string => `${dayText(new Date(r.date))}, ${c?.requests?.windows.find((w) => w.id === r.window)?.label ?? r.window}`;
 
 // Plain sentences (nothing to escape), in both the text and the HTML part.
 const KEEP_PRIVATE = "Keep this email private: its link opens your booking once.";
@@ -76,7 +84,7 @@ function compose(
 ): OutboxMessage {
 	const title = i.event.title;
 	const lines = [
-		`When: ${formatWhen(i.event)}`,
+		`When: ${i.event.when ?? formatWhen(i.event)}`,
 		...(i.event.venue ? [`Where: ${i.event.venue}`] : []),
 		`Reference: ${i.bookingRef}`,
 	];

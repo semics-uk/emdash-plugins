@@ -7,6 +7,7 @@ import {
 	escapeHtml,
 	formatWhen,
 	offerEmail,
+	requestText,
 } from "../../src/emails/confirmation";
 import type { BookingDoc } from "../../src/storage/schema";
 
@@ -177,6 +178,28 @@ describe("approval notices (T131)", () => {
 		expect(uncharged?.html).toContain("Your card was not charged.");
 		for (const over of [{}, { notCharged: false }]) {
 			expect(send("approval_declined", booking({ ...b, ...over }))?.text).not.toContain("not charged");
+		}
+	});
+});
+
+describe("T174a booking request emails", () => {
+	it("T174a a request with no agreed time says what was asked for and that the time is to be agreed", () => {
+		const requests = { windows: [{ id: "am", label: "AM", start: "10:00", end: "12:00" }] };
+		expect(requestText({ date: "2026-12-12", window: "am" }, { requests } as never)).toBe("Sat 12 Dec, AM");
+		// A window the event no longer has shows its id.
+		expect(requestText({ date: "2026-12-12", window: "pm" }, null)).toBe("Sat 12 Dec, pm");
+		const b = {
+			ref: "ABCDEFGHJK",
+			status: "awaiting_approval",
+			buyer: { name: "Ada Lovelace", email: "ada@example.com" },
+			email: "ada@example.com",
+			lines: [{ ticketTypeId: "tt", qty: 2, unitPriceMinor: 0 }],
+			holdExpiresAt: "2026-12-10T12:00:00.000Z",
+		} as BookingDoc;
+		const when = { ...event("Europe/London"), when: "Sat 12 Dec, AM, time to be agreed" };
+		for (const kind of ["approval_requested", "approval_admin"]) {
+			const m = approvalEmail({ kind, to: "x@example.com" }, b, when, "Site", "https://site.test/admin");
+			expect(m?.text, kind).toContain("When: Sat 12 Dec, AM, time to be agreed");
 		}
 	});
 });
