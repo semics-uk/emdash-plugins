@@ -41,7 +41,10 @@ function config(over: Partial<EventConfigDoc> = {}): EventConfigDoc {
 	const catalog = catalogOf(
 		[
 			{ id: "tt_pk", data: tt() },
-			{ id: "tt_q", data: tt({ name: "Quad trek", priceMinor: 5400, capacity: 6, minPerOrder: null, maxPerOrder: null }) },
+			{
+				id: "tt_q",
+				data: tt({ name: "Quad trek", priceMinor: 5400, capacity: 6, minPerOrder: null, maxPerOrder: null }),
+			},
 		],
 		[],
 	);
@@ -63,7 +66,13 @@ function config(over: Partial<EventConfigDoc> = {}): EventConfigDoc {
 			noticeDays: 2,
 			closedDates: [],
 		},
-		info: { title: "Clay shoot", startsAt: "2026-01-01T09:00:00.000Z", endsAt: null, timezone: "Europe/London", venue: null },
+		info: {
+			title: "Clay shoot",
+			startsAt: "2026-01-01T09:00:00.000Z",
+			endsAt: null,
+			timezone: "Europe/London",
+			venue: null,
+		},
 		catalog,
 		...over,
 	};
@@ -128,7 +137,7 @@ describe("T174f planning a package order", () => {
 
 	it("T174f a type without the mark is priced per person, as before (no `people` key on its line)", () => {
 		const c = config();
-		delete (c.catalog?.ticketTypes.tt_pk as { package?: boolean }).package;
+		delete (c.catalog as NonNullable<EventConfigDoc["catalog"]>).ticketTypes.tt_pk?.package;
 		const r = plan(c, order([{ ticketTypeId: "tt_pk", qty: 3 }]));
 		expect(r.ok && r.value.lines).toStrictEqual([{ ticketTypeId: "tt_pk", qty: 3, unitPriceMinor: 12_000 }]);
 	});
@@ -139,7 +148,15 @@ describe("T174f planning a package order", () => {
 			"eventId" | "occurrenceId" | "email" | "lines"
 		>;
 		expect(sameOrder(booking, order(threeWithQuads))).toBe(true);
-		expect(sameOrder(booking, order([{ ticketTypeId: "tt_pk", qty: 4 }, { ticketTypeId: "tt_q", qty: 3 }]))).toBe(false);
+		expect(
+			sameOrder(
+				booking,
+				order([
+					{ ticketTypeId: "tt_pk", qty: 4 },
+					{ ticketTypeId: "tt_q", qty: 3 },
+				]),
+			),
+		).toBe(false);
 	});
 });
 

@@ -27,6 +27,8 @@ export interface PublicEvent {
 		maxPerOrder?: number | null;
 		/** Events Pro (T174d): a per-person add-on, not a place; the widget lists it under the tickets, capped by the places. */
 		addon?: boolean;
+		/** Events Pro (T174f): a party package, priced once for its people (`minPerOrder` to `maxPerOrder`). */
+		package?: boolean;
 	}>;
 	/** Upcoming open dates, earliest first: up to 200 from the asked `from` (T130). */
 	occurrences?: Array<{ id: string; startsAt: string; endsAt?: string | null; available?: number | null }>;
@@ -121,8 +123,8 @@ export interface BookingView {
 	bookingRef: string;
 	status: string;
 	eventId?: string;
-	/** `addon` (T174d): a per-person add-on line, not a place. */
-	lines: Array<{ ticketTypeId: string; qty: number; addon?: boolean }>;
+	/** `addon` (T174d): a per-person add-on line, not a place. `people` (T174f): a party package's places. */
+	lines: Array<{ ticketTypeId: string; qty: number; addon?: boolean; people?: number }>;
 	/** `voucherMinor`: what a gift voucher paid (Events Pro, T166), already taken off `totalMinor`. */
 	totals: { totalMinor: number; currency: string; voucherMinor?: number };
 	/** Events Pro (T166): the voucher hold's signed outcome, which the suite passes to Vouchers. */

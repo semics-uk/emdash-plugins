@@ -110,6 +110,10 @@ const rows = needsWaiver && !later ? Array.from({ length: seats }, (_, i) => i +
 // The order of signing and paying (Events Pro, T160): after payment only when the event says so and a ticket has a price.
 const copy = waiverCopy(needsWaiver && data?.waiverAfter === true && ticketTypes.some((t) => t.priceMinor > 0));
 const single = places.length === 1 ? places[0] : undefined;
+// A party package (Events Pro, T174f): one price for the group, its quantity the people (its fewest to most per order).
+const packages = places.some((t) => t.package);
+const groupPrice = (t: { priceMinor: number; package?: boolean }) =>
+	t.package ? `${price(t.priceMinor)} for the group` : price(t.priceMinor);
 // The first row shows; the others wait behind "Add another person" (T157). Without JavaScript they sit in a
 // `<details>`, open when the server marked one of them.
 const [firstRow, ...moreRows] = rows;
@@ -318,13 +322,22 @@ const presetType = presetTicketType(
 								<label for={`${id}-plain-type`}>Ticket</label>
 								<select id={`${id}-plain-type`} name="ticketTypeId" aria-invalid={bad("tickets")}>
 									{places.map((t) => (
-										<option value={t.id} selected={t.id === presetType || undefined} data-price-minor={String(t.priceMinor)}>{t.name} ({price(t.priceMinor)})</option>
+										<option value={t.id} selected={t.id === presetType || undefined} data-price-minor={String(t.priceMinor)} data-package={t.package ? "" : undefined}>{t.name} ({groupPrice(t)})</option>
 									))}
 								</select>
 							</div>
 							<div class="semics-field">
-								<label for={`${id}-plain-qty`}>How many</label>
-								<input id={`${id}-plain-qty`} name="qty" type="number" min="1" max={MAX_SEATS} value="1" required aria-invalid={bad("tickets")} />
+								<label for={`${id}-plain-qty`}>{packages ? "How many people?" : "How many"}</label>
+								<input
+									id={`${id}-plain-qty`}
+									name="qty"
+									type="number"
+									min={String((single?.package && single.minPerOrder) || 1)}
+									max={String(Math.min((single?.package && single.maxPerOrder) || MAX_SEATS, MAX_SEATS))}
+									value={String((single?.package && single.minPerOrder) || 1)}
+									required
+									aria-invalid={bad("tickets")}
+								/>
 							</div>
 						</div>
 					</fieldset>
@@ -351,7 +364,7 @@ const presetType = presetTicketType(
 											<label for={`${id}-${n}-type`}><span class="semics-sr">Attendee {n} </span>Ticket</label>
 											<select id={`${id}-${n}-type`} name={seatField(n, "ticketTypeId")} aria-invalid={bad(seatField(n, "ticketTypeId"))}>
 												{places.map((t) => (
-													<option value={t.id} selected={(n === 1 && t.id === presetType) || undefined} data-price-minor={String(t.priceMinor)}>{t.name} ({price(t.priceMinor)})</option>
+													<option value={t.id} selected={(n === 1 && t.id === presetType) || undefined} data-price-minor={String(t.priceMinor)} data-package={t.package ? "" : undefined}>{t.name} ({groupPrice(t)})</option>
 												))}
 											</select>
 										</div>
@@ -412,10 +425,10 @@ const presetType = presetTicketType(
 					</div>
 				)}
 
-				<div class="semics-summary" data-summary data-currency={currency} data-locale={locale} data-price-minor={single ? String(single.priceMinor) : undefined} data-one="{n} person" data-many="{n} people" data-free={formatMoney(0, currency, locale)} aria-live="polite" data-testid="waiver-summary">
+				<div class="semics-summary" data-summary data-currency={currency} data-locale={locale} data-price-minor={single ? String(single.priceMinor) : undefined} data-package={single?.package ? "" : undefined} data-one="{n} person" data-many="{n} people" data-free={formatMoney(0, currency, locale)} aria-live="polite" data-testid="waiver-summary">
 					<p class="semics-summary-when" data-summary-when hidden></p>
 					<p class="semics-summary-total">
-						<span data-summary-line>{single ? `${single.name}, per ${needsWaiver ? "attendee" : "ticket"}` : "Total"}</span>
+						<span data-summary-line>{single ? `${single.name}, ${single.package ? "for the group" : `per ${needsWaiver ? "attendee" : "ticket"}`}` : "Total"}</span>
 						<strong data-summary-total>{single ? price(single.priceMinor) : ""}</strong>
 					</p>
 				</div>

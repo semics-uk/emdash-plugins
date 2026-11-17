@@ -105,6 +105,7 @@ const MANAGED_FIELDS = new Set([
 	"kept",
 	// Events Pro's add-on list (T174d): its own form writes it.
 	"addons",
+	"packages",
 ]);
 
 /** Designs target ≤ 8 bridge calls per invocation (R22). */
@@ -298,16 +299,18 @@ export function confirmSold(storage: CounterStorage, refs: CounterRef[]): Promis
 	);
 }
 
-/** Seats per ticket type of order lines, in first-seen order (repeated types summed). */
-export function seatsByType(lines: Iterable<{ ticketTypeId: string; qty: number }>): Map<string, number> {
+/** Seats per ticket type of order lines, in first-seen order (repeated types summed; a package line's people, T174f). */
+export function seatsByType(
+	lines: Iterable<{ ticketTypeId: string; qty: number; people?: number }>,
+): Map<string, number> {
 	const seats = new Map<string, number>();
-	for (const { ticketTypeId: id, qty } of lines) seats.set(id, (seats.get(id) ?? 0) + qty);
+	for (const { ticketTypeId: id, qty, people = qty } of lines) seats.set(id, (seats.get(id) ?? 0) + people);
 	return seats;
 }
 
-/** The places order lines take: an add-on line (T174d) is per person, not a place. */
-export const seatCount = (lines: ReadonlyArray<{ qty: number; addon?: boolean }>) =>
-	lines.reduce((n, l) => n + (l.addon ? 0 : l.qty), 0);
+/** The places order lines take: an add-on line (T174d) is per person, not a place; a package's are its people (T174f). */
+export const seatCount = (lines: ReadonlyArray<{ qty: number; addon?: boolean; people?: number }>) =>
+	lines.reduce((n, l) => n + (l.addon ? 0 : (l.people ?? l.qty)), 0);
 
 /** The counters a booking holds, in reservation order. Add-on lines count on their own ticket type only (T174d). */
 export function countersForBooking(booking: Pick<BookingDoc, "eventId" | "occurrenceId" | "lines">): CounterRef[] {

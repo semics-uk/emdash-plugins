@@ -395,11 +395,16 @@ const when = (iso: string) => {
 					{placeTypes.map((type) => {
 						const soldOut = type.available === 0;
 						const max = Math.min(type.maxPerOrder ?? 50, type.available ?? 50, 50);
+						const price = formatMoney(type.priceMinor, data?.currency ?? "GBP", locale);
+						// A party package (Events Pro, T174f): one price for the group; its quantity is the people.
 						return (
 							<div class="semics-ticket">
 								<label for={`${id}-qty-${type.id}`}>
 									<span class="semics-ticket-name">{type.name}</span>
-									<span class="semics-ticket-price">{formatMoney(type.priceMinor, data?.currency ?? "GBP", locale)}</span>
+									<span class="semics-ticket-price">{type.package ? t("widget.packagePrice", { price }) : price}</span>
+									{type.package && (
+										<span class="semics-hint">{t("widget.packagePeople", { min: String(type.minPerOrder ?? 1), max: String(max) })}</span>
+									)}
 									{soldOut && <span class="semics-ticket-soldout">{t("widget.soldOut")}</span>}
 								</label>
 								<input
@@ -411,6 +416,7 @@ const when = (iso: string) => {
 									min="0"
 									max={String(max)}
 									disabled={soldOut}
+									data-package={type.package ? "" : undefined}
 									data-price-minor={String(type.priceMinor)}
 								/>
 							</div>
