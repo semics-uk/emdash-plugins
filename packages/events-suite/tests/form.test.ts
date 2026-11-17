@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
 	hasControlCharacters,
+	MAX_PLAIN,
 	MAX_SEATS,
 	readWaiverForm,
 	readWaiverState,
@@ -200,8 +201,14 @@ describe("readWaiverForm without attendee rows (T066, SX-FR-02)", () => {
 		});
 	});
 
-	it("SX-FR-02 a missing ticket or a quantity outside 1 to the seat limit is refused, naming the tickets field", () => {
-		for (const over of [{ ticketTypeId: "" }, { qty: "0" }, { qty: String(MAX_SEATS + 1) }, { qty: "x" }]) {
+	it("T174h a plain order is not held to the attendee rows' limit: a group of 20 books by quantity", () => {
+		expect(MAX_PLAIN).toBeGreaterThan(MAX_SEATS);
+		const read = readWaiverForm(form({ ...PLAIN, qty: "20" }));
+		expect(read.ok && read.order.lines).toEqual([{ ticketTypeId: "tt_adult", qty: 20 }]);
+	});
+
+	it("SX-FR-02 a missing ticket or a quantity outside 1 to the plain limit is refused, naming the tickets field", () => {
+		for (const over of [{ ticketTypeId: "" }, { qty: "0" }, { qty: String(MAX_PLAIN + 1) }, { qty: "x" }]) {
 			expect(readWaiverForm(form({ ...PLAIN, ...over })), JSON.stringify(over)).toEqual({
 				ok: false,
 				code: "BAD_REQUEST",
