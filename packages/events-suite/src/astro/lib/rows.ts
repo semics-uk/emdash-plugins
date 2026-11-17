@@ -35,6 +35,13 @@ export function addonCap(places: number, own: number): number {
 	return Math.max(0, Math.min(own, places));
 }
 
+/** What an order costs: a party package (T174f) once for its people, any other ticket type per place. */
+export function orderMinor(types: Iterable<{ priceMinor: number; qty: number; package?: boolean }>): number {
+	let total = 0;
+	for (const t of types) if (t.qty > 0) total += (t.package ? 1 : t.qty) * t.priceMinor;
+	return total;
+}
+
 /** A row someone typed in, ticked, or the server marked as wrong. */
 const hasValue = (row: HTMLElement) =>
 	row.querySelector('[aria-invalid="true"]') !== null ||
@@ -106,24 +113,37 @@ export function enhanceRows(form: HTMLFormElement): void {
 		let total = 0;
 		const plainType = form.querySelector<HTMLSelectElement>('select[name="ticketTypeId"]');
 		const plainQty = form.querySelector<HTMLInputElement>('input[name="qty"]');
+		// A party package (T174f, `data-package`) costs its price once for its people.
+		const typeOf = (option: HTMLElement | undefined | null) =>
+			option
+				? {
+						key: option.getAttribute("value") ?? "",
+						priceMinor: Number(option.dataset.priceMinor ?? 0),
+						pkg: option.dataset.package !== undefined,
+					}
+				: { key: "", priceMinor: single, pkg: summary.dataset.package !== undefined };
 		if (plainType && plainQty) {
 			count = Math.max(1, Math.trunc(Number(plainQty.value) || 1));
-			total = count * Number(plainType.selectedOptions[0]?.dataset.priceMinor ?? 0);
+			const type = typeOf(plainType.selectedOptions[0]);
+			total = orderMinor([{ priceMinor: type.priceMinor, qty: count, package: type.pkg }]);
 		} else {
-			const price = (row: HTMLElement | undefined) => {
-				const type = row?.querySelector<HTMLSelectElement>("select");
-				return type ? Number(type.selectedOptions[0]?.dataset.priceMinor ?? 0) : single;
-			};
+			const optionOf = (row: HTMLElement | undefined) =>
+				row?.querySelector<HTMLSelectElement>("select")?.selectedOptions[0];
+			const byType = new Map<string, { priceMinor: number; qty: number; package: boolean }>();
 			for (const row of rows) {
 				const name = row.querySelector<HTMLInputElement>('input[name$=".name"]');
 				if (row.hidden || !name?.value.trim()) continue;
 				count++;
-				total += price(row);
+				const type = typeOf(optionOf(row));
+				const seen = byType.get(type.key) ?? { priceMinor: type.priceMinor, qty: 0, package: type.pkg };
+				seen.qty++;
+				byType.set(type.key, seen);
 			}
-			// Nobody named yet: what one place costs.
+			total = orderMinor(byType.values());
+			// Nobody named yet: what one place (or the package) costs.
 			if (count === 0) {
 				count = 1;
-				total = price(rows[0]);
+				total = typeOf(optionOf(rows[0])).priceMinor;
 			}
 		}
 		total += capped(placesChosen());

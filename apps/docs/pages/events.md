@@ -103,11 +103,20 @@ cancel cutoff then use. **Decline** works as for any request.
 ### Per-person add-ons (Events Pro)
 
 An extra sold per person rather than as a place, such as quad trekking at £54 a person, is a ticket type marked
-**Add-on (per person, not a place)** in the panel's **Add-ons** form. The booking form lists add-ons under the
+**Add-on (per person, not a place)** in the panel's **Add-ons and packages** form. The booking form lists add-ons under the
 tickets, and a booking can have at most one of each for every place it books (an order of add-ons alone is
 refused). An add-on is priced like any ticket (quantity × price) and shows on the booking page, but it takes no
 place from the event or the date and has no attendee or waiver. Its own capacity is its stock. Requests and
 normal bookings both take add-ons.
+
+### Party packages (Events Pro)
+
+A price for a group, such as "up to 5 people, 60 shots, £120", is a ticket type marked **Package (one price for
+the group)** in the same form. Its price is the package price, and its minimum and maximum per order are the
+fewest and most people it takes. The booking form asks "How many people?" (from the minimum to the maximum) and
+charges the package price once. Each person still takes a place from the event or date, has an attendee row and
+signs their own waiver, and per-person add-ons are capped at one each for those people. Requests take packages
+too, including when names are added after the time is confirmed.
 
 ## Waitlist
 

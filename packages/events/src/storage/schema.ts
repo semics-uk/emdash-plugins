@@ -93,6 +93,11 @@ export interface EventConfigDoc {
 	 * Pro marks those types `addon` in the catalog its reserve plans from; Free's own save never touches it.
 	 */
 	addons?: string[];
+	/**
+	 * Events Pro (T174f): the ticket types sold as party packages, one price for the group. Pro marks them `package`
+	 * in the catalog its reserve plans from; the type's `minPerOrder` / `maxPerOrder` are the fewest and most people.
+	 */
+	packages?: string[];
 	recurrence?: string | null;
 	/** Slot schedule (T129, `src/domain/schedule.ts`); never beside `recurrence`. */
 	schedule?: ScheduleDoc | null;
@@ -155,6 +160,8 @@ export type CatalogTicketType = Pick<
 > & {
 	/** A per-person add-on (T174d): set by Events Pro on the catalog it serves reserve, never stored. */
 	addon?: boolean;
+	/** A party package (T174f): set by Events Pro on the catalog it serves reserve, never stored. */
+	package?: boolean;
 };
 
 /** What checkout needs from an occurrence, copied onto the event config. */
@@ -223,6 +230,11 @@ export interface BookingLine {
 	 * so the occurrence and event counters, attendees and waiver seats leave it out (`seatCount`, `countersForBooking`).
 	 */
 	addon?: boolean;
+	/**
+	 * A party package (T174f, Events Pro): the line is one package (`qty: 1`, priced once) for this many people, each
+	 * a place: counters, attendees and waiver seats count `people` (`seatsByType`, `seatCount`).
+	 */
+	people?: number;
 }
 
 export interface BookingDoc {

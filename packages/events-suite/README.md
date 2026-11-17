@@ -98,4 +98,7 @@ Per-person add-ons (Events Pro marks them): listed under the tickets or attendee
 for the places booked (the cap follows the places with JavaScript; without it Events Pro refuses more). They are
 not attendees and have no waiver.
 
+Party packages (Events Pro marks them): one price for the group. The plain form asks "How many people?" (an attendee
+row each when names are asked for), the people are the line's quantity, and the summary prices the package once.
+
 The suite's own pages are English only for now.

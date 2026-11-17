@@ -166,3 +166,37 @@ page); BST/GMT change for window starts (test the last Sunday in October).
   unmarking a type changes new bookings only. Found while testing, not fixed here: Free's ticket form save sets the
   event's `waiverTiming` and `waiverAllowDecline` (T160, Pro) to null, because `counterlessChanges` nulls config keys
   the form does not send; adding both to `MANAGED_FIELDS` (about +40 B) would fix it.
+
+## T174f notes (2026-11-17)
+
+Party packages, one price for the group (lmsc-site #59: "up to 5 people, 60 shots, £120"), each person still a place.
+
+- **Shapes.** Pro config `packages: string[]` (ticket type ids, beside `addons`; in Free's `MANAGED_FIELDS`). Catalog
+  type `package?: true` (Pro marks it for reserve, never stored). Booking line `{ ticketTypeId, qty: 1, unitPriceMinor:
+  <package price>, people: n }`. `public/event` types get `package: true`.
+- **Decisions.** No new min/max fields: a package's `minPerOrder` / `maxPerOrder` are its fewest and most people (Free
+  already checks the order's quantity against them) and `priceMinor` is the package price. The buyer's quantity is the
+  people, so both widgets, the no-JS posts and a resubmit's `sameOrder` need no new input. `qty: 1` keeps every money
+  path (subtotal, the Stripe line, refunds, an activity voucher, reports' revenue) right without change. The package's
+  own ticket-type counter counts people like the event and date (`seatsByType` honours `people`), so its capacity is
+  in people. A type ticked both a package and an add-on is saved as an add-on.
+- **Free hook (+63 B).** `planCheckout` writes `...(type.package && { qty: 1, people: qty })`; `seatsByType` and
+  `seatCount` count `people ?? qty`. That covers reserve, release, confirm, late re-reserve, drift repair,
+  `planAttendees`, receipt `seatIds`, the emails' seat counts and `sameOrder`.
+- **Pro (`src/addons.ts`, +613 B with Free's bytes).** The Add-ons form is "Add-ons and packages": two toggles per ticket
+  type ("<name>: Package (one price for the group)" beside the add-on one); `addons.save` writes both lists.
+  `markAddons` / `withAddonFlags` share one `marksOf` map; the add-on cap counts a package's people.
+- **Widgets.** `<BookingWidget>`: a package's row says "£120.00 for the group" and "How many people? 1 to 5" (input max is
+  the package's max), `data-package` makes the live total count it once (`orderTotalMinor`). `<BookingWithWaiver>`:
+  "How many people?" on the plain form (min/max from a single package type), options "(£120.00 for the group)", the
+  summary prices packages once (`orderMinor`). The booking page lists "Party package for 3 people" and counts 3
+  tickets. English and Arabic.
+- **Requests and attendees later.** Nothing special: a request plans the package like any order (charged at request
+  time for the total), and T174e's names-after-confirm makes one unnamed seat per person.
+- **Bytes.** Free backend 123,094 -> 123,157 B (+63; 747 B left under budget less hotfix room). Pro 260,555 ->
+  261,168 B (+613; 976 B left under 256 KiB).
+- **Gaps.** No live check of the fewest people in the widgets (the input's min stays 0 so a package can be left out;
+  the server refuses fewer with `INVALID_QUANTITY`). A buyer cannot book two packages in one order (two parties
+  book twice). Promo codes and a money voucher apply to the total as before; a percentage-per-ticket promo, if one
+  is ever added, would see one package line. Marking or unmarking a type changes new bookings only; an existing
+  per-person booking of a type later marked a package keeps its lines.

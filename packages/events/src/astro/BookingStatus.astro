@@ -41,8 +41,9 @@ const [heldBefore, heldAfter] = around(
 	t(proposed ? "booking.proposal.answerBy" : booking.status === "awaiting_approval" ? "booking.decideBy" : "booking.heldUntil"),
 	"time",
 );
-// A per-person add-on line (T174d) is listed but is not a ticket.
-const tickets = booking.lines.reduce((n, line) => n + (line.addon ? 0 : line.qty), 0);
+// A per-person add-on line (T174d) is listed but is not a ticket; a party package's tickets are its people (T174f).
+const tickets = booking.lines.reduce((n, line) => n + (line.addon ? 0 : (line.people ?? line.qty)), 0);
+const count = (n: number) => new Intl.NumberFormat(locale).format(n);
 const status = cancelled ? "cancelled" : booking.status;
 const zone = booking.event?.timezone;
 const at = (iso: string) => zonedAt(iso, zone, locale);
@@ -111,8 +112,10 @@ const names = showAttendees && new Set(named).size > 1 ? named : [];
 				booking.lines.map((line) => (
 					<li>
 						{ticketNames[line.ticketTypeId]
-							? t("booking.line", { qty: new Intl.NumberFormat(locale).format(line.qty), name: ticketNames[line.ticketTypeId] })
-							: plural("booking.lines", line.qty)}
+							? line.people
+								? t("booking.packageLine", { people: count(line.people), name: ticketNames[line.ticketTypeId] })
+								: t("booking.line", { qty: count(line.qty), name: ticketNames[line.ticketTypeId] })
+							: plural("booking.lines", line.people ?? line.qty)}
 					</li>
 				))
 			}

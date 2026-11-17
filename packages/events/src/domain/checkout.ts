@@ -322,8 +322,15 @@ export function planCheckout(
 			return bad("INVALID_QUANTITY");
 		}
 		counters.set(ticketTypeId, { capacity: type.capacity, reserved: 0 });
-		// A per-person add-on (T174d): Events Pro marks its type in the catalog it serves; the line carries the mark.
-		lines.push({ ticketTypeId, qty, unitPriceMinor: type.priceMinor, ...(type.addon && { addon: true }) });
+		// A per-person add-on (T174d) or a party package (T174f): Events Pro marks its type in the catalog it serves. The
+		// add-on line carries the mark; a package is one line priced once, for the people asked (`qty`).
+		lines.push({
+			ticketTypeId,
+			qty,
+			unitPriceMinor: type.priceMinor,
+			...(type.addon && { addon: true }),
+			...(type.package && { qty: 1, people: qty }),
+		});
 	}
 
 	// A request (T174a): only for an event that takes them, which takes nothing else.

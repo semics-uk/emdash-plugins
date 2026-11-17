@@ -66,9 +66,10 @@ export function validateBooking(v: BookingValues): BookingField[] {
 	return bad;
 }
 
-export function orderTotalMinor(lines: ReadonlyArray<{ qty: number; priceMinor: number }>): number {
+/** A party package (T174f) is priced once for its people; every other line per ticket. */
+export function orderTotalMinor(lines: ReadonlyArray<{ qty: number; priceMinor: number; package?: boolean }>): number {
 	let total = 0;
-	for (const line of lines) if (line.qty > 0) total += line.qty * line.priceMinor;
+	for (const line of lines) if (line.qty > 0) total += (line.package ? 1 : line.qty) * line.priceMinor;
 	return total;
 }
 
@@ -155,7 +156,11 @@ export function enhance(form: HTMLFormElement): void {
 	const updateTotal = () => {
 		if (!total || !totalValue) return;
 		const minor = orderTotalMinor(
-			qtyInputs.map((i) => ({ qty: qtyOf(i), priceMinor: Number(i.dataset.priceMinor) || 0 })),
+			qtyInputs.map((i) => ({
+				qty: qtyOf(i),
+				priceMinor: Number(i.dataset.priceMinor) || 0,
+				package: i.dataset.package !== undefined,
+			})),
 		);
 		totalValue.textContent = formatMinor(
 			minor,
