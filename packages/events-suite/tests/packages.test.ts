@@ -69,4 +69,8 @@ describe("T174f packages in the booking form", () => {
 		const rows = readFileSync(fileURLToPath(new URL("../src/astro/lib/rows.ts", import.meta.url)), "utf8");
 		expect(rows).toContain("setCustomValidity");
 	});
+
+	it("T174h the plain quantity goes up to a ticket type's most per order, past the attendee rows' limit", () => {
+		expect(source).toContain("MAX_PLAIN");
+	});
 });
