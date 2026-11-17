@@ -54,6 +54,7 @@ export const ar: Messages = {
 	"widget.field.promo": "تحقق من الرمز، أو اترك الحقل فارغًا.",
 	"widget.field.voucher": "تحقق من الرمز، أو اترك الحقل فارغًا.",
 	"widget.field.tickets": "اختر تذكرة واحدة على الأقل.",
+	"widget.field.minimum": "اختر {min} على الأقل من {name}، أو لا شيء.",
 	"widget.field.name": "أدخل اسمك.",
 	"widget.field.email": "أدخل بريدًا إلكترونيًا صحيحًا.",
 	"widget.error.BAD_REQUEST": "يُرجى مراجعة البيانات المحددة.",

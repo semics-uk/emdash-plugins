@@ -395,6 +395,8 @@ const when = (iso: string) => {
 					{placeTypes.map((type) => {
 						const soldOut = type.available === 0;
 						const max = Math.min(type.maxPerOrder ?? 50, type.available ?? 50, 50);
+						// Its fewest per order (T174g): the script refuses fewer, but not none, before sending.
+						const min = type.minPerOrder ?? 1;
 						const price = formatMoney(type.priceMinor, data?.currency ?? "GBP", locale);
 						// A party package (Events Pro, T174f): one price for the group; its quantity is the people.
 						return (
@@ -403,7 +405,7 @@ const when = (iso: string) => {
 									<span class="semics-ticket-name">{type.name}</span>
 									<span class="semics-ticket-price">{type.package ? t("widget.packagePrice", { price }) : price}</span>
 									{type.package && (
-										<span class="semics-hint">{t("widget.packagePeople", { min: String(type.minPerOrder ?? 1), max: String(max) })}</span>
+										<span class="semics-hint">{t("widget.packagePeople", { min: String(min), max: String(max) })}</span>
 									)}
 									{soldOut && <span class="semics-ticket-soldout">{t("widget.soldOut")}</span>}
 								</label>
@@ -417,6 +419,8 @@ const when = (iso: string) => {
 									max={String(max)}
 									disabled={soldOut}
 									data-package={type.package ? "" : undefined}
+									data-min={min > 1 ? String(min) : undefined}
+									data-min-message={min > 1 ? t("widget.field.minimum", { min: String(min), name: type.name }) : undefined}
 									data-price-minor={String(type.priceMinor)}
 								/>
 							</div>

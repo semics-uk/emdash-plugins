@@ -114,6 +114,12 @@ const single = places.length === 1 ? places[0] : undefined;
 const packages = places.some((t) => t.package);
 const groupPrice = (t: { priceMinor: number; package?: boolean }) =>
 	t.package ? `${price(t.priceMinor)} for the group` : price(t.priceMinor);
+// A ticket type's fewest and most per order (T174g): the form refuses fewer people before sending (the plain quantity
+// by its `min`, attendee rows by the script); none of a type is fine. Reserve refuses them too.
+const fewest = (t: { minPerOrder?: number | null }) => ((t.minPerOrder ?? 1) > 1 ? String(t.minPerOrder) : undefined);
+const fewMessage = (t: { name: string; minPerOrder?: number | null }) =>
+	fewest(t) && `Add at least ${t.minPerOrder} people for ${t.name}, or choose another ticket.`;
+const most = (t: { maxPerOrder?: number | null }) => String(Math.min(t.maxPerOrder ?? MAX_SEATS, MAX_SEATS));
 // The first row shows; the others wait behind "Add another person" (T157). Without JavaScript they sit in a
 // `<details>`, open when the server marked one of them.
 const [firstRow, ...moreRows] = rows;
@@ -133,6 +139,9 @@ const presetType = presetTicketType(
 	Astro.url,
 	places.map((t) => t.id),
 );
+// The plain quantity's limits start from the chosen ticket type; the script follows a change of type.
+const chosen: { minPerOrder?: number | null; maxPerOrder?: number | null } =
+	places.find((t) => t.id === presetType) ?? places[0] ?? {};
 ---
 <section id={id} class="semics-events semics-waiver-widget" aria-labelledby={`${id}-title`} data-testid="booking-with-waiver">
 	<h2 id={`${id}-title`}>{heading}</h2>
@@ -322,7 +331,7 @@ const presetType = presetTicketType(
 								<label for={`${id}-plain-type`}>Ticket</label>
 								<select id={`${id}-plain-type`} name="ticketTypeId" aria-invalid={bad("tickets")}>
 									{places.map((t) => (
-										<option value={t.id} selected={t.id === presetType || undefined} data-price-minor={String(t.priceMinor)} data-package={t.package ? "" : undefined}>{t.name} ({groupPrice(t)})</option>
+										<option value={t.id} selected={t.id === presetType || undefined} data-price-minor={String(t.priceMinor)} data-package={t.package ? "" : undefined} data-min={fewest(t)} data-max={most(t)} data-min-message={fewMessage(t)}>{t.name} ({groupPrice(t)})</option>
 									))}
 								</select>
 							</div>
@@ -332,9 +341,9 @@ const presetType = presetTicketType(
 									id={`${id}-plain-qty`}
 									name="qty"
 									type="number"
-									min={String((single?.package && single.minPerOrder) || 1)}
-									max={String(Math.min((single?.package && single.maxPerOrder) || MAX_SEATS, MAX_SEATS))}
-									value={String((single?.package && single.minPerOrder) || 1)}
+									min={fewest(chosen) ?? "1"}
+									max={most(chosen)}
+									value={fewest(chosen) ?? "1"}
 									required
 									aria-invalid={bad("tickets")}
 								/>
@@ -358,13 +367,13 @@ const presetType = presetTicketType(
 								<fieldset class="semics-attendee" data-attendee={String(n)} data-testid="waiver-attendee" aria-describedby={`${id}-who`}>
 									<legend>Attendee {n}</legend>
 									{single ? (
-										<input type="hidden" name={seatField(n, "ticketTypeId")} value={single.id} />
+										<input type="hidden" name={seatField(n, "ticketTypeId")} value={single.id} data-min={fewest(single)} data-min-message={fewMessage(single)} />
 									) : (
 										<div class="semics-field">
 											<label for={`${id}-${n}-type`}><span class="semics-sr">Attendee {n} </span>Ticket</label>
 											<select id={`${id}-${n}-type`} name={seatField(n, "ticketTypeId")} aria-invalid={bad(seatField(n, "ticketTypeId"))}>
 												{places.map((t) => (
-													<option value={t.id} selected={(n === 1 && t.id === presetType) || undefined} data-price-minor={String(t.priceMinor)} data-package={t.package ? "" : undefined}>{t.name} ({groupPrice(t)})</option>
+													<option value={t.id} selected={(n === 1 && t.id === presetType) || undefined} data-price-minor={String(t.priceMinor)} data-package={t.package ? "" : undefined} data-min={fewest(t)} data-max={most(t)} data-min-message={fewMessage(t)}>{t.name} ({groupPrice(t)})</option>
 												))}
 											</select>
 										</div>

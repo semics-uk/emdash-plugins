@@ -55,6 +55,7 @@ export const en = {
 	"widget.field.promo": "Check the code, or leave it empty.",
 	"widget.field.voucher": "Check the code, or leave it empty.",
 	"widget.field.tickets": "Choose at least one ticket.",
+	"widget.field.minimum": "Choose at least {min} for {name}, or none.",
 	"widget.field.name": "Enter your name.",
 	"widget.field.email": "Enter a valid email address.",
 	"widget.error.BAD_REQUEST": "Please check the highlighted details.",
