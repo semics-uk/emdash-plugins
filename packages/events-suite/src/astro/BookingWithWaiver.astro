@@ -30,6 +30,7 @@ import { translator } from "@semics-tech/emdash-events/i18n";
 import {
 	DEFAULT_SEATS,
 	MAX_ADDON_QTY,
+	MAX_PLAIN,
 	MAX_SEATS,
 	readWaiverState,
 	safeReturnPath,
@@ -119,7 +120,8 @@ const groupPrice = (t: { priceMinor: number; package?: boolean }) =>
 const fewest = (t: { minPerOrder?: number | null }) => ((t.minPerOrder ?? 1) > 1 ? String(t.minPerOrder) : undefined);
 const fewMessage = (t: { name: string; minPerOrder?: number | null }) =>
 	fewest(t) && `Add at least ${t.minPerOrder} people for ${t.name}, or choose another ticket.`;
-const most = (t: { maxPerOrder?: number | null }) => String(Math.min(t.maxPerOrder ?? MAX_SEATS, MAX_SEATS));
+// The plain quantity (T174h) is not held to the attendee rows' limit: it books by quantity, up to MAX_PLAIN.
+const most = (t: { maxPerOrder?: number | null }) => String(Math.min(t.maxPerOrder ?? MAX_PLAIN, MAX_PLAIN));
 // The first row shows; the others wait behind "Add another person" (T157). Without JavaScript they sit in a
 // `<details>`, open when the server marked one of them.
 const [firstRow, ...moreRows] = rows;

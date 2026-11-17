@@ -8,6 +8,8 @@
 export const WAIVER_PATH = "/_events/waiver";
 /** Attendee rows the widget offers (one booking holds at most this many seats). */
 export const MAX_SEATS = 10;
+/** A plain order (no attendee rows: no waiver, or names after approval) books by quantity, as Events' widget does (T174h). */
+export const MAX_PLAIN = 50;
 export const DEFAULT_SEATS = 4;
 /** Most of one add-on an order may ask for (Events' most per line); Events Pro caps it at the places. */
 export const MAX_ADDON_QTY = 50;
@@ -93,7 +95,7 @@ export function readWaiverForm(form: FormData): WaiverFormResult {
 	const plain = form.get("plain") === "1";
 	const plainType = text(form, "ticketTypeId");
 	const plainQty = Number(text(form, "qty"));
-	if (plain && !(plainType && Number.isInteger(plainQty) && plainQty >= 1 && plainQty <= MAX_SEATS))
+	if (plain && !(plainType && Number.isInteger(plainQty) && plainQty >= 1 && plainQty <= MAX_PLAIN))
 		bad.push("tickets");
 	for (let row = 1; row <= (plain ? 0 : MAX_SEATS); row++) {
 		const name = text(form, seatField(row, "name"));
