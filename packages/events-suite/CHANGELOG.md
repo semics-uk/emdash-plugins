@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.26
+
+### Patch Changes
+
+- 380a62f: The waiver booking form's "How many" quantity (no waiver, or names after approval) goes up to a ticket type's most per order, to 50, instead of stopping at 10, the limit on attendee rows. Groups of 11 or more can book. Attendee rows (names before payment) stay at 10.
+- @semics-tech/emdash-esign@1.0.0-rc.26
+  - @semics-tech/emdash-events@1.0.0-rc.26
+
 ## 1.0.0-rc.25
 
 ### Patch Changes
