@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.23
+
+### Patch Changes
+
+- c3fa50f: No Free changes. Released alongside Events Pro 1.0.0-rc.23, which keeps an event's waiver order when Free's ticket form saves the event.
+- @semics-tech/emdash-esign@1.0.0-rc.23
+  - @semics-tech/emdash-events@1.0.0-rc.23
+
 ## 1.0.0-rc.22
 
 ### Patch Changes
