@@ -1,5 +1,11 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.25
+
+### Patch Changes
+
+- f25faf2: The booking widget and the waiver booking form refuse fewer people than a ticket type's minimum per order (a party package's fewest people) before sending, with a message saying how many, instead of leaving the server to refuse the order. The waiver form's quantity follows the chosen ticket type's minimum and maximum.
+
 ## 1.0.0-rc.24
 
 ### Patch Changes
