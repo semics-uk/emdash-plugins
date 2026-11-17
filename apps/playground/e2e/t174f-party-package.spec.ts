@@ -54,14 +54,19 @@ const REQUESTS = {
 };
 
 /** A request event with a £120 package for 1 to 5 people and a £10 add-on, marked by Pro's form; the type ids. */
-async function packageEvent(request: APIRequestContext, slug: string, signature: Record<string, unknown>) {
+async function packageEvent(
+	request: APIRequestContext,
+	slug: string,
+	signature: Record<string, unknown>,
+	{ minPerOrder = 1, requests = true }: { minPerOrder?: number; requests?: boolean } = {},
+) {
 	const eventId = await createEvent(request, {
 		slug,
 		title: "Clay Shoot Party",
 		startsAt: "2031-01-01T09:00:00.000Z",
-		config: { status: "on_sale", capacity: 20, currency: "GBP", signature, requests: REQUESTS },
+		config: { status: "on_sale", capacity: 20, currency: "GBP", signature, ...(requests && { requests: REQUESTS }) },
 		ticketTypes: [
-			{ name: "Party package", priceMinor: 12_000, capacity: 20, minPerOrder: 1, maxPerOrder: 5 },
+			{ name: "Party package", priceMinor: 12_000, capacity: 20, minPerOrder, maxPerOrder: 5 },
 			{ name: "Extra shells", priceMinor: 1000, capacity: 50, sort: 1 },
 		],
 	});
@@ -214,5 +219,60 @@ test("T174f the waiver widget books the package for 3 people; once confirmed eac
 	await expect(page.getByTestId("booking-status")).toHaveAttribute("data-status", "confirmed");
 	await expect(page.getByTestId("attendee-list").getByTestId("attendee-row")).toHaveCount(3);
 	expect(attendeesOf(stored.id)).toHaveLength(3);
+	await context.close();
+});
+
+test("T174g a package for 2 to 5 people: the widget refuses 1 person before sending", async ({ browser, request }) => {
+	await requirePro(request);
+	const slug = `t174g-widget-${Date.now().toString(36)}`;
+	await packageEvent(request, slug, { required: false }, { minPerOrder: 2, requests: false });
+	const { context, page } = await visitor(browser);
+	let sent = 0;
+	await page.route("**/_events/checkout", async (route) => {
+		sent++;
+		await route.abort();
+	});
+	await page.goto(`/events/${slug}`);
+	const widget = page.getByTestId("booking-widget");
+	await widget.getByLabel(/Party package/).fill("1");
+	await widget.getByLabel("Your name").fill("Grace Hopper");
+	await widget.getByLabel("Email").fill(address("t174g-widget"));
+	await widget.getByRole("button", { name: "Book" }).click();
+	await expect(widget.getByText("Choose at least 2 for Party package, or none.")).toBeVisible();
+	await expect(widget.getByLabel(/Party package/)).toBeFocused();
+	expect(sent).toBe(0);
+	await context.close();
+});
+
+test("T174g the waiver form's quantity and attendee rows refuse fewer than the package's 2 people", async ({
+	browser,
+	request,
+	baseURL,
+}) => {
+	await requirePro(request);
+	const templateId = await pairEsign(request, baseURL as string);
+	const plainSlug = `t174g-plain-${Date.now().toString(36)}`;
+	await packageEvent(request, plainSlug, { required: false }, { minPerOrder: 2, requests: false });
+	const { context, page } = await visitor(browser);
+	await page.goto(`/e2e/waiver?slug=${plainSlug}`);
+	let widget = page.getByTestId("booking-with-waiver");
+	const qty = widget.getByLabel("How many people?");
+	await expect(qty).toHaveAttribute("min", "2");
+	await expect(qty).toHaveValue("2");
+	await qty.fill("1");
+	expect(await qty.evaluate((el: HTMLInputElement) => el.validity.rangeUnderflow)).toBe(true);
+
+	const rowsSlug = `t174g-rows-${Date.now().toString(36)}`;
+	await packageEvent(request, rowsSlug, { required: true, templateId, mode: "each_attendee" }, { minPerOrder: 2, requests: false });
+	await page.goto(`/e2e/waiver?slug=${rowsSlug}`);
+	widget = page.getByTestId("booking-with-waiver");
+	const first = widget.getByLabel("Attendee 1 Name");
+	await first.fill("Ada Lovelace");
+	await expect
+		.poll(() => first.evaluate((el: HTMLInputElement) => el.validationMessage))
+		.toBe("Add at least 2 people for Party package, or choose another ticket.");
+	await widget.getByRole("button", { name: "Add another person" }).click();
+	await widget.getByLabel("Attendee 2 Name").fill("Charles Babbage");
+	await expect.poll(() => first.evaluate((el: HTMLInputElement) => el.validationMessage)).toBe("");
 	await context.close();
 });

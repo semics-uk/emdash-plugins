@@ -73,6 +73,9 @@ export function orderTotalMinor(lines: ReadonlyArray<{ qty: number; priceMinor: 
 	return total;
 }
 
+/** Fewer than a ticket type's fewest per order (a party package's people, T174g); none is fine. Reserve refuses it too. */
+export const tooFew = (qty: number, min: number) => qty > 0 && qty < min;
+
 /**
  * The most of a per-person add-on (T174d) the buyer may order: one each for the places chosen, within the add-on's
  * own limit. Pro's reserve refuses more (`INVALID_QUANTITY`), so without this script the server says so.
@@ -193,11 +196,15 @@ export function enhance(form: HTMLFormElement): void {
 			}),
 			...missingAnswers(questionStates(form)),
 		];
+		const short = places.find((i) => tooFew(qtyOf(i), Number(i.dataset.min)));
+		if (short && !bad.includes("tickets")) bad.push("tickets");
 		const needsCheck = form.dataset.turnstile === "on" && fieldValue(form, "cf-turnstile-response") === "";
 		if (bad.length > 0 || needsCheck) {
 			event.preventDefault();
 			formAlert(form, needsCheck && bad.length === 0 ? (form.dataset.turnstileMessage ?? "") : "");
 			showErrors(form, bad);
+			const message = short && form.querySelector<HTMLElement>('[data-error-for="tickets"]');
+			if (message) message.textContent = short.dataset.minMessage ?? "";
 			return;
 		}
 		formAlert(form, "");

@@ -42,6 +42,9 @@ export function orderMinor(types: Iterable<{ priceMinor: number; qty: number; pa
 	return total;
 }
 
+/** Fewer than a ticket type's fewest per order (a party package's people, T174g); none is fine. Reserve refuses it too. */
+export const tooFew = (qty: number, min: number) => qty > 0 && qty < min;
+
 /** A row someone typed in, ticked, or the server marked as wrong. */
 const hasValue = (row: HTMLElement) =>
 	row.querySelector('[aria-invalid="true"]') !== null ||
@@ -89,9 +92,40 @@ export function enhanceRows(form: HTMLFormElement): void {
 			(row) => !row.hidden && row.querySelector<HTMLInputElement>('input[name$=".name"]')?.value.trim(),
 		).length;
 	};
+	// A ticket type's fewest and most per order (T174g). The plain quantity takes the chosen type's limits; attendee
+	// rows on a type with too few people are refused by the browser before sending, on the type's select (or, with
+	// one type, the first row's name).
+	const plainType = form.querySelector<HTMLSelectElement>('select[name="ticketTypeId"]');
+	const plainQty = form.querySelector<HTMLInputElement>('input[name="qty"]');
+	plainType?.addEventListener("change", () => {
+		const option = plainType.selectedOptions[0];
+		if (!option || !plainQty) return;
+		plainQty.min = option.dataset.min ?? "1";
+		plainQty.max = option.dataset.max ?? plainQty.max;
+		const n = Math.trunc(Number(plainQty.value) || 0);
+		plainQty.value = String(Math.min(Math.max(n, Number(plainQty.min)), Number(plainQty.max) || n));
+	});
+	const checkFewest = () => {
+		const types = new Map<string, { n: number; el?: HTMLElement; target?: HTMLInputElement | HTMLSelectElement }>();
+		for (const row of rows) {
+			const select = row.querySelector("select");
+			select?.setCustomValidity("");
+			const name = row.querySelector<HTMLInputElement>('input[name$=".name"]');
+			name?.setCustomValidity("");
+			const type = select?.selectedOptions[0] ?? row.querySelector<HTMLInputElement>('input[type="hidden"][data-min]');
+			if (row.hidden || !name?.value.trim() || !type) continue;
+			const key = type.getAttribute("value") ?? "";
+			const seen = types.get(key) ?? { n: 0, el: type, target: select ?? name };
+			seen.n++;
+			types.set(key, seen);
+		}
+		for (const { n, el, target } of types.values())
+			if (el && tooFew(n, Number(el.dataset.min))) target?.setCustomValidity(el.dataset.minMessage ?? "");
+	};
 	// Per-person add-ons (T174d): capped by the places; with no summary they are still capped.
 	const addons = [...form.querySelectorAll<HTMLInputElement>("input[data-addon-max]")];
 	const update = () => {
+		checkFewest();
 		const capped = (places: number) => {
 			let extra = 0;
 			for (const a of addons) {
@@ -111,8 +145,6 @@ export function enhanceRows(form: HTMLFormElement): void {
 		const single = Number(summary.dataset.priceMinor ?? Number.NaN);
 		let count = 0;
 		let total = 0;
-		const plainType = form.querySelector<HTMLSelectElement>('select[name="ticketTypeId"]');
-		const plainQty = form.querySelector<HTMLInputElement>('input[name="qty"]');
 		// A party package (T174f, `data-package`) costs its price once for its people.
 		const typeOf = (option: HTMLElement | undefined | null) =>
 			option

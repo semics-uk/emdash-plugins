@@ -1,9 +1,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-
-import { en } from "../../src/i18n/en";
 import { orderTotalMinor, tooFew } from "../../src/client/booking";
+import { en } from "../../src/i18n/en";
 
 // T174f: a party package (Events Pro marks the type `package` in `public/event`). The widget asks "How many
 // people?" for it, from its fewest to its most people, and its price counts once whatever the party size.
