@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { readWaiverForm, seatField } from "../src/astro/lib/form";
-import { orderMinor } from "../src/astro/lib/rows";
+import { orderMinor, tooFew } from "../src/astro/lib/rows";
 
 // T174f: a party package (Events Pro marks the type `package` in `public/event`) in <BookingWithWaiver>. Its people
 // are the quantity (the plain "How many people?" or one attendee row each), posted as the line's quantity; Events
@@ -53,5 +53,20 @@ describe("T174f packages in the booking form", () => {
 	it("T174f the widget asks how many people for a package and marks its options", () => {
 		expect(source).toContain("How many people?");
 		expect(source).toContain("data-package=");
+	});
+
+	it("T174g fewer people than a ticket type's fewest per order is refused before sending; none is fine", () => {
+		expect(tooFew(2, 4)).toBe(true);
+		expect(tooFew(0, 4)).toBe(false);
+		expect(tooFew(4, 4)).toBe(false);
+		expect(tooFew(3, Number.NaN)).toBe(false);
+	});
+
+	it("T174g each ticket option carries its fewest and most, and the form checks them before sending", () => {
+		expect(source).toContain("data-min=");
+		expect(source).toContain("data-max=");
+		expect(source).toContain("data-min-message=");
+		const rows = readFileSync(fileURLToPath(new URL("../src/astro/lib/rows.ts", import.meta.url)), "utf8");
+		expect(rows).toContain("setCustomValidity");
 	});
 });
