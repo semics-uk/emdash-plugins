@@ -123,7 +123,8 @@ describe("T176 reserve", () => {
 		idempotencyKey: KEY,
 		request: { date, window },
 	});
-	const plan = (date: string, window: string) => planCheckout("e1", config(), input(date, window), NOW, { maxSteps: 6 });
+	const plan = (date: string, window: string) =>
+		planCheckout("e1", config(), input(date, window), NOW, { maxSteps: 6 });
 
 	it("T176 the server refuses a normal window on a summer Wednesday and a late one on a winter Wednesday", () => {
 		expect(plan("2027-04-07", "late-1").ok).toBe(true);
@@ -181,7 +182,12 @@ describe("T176 rules config", () => {
 		const empty = { config: null, ticketTypes: new Map(), occurrences: new Map() };
 		const out = validateConfigInput(
 			"e1",
-			{ eventId: "e1", config: { status: "on_sale", capacity: 10, currency: "GBP", requests: LMSC }, ticketTypes: [], occurrences: [] },
+			{
+				eventId: "e1",
+				config: { status: "on_sale", capacity: 10, currency: "GBP", requests: LMSC },
+				ticketTypes: [],
+				occurrences: [],
+			},
 			empty,
 			() => "id1",
 		);
