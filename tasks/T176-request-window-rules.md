@@ -1,3 +1,16 @@
+---
+id: T176
+title: "Booking-request windows that change by weekday, date range and season"
+phase: 8
+package: events, events-suite
+edition: free
+status: review
+model: opus-5.5
+size: M
+depends_on: []
+spec: []
+---
+
 # T176 Booking-request windows that change by weekday and season
 
 Asked by the LMSC cutover session, 2026-11-18. Needed before about February 2027: bookings open 60 days ahead and the first summer Wednesday is 7 April 2027.
