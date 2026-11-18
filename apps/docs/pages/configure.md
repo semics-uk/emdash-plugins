@@ -91,8 +91,8 @@ address comes from your email provider.
 Turnstile is Cloudflare's bot check. Create a widget at Cloudflare and copy its two keys.
 
 - **Events**: set **Turnstile site key** and **Turnstile secret key**. The booking form and the waitlist form
-  then show the check. Without a secret, checkout runs with no bot check: the Setup check page says
-  "Not set up". (Each buyer's IP address is stored only as a salted hash either way: without a Turnstile
+  then show the check. Without a secret, checkout runs with no bot check: the setup check at
+  `/_events/setup` says "Turnstile is not set up". (Each buyer's IP address is stored only as a salted hash either way: without a Turnstile
   secret the plugin makes a random salt of its own on the first booking.)
 - **E-sign**: the keys are used only by the Pro self-serve form, which refuses to show without them. The
   signing page never uses Turnstile: the secret signing link is the credential.

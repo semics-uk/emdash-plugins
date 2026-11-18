@@ -214,7 +214,9 @@ Open the EmDash admin. Under the plugin you will find:
   on the dashboard, and a **Tickets & booking** panel on saved event entries.
 - E-sign: **Envelopes**, **Templates**, **Integrations** and **Settings** pages.
 
-The Events **Setup check** page shows the field mapping and whether a Turnstile secret is saved.
+The Events **Setup check** page links to `/_events/setup` on your site. Open it while signed in as an
+administrator: it shows the field mapping, whether saved secrets can be read and whether a Turnstile secret is
+saved.
 
 ## Pro builds
 

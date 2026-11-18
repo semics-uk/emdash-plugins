@@ -4,7 +4,6 @@ import {
 	button,
 	column,
 	context,
-	fieldsBlock,
 	form,
 	formatMoney,
 	header,
@@ -19,9 +18,7 @@ import {
 
 import { eraseBookings, type RetentionStorage } from "../cron/retention";
 import { BOOKING_TRANSITIONS } from "../domain/booking-state";
-import { encryptionKeyStatus, type SecretReadOutcome } from "../domain/encryption";
 import { mappingOf } from "../domain/event-info";
-import { type CollectionSchemas, type EventsMapping, LABELS, validateMapping } from "../domain/mapping";
 import {
 	ALREADY_CHECKED_IN,
 	AWAITING_APPROVAL,
@@ -37,14 +34,13 @@ import {
 	WARNING,
 } from "../domain/names";
 import { wallMs, windowOf } from "../domain/schedule";
-import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import { requestText } from "../emails/confirmation";
 import { type ApprovalDeps, approveBooking, declineBooking } from "../routes/approval";
 import { type AttendeeStorage, checkIn, EXPORT_PAGE_SIZE, undoCheckIn } from "../routes/attendees";
 import type { RefundStep } from "../routes/booking";
 import type { ConfigStorage } from "../routes/config";
-import { type AttendeeDoc, type BookingDoc, type EventConfigDoc, SECRET_SETTING_KEYS } from "../storage/schema";
+import type { AttendeeDoc, BookingDoc, EventConfigDoc } from "../storage/schema";
 import { handlePanel, type PanelDeps, type PanelInteraction, type WaiverCheck } from "./panel";
 import { zoneOf } from "./schedule";
 import { initial, note, optionsOf, respond, say, soldMeter, str } from "./ui";
@@ -78,7 +74,6 @@ export type AdminStorage = AttendeeStorage &
 export interface AdminDeps {
 	storage: AdminStorage;
 	settings: { list(): Promise<Array<{ key: string; value: unknown }>> };
-	schema: { listCollections(): Promise<Array<{ slug: string; fields: ReadonlyArray<{ slug: string }> }>> };
 	/** `content:read`, for event titles in lists. Optional: a list without it shows ids. */
 	content?: {
 		list(
@@ -130,47 +125,20 @@ const BOOKING_STATUSES = keysOf(BOOKING_TRANSITIONS);
 
 // --- setup ------------------------------------------------------------------------------------
 
-const MAPPING_DEFAULTS: EventsMapping = {
-	eventsCollection: "events",
-	fieldStartsAt: "starts_at",
-	fieldEndsAt: "ends_at",
-	fieldTimezone: "timezone",
-	fieldVenue: "venue",
-};
-
-async function setupPage(deps: AdminDeps): Promise<AdminResponse> {
-	const [entries, collections] = await allOf([deps.settings.list(), deps.schema.listCollections()]);
-	const values = settingsObject(entries);
-	const mapping = { ...MAPPING_DEFAULTS };
-	for (const key of keysOf(mapping) as Array<keyof EventsMapping>) {
-		if (isStr(values[key])) mapping[key] = values[key] as string;
-	}
-	const schemas: CollectionSchemas = Object.fromEntries(
-		collections.map((c) => [c.slug, { fields: c.fields.map((f) => f.slug) }]),
-	);
-	const mapped = validateMapping(mapping, schemas);
-
-	// A stored secret that comes back as something other than text is an envelope the host could not open.
-	const outcome = (v: unknown): SecretReadOutcome =>
-		isStr(v) && v !== "" ? "readable" : v !== null && typeof v === "object" ? "unreadable" : "unset";
-	const secrets = Object.fromEntries(SECRET_SETTING_KEYS.map((k) => [k, outcome(values[k])]));
-	const encryption = encryptionKeyStatus({ secrets });
-	const noTurnstile: NoticeInput | false =
-		secrets.turnstileSecretKey === "unset" &&
-		note(WARNING, "Turnstile is not set up", "Checkout runs without a bot check; add the Turnstile keys.");
-
-	return respond([
+// T178: the setup check (mapping, encryption key, Turnstile) runs on the site at `/_events/setup`.
+const setupPage = (deps: AdminDeps): AdminResponse =>
+	respond([
 		header("Events setup"),
-		...notices([mapped.banner, encryption.banner, noTurnstile]),
-		fieldsBlock([
-			...(keysOf(LABELS) as Array<keyof EventsMapping>).map((k) => ({
-				label: LABELS[k],
-				value: mapping[k] || "(not set)",
-			})),
+		context("The setup check (field mapping, saved secrets, Turnstile) is on the site."),
+		actions([
+			link(
+				"Open the setup check",
+				{ kind: "external", url: `${deps.origin}/_events/setup` },
+				{ appearance: "primary" },
+			),
+			link("Open plugin settings", { kind: "plugin-settings" }),
 		]),
-		actions([link("Open plugin settings", { kind: "plugin-settings" }, { appearance: "primary" })]),
 	]);
-}
 
 // --- bookings ---------------------------------------------------------------------------------
 

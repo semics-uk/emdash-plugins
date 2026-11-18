@@ -93,7 +93,6 @@ function adminDeps(s: ReturnType<typeof makeStore>): AdminDeps {
 	return {
 		storage: s as unknown as AdminStorage,
 		settings: { list: async () => [] },
-		schema: { listCollections: async () => [] },
 		now: Date.parse("2026-12-05T18:00:00.000Z"),
 		pluginId: "semics-events",
 		origin: "https://site.test",

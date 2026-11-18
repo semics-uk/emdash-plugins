@@ -28,7 +28,10 @@ const COLLECTIONS = [
 
 const ok = (data: unknown) => Response.json({ success: true, data });
 const denied = (status: number) =>
-	Response.json({ success: false, error: { code: status === 401 ? "UNAUTHORIZED" : "FORBIDDEN", message: "no" } }, { status });
+	Response.json(
+		{ success: false, error: { code: status === 401 ? "UNAUTHORIZED" : "FORBIDDEN", message: "no" } },
+		{ status },
+	);
 
 interface World {
 	values?: Record<string, unknown>;
@@ -44,6 +47,7 @@ function world(w: World = {}) {
 	const asked: string[] = [];
 	const stored = w.stored ?? { turnstileSecretKey: SECRET };
 	const ctx: SetupContext = {
+		locals: { user: { id: "u1", role: 50 } },
 		readSettings: async () => {
 			asked.push("settings");
 			return (
@@ -74,7 +78,16 @@ describe("/_events/setup (T178)", () => {
 		expect(SETUP_PATH).toBe("/_events/setup");
 	});
 
-	it("T178 a signed-out visitor or a non-administrator gets nothing: no schema, no secret is read", async () => {
+	it("T178 a signed-out visitor is refused before anything is read", async () => {
+		for (const locals of [{}, { user: null }, null, undefined]) {
+			const { ctx, asked } = world();
+			ctx.locals = locals;
+			expect(await setupCheck(ctx)).toEqual({ state: "forbidden" });
+			expect(asked).toEqual([]);
+		}
+	});
+
+	it("T178 a visitor the host refuses gets nothing: no schema, no secret is read", async () => {
 		for (const status of [401, 403]) {
 			const { ctx, asked } = world({ settings: denied(status) });
 			expect(await setupCheck(ctx)).toEqual({ state: "forbidden" });

@@ -372,3 +372,10 @@ collection names and shapes · `src/admin` Block Kit · `src/cron` jobs · `test
   that looks a booking up by ref calls `verifyToken(token, booking?.hash)` before checking the record (decoy hash). CSV
   cells starting with full-width `＝＋－＠` are defused too. Messages of errors the core throws must stay fixed strings
   (`scripts/security.test.mjs`). Backend 115.97 KiB of 116 after T100 (scaffold `hello` route removed).
+- Setup check on the site (T178): the admin's "Events setup" page is now a header and two links (`/_events/setup`,
+  plugin settings). The check itself is `SetupPage.astro` + `src/astro/lib/setup.ts`: core's plugin-settings GET (checks
+  `plugins:manage`; secrets come back masked as `secretsSet` booleans) and schema GET, run in process with the visitor's
+  locals, then `getPluginSetting` only for secrets the host says are set, kept as readable / unreadable. `validateMapping`
+  and `encryptionKeyStatus` moved to `src/astro/lib/mapping.ts` and `encryption.ts` (only `src/astro` ships), so the backend
+  no longer bundles them; `AdminDeps.schema` is gone and nothing in the backend calls `ctx.schema` now (`schema:read` is
+  still declared).

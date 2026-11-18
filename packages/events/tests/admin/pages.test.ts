@@ -20,15 +20,12 @@ const MAPPED: Settings = {
 	fieldVenue: "venue",
 	turnstileSecretKey: "secret",
 };
-const SCHEMAS = [
-	{ slug: "events", fields: ["title", "starts_at", "ends_at", "timezone", "venue"].map((slug) => ({ slug })) },
-];
 
 beforeEach(() => {
 	meter.calls = 0;
 });
 
-function world(settings: Settings = MAPPED, schemas = SCHEMAS) {
+function world(settings: Settings = MAPPED) {
 	const s = makeStore();
 	s.event_configs.set("ev1", {
 		status: "on_sale",
@@ -84,12 +81,6 @@ function world(settings: Settings = MAPPED, schemas = SCHEMAS) {
 			list: async () => {
 				meter.calls++;
 				return Object.entries(settings).map(([key, value]) => ({ key, value }));
-			},
-		},
-		schema: {
-			listCollections: async () => {
-				meter.calls++;
-				return schemas;
 			},
 		},
 		now: NOW,

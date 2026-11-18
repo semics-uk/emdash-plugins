@@ -238,7 +238,10 @@ about half an hour to email. Emails, calendar files and the admin are in English
   email, code, ticket type, booking, booking status, attendee status and check-in time. Cells that would run
   as a spreadsheet formula get a leading apostrophe.
 - **Event editor**: the panel's settings for any collection (see above).
-- **Setup check**: the field mapping, whether secrets can be stored, and whether Turnstile is set up.
+- **Setup check**: links to the setup check on your site, `/_events/setup`, and to the plugin settings. The
+  check (for administrators signed in to the admin) shows the field mapping and whether the collection and
+  fields exist, whether saved secrets can be decrypted with `EMDASH_ENCRYPTION_KEY`, and whether Turnstile is
+  set up. It shows no secret values. It runs on the site so the plugin itself stays small.
 - **Ticket sales** dashboard widget: sold and held against capacity.
 
 ## Check-in

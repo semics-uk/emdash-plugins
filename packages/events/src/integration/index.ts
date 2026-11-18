@@ -51,7 +51,8 @@ export interface EventsAstroIntegration {
  * "Join the waitlist" form, T081), the `/booking` page
  * (also the waiver return page), `/_events/sign` (door signing, EV-FR-12) and `/_events/check-in` (the
  * staff check-in screen; it checks people in through Events Pro's `checkin/code` route, T082) and `/_events/opt-out` (stops Events
- * Pro's reminder and update emails for one booking and address, T083), all with
+ * Pro's reminder and update emails for one booking and address, T083) and `/_events/setup` (the setup check
+ * for administrators, T178), all with
  * `Referrer-Policy: no-referrer`. Add it to `integrations` beside `emdash()`.
  */
 export function eventsIntegration(options: EventsIntegrationOptions = {}): EventsAstroIntegration {
@@ -110,6 +111,12 @@ export function eventsIntegration(options: EventsIntegrationOptions = {}): Event
 				injectRoute({
 					pattern: "/_events/opt-out",
 					entrypoint: "@semics-tech/emdash-events/astro/OptOutPage.astro",
+					prerender: false,
+				});
+				// T178: the setup check, off the sandboxed admin page (administrators only).
+				injectRoute({
+					pattern: "/_events/setup",
+					entrypoint: "@semics-tech/emdash-events/astro/SetupPage.astro",
 					prerender: false,
 				});
 				updateConfig({
