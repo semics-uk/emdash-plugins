@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.30
+
+### Patch Changes
+
+- ea6bd0a: No Free changes. Released alongside Vouchers Pro 1.0.0-rc.30, which adds an Administrator-only Refund action to the voucher admin: it refunds the Stripe payment and voids the voucher in one step.
+- @semics-tech/emdash-esign@1.0.0-rc.30
+  - @semics-tech/emdash-events@1.0.0-rc.30
+
 ## 1.0.0-rc.29
 
 ### Patch Changes
