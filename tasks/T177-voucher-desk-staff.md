@@ -4,7 +4,7 @@ title: "Vouchers admin for desk staff (Authors), retry-safe issue by hand"
 phase: 8
 package: vouchers-pro
 edition: pro
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T167]

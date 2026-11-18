@@ -6,7 +6,7 @@ package: events
 edition: free
 status: review
 model: opus-5.5
-size: XS
+size: S
 depends_on: [T178]
 spec: []
 ---

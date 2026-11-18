@@ -4,7 +4,7 @@ title: "Move the Events setup check off the Free backend to a site page, /_event
 phase: 8
 package: events
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: S
 depends_on: [T162]
