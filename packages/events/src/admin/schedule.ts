@@ -114,7 +114,10 @@ export function requestFields(r: EventConfigDoc["requests"]): FormField[] {
 	];
 }
 
-/** The requests a panel save asks for (null: none); a line that does not parse is refused by the validator. */
+/**
+ * The requests a panel save asks for (null: none); a line that does not parse is refused by the validator.
+ * The rules (T176) are set through `config/save` only: a panel save keeps the stored ones.
+ */
 export function requestsInput(values: Obj, stored: EventConfigDoc["requests"]): unknown {
 	if (values.rq_windows === undefined && values.rq_days === undefined) return stored ?? null;
 	const windows = str(values.rq_windows, 4000)
@@ -124,6 +127,7 @@ export function requestsInput(values: Obj, stored: EventConfigDoc["requests"]): 
 			const [, label = l, start, end] = /(.+?) +(\d\d:\d\d) *- *(\d\d:\d\d)$/.exec(l) ?? [];
 			return { id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label, start, end };
 		});
+	const rules = stored?.rules;
 	const weekdays = days(values.rq_days);
 	// In the stored shape's key order, so an unchanged form compares equal; `config/save` validates it.
 	return windows.length + weekdays.length
@@ -133,6 +137,7 @@ export function requestsInput(values: Obj, stored: EventConfigDoc["requests"]): 
 				aheadDays: num(values.rq_ahead) ?? 90,
 				noticeDays: num(values.rq_notice) ?? 0,
 				closedDates: split(values.rq_closed),
+				...(rules && { rules }),
 			}
 		: null;
 }
@@ -159,7 +164,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	const ids = keysOf(slots)
 		.filter((id) => at(id) >= bounds[0] && at(id) < bounds[1])
 		.sort((a, b) => at(a) - at(b));
-	const docs = (ids.length > 0 ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
+	const docs = (ids.length ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
 	const time = (d: OccurrenceDoc) => localText(d.startsAt, zone).slice(11);
 	if (save) {
 		const all = values.day_all;
@@ -174,7 +179,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 		});
 		const closing = changes.filter((c) => c.status !== OPEN && c.d.status === OPEN && c.d.reserved + c.d.sold > 0);
 		const bad = changes.find((c) => !isInt(c.places) || c.places < maxOf(c.d.reserved, 1));
-		if (closing.length > 0) {
+		if (closing.length) {
 			const refused = new Set(closing.map((c) => c.id));
 			const { items } = await storage.bookings.query({
 				where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES] } },
@@ -191,7 +196,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			);
 		} else if (bad) {
 			extra = saveRefused([{ path: "", code: bad.places >= 1 ? CAPACITY_BELOW_RESERVED : "INVALID_CAPACITY" }]);
-		} else if (changes.length > 0) {
+		} else if (changes.length) {
 			const now = changes.slice(0, MAX_DAY_CHANGES);
 			const done = await allOf(
 				now.map((c) =>

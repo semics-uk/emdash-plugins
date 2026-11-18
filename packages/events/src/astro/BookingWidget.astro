@@ -22,6 +22,7 @@ import {
 	type PublicEvent,
 	readWidgetState,
 	requestDates,
+	requestWindows,
 	safeReturnTo,
 	type WidgetField,
 } from "./lib/widget";
@@ -118,6 +119,8 @@ const picker = usesPicker(data, zone)
 // select that works without JavaScript, then the time windows as radios; the form posts `request`.
 const requests = data?.requests;
 const requestDays = requests ? requestDates(requests, zone, Date.now(), locale) : [];
+// T176: every window (the rules' too); the server refuses one the date does not offer.
+const requestWindowList = requests ? requestWindows(requests) : [];
 const pickerIds = new Set(picker?.days.flatMap((d) => d.slots.map((s) => s.id)));
 const monthId = `${id}-month`;
 // The waitlist (T081): offered when the core takes one and the tickets, or some dates, are sold out.
@@ -316,7 +319,7 @@ const when = (iso: string) => {
 								aria-describedby={errId("occurrence")}
 							>
 								<option value="">{t("widget.chooseDate")}</option>
-								{requestDays.map((d) => <option value={d.value}>{d.label}</option>)}
+								{requestDays.map((d) => <option value={d.value} data-windows={d.windows.join(" ")}>{d.label}</option>)}
 							</select>
 							<p class="semics-field-error" id={errId("occurrence")} data-error-for="occurrence" data-message={fieldText("occurrence")}>
 								{bad("occurrence") ? fieldText("occurrence") : ""}
@@ -324,13 +327,15 @@ const when = (iso: string) => {
 						</div>
 						<fieldset class="semics-windows" data-testid="booking-windows">
 							<legend>{t("widget.window")}</legend>
-							{requests.windows.map((w) => (
+							{requestWindowList.map((w) => (
 								<div class="semics-field semics-check">
-									<input id={`${id}-window-${w.id}`} type="radio" name="requestWindow" value={w.id} required checked={requests.windows.length === 1} />
+									<input id={`${id}-window-${w.id}`} type="radio" name="requestWindow" value={w.id} required checked={requestWindowList.length === 1} />
 									<label for={`${id}-window-${w.id}`}>{w.label} ({w.start}–{w.end})</label>
 								</div>
 							))}
 						</fieldset>
+						{/* T176: with JavaScript, only the chosen date's windows (each date option lists them). */}
+						<script is:inline>(function (s) { var f = s.previousElementSibling, d = f.previousElementSibling.querySelector("select"); function u() { var o = d.options[d.selectedIndex], w = o && o.dataset.windows, shown = []; f.querySelectorAll("input").forEach(function (i) { var off = w != null && w.split(" ").indexOf(i.value) < 0; i.parentNode.style.display = off ? "none" : ""; i.disabled = off; if (off) i.checked = false; else shown.push(i); }); if (shown.length === 1) shown[0].checked = true; } d.addEventListener("change", u); u(); })(document.currentScript);</script>
 					</>
 				)}
 

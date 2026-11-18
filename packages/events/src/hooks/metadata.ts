@@ -102,7 +102,7 @@ export async function eventJsonLd(
 		eventStatus: `${SCHEMA}${config.status === CANCELLED ? "EventCancelled" : "EventScheduled"}`,
 		eventAttendanceMode: `${SCHEMA}OfflineEventAttendanceMode`,
 		...(info.venue ? { location: { "@type": "Place", name: safe(info.venue) } } : {}),
-		...(offers.length > 0 ? { offers } : {}),
+		...(offers.length ? { offers } : {}),
 	};
 }
 

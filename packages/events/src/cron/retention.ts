@@ -137,7 +137,7 @@ export async function eraseBookings(
 		return false;
 	});
 	const result = { erased: 0, kept: pending - todo.length, complete: true, held, calls };
-	if (todo.length === 0) return result;
+	if (!todo.length) return result;
 
 	let cursor = acursor;
 	for (let left = pages; ; ) {
@@ -147,7 +147,7 @@ export async function eraseBookings(
 			...(cursor ? { cursor } : {}),
 		});
 		calls++;
-		if (page.items.length > 0) {
+		if (page.items.length) {
 			await st.attendees.putMany(
 				page.items.map((a) => ({ id: a.id, data: { ...(a.data as AttendeeDoc), name: "", email: "" } })),
 			);
@@ -177,11 +177,11 @@ export async function eraseBookings(
 		})),
 	);
 	calls++;
-	if (cutoff === undefined && emails.length > 0) {
+	if (cutoff === undefined && emails.length) {
 		const rows = await st.outbox.query({ where: { to: { in: emails } }, limit: OUTBOX_PAGE });
 		calls++;
 		const ids = rows.items.filter((r) => (r.data as OutboxDoc).status !== PENDING).map((r) => r.id);
-		if (ids.length > 0) {
+		if (ids.length) {
 			await st.outbox.deleteMany(ids);
 			calls++;
 		}
@@ -283,7 +283,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 			limit: OUTBOX_PAGE,
 		});
 		calls++;
-		if (page.items.length > 0) {
+		if (page.items.length) {
 			await storage.outbox.deleteMany(page.items.map((i) => i.id));
 			calls++;
 		}
@@ -292,7 +292,7 @@ export async function retentionTick({ storage, kv, cron, settings, now }: Retent
 		const page = await storage.waitlist.query({ limit: OUTBOX_PAGE });
 		calls++;
 		const old = page.items.filter((i) => (i.data as WaitlistDoc).createdAt < iso(cutoff)).map((i) => i.id);
-		if (old.length > 0) {
+		if (old.length) {
 			await storage.waitlist.deleteMany(old);
 			calls++;
 		}

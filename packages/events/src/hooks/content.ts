@@ -86,7 +86,7 @@ export async function vetoDelete(deps: StateHookDeps, event: ContentDeleteEvent)
 		where: { eventId: event.id, status: { in: [...LIVE_BOOKING_STATUSES] } },
 		limit: 1,
 	});
-	if (items.length === 0) return undefined;
+	if (!items.length) return undefined;
 	deps.log.warn("event delete blocked: it has bookings", { eventId: event.id });
 	return false;
 }

@@ -397,9 +397,9 @@ export function validateConfigInput(
 	);
 
 	// A schedule's slots are its own (T129): the event has no other dates.
-	if (config.schedule && occurrences.items.length > 0) issues.add("config.schedule", "INVALID_SCHEDULE");
-	if (config.requests && occurrences.items.length > 0) issues.add(REQUESTS_PATH, INVALID_REQUESTS);
-	if (issues.list.length > 0) return err(issues.list);
+	if (config.schedule && occurrences.items.length) issues.add("config.schedule", "INVALID_SCHEDULE");
+	if (config.requests && occurrences.items.length) issues.add(REQUESTS_PATH, INVALID_REQUESTS);
+	if (issues.list.length) return err(issues.list);
 	return ok({
 		config,
 		ticketTypes: ticketTypes.items,

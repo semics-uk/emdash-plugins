@@ -129,7 +129,7 @@ export async function sweepHolds({
 	let continued = false;
 	if (backlogged && cron) {
 		const smaller = planExpiries(page.items, now, budget - 1);
-		if (smaller.planned.length > 0 || plan.planned.length === 0) {
+		if (smaller.planned.length || !plan.planned.length) {
 			plan = smaller;
 			continued = true;
 		}
@@ -137,7 +137,7 @@ export async function sweepHolds({
 	const outcomes = await expireBookings(storage, plan.planned, now);
 	calls += expiryCalls(plan.planned) + extraCalls(outcomes, plan.planned);
 	const uncertain = dirtyEvents(outcomes);
-	if (uncertain.length > 0) state.dirty = addDirty(state.dirty ?? [], uncertain);
+	if (uncertain.length) state.dirty = addDirty(state.dirty ?? [], uncertain);
 	if (continued && cron) {
 		await cron.schedule(SWEEP_MORE_TASK, { schedule: iso(now) });
 		calls++;
@@ -172,7 +172,7 @@ export async function sweepHolds({
 		calls += step.calls;
 		repaired += step.repaired.length;
 		conflicted += step.conflicted.length;
-		if (step.conflicted.length > 0) state.dirty = addDirty(state.dirty ?? [], [state.repair.eventId]);
+		if (step.conflicted.length) state.dirty = addDirty(state.dirty ?? [], [state.repair.eventId]);
 		state.repair = step.job;
 		if (step.calls === 0) break;
 	}
@@ -194,7 +194,7 @@ export async function sweepHolds({
 
 /** Add events to the sweeper's priority repair list (two calls). */
 async function markDirty(kv: SweepKv, eventIds: string[]): Promise<void> {
-	if (eventIds.length === 0) return;
+	if (!eventIds.length) return;
 	const job = jobState<SweepState>(kv, SWEEP_STATE_KEY, await kv.getVersioned<SweepState>(SWEEP_STATE_KEY));
 	job.value.dirty = addDirty(job.value.dirty ?? [], eventIds);
 	await job.save(true);

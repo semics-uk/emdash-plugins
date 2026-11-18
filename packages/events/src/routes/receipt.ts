@@ -97,7 +97,7 @@ export interface ReceiptDeps {
 
 function parseInput(raw: unknown): string | null {
 	const receipt = raw && typeof raw === "object" ? (raw as { receipt?: unknown }).receipt : undefined;
-	return isStr(receipt) && receipt.length > 0 && receipt.length <= MAX_RECEIPT_LENGTH ? receipt : null;
+	return isStr(receipt) && receipt.length && receipt.length <= MAX_RECEIPT_LENGTH ? receipt : null;
 }
 
 const completed = (a: AttendeeDoc | undefined) => a?.signature?.status === "completed";
@@ -183,7 +183,7 @@ export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<un
 		stored.set(id, next);
 	}
 	let used = 3;
-	if (changed.length > 0) {
+	if (changed.length) {
 		await storage.attendees.putMany(changed);
 		used += 1;
 	}
@@ -194,7 +194,7 @@ export async function recordReceipt(deps: ReceiptDeps, raw: unknown): Promise<un
 		const advanced = await advance(deps, found.id, booking, attendees, step, settings, used, changed.length > 0);
 		if ("code" in advanced) return fail(advanced.code);
 		status = advanced.status;
-	} else if (booking.status === CONFIRMED && changed.length === 0) {
+	} else if (booking.status === CONFIRMED && !changed.length) {
 		// A replay: make sure the confirmation was queued (an earlier run may have died before it).
 		if (!(await storage.outbox.get(confirmationOutboxId(found.id)))) {
 			await storage.outbox.put(confirmationOutboxId(found.id), confirmationMessage(found.id, booking, deps.now));

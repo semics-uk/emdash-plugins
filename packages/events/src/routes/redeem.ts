@@ -43,7 +43,7 @@ function parse(raw: unknown): { bookingRef: string; code: string } | InputIssue[
 	const input = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
 	const extra = keysOf(input).filter((k) => k !== "bookingRef" && k !== "code");
 	const parsed = parseBookingAccessInput({ bookingRef: input.bookingRef, accessToken: input.code });
-	if (!parsed.ok || extra.length > 0) {
+	if (!parsed.ok || extra.length) {
 		const issues = parsed.ok
 			? []
 			: parsed.error.map((i) => ({ ...i, path: i.path === "accessToken" ? "code" : i.path }));

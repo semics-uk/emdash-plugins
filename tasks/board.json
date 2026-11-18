@@ -3339,7 +3339,7 @@
 			"phase": 8,
 			"package": "vouchers",
 			"edition": "pro",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [
@@ -3347,19 +3347,157 @@
 				"T167"
 			],
 			"spec": [],
+			"unblocks": [
+				"T175"
+			],
+			"column": "done"
+		},
+		"T169": {
+			"file": "T169-themed-signing-and-pay-handoff.md",
+			"id": "T169",
+			"title": "Themed waiver signing pages; clean hand-off page before Stripe Checkout",
+			"phase": 8,
+			"package": "esign, events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T170": {
+			"file": "T170-print-voucher-thanks.md",
+			"id": "T170",
+			"title": "Print it yourself: the voucher straight from the thanks page",
+			"phase": 8,
+			"package": "events-suite, vouchers-pro",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T171": {
+			"file": "T171-book-with-voucher.md",
+			"id": "T171",
+			"title": "Book with this voucher: from the voucher to the booking form",
+			"phase": 8,
+			"package": "events-suite, events, vouchers-pro",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T172": {
+			"file": "T172-one-click-vouchers-pairing.md",
+			"id": "T172",
+			"title": "One-click pairing of Events Pro with Vouchers Pro on the same site",
+			"phase": 8,
+			"package": "events-suite, vouchers-pro",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [],
+			"spec": [
+				"T163"
+			],
+			"unblocks": [
+				"T173"
+			],
+			"column": "done"
+		},
+		"T173": {
+			"file": "T173-staff-issue-vouchers.md",
+			"id": "T173",
+			"title": "Staff issue vouchers by hand: buyer and recipient, reason and payment, print and email",
+			"phase": 8,
+			"package": "vouchers-pro",
+			"edition": "pro",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T172"
+			],
+			"spec": [
+				"T163"
+			],
+			"unblocks": [],
+			"column": "in-progress"
+		},
+		"T174": {
+			"file": "T174-booking-requests-gaps.md",
+			"id": "T174",
+			"title": "Booking requests with a time to be agreed: gaps from lmsc-site #59",
+			"phase": 8,
+			"package": "events, events-pro, events-suite",
+			"edition": "free, pro",
+			"status": "backlog",
+			"model": "opus-5.5",
+			"size": "L",
+			"depends_on": [],
+			"spec": [],
 			"unblocks": [],
 			"column": "ready"
+		},
+		"T175": {
+			"file": "T175-voucher-widget-layout.md",
+			"id": "T175",
+			"title": "Buy a Voucher widget layout: clipped card, viewport breakpoints, radios, field contrast",
+			"phase": 8,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "review",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T168"
+			],
+			"spec": [
+				"T163"
+			],
+			"unblocks": [],
+			"column": "review"
+		},
+		"T176": {
+			"file": "T176-request-window-rules.md",
+			"id": "T176",
+			"title": "Booking-request windows that change by weekday, date range and season",
+			"phase": 8,
+			"package": "events, events-suite",
+			"edition": "free",
+			"status": "review",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "review"
 		}
 	},
 	"columns": {
 		"backlog": [],
 		"ready": [
-			"T168"
+			"T174"
 		],
 		"in-progress": [
-			"T156"
+			"T156",
+			"T173"
 		],
-		"review": [],
+		"review": [
+			"T175",
+			"T176"
+		],
 		"done": [
 			"T000",
 			"T001",
@@ -3507,14 +3645,19 @@
 			"T164",
 			"T165",
 			"T166",
-			"T167"
+			"T167",
+			"T168",
+			"T169",
+			"T170",
+			"T171",
+			"T172"
 		],
 		"blocked": [
 			"T111"
 		]
 	},
 	"criticalPath": [
-		"T111"
+		"T174"
 	],
-	"criticalWeight": 2
+	"criticalWeight": 3
 }

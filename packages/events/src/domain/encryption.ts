@@ -49,7 +49,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 	}
 
 	const unreadable = names.filter((name) => input.secrets[name] === "unreadable");
-	if (unreadable.length > 0) {
+	if (unreadable.length) {
 		return {
 			state: "unreadable",
 			secretsWritable: true,

@@ -202,7 +202,7 @@ const ATTENDEE_PAGE = 100;
  */
 async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<number> {
 	const ids = unique(rows.map((r) => r.payload.bookingId).filter((id): id is string => isStr(id)));
-	if (ids.length === 0) return rows.length;
+	if (!ids.length) return rows.length;
 	const found = await d.storage.bookings.getMany(ids);
 	for (const id of ids) tick.bookings.set(id, (found.get(id) as BookingDoc | undefined) ?? null);
 	const live = ids.map((id) => ({ id, booking: tick.bookings.get(id) })).filter((b) => b.booking);
@@ -220,11 +220,11 @@ async function prefetch(d: DrainDeps, tick: Tick, rows: OutboxDoc[]): Promise<nu
 		),
 	);
 	const [attendees, configs, occurrences] = await allOf([
-		confirming.length > 0
+		confirming.length
 			? d.storage.attendees.query({ where: { bookingId: { in: confirming } }, limit: ATTENDEE_PAGE })
 			: null,
-		eventIds.length > 0 ? d.storage.event_configs.getMany(eventIds) : null,
-		occurrenceIds.length > 0 ? d.storage.occurrences.getMany(occurrenceIds) : null,
+		eventIds.length ? d.storage.event_configs.getMany(eventIds) : null,
+		occurrenceIds.length ? d.storage.occurrences.getMany(occurrenceIds) : null,
 	]);
 	if (attendees && attendees.items.length < ATTENDEE_PAGE) {
 		for (const id of confirming) tick.attendees.set(id, []);

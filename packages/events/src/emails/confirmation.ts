@@ -3,6 +3,7 @@ import { type OutboxMessage, pad2, utcToZoned, validZone } from "@semics-tech/sh
 import type { EventInfo } from "../domain/event-info";
 import { seatCount } from "../domain/inventory";
 import { AWAITING_APPROVAL } from "../domain/names";
+import { windowOf } from "../domain/schedule";
 import { msOf } from "../domain/time";
 import type { BookingDoc, EventConfigDoc, OutboxDoc } from "../storage/schema";
 
@@ -55,7 +56,7 @@ export function formatWhen(event: Pick<EventInfo, "startsAt" | "timeZone">): str
 export const requestText = (
 	r: NonNullable<BookingDoc["request"]>,
 	c: Pick<EventConfigDoc, "requests"> | null | undefined,
-): string => `${dayText(new Date(r.date))}, ${c?.requests?.windows.find((w) => w.id === r.window)?.label ?? r.window}`;
+): string => `${dayText(new Date(r.date))}, ${windowOf(c, r.window)?.label ?? r.window}`;
 
 // Plain sentences (nothing to escape), in both the text and the HTML part.
 const KEEP_PRIVATE = "Keep this email private: its link opens your booking once.";
@@ -95,11 +96,11 @@ function compose(
 		`<p>${escapeHtml(before)}<strong>${escapeHtml(title)}</strong>${escapeHtml(after)}</p>`,
 		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
 	];
-	if (list.length > 0) {
+	if (list.length) {
 		text.push("Tickets:", ...list.map((a) => `- ${a}`), "");
 		html.push(`<p>Tickets:</p><ul>${list.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>`);
 	}
-	if (links.length > 0) {
+	if (links.length) {
 		text.push(...links.map(([label, href]) => `${label}: ${href}`), "");
 		html.push(`<p>${links.map(link).join("<br>")}</p>`);
 	}

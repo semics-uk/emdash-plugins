@@ -36,7 +36,7 @@ import {
 	WAIVER_PENDING,
 	WARNING,
 } from "../domain/names";
-import { wallMs } from "../domain/schedule";
+import { wallMs, windowOf } from "../domain/schedule";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import { requestText } from "../emails/confirmation";
@@ -181,7 +181,7 @@ function bookingRows(items: Page["items"], configs: Map<string, unknown>) {
 		const c = configs.get(b.eventId) as EventConfigDoc | undefined;
 		const r = b.request;
 		// A request's Approve asks for the time first (T174a), starting from the date and window asked for.
-		const s = c?.requests?.windows.find((w) => w.id === r?.window)?.start;
+		const s = windowOf(c, r?.window)?.start;
 		return {
 			...(waiting && {
 				approve: r
@@ -459,7 +459,7 @@ async function attendeesPage(
 		next = page.hasMore ? page.cursor : undefined;
 	}
 	const ids = [...new Set(items.map((i) => (i.data as AttendeeDoc).bookingId))];
-	const bookings = ids.length > 0 ? await deps.storage.bookings.getMany(ids) : new Map<string, unknown>();
+	const bookings = ids.length ? await deps.storage.bookings.getMany(ids) : new Map<string, unknown>();
 
 	const rows = items.map(({ id, data }) => {
 		const a = data as AttendeeDoc;
@@ -572,7 +572,7 @@ async function panelPage(deps: AdminDeps, id: string, interaction: PanelInteract
 
 async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
 	const page = await deps.storage.event_configs.query({ where: { status: ON_SALE }, limit: 5 });
-	if (page.items.length === 0) return respond([context("No events are on sale.")]);
+	if (!page.items.length) return respond([context("No events are on sale.")]);
 	return respond(page.items.map(({ id, data }) => soldMeter(id, data as EventConfigDoc)));
 }
 

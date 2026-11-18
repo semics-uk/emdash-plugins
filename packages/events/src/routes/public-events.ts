@@ -82,7 +82,7 @@ function nextStart(c: EventConfigDoc, now: number): { startsAt: string; endsAt: 
 	const info = c.info;
 	if (!info) return null;
 	const dates = Object.values(c.catalog?.occurrences ?? {});
-	if (dates.length > 0) {
+	if (dates.length) {
 		const upcoming = dates
 			.filter((o) => o.status === OPEN)
 			.map((o) => msOf(o.startsAt))
@@ -115,7 +115,7 @@ export async function listEvents(deps: PublicEventsDeps): Promise<unknown> {
 				timezone: c.info.timezone,
 				venue: c.info.venue,
 				currency: c.currency,
-				...(prices.length > 0 ? { priceFromMinor: Math.min(...prices) } : {}),
+				...(prices.length ? { priceFromMinor: Math.min(...prices) } : {}),
 				available: left(c.capacity, c.reserved),
 				// The entry's slug, so a card can link to the event's page (T056).
 				...(c.info.slug ? { slug: c.info.slug } : {}),
@@ -133,7 +133,7 @@ export async function getEvent(deps: PublicEventsDeps, raw: unknown): Promise<un
 	const config = (await storage.event_configs.get(eventId)) as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished || config.status === DRAFT) return notFound();
 
-	const recurring = !!config.schedule || keysOf(config.catalog?.occurrences ?? {}).length > 0;
+	const recurring = !!config.schedule || keysOf(config.catalog?.occurrences ?? {}).length;
 	// Upcoming open dates only (a slot schedule keeps hundreds of past ones, T129), from the picker's
 	// `from` when later (T130), in up to two pages of 100 (a month of six slots a day), then `more`.
 	const asked = (raw as { from?: unknown }).from;
