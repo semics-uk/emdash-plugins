@@ -54,9 +54,11 @@ describe("manifest (EU-FR-01, BUILD-PLAN 3.1)", () => {
 	});
 
 	it("declares exactly the Free trust contract capabilities", () => {
-		expect([...readManifest().capabilities].sort()).toEqual(
-			["content:read", "email:send", "network:request", "schema:read"].sort(),
-		);
+		expect([...readManifest().capabilities].sort()).toEqual(["content:read", "email:send", "network:request"].sort());
+	});
+
+	it("T180: no longer asks for schema:read (the setup check reads schemas on the site, T178)", () => {
+		expect(readManifest().capabilities).not.toContain("schema:read");
 	});
 
 	it("allows exactly one outbound host: challenges.cloudflare.com (Free edition)", () => {

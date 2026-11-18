@@ -3,7 +3,7 @@
 	"note": "The 1.0 trust contract of the Free core (T106, BUILD-PLAN §9, R64). Adding a capability, allowed host, public route, MCP tool or hook is a major version that operators consent to again: change this file only with a major changeset. tests/trust-contract.test.ts compares it with the built plugin.",
 	"contract": {
 		"slug": "semics-events",
-		"capabilities": ["content:read", "email:send", "network:request", "schema:read"],
+		"capabilities": ["content:read", "email:send", "network:request"],
 		"allowedHosts": ["challenges.cloudflare.com"],
 		"publicRoutes": {
 			"public/booking": ["POST"],

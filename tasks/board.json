@@ -3220,7 +3220,9 @@
 			"spec": [
 				"R42"
 			],
-			"unblocks": [],
+			"unblocks": [
+				"T178"
+			],
 			"column": "done"
 		},
 		"T163": {
@@ -3328,7 +3330,8 @@
 			],
 			"spec": [],
 			"unblocks": [
-				"T168"
+				"T168",
+				"T177"
 			],
 			"column": "done"
 		},
@@ -3476,10 +3479,63 @@
 			"phase": 8,
 			"package": "events, events-suite",
 			"edition": "free",
-			"status": "review",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "M",
 			"depends_on": [],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T177": {
+			"file": "T177-voucher-desk-staff.md",
+			"id": "T177",
+			"title": "Vouchers admin for desk staff (Authors), retry-safe issue by hand",
+			"phase": 8,
+			"package": "vouchers-pro",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T167"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T178": {
+			"file": "T178-setup-check-site-page.md",
+			"id": "T178",
+			"title": "Move the Events setup check off the Free backend to a site page, /_events/setup",
+			"phase": 8,
+			"package": "events",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T162"
+			],
+			"spec": [],
+			"unblocks": [
+				"T180"
+			],
+			"column": "done"
+		},
+		"T180": {
+			"file": "T180-drop-schema-read.md",
+			"id": "T180",
+			"title": "Drop schema:read from the Free Events trust contract",
+			"phase": 8,
+			"package": "events",
+			"edition": "free",
+			"status": "review",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T178"
+			],
 			"spec": [],
 			"unblocks": [],
 			"column": "review"
@@ -3496,7 +3552,7 @@
 		],
 		"review": [
 			"T175",
-			"T176"
+			"T180"
 		],
 		"done": [
 			"T000",
@@ -3650,7 +3706,10 @@
 			"T169",
 			"T170",
 			"T171",
-			"T172"
+			"T172",
+			"T176",
+			"T177",
+			"T178"
 		],
 		"blocked": [
 			"T111"

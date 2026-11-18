@@ -4,7 +4,7 @@ title: "Booking-request windows that change by weekday, date range and season"
 phase: 8
 package: events, events-suite
 edition: free
-status: review
+status: done
 model: opus-5.5
 size: M
 depends_on: []
