@@ -24,6 +24,7 @@ import {
 	newIdempotencyKey,
 	type PublicEvent,
 	requestDates,
+	requestWindows,
 } from "@semics-tech/emdash-events/astro/lib/widget";
 import { translator } from "@semics-tech/emdash-events/i18n";
 
@@ -92,6 +93,8 @@ const monthId = `${id}-month`;
 // ahead, not closed) as a select that works without JavaScript, then the time windows as radios; posts `request`.
 const requests = data?.requests;
 const requestDays = requests ? requestDates(requests, zone, Date.now(), locale) : [];
+// T176: every window (the rules' too); the server refuses one the date does not offer.
+const requestWindowList = requests ? requestWindows(requests) : [];
 const errId = `${id}-occurrence-error`;
 const when = (iso: string) => {
 	const options = { dateStyle: "full", timeStyle: "short" } as const;
@@ -289,19 +292,21 @@ const chosen: { minPerOrder?: number | null; maxPerOrder?: number | null } =
 								aria-describedby={bad("occurrence") ? errId : undefined}
 							>
 								<option value="">{t("widget.chooseDate")}</option>
-								{requestDays.map((d) => <option value={d.value}>{d.label}</option>)}
+								{requestDays.map((d) => <option value={d.value} data-windows={d.windows.join(" ")}>{d.label}</option>)}
 							</select>
 							{bad("occurrence") && <p class="semics-field-error" id={errId}>{fieldMessage("occurrence", locale)}</p>}
 						</div>
 						<fieldset class="semics-group semics-windows" data-testid="booking-windows">
 							<legend>{t("widget.window")}</legend>
-							{requests.windows.map((w) => (
+							{requestWindowList.map((w) => (
 								<div class="semics-check">
-									<input id={`${id}-window-${w.id}`} type="radio" name="requestWindow" value={w.id} required checked={requests.windows.length === 1} />
+									<input id={`${id}-window-${w.id}`} type="radio" name="requestWindow" value={w.id} required checked={requestWindowList.length === 1} />
 									<label for={`${id}-window-${w.id}`}>{w.label} ({w.start}–{w.end})</label>
 								</div>
 							))}
 						</fieldset>
+						{/* T176: with JavaScript, only the chosen date's windows (each date option lists them). */}
+						<script is:inline>(function (s) { var f = s.previousElementSibling, d = f.previousElementSibling.querySelector("select"); function u() { var o = d.options[d.selectedIndex], w = o && o.dataset.windows, shown = []; f.querySelectorAll("input").forEach(function (i) { var off = w != null && w.split(" ").indexOf(i.value) < 0; i.parentNode.style.display = off ? "none" : ""; i.disabled = off; if (off) i.checked = false; else shown.push(i); }); if (shown.length === 1) shown[0].checked = true; } d.addEventListener("change", u); u(); })(document.currentScript);</script>
 					</>
 				)}
 

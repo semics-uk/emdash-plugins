@@ -36,7 +36,7 @@ import {
 	WAIVER_PENDING,
 	WARNING,
 } from "../domain/names";
-import { wallMs } from "../domain/schedule";
+import { wallMs, windowOf } from "../domain/schedule";
 import { settingsObject } from "../domain/settings";
 import { iso } from "../domain/time";
 import { requestText } from "../emails/confirmation";
@@ -181,7 +181,7 @@ function bookingRows(items: Page["items"], configs: Map<string, unknown>) {
 		const c = configs.get(b.eventId) as EventConfigDoc | undefined;
 		const r = b.request;
 		// A request's Approve asks for the time first (T174a), starting from the date and window asked for.
-		const s = c?.requests?.windows.find((w) => w.id === r?.window)?.start;
+		const s = windowOf(c, r?.window)?.start;
 		return {
 			...(waiting && {
 				approve: r

@@ -135,11 +135,32 @@ export interface ScheduleDoc {
  * of `days` (`MO`..`SU`), `noticeDays` to `aheadDays` ahead, never on `closedDates` (local `YYYY-MM-DD`).
  */
 export interface RequestsDoc {
-	windows: Array<{ id: string; label: string; start: string; end: string }>;
+	windows: RequestWindow[];
 	days: string[];
 	aheadDays: number;
 	noticeDays: number;
 	closedDates: string[];
+	/**
+	 * T176: the first rule that matches a local date replaces `windows` that day. A rule matches when its
+	 * weekday is in `days`, the date is `from` to `to` (`MM-DD`, inclusive, wrapping the year when `from` is
+	 * later), and with `summer` the zone is on daylight-saving time. Window ids are unique across all windows.
+	 */
+	rules?: RequestRule[];
+}
+
+export interface RequestWindow {
+	id: string;
+	label: string;
+	start: string;
+	end: string;
+}
+
+export interface RequestRule {
+	days?: string[];
+	from?: string;
+	to?: string;
+	summer?: boolean;
+	windows: RequestWindow[];
 }
 
 /** Title, times, zone and venue of an event as ISO strings; written by the content hook and `config/save`. */

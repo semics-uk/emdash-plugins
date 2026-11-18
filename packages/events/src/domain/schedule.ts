@@ -10,7 +10,14 @@
  */
 import { utcOffsetMinutes, utcParts, utcToZoned, validZone, WEEKDAYS, zonedToUtc } from "@semics-tech/shared";
 
-import type { BookingDoc, EventConfigDoc, RequestsDoc, ScheduleDoc } from "../storage/schema";
+import type {
+	BookingDoc,
+	EventConfigDoc,
+	RequestRule,
+	RequestsDoc,
+	RequestWindow,
+	ScheduleDoc,
+} from "../storage/schema";
 import { isArr, isInt, isStr, keysOf } from "./names";
 import { msOf } from "./time";
 
@@ -49,9 +56,9 @@ export const wallMs = (day: string, time: string, zone: string): number => {
 };
 
 /** Weekdays (at least one), 1 to `max` days ahead and closed local dates: schedules' and requests' (T174a). */
+const weekdays = (days: unknown) => list(days, 7, (d) => DAYS.includes(d)) && (days as string[]).length > 0;
 const dated = (days: unknown, ahead: unknown, max: number, closed: unknown) =>
-	list(days, 7, (d) => DAYS.includes(d)) &&
-	(days as string[]).length > 0 &&
+	weekdays(days) &&
 	int(ahead, 1, max) &&
 	isArr(closed) &&
 	closed.length <= 366 &&
@@ -120,48 +127,96 @@ export function dayBounds(day: string, zone: string): [number, number] | null {
 	return [at(t), at(t + DAY)];
 }
 
-/** Valid booking requests (T174a; defaults filled), or null. */
+/** 1 to 8 windows of exactly id, label, start and end (stored as given). */
+const windowsOk = (w: unknown) =>
+	isArr(w) &&
+	w[0] &&
+	!w[8] &&
+	w.every(
+		(x) =>
+			keysOf(x ?? 0).length === 4 &&
+			isStr(x.id) &&
+			/^[a-z0-9-]{1,32}$/.test(x.id) &&
+			isStr(x.label) &&
+			x.label.length <= 40 &&
+			TIME.test(x.start) &&
+			TIME.test(x.end) &&
+			x.end > x.start,
+	);
+const RULE_KEYS = ["days", "from", "to", "summer", "windows"];
+
+/** Valid booking requests (T174a; defaults filled; T176 rules), or null. */
 export function parseRequests(raw: unknown): RequestsDoc | null {
 	const r = (raw ?? 0) as Record<string, unknown>;
-	const w = r.windows as Array<Record<string, string>>;
 	const ahead = r.aheadDays ?? 90;
 	const notice = r.noticeDays ?? 0;
 	const closed = r.closedDates ?? [];
+	const rules = (r.rules ?? []) as RequestRule[];
 	const ok =
-		isArr(w) &&
-		w.length > 0 &&
-		list(
-			w.map((x) => x?.id),
-			8,
-			(id) => /^[a-z0-9-]{1,32}$/.test(id),
-		) &&
-		// Exactly id, label, start and end: stored as given.
-		w.every(
+		windowsOk(r.windows) &&
+		isArr(rules) &&
+		!rules[10] &&
+		rules.every(
 			(x) =>
-				keysOf(x).length === 4 &&
-				isStr(x.label) &&
-				x.label.length <= 40 &&
-				TIME.test(x.start) &&
-				TIME.test(x.end) &&
-				x.end > x.start,
+				windowsOk(x?.windows) &&
+				keysOf(x).every((k) => RULE_KEYS.includes(k)) &&
+				(x.days === undefined || weekdays(x.days)) &&
+				// `MM-DD` (29 Feb too): a real day of a leap year.
+				((x.from ?? x.to) === undefined || dayMs(`2000-${x.from}`) + dayMs(`2000-${x.to}`) >= 0) &&
+				(x.summer ?? true) === true,
+		) &&
+		// Ids unique across the event's windows and every rule's: a booking stores only the id.
+		list(
+			allWindows({ requests: r as unknown as RequestsDoc }).map((w) => w.id),
+			88,
+			isStr,
 		) &&
 		int(notice, 0, 365) &&
 		dated(r.days, ahead, 365, closed);
 	return ok
 		? {
-				windows: w as unknown as RequestsDoc["windows"],
+				windows: r.windows as RequestWindow[],
 				days: r.days as string[],
 				aheadDays: ahead as number,
 				noticeDays: notice as number,
 				closedDates: closed as string[],
+				...(rules[0] && { rules }),
 			}
 		: null;
+}
+
+type HasRequests = Pick<EventConfigDoc, "requests"> | null | undefined;
+/** Every window of the event's requests and its rules (T176). */
+const allWindows = (c: HasRequests) => [c?.requests, ...(c?.requests?.rules ?? [])].flatMap((x) => x?.windows ?? []);
+/** The event's window `id`, whichever rule has it (T176): emails, the Bookings page. */
+export const windowOf = (c: HasRequests, id?: string) => allWindows(c).find((w) => w.id === id);
+
+/**
+ * The windows a request may ask for on local date `YYYY-MM-DD` (T176): the first matching rule's, else the
+ * event's (none without requests). `summer`: the zone's offset that day is above its least of the year.
+ */
+export function windowsOn(c: Pick<EventConfigDoc, "requests" | "info">, date: string): RequestWindow[] {
+	const q = c.requests;
+	const zone = validZone(c.info?.timezone) ?? "UTC";
+	const t = dayMs(date);
+	const md = date.slice(5);
+	const off = (ms: number) => utcOffsetMinutes(ms, zone);
+	const y = +date.slice(0, 4);
+	const rule =
+		t >= 0 &&
+		q?.rules?.find(
+			({ days, from = "01-01", to = "12-31", summer }) =>
+				(!days || days.includes(weekday(t))) &&
+				(from <= to ? from <= md && md <= to : from <= md || md <= to) &&
+				(!summer || off(t + DAY / 2) > Math.min(off(Date.UTC(y, 0)), off(Date.UTC(y, 6)))),
+		);
+	return (rule || q)?.windows ?? [];
 }
 
 /**
  * The instant a request's window starts (T174a), or NaN when the event does not take that window on that
  * date at `now`: a listed weekday `noticeDays` to `aheadDays` after today in the event's zone, not closed,
- * and the window not started yet.
+ * the window offered that day (T176) and not started yet.
  */
 export function requestStart(
 	c: Pick<EventConfigDoc, "requests" | "info">,
@@ -169,7 +224,7 @@ export function requestStart(
 	now: number,
 ): number {
 	const q = c.requests;
-	const w = q?.windows.find((x) => x.id === r.window);
+	const w = windowsOn(c, r.date).find((x) => x.id === r.window);
 	const zone = validZone(c.info?.timezone) ?? "UTC";
 	const t = dayMs(r.date);
 	const p = utcToZoned(now, zone);

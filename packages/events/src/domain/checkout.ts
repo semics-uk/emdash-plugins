@@ -13,7 +13,7 @@ import type { BookingDoc, BookingLine, EventConfigDoc } from "../storage/schema"
 import { type Counter, planReservation, type ReserveStep, seatsByType } from "./inventory";
 import { BAD_REQUEST, INVALID_TYPE, isArr, isNum, isStr, keysOf, ON_SALE, OPEN, SOLD_OUT } from "./names";
 import { cmp } from "./order";
-import { requestStart } from "./schedule";
+import { requestStart, windowsOn } from "./schedule";
 import { iso, msOf } from "./time";
 
 /** Most lines and seats per line one order may carry. */
@@ -340,7 +340,7 @@ export function planCheckout(
 		if (!q || input.occurrenceId !== undefined) return bad("REQUEST_NOT_TAKEN");
 		if (!r) return bad("REQUEST_REQUIRED");
 		if (!(requestStart(config, r, now) > 0)) {
-			return bad(q.windows.some((w) => w.id === r.window) ? "REQUEST_DATE" : "REQUEST_WINDOW");
+			return bad(windowsOn(config, r.date).some((w) => w.id === r.window) ? "REQUEST_DATE" : "REQUEST_WINDOW");
 		}
 	}
 

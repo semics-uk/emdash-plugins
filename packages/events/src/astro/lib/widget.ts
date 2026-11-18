@@ -58,25 +58,75 @@ export interface PublicEvent {
 
 /** What an event takes booking requests for (T174a): windows in local `HH:MM`, weekdays `MO`..`SU`. */
 export interface PublicRequests {
-	windows: Array<{ id: string; label: string; start: string; end: string }>;
+	windows: RequestWindowView[];
 	days: string[];
 	aheadDays: number;
 	noticeDays: number;
 	closedDates: string[];
+	/**
+	 * T176: the first rule that matches a date replaces `windows` that day: its weekday in `days`, the date
+	 * `from` to `to` (`MM-DD`, inclusive, wrapping the year), and with `summer` the zone on daylight-saving time.
+	 */
+	rules?: Array<{ days?: string[]; from?: string; to?: string; summer?: boolean; windows: RequestWindowView[] }>;
+}
+
+export interface RequestWindowView {
+	id: string;
+	label: string;
+	start: string;
+	end: string;
 }
 
 const WEEKDAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"];
 
+/** Every window an event's requests offer (T176): the event's, then each rule's not already listed. */
+export function requestWindows(r: PublicRequests): RequestWindowView[] {
+	const all = [r, ...(r.rules ?? [])].flatMap((x) => x.windows);
+	return all.filter((w, i) => all.findIndex((x) => x.id === w.id) === i);
+}
+
+/** The zone's UTC offset in minutes at an instant (0 when the zone is unknown). */
+function offsets(zone: string): (at: number) => number {
+	let format: Intl.DateTimeFormat;
+	try {
+		format = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" });
+	} catch {
+		return () => 0;
+	}
+	return (at) => {
+		const name = format.formatToParts(at).find((p) => p.type === "timeZoneName")?.value;
+		const m = /([+-])(\d\d):(\d\d)/.exec(name ?? "");
+		return m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
+	};
+}
+
+/**
+ * The ids of the windows a request may ask for on a local date (T176), as the core checks them: the first
+ * matching rule's, else the event's. `summer`: the zone's offset that day is above its least of the year.
+ */
+function windowIdsOn(r: PublicRequests, day: Date, off: (at: number) => number): string[] {
+	const md = day.toISOString().slice(5, 10);
+	const y = day.getUTCFullYear();
+	const rule = r.rules?.find(
+		({ days, from = "01-01", to = "12-31", summer }) =>
+			(!days || days.includes(WEEKDAYS[day.getUTCDay()] as string)) &&
+			(from <= to ? from <= md && md <= to : from <= md || md <= to) &&
+			(!summer || off(day.getTime() + 432e5) > Math.min(off(Date.UTC(y, 0)), off(Date.UTC(y, 6)))),
+	);
+	return (rule ?? r).windows.map((w) => w.id);
+}
+
 /**
  * The dates a request may ask for (T174a), as the core checks them: allowed weekdays from `noticeDays` to
- * `aheadDays` after today in the event's zone, without closed dates. `value` is the local `YYYY-MM-DD`.
+ * `aheadDays` after today in the event's zone, without closed dates. `value` is the local `YYYY-MM-DD`;
+ * `windows` the ids of the windows offered that day (T176).
  */
 export function requestDates(
 	r: PublicRequests,
 	zone: string,
 	now: number,
 	locale?: string,
-): Array<{ value: string; label: string }> {
+): Array<{ value: string; label: string; windows: string[] }> {
 	let today: string;
 	try {
 		today = new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(new Date(now));
@@ -85,12 +135,13 @@ export function requestDates(
 	}
 	const start = Date.parse(`${today}T00:00:00Z`);
 	const label = new Intl.DateTimeFormat(locale, { dateStyle: "full", timeZone: "UTC" });
-	const out: Array<{ value: string; label: string }> = [];
+	const out: Array<{ value: string; label: string; windows: string[] }> = [];
+	const off = offsets(zone);
 	for (let i = r.noticeDays; i <= r.aheadDays; i++) {
 		const day = new Date(start + i * 864e5);
 		const value = day.toISOString().slice(0, 10);
 		if (r.days.includes(WEEKDAYS[day.getUTCDay()] as string) && !r.closedDates.includes(value)) {
-			out.push({ value, label: label.format(day) });
+			out.push({ value, label: label.format(day), windows: windowIdsOn(r, day, off) });
 		}
 	}
 	return out;
