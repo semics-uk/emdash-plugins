@@ -17,7 +17,7 @@ reports, MCP) are gated in a Pro build of the same slug (BUILD-PLAN §13). Free 
 
 ## Trust contract (frozen at 1.0)
 
-- Capabilities: `content:read`, `schema:read`, `email:send`, `network:request`.
+- Capabilities: `content:read`, `email:send`, `network:request` (`schema:read` dropped in T180).
 - Allowed hosts: Free `challenges.cloudflare.com`; Pro adds `api.stripe.com`. No licence-server host.
 - Every public route is declared from day one (BUILD-PLAN §3.1 public routes table).
 
@@ -377,5 +377,5 @@ collection names and shapes · `src/admin` Block Kit · `src/cron` jobs · `test
   `plugins:manage`; secrets come back masked as `secretsSet` booleans) and schema GET, run in process with the visitor's
   locals, then `getPluginSetting` only for secrets the host says are set, kept as readable / unreadable. `validateMapping`
   and `encryptionKeyStatus` moved to `src/astro/lib/mapping.ts` and `encryption.ts` (only `src/astro` ships), so the backend
-  no longer bundles them; `AdminDeps.schema` is gone and nothing in the backend calls `ctx.schema` now (`schema:read` is
-  still declared).
+  no longer bundles them; `AdminDeps.schema` is gone and nothing in the backend calls `ctx.schema` now (`schema:read` was
+  dropped from the trust contract in T180).
