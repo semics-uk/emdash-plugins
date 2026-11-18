@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { encryptionKeyStatus } from "../../src/domain/encryption";
+import { encryptionKeyStatus } from "../../src/astro/lib/encryption";
 
 describe("encryptionKeyStatus (EU-FR-01, spike S8)", () => {
 	it("is ok, with no banner, when the key is configured and secrets are readable or unset", () => {

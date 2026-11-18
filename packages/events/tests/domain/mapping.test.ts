@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { type CollectionSchemas, type EventsMapping, validateMapping } from "../../src/domain/mapping";
+import { type CollectionSchemas, type EventsMapping, validateMapping } from "../../src/astro/lib/mapping";
 
 const mapping: EventsMapping = {
 	eventsCollection: "events",

@@ -35,6 +35,7 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 			"/_events/checkout",
 			"/_events/opt-out",
 			"/_events/promo",
+			"/_events/setup",
 			"/_events/sign",
 			"/_events/waitlist",
 			"/booking",
@@ -67,6 +68,13 @@ describe("eventsIntegration (EU-FR-05, EU-FR-06)", () => {
 		const { routes } = await setup();
 		expect(routes.find((r) => r.pattern === "/_events/opt-out")?.entrypoint).toBe(
 			"@semics-tech/emdash-events/astro/OptOutPage.astro",
+		);
+	});
+
+	it("T178 injects the setup check page from the package's own export", async () => {
+		const { routes } = await setup();
+		expect(routes.find((r) => r.pattern === "/_events/setup")?.entrypoint).toBe(
+			"@semics-tech/emdash-events/astro/SetupPage.astro",
 		);
 	});
 

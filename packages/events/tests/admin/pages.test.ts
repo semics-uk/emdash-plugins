@@ -106,34 +106,17 @@ const banners = (blocks: Array<{ type: string }>) =>
 	blocks.filter((b) => b.type === "banner") as Array<{ title?: string; description?: string; variant?: string }>;
 const find = <T extends { type: string }>(blocks: T[], type: string) => blocks.find((b) => b.type === type);
 
-describe("setup page (EV-FR-01, T040, T047)", () => {
-	it("a sound mapping and a Turnstile secret show no banners", async () => {
-		const { deps } = world();
+describe("setup page (T178: the check moved to the site's /_events/setup)", () => {
+	it("T178 links to the site's setup check and the plugin settings, and reads nothing", async () => {
+		const { deps } = world({ ...MAPPED, fieldVenue: "place", turnstileSecretKey: undefined });
+		meter.calls = 0;
 		const out = await load(deps, "/setup");
+		expect(meter.calls).toBe(0);
 		expect(banners(out.blocks)).toEqual([]);
-		expect(meter.calls).toBeLessThanOrEqual(8);
-	});
-
-	it("renders the validateMapping banner when a mapped field is missing", async () => {
-		const { deps } = world({ ...MAPPED, fieldVenue: "place" });
-		const out = await load(deps, "/setup");
-		const [b] = banners(out.blocks);
-		expect(b).toMatchObject({ variant: "error", title: "Events field mapping needs attention" });
-		expect(b?.description).toContain('"place"');
-	});
-
-	it("renders the encryption key banner when a saved secret cannot be read", async () => {
-		const { deps } = world({ ...MAPPED, turnstileSecretKey: { ciphertext: "x" } });
-		const out = await load(deps, "/setup");
-		expect(banners(out.blocks).map((b) => b.title)).toContain("Saved secrets cannot be read");
-	});
-
-	it("warns that checkout runs without a bot check when no Turnstile secret is set", async () => {
-		const { deps } = world({ ...MAPPED, turnstileSecretKey: undefined });
-		const out = await load(deps, "/setup");
-		const warn = banners(out.blocks).find((b) => b.variant === "alert");
-		expect(warn?.title).toMatch(/Turnstile/);
-		expect(warn?.description).toMatch(/without a bot check/);
+		expect(find(out.blocks, "header")).toMatchObject({ text: "Events setup" });
+		expect(json(out.blocks)).toContain('"url":"https://site.test/_events/setup"');
+		expect(json(out.blocks)).toContain('"kind":"plugin-settings"');
+		expect(json(out.blocks)).not.toContain("place");
 	});
 });
 
