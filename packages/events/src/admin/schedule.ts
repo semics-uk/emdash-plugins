@@ -111,54 +111,23 @@ export function requestFields(r: EventConfigDoc["requests"]): FormField[] {
 		numberInput("rq_ahead", "Requests: days ahead", { initialValue: r?.aheadDays ?? 90, min: 1 }),
 		numberInput("rq_notice", "Requests: days' notice", { initialValue: r?.noticeDays ?? 0, min: 0 }),
 		textInput("rq_closed", "Requests: closed dates", list(r?.closedDates)),
-		// T176: `WE 04-01..10-31 summer: 15:30-17:00 Late 1, 17:00-18:30 Late 2`, every part before the colon optional.
-		textInput("rq_rules", "Requests: rules (WE 04-01..10-31 summer: 15:30-17:00 Late)", {
-			initialValue: r?.rules
-				?.map(
-					(x) =>
-						`${[x.days?.join(), x.from && `${x.from}..${x.to}`, x.summer && "summer"].filter(Boolean).join(" ")}: ${x.windows
-							.map((w) => `${w.start}-${w.end} ${w.label}`)
-							.join(", ")}`,
-				)
-				.join("\n"),
-			multiline: true,
-		}),
 	];
 }
 
-const lines = (v: unknown) =>
-	str(v, 4000)
-		.split(/\s*\n\s*/)
-		.filter(Boolean);
-/** A window typed as `Label HH:MM-HH:MM` or `HH:MM-HH:MM Label` (id from the label). */
-const windowIn = (l: string) => {
-	const [, a, start, end, b] = /^(?:(.+?) +)?(\d\d:\d\d) *- *(\d\d:\d\d)(?: +(.+))?$/.exec(l) ?? [];
-	const label = a ?? b ?? l;
-	return { id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label, start, end };
-};
-
-/** The requests a panel save asks for (null: none); a line that does not parse is refused by the validator. */
+/**
+ * The requests a panel save asks for (null: none); a line that does not parse is refused by the validator.
+ * The rules (T176) are set through `config/save` only: a panel save keeps the stored ones.
+ */
 export function requestsInput(values: Obj, stored: EventConfigDoc["requests"]): unknown {
 	if (values.rq_windows === undefined && values.rq_days === undefined) return stored ?? null;
-	const windows = lines(values.rq_windows).map(windowIn);
-	const rules = lines(values.rq_rules).map((l) => {
-		const i = l.indexOf(":");
-		const rule: Obj = {};
-		const d: string[] = [];
-		for (const t of l.slice(0, i).split(/[\s,]+/)) {
-			if (t.toLowerCase() === "summer") rule.summer = true;
-			else if (t.includes("..")) [rule.from, rule.to] = t.split("..");
-			else if (t) d.push(t.toUpperCase());
-		}
-		return {
-			...(d[0] && { days: d }),
-			...rule,
-			windows: l
-				.slice(i + 1)
-				.split(",")
-				.map((w) => windowIn(w.trim())),
-		};
-	});
+	const windows = str(values.rq_windows, 4000)
+		.split(/\s*\n\s*/)
+		.filter(Boolean)
+		.map((l) => {
+			const [, label = l, start, end] = /(.+?) +(\d\d:\d\d) *- *(\d\d:\d\d)$/.exec(l) ?? [];
+			return { id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-"), label, start, end };
+		});
+	const rules = stored?.rules;
 	const weekdays = days(values.rq_days);
 	// In the stored shape's key order, so an unchanged form compares equal; `config/save` validates it.
 	return windows.length + weekdays.length
@@ -168,7 +137,7 @@ export function requestsInput(values: Obj, stored: EventConfigDoc["requests"]): 
 				aheadDays: num(values.rq_ahead) ?? 90,
 				noticeDays: num(values.rq_notice) ?? 0,
 				closedDates: split(values.rq_closed),
-				...(rules[0] && { rules }),
+				...(rules && { rules }),
 			}
 		: null;
 }
@@ -195,7 +164,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 	const ids = keysOf(slots)
 		.filter((id) => at(id) >= bounds[0] && at(id) < bounds[1])
 		.sort((a, b) => at(a) - at(b));
-	const docs = (ids.length > 0 ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
+	const docs = (ids.length ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
 	const time = (d: OccurrenceDoc) => localText(d.startsAt, zone).slice(11);
 	if (save) {
 		const all = values.day_all;
@@ -210,7 +179,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 		});
 		const closing = changes.filter((c) => c.status !== OPEN && c.d.status === OPEN && c.d.reserved + c.d.sold > 0);
 		const bad = changes.find((c) => !isInt(c.places) || c.places < maxOf(c.d.reserved, 1));
-		if (closing.length > 0) {
+		if (closing.length) {
 			const refused = new Set(closing.map((c) => c.id));
 			const { items } = await storage.bookings.query({
 				where: { eventId, status: { in: [...LIVE_BOOKING_STATUSES] } },
@@ -227,7 +196,7 @@ export async function dayPanel(deps: DayDeps, eventId: string, values: Obj, save
 			);
 		} else if (bad) {
 			extra = saveRefused([{ path: "", code: bad.places >= 1 ? CAPACITY_BELOW_RESERVED : "INVALID_CAPACITY" }]);
-		} else if (changes.length > 0) {
+		} else if (changes.length) {
 			const now = changes.slice(0, MAX_DAY_CHANGES);
 			const done = await allOf(
 				now.map((c) =>

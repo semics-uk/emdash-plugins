@@ -100,6 +100,57 @@ opens **Confirm time**: a date and start time (from the request, in the event's 
 Confirming sends the usual confirmation with that time, which the booking page, the calendar file and the
 cancel cutoff then use. **Decline** works as for any request.
 
+#### Windows that change by weekday or season
+
+An event's windows can differ by weekday, date range and daylight-saving season. Rules are set through the
+`config/save` route only (the panel has no field for them, and saving the panel keeps them as they are):
+`config.requests.rules`, up to 10, each with:
+
+- `days` (optional): weekdays `MO` to `SU`;
+- `from` and `to` (optional, both or neither): `MM-DD`, inclusive; `from` after `to` wraps the year
+  (`12-20` to `01-05`);
+- `summer: true` (optional): only while the event's time zone is on daylight-saving time, whatever the year
+  ("until the clocks go back");
+- `windows`: 1 to 8 windows, as in `requests.windows`.
+
+A rule applies to a date when all its conditions hold; the first rule that applies replaces the usual windows
+for that date. Window ids must be unique across `windows` and every rule, since a booking keeps only the id.
+The booking form shows only the chosen date's windows (without JavaScript it lists them all, and checkout
+refuses one the date does not offer).
+
+For example, Morning and Afternoon every open day, but Wednesdays from April until the clocks go back offer
+only the late windows:
+
+```json
+{
+  "requests": {
+    "windows": [
+      { "id": "morning", "label": "Morning", "start": "10:00", "end": "12:00" },
+      { "id": "afternoon", "label": "Afternoon", "start": "12:00", "end": "15:30" }
+    ],
+    "days": ["WE", "SA", "SU"],
+    "aheadDays": 90,
+    "noticeDays": 0,
+    "closedDates": [],
+    "rules": [
+      {
+        "days": ["WE"],
+        "from": "04-01",
+        "to": "10-31",
+        "summer": true,
+        "windows": [
+          { "id": "late-1", "label": "Late 1", "start": "15:30", "end": "17:00" },
+          { "id": "late-2", "label": "Late 2", "start": "17:00", "end": "18:30" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`config/save` takes the whole event config (`{ eventId, config, ticketTypes, occurrences }`), so read it with
+`config/get` first, add `rules` to its `requests`, and save it back.
+
 ### Per-person add-ons (Events Pro)
 
 An extra sold per person rather than as a place, such as quad trekking at £54 a person, is a ticket type marked
