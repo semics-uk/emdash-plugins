@@ -1,5 +1,11 @@
 # @semics-tech/emdash-events
 
+## 1.0.0-rc.31
+
+### Patch Changes
+
+- e23e403: Events no longer asks for the `schema:read` permission. Nothing in the plugin reads your collection schemas any more: the setup check that did now runs on the site at `/_events/setup` with your own admin sign-in. Fewer permissions, nothing to do.
+
 ## 1.0.0-rc.30
 
 No changes in this release.
