@@ -112,10 +112,9 @@ async function offer(
 	await st.bookings
 		.updateIf(id, {
 			where: { status: HELD, releaseClaimedAt: null },
-			set:
-				reserved.error.uncompensated.length
-					? { status: DRAFT, holdExpiresAt: iso(now) }
-					: { status: EXPIRED, expiredAt: iso(now) },
+			set: reserved.error.uncompensated.length
+				? { status: DRAFT, holdExpiresAt: iso(now) }
+				: { status: EXPIRED, expiredAt: iso(now) },
 		})
 		.catch(quiet);
 	return "seat";

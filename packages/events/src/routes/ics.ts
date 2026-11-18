@@ -136,16 +136,15 @@ export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<R
 		limit: MAX_OCCURRENCES,
 	});
 	const duration = (info.endsAt ?? info.startsAt + DEFAULT_DURATION_MS) - info.startsAt;
-	const events =
-		!items.length
-			? [calendarEvent(`event-${eventId}@semics-events`, deps.now, info)]
-			: items.flatMap(({ id, data }) => {
-					const start = msOf((data as OccurrenceDoc).startsAt);
-					if (!isFin(start)) return [];
-					const end = msOf((data as OccurrenceDoc).endsAt ?? "");
-					const occ = { ...info, startsAt: start, endsAt: end > start ? end : start + duration };
-					return [calendarEvent(`event-${eventId}-${id}@semics-events`, deps.now, occ)];
-				});
+	const events = !items.length
+		? [calendarEvent(`event-${eventId}@semics-events`, deps.now, info)]
+		: items.flatMap(({ id, data }) => {
+				const start = msOf((data as OccurrenceDoc).startsAt);
+				if (!isFin(start)) return [];
+				const end = msOf((data as OccurrenceDoc).endsAt ?? "");
+				const occ = { ...info, startsAt: start, endsAt: end > start ? end : start + duration };
+				return [calendarEvent(`event-${eventId}-${id}@semics-events`, deps.now, occ)];
+			});
 	return {
 		status: 200,
 		contentType: "text/calendar; charset=utf-8",
