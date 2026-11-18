@@ -37,8 +37,8 @@ describe("Events trust contract frozen at 1.0 (T106, BUILD-PLAN §9, R4)", () =>
 		expect(await liveContract()).toEqual(frozen.contract);
 	});
 
-	it("reads it: four capabilities, only the Turnstile host, no MCP tool in Free", () => {
-		expect(frozen.contract.capabilities).toEqual(["content:read", "email:send", "network:request", "schema:read"]);
+	it("reads it: three capabilities (no schema:read since T180), only the Turnstile host, no MCP tool in Free", () => {
+		expect(frozen.contract.capabilities).toEqual(["content:read", "email:send", "network:request"]);
 		expect(frozen.contract.allowedHosts).toEqual(["challenges.cloudflare.com"]);
 		expect(frozen.contract.mcpTools).toEqual([]);
 		expect(frozen.version).toBe("1.0.0");
