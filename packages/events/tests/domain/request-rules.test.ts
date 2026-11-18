@@ -195,7 +195,7 @@ describe("T176 rules config", () => {
 	});
 });
 
-describe("T176 panel's rules field", () => {
+describe("T176 the panel keeps the rules (set through config/save only)", () => {
 	const values = {
 		rq_windows: "Morning 10:00-12:00\nAfternoon 12:00-15:30",
 		rq_days: "WE, SA, SU",
@@ -204,39 +204,25 @@ describe("T176 panel's rules field", () => {
 		rq_closed: "",
 	};
 
-	it("T176 one rule a line: days, a MM-DD..MM-DD range and `summer`, then `HH:MM-HH:MM Label` windows", () => {
-		const asked = requestsInput(
-			{ ...values, rq_rules: "WE 04-01..10-31 summer: 15:30-17:00 Late 1, 17:00-18:30 Late 2\n" },
-			null,
-		);
+	it("T176 a panel save of the requests fields leaves the stored rules unchanged", () => {
+		const asked = requestsInput(values, LMSC);
 		expect(asked).toEqual(LMSC);
 		expect(parseRequests(asked)).toEqual(LMSC);
-		const field = JSON.stringify(requestFields(LMSC));
-		expect(field).toContain("WE 04-01..10-31 summer: 15:30-17:00 Late 1, 17:00-18:30 Late 2");
-		// Every part is optional but the windows; days may be a comma list.
-		const more = requestsInput(
-			{ ...values, rq_rules: "summer: 15:30-17:00 Late 1\n mo,tu: 09:00-10:00 Early\n12-20..01-05: 11:00-13:00 Xmas" },
-			null,
-		) as RequestsDoc;
-		expect(more.rules).toEqual([
-			{ summer: true, windows: [LATE[0]] },
-			{ days: ["MO", "TU"], windows: [{ id: "early", label: "Early", start: "09:00", end: "10:00" }] },
-			{ from: "12-20", to: "01-05", windows: [{ id: "xmas", label: "Xmas", start: "11:00", end: "13:00" }] },
-		]);
-		expect(parseRequests(more)?.rules).toEqual(more.rules);
-		// The form round-trips: what it shows parses back to the same rules.
-		const shown = requestFields(more).find((f) => (f as { action_id?: string }).action_id === "rq_rules") as {
-			initial_value?: string;
-		};
-		expect(requestsInput({ ...values, rq_rules: shown.initial_value }, null)).toMatchObject({ rules: more.rules });
+		// The rules stay last, so an unchanged form compares equal to what is stored.
+		expect(JSON.stringify(asked)).toBe(JSON.stringify(LMSC));
+		// Changing the windows keeps the rules too.
+		const edited = requestsInput({ ...values, rq_windows: "Morning 09:30-12:00" }, LMSC) as RequestsDoc;
+		expect(edited.rules).toEqual(LMSC.rules);
+		expect(edited.windows).toEqual([{ id: "morning", label: "Morning", start: "09:30", end: "12:00" }]);
 	});
 
-	it("T176 no rules leave the stored shape as before; a line that does not parse is refused", () => {
-		const plain = requestsInput({ ...values, rq_rules: " " }, null);
-		expect(plain).not.toHaveProperty("rules");
+	it("T176 no stored rules: the panel adds none and shows no rules field", () => {
+		const { rules: _, ...plain } = LMSC;
+		expect(requestsInput(values, plain)).not.toHaveProperty("rules");
 		expect(requestsInput(values, null)).not.toHaveProperty("rules");
-		expect(parseRequests(requestsInput({ ...values, rq_rules: "WE 15:30-17:00 Late" }, null))).toBeNull();
-		expect(parseRequests(requestsInput({ ...values, rq_rules: "Wednesday: 15:30-17:00 Late" }, null))).toBeNull();
-		expect(parseRequests(requestsInput({ ...values, rq_rules: "WE: Late" }, null))).toBeNull();
+		const ids = requestFields(LMSC).map((f) => (f as { action_id?: string }).action_id);
+		expect(ids).not.toContain("rq_rules");
+		// Clearing the form still removes the requests, rules and all.
+		expect(requestsInput({ rq_windows: "", rq_days: "" }, LMSC)).toBeNull();
 	});
 });
