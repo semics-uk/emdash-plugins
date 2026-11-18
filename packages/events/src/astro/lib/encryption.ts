@@ -1,5 +1,6 @@
-import { ERROR, keysOf } from "./names"; /**
- * Encryption-key banner state for the admin pages (spike S8).
+// i18n-ignore-file: administrators only, in English like the admin it moved from (the setup check, T178).
+/**
+ * Encryption-key notice state for the setup check page, `/_events/setup` (spike S8, T178).
  *
  * Secret settings are encrypted with `EMDASH_ENCRYPTION_KEY`. A sandboxed plugin cannot read the
  * environment, so the caller reports what it can observe: whether the host said a key is
@@ -33,7 +34,7 @@ export interface EncryptionKeyStatus {
 const KEY = "EMDASH_ENCRYPTION_KEY";
 
 export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeyStatus {
-	const names = keysOf(input.secrets).sort();
+	const names = Object.keys(input.secrets).sort();
 
 	if (input.keyConfigured === false) {
 		return {
@@ -41,7 +42,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 			secretsWritable: false,
 			affected: names,
 			banner: {
-				severity: ERROR,
+				severity: "error",
 				title: "Encryption key missing",
 				message: `Set ${KEY} on the site and restart it to save secret settings.`,
 			},
@@ -55,7 +56,7 @@ export function encryptionKeyStatus(input: EncryptionKeyInput): EncryptionKeySta
 			secretsWritable: true,
 			affected: unreadable,
 			banner: {
-				severity: ERROR,
+				severity: "error",
 				title: "Saved secrets cannot be read",
 				message: `${unreadable.join(", ")} cannot be decrypted. ${KEY} is missing, changed or does not include the key the value was saved with. Restore the key, or enter the value again.`,
 			},

@@ -1,0 +1,88 @@
+---
+// i18n-ignore-file: administrators only, in English like the admin it moved from (T178).
+// Injected at `/_events/setup` by the integration (T178): the Events setup check, moved off the admin's
+// "Events setup" page so the sandboxed backend does not carry it. Administrators only: the host's own
+// plugin-settings read checks `plugins:manage` on this visitor. It shows the field mapping, whether the
+// mapped collection and fields exist, whether saved secrets can be decrypted, and whether Turnstile is set.
+// No secret value is ever on the page: only notices built from readable / unreadable / unset.
+// The logic is in `lib/setup.ts`; this page only renders it. Admin-only and in English, like the admin.
+import { pluginId } from "virtual:semics-events/config";
+import { getPluginSetting } from "emdash";
+import { GET as readSettings } from "emdash/internal/routes/api/admin/plugins/_id_/settings";
+import { GET as readSchema } from "emdash/internal/routes/api/schema/index";
+
+import { type SetupView, setupCheck } from "./lib/setup";
+
+export const prerender = false;
+
+Astro.response.headers.set("Referrer-Policy", "no-referrer");
+Astro.response.headers.set("Cache-Control", "private, no-store");
+
+const hostUrl = (path: string) => new URL(path, Astro.url);
+const settingsPath = `/_emdash/api/admin/plugins/${encodeURIComponent(pluginId)}/settings`;
+const view: SetupView = await setupCheck({
+	locals: Astro.locals,
+	readSettings: () =>
+		readSettings({
+			params: { id: pluginId },
+			locals: Astro.locals,
+			request: new Request(hostUrl(settingsPath)),
+		} as never) as Promise<Response>,
+	readSchema: () =>
+		readSchema({ locals: Astro.locals, request: new Request(hostUrl("/_emdash/api/schema")) } as never) as Promise<Response>,
+	// Decrypted on the server and reduced to readable / unreadable in `lib/setup.ts`; never rendered.
+	readSecret: (key) => getPluginSetting(pluginId, key),
+});
+if (view.state === "forbidden") Astro.response.status = 403;
+if (view.state === "error") Astro.response.status = 500;
+const settingsHref = `/_emdash/admin/plugins-manager/${encodeURIComponent(pluginId)}/settings`;
+const signIn = "/_emdash/admin";
+// The page's words are English whatever the site's locale, so it says so (not the site's language).
+const lang = "en";
+const dir = "ltr";
+---
+<!doctype html>
+<html lang={lang} dir={dir}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="robots" content="noindex" />
+		<meta name="referrer" content="no-referrer" />
+		<title>Events setup</title>
+	</head>
+	<body>
+		<main class="semics-events semics-setup" data-testid="setup-page" data-state={view.state}>
+			<h1>Events setup</h1>
+			{view.state === "forbidden" && (
+				<p data-testid="setup-forbidden">
+					Sign in to the admin as an administrator, then open this page again. <a href={signIn}>Sign in</a>
+				</p>
+			)}
+			{view.state === "error" && (
+				<p role="alert" data-testid="setup-error">The setup check could not read the site's settings. Reload the page to try again.</p>
+			)}
+			{view.state === "ok" && (
+				<>
+					{view.notices.length === 0 && <p role="status" data-testid="setup-ok">The field mapping, saved secrets and Turnstile are all set up.</p>}
+					{view.notices.map((n) => (
+						<div role={n.severity === "error" ? "alert" : "status"} class={`semics-setup-notice semics-setup-${n.severity}`} data-testid="setup-notice">
+							<strong>{n.title}</strong>
+							<p>{n.message}</p>
+						</div>
+					))}
+					<table data-testid="setup-fields">
+						<tbody>
+							{view.fields.map((f) => (
+								<tr>
+									<th scope="row">{f.label}</th>
+									<td>{f.value}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</>
+			)}
+			<p><a href={settingsHref}>Open plugin settings</a></p>
+		</main>
+	</body>
+</html>

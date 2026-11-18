@@ -17,6 +17,7 @@ The Astro integrations add these routes. Do not create pages of your own at the 
 | `/_events/sign` | Events | Door signing of a waiver at check-in (Pro) |
 | `/_events/check-in` | Events | The staff check-in screen (Pro; Free says it needs Pro) |
 | `/_events/opt-out` | Events | Stop reminder and update emails for one booking (Pro) |
+| `/_events/setup` | Events | The setup check: field mapping, saved secrets, Turnstile (administrators) |
 | `/sign/[token]` | E-sign | The signing page linked from the invitation email |
 | `/signed/[token]` | E-sign | The signer's copy, linked from the completion email |
 | `/verify` | E-sign | Check a signed PDF |

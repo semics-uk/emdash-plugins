@@ -1,9 +1,10 @@
-import { ERROR, keysOf } from "./names"; /**
+// i18n-ignore-file: administrators only, in English like the admin it moved from (the setup check, T178).
+/**
  * Events collection mapping validation (EV-FR-01).
  *
  * The settings map the site's events collection and the fields that hold start, end, timezone and
- * venue. The caller reads the collections with `schema:read` and passes their field names in;
- * this module only decides whether the mapping holds and what the admin banner says. Pure: no I/O.
+ * venue. The setup check page (`/_events/setup`, T178) reads the collections through the host and passes
+ * their field names in; this module only decides whether the mapping holds and what the notice says. Pure.
  */
 
 export interface EventsMapping {
@@ -55,7 +56,7 @@ function join(parts: string[]): string {
 }
 
 function fail(problems: MappingProblem[], message: string): MappingResult {
-	return { ok: false, problems, banner: { severity: ERROR, title: TITLE, message } };
+	return { ok: false, problems, banner: { severity: "error", title: TITLE, message } };
 }
 
 export function validateMapping(mapping: EventsMapping, schemas: CollectionSchemas): MappingResult {
@@ -69,7 +70,7 @@ export function validateMapping(mapping: EventsMapping, schemas: CollectionSchem
 
 	const schema = schemas[slug];
 	if (!schema) {
-		const available = keysOf(schemas).sort().join(", ");
+		const available = Object.keys(schemas).sort().join(", ");
 		return fail(
 			[{ setting: "eventsCollection", field: slug, reason: "missing-collection" }],
 			`The collection "${slug}" does not exist. Choose an existing collection in the Events settings.${available ? ` Available: ${available}.` : ""}`,

@@ -1,7 +1,7 @@
 import { createPluginRuntimeTestHost, type PluginRuntimeTestHost } from "@emdash-cms/plugin-test";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { encryptionKeyStatus } from "../src/domain/encryption";
+import { encryptionKeyStatus } from "../src/astro/lib/encryption";
 import { SECRET_SETTING_KEYS } from "../src/storage/schema";
 
 let host: PluginRuntimeTestHost | undefined;
