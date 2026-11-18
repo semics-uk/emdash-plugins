@@ -35,7 +35,7 @@ type Path = ReadonlyArray<string | number>;
 type Validator<T> = (value: unknown, path: Path, issues: InputIssue[]) => T;
 
 function report(issues: InputIssue[], path: Path, code: string): void {
-	issues.push({ path: path.length > 0 ? path.join(".") : "input", code });
+	issues.push({ path: path.length ? path.join(".") : "input", code });
 }
 
 // zod 4's email pattern (`z.email()`), verbatim.
@@ -146,7 +146,7 @@ function parser<T>(validator: Validator<T>): (raw: unknown) => Result<T, InputIs
 	return (raw) => {
 		const issues: InputIssue[] = [];
 		const value = validator(raw, [], issues);
-		return issues.length > 0 ? err(issues) : ok(value);
+		return issues.length ? err(issues) : ok(value);
 	};
 }
 
@@ -350,7 +350,7 @@ export function planCheckout(
 		if (!occ) return bad("UNKNOWN_OCCURRENCE");
 		if (occ.status !== OPEN || !(now < msOf(occ.startsAt))) return closed;
 		occurrence = { capacity: occ.capacity, reserved: 0 };
-	} else if (config.schedule || keysOf(occurrences).length > 0) {
+	} else if (config.schedule || keysOf(occurrences).length) {
 		return bad("OCCURRENCE_REQUIRED");
 	}
 

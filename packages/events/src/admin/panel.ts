@@ -152,7 +152,7 @@ function waiverFields(config: EventConfigDoc, waivers: WaiverAvailability): Form
 			initialValue: sig?.required === true,
 			description: "Attendees sign with E-sign before the booking is confirmed.",
 		}),
-		templates.length > 0
+		templates.length
 			? select("waiver_template", "Waiver template (E-sign)", options, {
 					initialValue: saved || (options[0]?.value ?? ""),
 				})
@@ -223,7 +223,7 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 	const zone = zoneOf(config);
 	const out: Block[] = [];
 	const counts = countColumns();
-	if (tickets.length > 0) {
+	if (tickets.length) {
 		out.push(
 			table({
 				columns: [column("name", "Ticket type"), column("price", "Price"), ...counts],
@@ -238,7 +238,7 @@ function liveTables(config: EventConfigDoc, tickets: Item<TicketTypeDoc>[], date
 			}),
 		);
 	}
-	if (dates.length > 0) {
+	if (dates.length) {
 		out.push(
 			table({
 				columns: [column("starts", `Date (${zone})`), column("status", "Status", "badge"), ...counts],

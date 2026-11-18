@@ -235,7 +235,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		// Close the draft: at once when every seat was given back; otherwise end its hold now so the
 		// sweeper closes it after the draft grace period and repairs the event's counters.
 		const set =
-			reserved.error.uncompensated.length === 0
+			!reserved.error.uncompensated.length
 				? { status: EXPIRED, expiredAt: iso(now) }
 				: { holdExpiresAt: iso(now) };
 		await storage.bookings

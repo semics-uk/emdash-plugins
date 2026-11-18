@@ -459,7 +459,7 @@ async function attendeesPage(
 		next = page.hasMore ? page.cursor : undefined;
 	}
 	const ids = [...new Set(items.map((i) => (i.data as AttendeeDoc).bookingId))];
-	const bookings = ids.length > 0 ? await deps.storage.bookings.getMany(ids) : new Map<string, unknown>();
+	const bookings = ids.length ? await deps.storage.bookings.getMany(ids) : new Map<string, unknown>();
 
 	const rows = items.map(({ id, data }) => {
 		const a = data as AttendeeDoc;
@@ -572,7 +572,7 @@ async function panelPage(deps: AdminDeps, id: string, interaction: PanelInteract
 
 async function salesWidget(deps: AdminDeps): Promise<AdminResponse> {
 	const page = await deps.storage.event_configs.query({ where: { status: ON_SALE }, limit: 5 });
-	if (page.items.length === 0) return respond([context("No events are on sale.")]);
+	if (!page.items.length) return respond([context("No events are on sale.")]);
 	return respond(page.items.map(({ id, data }) => soldMeter(id, data as EventConfigDoc)));
 }
 

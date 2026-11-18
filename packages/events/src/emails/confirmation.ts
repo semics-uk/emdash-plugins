@@ -96,11 +96,11 @@ function compose(
 		`<p>${escapeHtml(before)}<strong>${escapeHtml(title)}</strong>${escapeHtml(after)}</p>`,
 		`<p>${lines.map(escapeHtml).join("<br>")}</p>`,
 	];
-	if (list.length > 0) {
+	if (list.length) {
 		text.push("Tickets:", ...list.map((a) => `- ${a}`), "");
 		html.push(`<p>Tickets:</p><ul>${list.map((a) => `<li>${escapeHtml(a)}</li>`).join("")}</ul>`);
 	}
-	if (links.length > 0) {
+	if (links.length) {
 		text.push(...links.map(([label, href]) => `${label}: ${href}`), "");
 		html.push(`<p>${links.map(link).join("<br>")}</p>`);
 	}

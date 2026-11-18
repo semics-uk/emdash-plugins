@@ -163,7 +163,7 @@ export function planReservation(
 	{ maxCalls = DEFAULT_MAX_CALLS, compensation = "full" }: { maxCalls?: number; compensation?: Compensation } = {},
 ): Result<ReserveStep[], PlanError> {
 	const bad = (reason: Extract<PlanError, { code: "BAD_REQUEST" }>["reason"]) => err({ code: BAD_REQUEST, reason });
-	if (!isArr(req.lines) || req.lines.length === 0) return bad("NO_LINES");
+	if (!isArr(req.lines) || !req.lines.length) return bad("NO_LINES");
 	for (const line of req.lines) {
 		if (!isQty(line.qty)) return bad("INVALID_QUANTITY");
 		if (!isStr(line.ticketTypeId) || !req.ticketTypes.has(line.ticketTypeId)) {
@@ -475,7 +475,7 @@ export async function repairEventCounters(
 	const writable = fixes.slice(0, maxOf(0, maxCalls - calls));
 	const pending = fixes.slice(writable.length);
 	const { repaired, conflicted } = await applyDriftRepair(storage, writable);
-	return { complete: pending.length === 0, repaired, conflicted, pending };
+	return { complete: !pending.length, repaired, conflicted, pending };
 }
 
 // --- resumable drift repair (sweep-holds, across cron ticks) --------------------------------------
@@ -576,7 +576,7 @@ export async function repairStep(
 	const rest = j.fixes.slice(writable.length);
 	const fixed = await applyDriftRepair(storage, writable);
 	calls += writable.length;
-	return result(rest.length > 0 ? { eventId: j.eventId, fixes: rest } : null, fixed);
+	return result(rest.length ? { eventId: j.eventId, fixes: rest } : null, fixed);
 }
 
 // --- admin edits of counted documents (config/save) ------------------------------------------------
@@ -596,7 +596,7 @@ export function counterlessChanges(stored: object, next: object): Record<string,
 		if (MANAGED_FIELDS.has(key) || same(s[key], n[key])) continue;
 		set[key] = n[key] ?? null;
 	}
-	return keysOf(set).length > 0 ? set : null;
+	return keysOf(set).length ? set : null;
 }
 
 /**

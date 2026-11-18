@@ -56,7 +56,7 @@ export const wallMs = (day: string, time: string, zone: string): number => {
 };
 
 /** Weekdays (at least one), 1 to `max` days ahead and closed local dates: schedules' and requests' (T174a). */
-const weekdays = (days: unknown) => list(days, 7, (d) => DAYS.includes(d)) && (days as string[]).length > 0;
+const weekdays = (days: unknown) => list(days, 7, (d) => DAYS.includes(d)) && (days as string[]).length;
 const dated = (days: unknown, ahead: unknown, max: number, closed: unknown) =>
 	weekdays(days) &&
 	int(ahead, 1, max) &&
@@ -72,7 +72,7 @@ export function parseSchedule(raw: unknown): ScheduleDoc | null {
 	const ok =
 		typeof raw === "object" &&
 		list(s.times, 24, (t) => TIME.test(t)) &&
-		(s.times as string[]).length > 0 &&
+		(s.times as string[]).length &&
 		int(s.durationMinutes, 1, 1440) &&
 		int(s.capacity, 1, 1e6) &&
 		dated(s.days, ahead, 90, closed);
@@ -278,5 +278,5 @@ export function planSlots(eventId: string, c: EventConfigDoc, now: number): Slot
 		prune: ours.filter((k) => at(k) < now - PRUNE),
 		ready,
 	};
-	return plan.add.length + plan.stale.length + plan.prune.length > 0 || ready ? plan : null;
+	return plan.add.length + plan.stale.length + plan.prune.length || ready ? plan : null;
 }

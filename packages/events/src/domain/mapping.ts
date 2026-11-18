@@ -87,14 +87,14 @@ export function validateMapping(mapping: EventsMapping, schemas: CollectionSchem
 		}
 	}
 
-	if (unset.length > 0) {
+	if (unset.length) {
 		const names = unset.map((p) => LABELS[p.setting]);
 		return fail(
 			[...unset, ...missing],
 			`${names.join(" and ")} ${names.length > 1 ? "are" : "is"} not set. Choose the field in the Events settings.`,
 		);
 	}
-	if (missing.length > 0) {
+	if (missing.length) {
 		const named = missing.map((p) => `"${p.field}" (${LABELS[p.setting]})`);
 		return fail(
 			missing,

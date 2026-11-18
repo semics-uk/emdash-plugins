@@ -137,7 +137,7 @@ export async function eventIcs(deps: IcsDeps, query: URLSearchParams): Promise<R
 	});
 	const duration = (info.endsAt ?? info.startsAt + DEFAULT_DURATION_MS) - info.startsAt;
 	const events =
-		items.length === 0
+		!items.length
 			? [calendarEvent(`event-${eventId}@semics-events`, deps.now, info)]
 			: items.flatMap(({ id, data }) => {
 					const start = msOf((data as OccurrenceDoc).startsAt);

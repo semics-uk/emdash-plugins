@@ -61,7 +61,7 @@ function plan(eventId: string, c: EventConfigDoc, now: number) {
 		.sort((a, b) => msOf(have[a]?.startsAt) - msOf(have[b]?.startsAt));
 	const stale = series.filter((k) => msOf(have[k]?.startsAt) >= now || missing.length > room);
 	const add = missing.slice(0, maxOf(room, 0));
-	return add.length > 0 || stale.length > 0 ? { add, stale, id, info } : null;
+	return add.length || stale.length ? { add, stale, id, info } : null;
 }
 
 export async function occurrencesTick({ storage, kv }: OccurrencesDeps, now: number): Promise<void> {

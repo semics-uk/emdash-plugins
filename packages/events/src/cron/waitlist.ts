@@ -113,7 +113,7 @@ async function offer(
 		.updateIf(id, {
 			where: { status: HELD, releaseClaimedAt: null },
 			set:
-				reserved.error.uncompensated.length > 0
+				reserved.error.uncompensated.length
 					? { status: DRAFT, holdExpiresAt: iso(now) }
 					: { status: EXPIRED, expiredAt: iso(now) },
 		})

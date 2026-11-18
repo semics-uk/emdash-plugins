@@ -120,7 +120,7 @@ function waitingRefs(b: BookingDoc, items: Item[]): string[] {
 		const signature = (i.data as { signature?: { status?: string; reissued?: boolean } }).signature;
 		return !signature || (signature.status !== "completed" && signature.reissued === true);
 	});
-	if (unsigned.length === 0) return [];
+	if (!unsigned.length) return [];
 	if (b.waiver?.mode === "buyer") return [b.ref];
 	return unsigned.slice(0, MAX_WAITING_REFS).map((i) => `${b.ref}:${i.id.slice(i.id.lastIndexOf("-") + 1)}`);
 }
@@ -193,7 +193,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 			? waitingRefs(b, pending)
 			: [];
 	const lookups =
-		refs.length > 0 && deps.lookups
+		refs.length && deps.lookups
 			? await deps.lookups(refs, confirmed ? decision.settings : await readSettings(deps))
 			: undefined;
 	// Free has no waivers (no lookups step): an attendee a Pro waiver left pending on a confirmed booking
@@ -237,7 +237,7 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 			};
 		}),
 		...(calendar ? { calendar: { query: calendar } } : {}),
-		...(refs.length > 0 ? { waiver: { refs, ...(lookups ? { lookups } : {}) } } : {}),
+		...(refs.length ? { waiver: { refs, ...(lookups ? { lookups } : {}) } } : {}),
 		canCancel: decision.allowed,
 		...(decision.cancelBy ? { cancelBy: decision.cancelBy } : {}),
 	};

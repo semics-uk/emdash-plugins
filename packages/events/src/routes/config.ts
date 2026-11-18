@@ -46,7 +46,7 @@ const badRequest = (issues?: unknown) => ({ ...routeError(BAD_REQUEST).body, ...
 
 function eventIdOf(input: unknown): string | null {
 	const id = (input as { eventId?: unknown } | null | undefined)?.eventId;
-	return isStr(id) && id.length > 0 && id.length <= 200 ? id : null;
+	return isStr(id) && id.length && id.length <= 200 ? id : null;
 }
 
 export async function loadEventState(eventId: string, storage: ConfigStorage) {
@@ -163,7 +163,7 @@ export async function saveConfig(
 	const deletes = [
 		{ name: "ticketTypes" as const, collection: storage.ticket_types, ids: v.deleteTicketTypeIds },
 		{ name: "occurrences" as const, collection: storage.occurrences, ids: v.deleteOccurrenceIds },
-	].filter((d) => d.ids.length > 0);
+	].filter((d) => d.ids.length);
 	// The checkout catalog on the config mirrors the documents as they end up, including after a
 	// partly failed save, so it is rewritten (one call, only when it changes) on every exit below.
 	const storedCatalog = state.config?.catalog ?? null;
@@ -173,8 +173,8 @@ export async function saveConfig(
 		(state.config ? 0 : 1) +
 		changed.length +
 		deletes.reduce((n, d) => n + d.ids.length + 1, 0) +
-		(newTicketTypes.length > 0 ? 1 : 0) +
-		(newOccurrences.length > 0 ? 1 : 0) +
+		(newTicketTypes.length ? 1 : 0) +
+		(newOccurrences.length ? 1 : 0) +
 		(state.config && !sameJson(storedCatalog, target) ? 1 : 0);
 	if (calls + reservedCalls > MAX_SAVE_CALLS)
 		return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
@@ -209,7 +209,7 @@ export async function saveConfig(
 				? { path: `${e.path}.capacity`, code: "CAPACITY_BELOW_RESERVED" }
 				: { path: `${e.path}.id`, code: "UNKNOWN_ID" };
 		});
-	if (conflicts.length > 0) return refuse(conflicts);
+	if (conflicts.length) return refuse(conflicts);
 
 	// 2. Deletes: close each document to reservations first; one that took a seat meanwhile stays.
 	const inUse: ConfigIssue[] = [];
@@ -217,16 +217,16 @@ export async function saveConfig(
 		deletes.map(async (d) => {
 			const retired = await allOf(d.ids.map((id) => retireCounted(d.collection, id)));
 			const ids = d.ids.filter((_, i) => retired[i]);
-			if (ids.length > 0) await d.collection.deleteMany(ids);
+			if (ids.length) await d.collection.deleteMany(ids);
 			for (const id of ids) effective[d.name].delete(id);
 			if (ids.length < d.ids.length) inUse.push({ path: d.name, code: "ITEM_IN_USE" });
 		}),
 	);
-	if (inUse.length > 0) return refuse(inUse);
+	if (inUse.length) return refuse(inUse);
 
 	// 3. Creations, with zero counters; a new config goes last, carrying its catalog.
-	if (newTicketTypes.length > 0) await storage.ticket_types.putMany(newTicketTypes);
-	if (newOccurrences.length > 0) await storage.occurrences.putMany(newOccurrences);
+	if (newTicketTypes.length) await storage.ticket_types.putMany(newTicketTypes);
+	if (newOccurrences.length) await storage.occurrences.putMany(newOccurrences);
 	for (const t of newTicketTypes) effective.ticketTypes.set(t.id, t.data as never);
 	for (const o of newOccurrences) effective.occurrences.set(o.id, o.data as never);
 	const created = { ...v.config, catalog: target, ...(info ? { info } : {}) };

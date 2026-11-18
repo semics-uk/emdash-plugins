@@ -32,7 +32,7 @@ export async function scheduleStep(
 ): Promise<void> {
 	const s = c.schedule;
 	const ids = [...plan.add.map((a) => a.id), ...plan.stale, ...plan.drop];
-	const docs = (ids.length > 0 ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
+	const docs = (ids.length ? await storage.occurrences.getMany(ids) : new Map()) as Map<string, OccurrenceDoc>;
 	const slots = { ...c.catalog?.occurrences };
 	const fresh: Array<{ id: string; data: OccurrenceDoc }> = [];
 	for (const { id, t } of plan.add) {
@@ -58,13 +58,13 @@ export async function scheduleStep(
 		if (booked(d)) slots[id] = entryOf(d as OccurrenceDoc);
 		return d && !booked(d);
 	});
-	if (fresh.length > 0) await storage.occurrences.putMany(fresh);
-	if (drop.length > 0) await storage.occurrences.deleteMany(drop);
+	if (fresh.length) await storage.occurrences.putMany(fresh);
+	if (drop.length) await storage.occurrences.deleteMany(drop);
 	await storage.event_configs.updateIf(eventId, {
 		where: { slotsRev: c.slotsRev ?? null },
 		set: {
 			catalog: { ticketTypes: c.catalog?.ticketTypes ?? {}, occurrences: slots },
-			unlisted: unlist.length > 0 ? { ids: unlist, at: now } : plan.ready ? null : (c.unlisted ?? null),
+			unlisted: unlist.length ? { ids: unlist, at: now } : plan.ready ? null : (c.unlisted ?? null),
 			kept: [...(c.kept ?? []), ...plan.stale.filter((id) => booked(docs.get(id)))].filter((id) => slots[id]),
 		},
 		delta: { slotsRev: { inc: 1 } },
