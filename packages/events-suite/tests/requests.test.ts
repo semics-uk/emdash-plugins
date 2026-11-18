@@ -165,6 +165,17 @@ describe("T174a the request mode markup", () => {
 	});
 });
 
+describe("T176 the request windows of the chosen date", () => {
+	it("T176 lists every window (rules' too), marks each date's windows and shows only those with JavaScript", () => {
+		expect(source).toMatch(
+			/import \{[^}]*\brequestWindows\b[^}]*\} from "@semics-tech\/emdash-events\/astro\/lib\/widget"/,
+		);
+		expect(source).toContain('data-windows={d.windows.join(" ")}');
+		expect(source).toContain("requestWindows(requests)");
+		expect(source).toContain("dataset.windows");
+	});
+});
+
 describe("T174a keep-form keeps the chosen window", () => {
 	const radio = (value: string, checked: boolean): KeptField => ({
 		name: "requestWindow",
