@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.28
+
+### Patch Changes
+
+- af318e5: No Free changes. Released alongside Vouchers Pro 1.0.0-rc.28, which lets EmDash Authors and Editors use the voucher admin's day-to-day pages and makes issuing a voucher by hand safe to retry.
+- @semics-tech/emdash-esign@1.0.0-rc.28
+  - @semics-tech/emdash-events@1.0.0-rc.28
+
 ## 1.0.0-rc.27
 
 ### Patch Changes
