@@ -3445,13 +3445,13 @@
 			"phase": 8,
 			"package": "events, events-pro, events-suite",
 			"edition": "free, pro",
-			"status": "backlog",
+			"status": "done",
 			"model": "opus-5.5",
 			"size": "L",
 			"depends_on": [],
 			"spec": [],
 			"unblocks": [],
-			"column": "ready"
+			"column": "done"
 		},
 		"T175": {
 			"file": "T175-voucher-widget-layout.md",
@@ -3543,9 +3543,7 @@
 	},
 	"columns": {
 		"backlog": [],
-		"ready": [
-			"T174"
-		],
+		"ready": [],
 		"in-progress": [
 			"T156",
 			"T173"
@@ -3707,6 +3705,7 @@
 			"T170",
 			"T171",
 			"T172",
+			"T174",
 			"T176",
 			"T177",
 			"T178"
@@ -3716,7 +3715,7 @@
 		]
 	},
 	"criticalPath": [
-		"T174"
+		"T111"
 	],
-	"criticalWeight": 3
+	"criticalWeight": 2
 }

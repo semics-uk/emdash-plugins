@@ -4,14 +4,14 @@ title: "Booking requests with a time to be agreed: gaps from lmsc-site #59"
 phase: 8
 package: events, events-pro, events-suite
 edition: free, pro
-status: backlog
+status: done
 model: opus-5.5
 size: L
 depends_on: []
 spec: []
 ---
 
-# T174 · Booking requests with a time to be agreed (backlog)
+# T174 · Booking requests with a time to be agreed (done)
 
 Reported 2026-11-15 by the lmsc-site #59 session (multi-step activity booking request page), checked against rc.16.
 For now the site sends #59 through the Forms plugin as a booking request with a reference number. It takes no
@@ -200,3 +200,10 @@ Party packages, one price for the group (lmsc-site #59: "up to 5 people, 60 shot
   book twice). Promo codes and a money voucher apply to the total as before; a percentage-per-ticket promo, if one
   is ever added, would see one package line. Marking or unmarking a type changes new bookings only; an existing
   per-person booking of a type later marked a package keeps its lines.
+
+## Closed (2026-11-19)
+
+Every gap is shipped or not ours: 1 and 2 (T174a, T174c), 3 (T174b, refund in full), 4 (T174d add-ons, T174f party
+packages, T174g/h minimum and plain group size), 5 (T174e). 6 stays on the site (`src/lib/opening-hours.ts`); request
+events take allowed weekdays and closed dates, which covers it for #59. All released by rc.22 (T174f–h later). Known
+gaps listed under each sub-task above are follow-ups, opened as new tasks if LMSC needs them.
