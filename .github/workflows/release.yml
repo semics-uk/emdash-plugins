@@ -86,6 +86,20 @@ jobs:
         run: node scripts/npm-trust.mjs check-npm
       - name: Build and audit what would be published
         run: pnpm release:dry-run --build
+      # A PR opened with the default GITHUB_TOKEN never starts CI, so the Version Packages PR waited for
+      # the owner to approve its checks by hand. With a GitHub App configured (repository variable
+      # RELEASE_APP_CLIENT_ID and secret RELEASE_APP_PRIVATE_KEY; the app needs contents and pull requests
+      # write on this repo), the PR is opened with the app's token and CI runs on it as usual. Without
+      # them this step is skipped and the default token is used, as before.
+      - name: Get a release token that starts CI on the version PR
+        id: app-token
+        if: vars.RELEASE_APP_CLIENT_ID != ''
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
       - name: Create the version PR or publish to npm
         id: changesets
         uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
@@ -96,7 +110,7 @@ jobs:
           pr-title: "chore: version packages"
           commit-message: "chore: version packages"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token || secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
 
   registry:
