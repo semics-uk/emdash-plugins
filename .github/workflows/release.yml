@@ -68,6 +68,7 @@ jobs:
     outputs:
       published: ${{ steps.changesets.outputs.published }}
       published-packages: ${{ steps.changesets.outputs.published-packages }}
+      version-pr: ${{ steps.changesets.outputs.pullRequestNumber }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -98,6 +99,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_CONFIG_PROVENANCE: "true"
+
+  # GitHub starts no workflow for a PR that GITHUB_TOKEN opened or updated, so CI never ran on the
+  # Version Packages PR and it waited for the owner. A workflow_dispatch is the one event GITHUB_TOKEN
+  # may start, so this job runs CI on the version branch itself; its checks land on the PR's head commit.
+  # No stored secret is involved (R84).
+  version-pr-ci:
+    name: Run CI on the version PR
+    needs: release
+    if: needs.release.outputs.version-pr != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write # dispatch ci.yml
+    steps:
+      - name: Dispatch CI on changeset-release/main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref changeset-release/main
 
   registry:
     name: Publish to the EmDash registry
