@@ -12,9 +12,9 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Vouchers follow-ups: voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
 
 ## Next
-- Vouchers Pro: refuse Refund on an expired voucher (Oli decided 2026-11-20: an expired voucher cannot be refunded; T179 allows it now). `refundable` in packages/vouchers-pro/src/domain/admin.ts: add an `isDead(v, now)` check ("This voucher has expired: it can't be refunded."); test first; Pro-only rc with a public changeset; tell LMSC
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
 - Still untested on staging: guest invitation reaching a real inbox and its link (Stackmail rejects + addresses, needs a second address), save-card path, approval deadline passing, attendee edit, T153 past a hold
+- Staging nightly 2026-11-21 failed once on an npm 404 fetching a Lighthouse dependency (robots-parser tarball); transient, tarball served again next day. Watch for a repeat
 - PDF timing test failed once on PR #4 CI (58 ms against a 50 ms limit), passed on re-run: probably flaky
 - LMSC staging runs all four packages at rc.4 (worker 1c99091f, previous 02f23216): lmsc-site PR #12 brings main's Events Pro to rc.4. Still untested: signing past a hold (T153), and the bookings test has not been rerun since Pro moved from rc.3 to rc.4
 
@@ -32,6 +32,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
+- Pro PR #21 (refuse Refund on an expired voucher, tested, patch changeset): review and merge in emdash-plugins-pro, then it ships in the next rc; tell LMSC. Recommend: merge
 - Answered 2026-11-19 08:24 via PA board: A75 (who merged #4 and #5) "Yes, or I approved it"; A84 (send legal items 8-16 to the lawyer) "Not now": do not send, do not re-ask until Oli raises it
 
 ## Done
