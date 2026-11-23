@@ -6,7 +6,6 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Now
 - rc.23 (Pro waiver order kept), rc.24 (T174f party packages, #59, Pro #17) and rc.25 (T174g widgets check a ticket type's minimum per order before sending, #61), rc.26 (T174h waiver form books groups past 10 by quantity, up to 50, #63) published 2026-11-17, rc.27 (T176 request windows by weekday and season via config/save rules, #65) and rc.28 (T177 Vouchers admin for Authors/Editors: find, open, redeem, issue; rest Admin-only; retry-safe issue; #67, Pro #18) 2026-11-18. Core 1.2 limits: plugin nav not filtered by role, expired-session 401 shown raw. rc.29 (T178 setup check moved to site page /_events/setup, #69) 2026-11-18: Free backend 120,887 B, 3,017 B left. rc.30 (T179 Vouchers Refund: admin-only, Stripe refund + void in one step, Pro #19) 2026-11-18. T179 gaps: refund racing a hold can leave voucher live (warned, key changes with version); expired vouchers refundable (to be refused, see Next); bridge-call count not measured on host. rc.31 (T180 schema:read dropped from Free and Pro trust contracts, #73, Pro #20) 2026-11-19. Free 153 B left, Pro 387 B left; LMSC cutover told. T174f gap left: one package per order
 - T174 booking requests (lmsc-site#59): all parts released by rc.22 (a, b rc.18; suite fix rc.19; c rc.20; e and d rc.22, rc.21 skipped). Free 123,094 B (810 B headroom); Pro events about 260,555 B after the waiver fix (1.6 KB headroom). Gaps: Bookings list and confirmation email show no lines; unnamed seats sign in the buyer's name at the door
-- LMSC staging to try rc.16: one-click pairing at /_events/pair#vouchers, then Book with this voucher (book: true, emailBookLink)
 - Follow-ups: after Confirm time the lapse- approval_expired outbox row stays pending until its time and is then dropped (harmless; deleting it would cost Free bytes); Events Pro promo rate-limit test flaky in a slow full verify (passed on rerun); Events Pro does not trim a pasted vouchersPairing (T172 note); t145 e2e asserts a Free-only message so fails on Pro builds; booking form with a cookie-filled code could be stored by a cache that ignores cookies (docs/vouchers.md); one t168 run hit chrome-error on the T170 thanks page (passed on rerun); board.json not regenerated for T169–T172
 - LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
 - Vouchers follow-ups: voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
@@ -14,9 +13,8 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Next
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
 - Still untested on staging: guest invitation reaching a real inbox and its link (Stackmail rejects + addresses, needs a second address), save-card path, approval deadline passing, attendee edit, T153 past a hold
-- Staging nightly 2026-11-21 failed once on an npm 404 fetching a Lighthouse dependency (robots-parser tarball); transient, tarball served again next day. Watch for a repeat
+- Staging nightly 2026-11-21 failed once on a transient npm 404 (Lighthouse dependency); 2026-11-22 passed. Watch for a repeat
 - PDF timing test failed once on PR #4 CI (58 ms against a 50 ms limit), passed on re-run: probably flaky
-- LMSC staging runs all four packages at rc.4 (worker 1c99091f, previous 02f23216): lmsc-site PR #12 brings main's Events Pro to rc.4. Still untested: signing past a hold (T153), and the bookings test has not been rerun since Pro moved from rc.3 to rc.4
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
@@ -24,7 +22,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Mac disk: 3.4 GB free after clearing npm's cache; the site build fails with no space when it is nearly full
-- Events backend size: 125 KiB budget; Free Events 119,392 bytes (rc.12); Events Pro 252,061 of 256 KiB; Vouchers 69,680 of 100 KiB
+- Events backend size: 125 KiB budget; Free Events 120,887 B at rc.29 (153 B left at rc.31), Pro 387 B left at rc.31; Vouchers 69,680 of 100 KiB at rc.12 (recheck)
 
 ## Ideas
 - Payments plugin investigation: measure what moving Stripe out of Events Pro would save (only if Events Pro size gets tight; T163)
@@ -32,8 +30,8 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
-- Pro PR #21 (refuse Refund on an expired voucher, tested, patch changeset): review and merge in emdash-plugins-pro, then it ships in the next rc; tell LMSC. Recommend: merge
-- Answered 2026-11-19 08:24 via PA board: A75 (who merged #4 and #5) "Yes, or I approved it"; A84 (send legal items 8-16 to the lawyer) "Not now": do not send, do not re-ask until Oli raises it
+- Decision: merge Pro PR #21 (refuse Refund on an expired voucher; tested, patch changeset; open since 2026-11-19)? Recommend: merge, then it ships in the next rc and LMSC is told
+- A84 (send legal items 8-16 to the lawyer): Oli said "Not now" on 2026-11-19; do not send or re-ask until Oli raises it
 
 ## Done
 - 2026-11-19 T174 marked done (#75): gaps 1-5 shipped as T174a-h, gap 6 stays on the LMSC site; LMSC told
