@@ -31,7 +31,8 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 
 ## Waiting on Oli
 - Decision: merge Pro PR #21 (refuse Refund on an expired voucher; tested, patch changeset; open since 2026-11-19)? Recommend: merge, then it ships in the next rc and LMSC is told
-- Decision: approve the scope in issue #79 (surface payment and email health to site owners; from the LMSC "vouchers not emailed" report)? Recommend: yes, do first the staff issue flow fixes and the outbox health panel, then paid-without-voucher check and alert hook; nothing that changes payment behaviour without your say
+- Decision: approve the reworked scope in issue #79 (plugins pass errors to the host site's own logging via ctx.log and 5xx, or handle them gracefully; no new panel, settings or alerts)? Recommend: yes, start with the shared error helper, outbox logging and the staff delivery choice; nothing changes payment behaviour
+- Decision: move out of rc to 1.0? Issue #81 has the blockers and exact steps. Recommend: not yet; first the lawyer decision, one staging pass of the untested items and a screen-reader pass
 - A84 (send legal items 8-16 to the lawyer): Oli said "Not now" on 2026-11-19; do not send or re-ask until Oli raises it
 
 ## Done
