@@ -143,3 +143,27 @@ test("release.yml versions and publishes only after CI's pnpm verify has passed 
 		/group: ci-\$\{\{ github\.ref \}\}-\$\{\{ github\.event_name == 'push' && github\.sha \|\| '' \}\}/,
 	);
 });
+
+test("the version PR gets CI: release.yml reads changesets/action v2's pr-number and dispatches ci.yml", () => {
+	const text = read("release.yml");
+	// v2 renamed the output; reading the old name left version-pr empty and the CI job always skipped (rc.32).
+	assert.match(text, /version-pr: \$\{\{ steps\.changesets\.outputs\.pr-number \}\}/);
+	assert.doesNotMatch(text, /outputs\.pullRequestNumber/);
+	assert.match(text, /gh workflow run ci\.yml --repo "\$GITHUB_REPOSITORY" --ref changeset-release\/main/);
+});
+
+test("ci.yml takes the light path on a run dispatched on the version branch, and can diff against main", () => {
+	const ci = read("ci.yml");
+	const dispatched = "github.event_name == 'workflow_dispatch' && github.ref_name == 'changeset-release/main'";
+	assert.ok(ci.includes(`if: ${dispatched}`), "the scope job classifies a dispatched version-branch run");
+	assert.match(ci, /version-pr\.mjs scope --base "\$\(git merge-base origin\/main HEAD\)"/);
+	assert.match(
+		ci,
+		/light: \$\{\{ steps\.scope\.outputs\.light \|\| steps\.dispatched\.outputs\.light \|\| 'false' \}\}/,
+	);
+	// The changeset check diffs against main; a dispatched branch run has no local main without this.
+	assert.match(
+		ci,
+		/if: github\.event_name == 'workflow_dispatch' && github\.ref_name != 'main'\n\s+run: git fetch --no-tags origin main:main/,
+	);
+});
