@@ -1,5 +1,14 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.36
+
+### Patch Changes
+
+- 4a758cf: T185 (#79): errors that were swallowed now reach the site's own logs. Site-side code logs to console: a crashed or unreachable plugin route, a Stripe delivery no plugin handled, a voucher hold Vouchers would not settle, and a waiver that could not be voided or forwarded. In the backend, three failures are logged: a checkout draft that could not be stored, Turnstile being unreachable or rejecting the site's secret, and an E-sign invitation that could not be queued. Every other server catch now says why staying quiet is right, and a script test keeps it that way.
+- Updated dependencies [4a758cf]
+  - @semics-tech/emdash-events@1.0.0-rc.36
+  - @semics-tech/emdash-esign@1.0.0-rc.36
+
 ## 1.0.0-rc.35
 
 ### Patch Changes
