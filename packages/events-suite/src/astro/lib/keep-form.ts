@@ -1,5 +1,6 @@
 /**
- * Keeps what a person typed when a booking is refused (`<BookingWithWaiver>`). The refusal is a redirect back to
+ * Keeps what a person typed when a booking is refused (`<BookingWithWaiver>`), or a voucher purchase (`<BuyVoucher>`,
+ * T184). The refusal is a redirect back to
  * the page with codes only: personal details never go in a URL, and a server-rendered copy could end up in a page
  * cache. So the browser keeps them: on submit this tab's `sessionStorage` takes the form's values, and the
  * page the refusal lands on puts them back. Any other visit discards them; so does closing the tab. Without
@@ -19,6 +20,8 @@ export interface KeptField {
 /** A refusal comes straight back; anything older is someone returning later. */
 export const KEPT_MS = 5 * 60_000;
 export const keptKey = (eventId: string) => `semics-waiver-form:${eventId}`;
+/** T184: `<BuyVoucher>`'s one form per page. */
+export const BUY_KEPT_KEY = "semics-buy-voucher";
 
 type Stored = Pick<Storage, "getItem" | "setItem" | "removeItem">;
 
@@ -50,8 +53,12 @@ export function applyFields(fields: Iterable<KeptField>, kept: Record<string, st
 }
 
 export function saveKept(storage: Stored, eventId: string, fields: Iterable<KeptField>, now: number): void {
+	saveAs(storage, keptKey(eventId), fields, now);
+}
+
+function saveAs(storage: Stored, key: string, fields: Iterable<KeptField>, now: number): void {
 	try {
-		storage.setItem(keptKey(eventId), JSON.stringify({ at: now, values: collectFields(fields) }));
+		storage.setItem(key, JSON.stringify({ at: now, values: collectFields(fields) }));
 	} catch {
 		// Private browsing, a full quota: the form just comes back empty.
 	}
@@ -63,10 +70,23 @@ export function saveKept(storage: Stored, eventId: string, fields: Iterable<Kept
  * be someone else, so it gets nothing.
  */
 export function takeKept(storage: Stored, eventId: string, search: URLSearchParams, now: number, fromHistory = false) {
+	const refused = !!search.get("waiver_error") && search.get("waiver_event") === eventId;
+	return takeAs(storage, keptKey(eventId), refused && !fromHistory, now);
+}
+
+/** T184: the buy form's values, kept on submit (the same rules as a booking form's). */
+export const saveBuyKept = (storage: Stored, fields: Iterable<KeptField>, now: number) =>
+	saveAs(storage, BUY_KEPT_KEY, fields, now);
+
+/** T184: the buy form's values, only straight after a refused purchase (`?voucher_error=`), once, while fresh. */
+export const takeBuyKept = (storage: Stored, search: URLSearchParams, now: number, fromHistory = false) =>
+	takeAs(storage, BUY_KEPT_KEY, !!search.get("voucher_error") && !fromHistory, now);
+
+function takeAs(storage: Stored, key: string, refused: boolean, now: number) {
 	try {
-		const raw = storage.getItem(keptKey(eventId));
-		storage.removeItem(keptKey(eventId));
-		if (!raw || fromHistory || !search.get("waiver_error") || search.get("waiver_event") !== eventId) return null;
+		const raw = storage.getItem(key);
+		storage.removeItem(key);
+		if (!raw || !refused) return null;
 		const { at, values } = JSON.parse(raw) as { at: number; values: Record<string, string | boolean> };
 		return now - at <= KEPT_MS ? values : null;
 	} catch {
@@ -75,7 +95,7 @@ export function takeKept(storage: Stored, eventId: string, search: URLSearchPara
 }
 
 /** Whether this page load came from the browser's Back or Forward. */
-const fromHistory = () =>
+export const fromHistory = () =>
 	(performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)?.type === "back_forward";
 
 /** Wires every booking form on the page. Run before the picker's script, which shows the date the select holds. */

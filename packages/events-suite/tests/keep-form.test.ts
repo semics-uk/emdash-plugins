@@ -3,11 +3,14 @@ import { describe, expect, it } from "vitest";
 
 import {
 	applyFields,
+	BUY_KEPT_KEY,
 	collectFields,
 	KEPT_MS,
 	type KeptField,
 	keptKey,
+	saveBuyKept,
 	saveKept,
+	takeBuyKept,
 	takeKept,
 } from "../src/astro/lib/keep-form";
 
@@ -134,5 +137,76 @@ describe("keeping a refused form", () => {
 		};
 		expect(() => saveKept(broken, "ev1", FORM(), NOW)).not.toThrow();
 		expect(takeKept(broken, "ev1", REFUSED, NOW)).toBeNull();
+	});
+});
+
+describe("T184 <BuyVoucher> keeps what was typed through a refused purchase (lmsc-site, rc.33)", () => {
+	const typed = () => [
+		field("returnTo", "hidden", "/gift-vouchers"),
+		field("currency", "hidden", "GBP"),
+		field("cf-turnstile-response", "hidden", "token"),
+		field("kind", "radio", "money", true),
+		field("kind", "radio", "activity", false),
+		field("amount", "radio", "5000", false),
+		field("amount", "radio", "other", true),
+		field("otherAmount", "text", "65"),
+		field("activity", "select-one", "1"),
+		field("recipientName", "text", "Kept Recipient"),
+		field("buyerName", "text", "Ada Lovelace"),
+		field("buyerEmail", "email", "a@b"),
+		field("message", "textarea", "Happy Birthday!\n\nLove from Mum & Dad xxx"),
+	];
+	const blank = () =>
+		typed().map((f) =>
+			f.type === "hidden"
+				? f
+				: { ...f, value: f.type === "radio" ? f.value : "", checked: f.type === "radio" ? false : undefined },
+		);
+	const refused = new URLSearchParams("voucher_error=BAD_REQUEST&voucher_fields=buyerEmail");
+	const NOW = 1_800_000_000_000;
+
+	it("restores text fields, the textarea, the select and the radios after a refusal; never the hidden ones", () => {
+		const storage = memory();
+		saveBuyKept(storage, typed(), NOW);
+		const stored = storage.data.get(BUY_KEPT_KEY) ?? "";
+		for (const secret of ["token", "/gift-vouchers", "GBP"]) expect(stored).not.toContain(secret);
+		const form = blank();
+		const kept = takeBuyKept(storage, refused, NOW + 1000);
+		expect(kept).not.toBeNull();
+		applyFields(form, kept ?? {});
+		const by = (name: string, value?: string) =>
+			form.find((f) => f.name === name && (value === undefined || f.value === value));
+		expect(by("recipientName")?.value).toBe("Kept Recipient");
+		expect(by("buyerName")?.value).toBe("Ada Lovelace");
+		expect(by("buyerEmail")?.value).toBe("a@b");
+		expect(by("otherAmount")?.value).toBe("65");
+		expect(by("message")?.value).toBe("Happy Birthday!\n\nLove from Mum & Dad xxx");
+		expect(by("activity")?.value).toBe("1");
+		expect(by("amount", "other")?.checked).toBe(true);
+		expect(by("amount", "5000")?.checked).toBe(false);
+		expect(by("kind", "money")?.checked).toBe(true);
+		// Once only.
+		expect(storage.data.has(BUY_KEPT_KEY)).toBe(false);
+	});
+
+	it("gives nothing back on a page that is not a refusal, through Back, or when stale, and drops it anyway", () => {
+		for (const [search, now, history] of [
+			[new URLSearchParams(""), NOW, false],
+			[refused, NOW, true],
+			[refused, NOW + KEPT_MS + 1, false],
+		] as const) {
+			const storage = memory();
+			saveBuyKept(storage, typed(), NOW);
+			expect(takeBuyKept(storage, search, now, history)).toBeNull();
+			expect(storage.data.has(BUY_KEPT_KEY)).toBe(false);
+		}
+	});
+
+	it("<BuyVoucher> uses keep-form rather than its own loop", () => {
+		const source = readFileSync(new URL("../src/astro/BuyVoucher.astro", import.meta.url), "utf8");
+		expect(source).toContain('from "./lib/keep-form"');
+		expect(source).toContain("saveBuyKept(");
+		expect(source).toContain("takeBuyKept(");
+		expect(source).not.toContain("RadioNodeList ? [...el]");
 	});
 });
