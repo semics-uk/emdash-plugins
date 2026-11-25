@@ -3,10 +3,13 @@
  * batches with exponential backoff. Storage, email transport and time are injected.
  *
  * Budget (R22): a tick makes 1 query + one `email.send` per message + 1 `putMany`, so with the
- * default cap of 6 messages it uses 8 bridge calls. Enqueueing is a single `put`.
+ * default cap of 6 messages it uses 8 bridge calls. Enqueueing is a single `put`. With `log` (T185), a tick that
+ * had failures adds at most 2 log lines (one warning, one error), so 10 at the default cap.
  * Cron ticks run about once a minute and can be ~62 s late (R23), so the first backoff is 60 s and
  * `nextAttemptAt <= now` is the only due test; lateness just delays a retry.
  */
+
+import { type ReportLog, report, scrubText } from "./report";
 
 export const OUTBOX_MAX_ATTEMPTS = 5;
 export const OUTBOX_BACKOFF_BASE_MS = 60_000;
@@ -90,6 +93,11 @@ export interface DrainOptions {
 	readonly email: OutboxEmail | undefined;
 	readonly now: number;
 	readonly maxPerTick?: number;
+	/**
+	 * T185 (#79): `ctx.log`. A message's first failure is a warning and giving up is an error, each with the row's
+	 * kind, attempts and scrubbed error, never its address or body.
+	 */
+	readonly log?: ReportLog;
 }
 
 export interface DrainResult {
@@ -110,6 +118,9 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 	let sent = 0;
 	let failed = 0;
 	let gaveUp = 0;
+	type Line = { count: number; kind?: string; error?: string };
+	const firstLine: Line = { count: 0 };
+	const gaveUpLine: Line = { count: 0 };
 	for (const { id, data } of items.slice(0, cap)) {
 		const attempts = data.attempts + 1;
 		try {
@@ -119,10 +130,17 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 			updates.push({ id, data: { ...data, message, status: "sent", attempts, sentAt: opts.now } });
 		} catch (e) {
 			// A provider may echo the message: keep no link, code or token from it (T100).
-			const lastError = (e instanceof Error ? e.message : String(e))
-				.replace(/\S*:\/\/\S*|[\w-]{20,}/g, "…")
-				.slice(0, 300);
-			if (attempts >= OUTBOX_MAX_ATTEMPTS) {
+			// T185: addresses too, since a provider may name the recipient it refused.
+			const lastError = scrubText(e instanceof Error ? e.message : String(e), 300);
+			const gave = attempts >= OUTBOX_MAX_ATTEMPTS;
+			// A message's first failure, and giving up on one, are what the site should hear about (not each retry).
+			const line = gave ? gaveUpLine : attempts === 1 ? firstLine : null;
+			if (line) {
+				line.count++;
+				line.kind ??= (data.message as ScrubbedMessage).kind;
+				line.error ??= lastError;
+			}
+			if (gave) {
 				gaveUp++;
 				updates.push({
 					id,
@@ -135,6 +153,9 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 		}
 	}
 	await opts.storage.putMany(updates);
+	// One line each per tick, whatever the batch: a log is a bridge call too. The row keeps the full story.
+	if (firstLine.count) report(opts.log, "warn", "outbox.send_failed", firstLine);
+	if (gaveUpLine.count) report(opts.log, "error", "outbox.gave_up", gaveUpLine);
 	return { sent, failed, gaveUp, remainingHint: items.length > cap };
 }
 

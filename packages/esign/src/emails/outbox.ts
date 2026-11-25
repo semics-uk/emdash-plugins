@@ -10,7 +10,6 @@
  * credential for one signer, valid until the envelope expires or is signed.
  */
 import {
-	type DrainResult,
 	drainOutbox,
 	enqueueEmail,
 	type OutboxRecord,
@@ -121,8 +120,8 @@ export async function queueCompletion(
 /** The `cron` hook's share for the recurring drain; true when `event` was ours. */
 export async function runOutboxJob(event: CronEvent, ctx: PluginContext, now = Date.now()): Promise<boolean> {
 	if (event.name !== OUTBOX_TASK) return false;
-	const result: DrainResult = await drainOutbox({ storage: outboxStorage(ctx), email: ctx.email, now });
-	if (result.gaveUp > 0) ctx.log.error("emails given up after repeated failures", { count: result.gaveUp });
+	// T185: the drain logs a first failure and a give-up itself (at most 2 lines a tick).
+	await drainOutbox({ storage: outboxStorage(ctx), email: ctx.email, now, log: ctx.log });
 	return true;
 }
 

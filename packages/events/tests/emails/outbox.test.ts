@@ -301,7 +301,7 @@ describe("T057 the give-up log never takes a drain tick past 10 bridge calls (R2
 		const logged: string[] = [];
 		meter.calls = 0;
 		await runOutboxJob({ name: "outbox-drain" } as never, failingCtx(w, logged), NOW);
-		expect(logged).toEqual(["emails given up after repeated failures"]);
+		expect(logged).toEqual(["outbox.gave_up"]);
 		expect(meter.calls).toBeLessThanOrEqual(10);
 	});
 });
