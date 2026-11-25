@@ -1,5 +1,9 @@
 # @semics-tech/emdash-esign
 
+## 1.0.0-rc.32
+
+No changes in this release.
+
 ## 1.0.0-rc.31
 
 No changes in this release.
