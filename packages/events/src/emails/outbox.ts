@@ -488,11 +488,11 @@ export async function runOutboxJob(
 	const meter = { calls: 0 };
 	const room =
 		(level: "warn" | "error") =>
-		(m: string, data?: unknown): void => {
-			if (meter.calls < MAX_CALLS) {
-				meter.calls++;
-				ctx.log[level](m, data);
-			}
+		(m: string, data?: unknown): unknown => {
+			if (meter.calls >= MAX_CALLS) return undefined;
+			meter.calls++;
+			// Returned, so report() awaits the bridge call (one left floating is dropped).
+			return ctx.log[level](m, data);
 		};
 	await drainEventsOutbox({
 		...meteredDeps({ ...drainDepsOf(ctx, now), ...(render ? { render } : {}) }, meter),

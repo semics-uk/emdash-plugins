@@ -6,10 +6,14 @@
  * error, which can echo a recipient, link or token) goes through `scrubText` first, which also drops long tokens.
  */
 
-/** The part of `ctx.log` this needs. */
+/**
+ * The part of `ctx.log` this needs. In a sandboxed plugin each call is an RPC to the host (EmDash's PluginBridge),
+ * so it returns a promise that must be awaited: one left floating is dropped when the invocation ends (rc.36 on
+ * lmsc staging: a bad webhook signature never reached the log).
+ */
 export interface ReportLog {
-	warn(message: string, data?: unknown): void;
-	error(message: string, data?: unknown): void;
+	warn(message: string, data?: unknown): unknown;
+	error(message: string, data?: unknown): unknown;
 }
 
 export type ReportData = Record<string, string | number | boolean | null | undefined>;
@@ -27,9 +31,15 @@ export const scrubText = (text: string, max = 200) =>
  * Logs `code` at `level` with `data`; text values lose links and addresses (ids such as `evt_…` are kept). A
  * missing log or level (a test's fake ctx) is skipped.
  */
-export function report(log: ReportLog | undefined, level: "warn" | "error", code: string, data: ReportData = {}): void {
+export async function report(
+	log: ReportLog | undefined,
+	level: "warn" | "error",
+	code: string,
+	data: ReportData = {},
+): Promise<void> {
 	const clean: ReportData = { code };
 	for (const [k, v] of Object.entries(data))
 		clean[k] = typeof v === "string" ? v.replace(LINK_OR_ADDRESS, "…").slice(0, 200) : v;
-	log?.[level]?.(code, clean);
+	// Awaited: see ReportLog. A log that fails never fails the caller.
+	await Promise.resolve(log?.[level]?.(code, clean)).catch(() => undefined);
 }

@@ -154,8 +154,8 @@ export async function drainOutbox(opts: DrainOptions): Promise<DrainResult> {
 	}
 	await opts.storage.putMany(updates);
 	// One line each per tick, whatever the batch: a log is a bridge call too. The row keeps the full story.
-	if (firstLine.count) report(opts.log, "warn", "outbox.send_failed", firstLine);
-	if (gaveUpLine.count) report(opts.log, "error", "outbox.gave_up", gaveUpLine);
+	if (firstLine.count) await report(opts.log, "warn", "outbox.send_failed", firstLine);
+	if (gaveUpLine.count) await report(opts.log, "error", "outbox.gave_up", gaveUpLine);
 	return { sent, failed, gaveUp, remainingHint: items.length > cap };
 }
 

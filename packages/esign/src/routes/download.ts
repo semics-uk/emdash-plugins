@@ -113,7 +113,7 @@ async function download(routeCtx: { request?: { url?: string } }, ctx: PluginCon
 	const chunks = await artifacts.getMany(envelope.pdf.ids);
 	const bytes = joinPdf([...chunks.values()]);
 	if (!bytes || (await sha256Hex(bytes)) !== envelope.pdfSha256) {
-		ctx.log.error("signed PDF chunks do not match pdfSha256", { envelopeId });
+		await ctx.log.error("signed PDF chunks do not match pdfSha256", { envelopeId });
 		return errorResponse("INTERNAL");
 	}
 	return pluginResponse({

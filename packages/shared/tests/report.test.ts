@@ -23,3 +23,22 @@ describe("T185 (#79) report: a stable code and plain values in the site's own lo
 		expect(() => report(undefined, "warn", "x")).not.toThrow();
 	});
 });
+
+describe("T185 a sandboxed ctx.log is an RPC: report waits for it (rc.36 dropped unawaited lines)", () => {
+	const slowLog = () => {
+		const done: string[] = [];
+		const later = (m: string) => new Promise<void>((resolve) => setTimeout(() => resolve(void done.push(m)), 5));
+		return { done, log: { warn: later, error: later } };
+	};
+
+	it("report resolves only after the log call has", async () => {
+		const { done, log } = slowLog();
+		await report(log, "warn", "x.slow");
+		expect(done).toEqual(["x.slow"]);
+	});
+
+	it("a log that rejects never fails the caller", async () => {
+		const failing = { warn: async () => Promise.reject(new Error("bridge gone")), error: () => undefined };
+		await expect(report(failing, "warn", "x")).resolves.toBeUndefined();
+	});
+});
