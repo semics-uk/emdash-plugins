@@ -9,14 +9,14 @@
             - link "London Community Meetup":
               - /url: /events/london-meetup
           - paragraph:
-            - time: /الخميس، \d+ مارس \d+، \d+:\d+ غرينتش\+0/
+            - time: /الخميس، \d+ مارس \d+، \d+:\d+/
           - paragraph: The Old Library
           - paragraph: /ابتداءً من ‏\d+\.\d+ UK£/
       - listitem:
         - article:
           - heading "Sydney Conference" [level=3]
           - paragraph:
-            - time: /الأربعاء، 6 نوفمبر \d+، \d+:\d+ غرينتش\+\d+/
+            - time: /الأربعاء، 6 نوفمبر \d+، \d+:\d+/
           - paragraph: مجاني نفدت التذاكر
   - region "احجز التذاكر":
     - heading "احجز التذاكر" [level=2]

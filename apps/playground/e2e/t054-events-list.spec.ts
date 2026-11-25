@@ -19,7 +19,7 @@ test("EU-FR-03 the list shows each upcoming event in its own time zone, from pub
 	// Soonest first; the past gala is not listed.
 	await expect(cards.nth(0).getByRole("heading")).toHaveText("London Community Meetup");
 	await expect(cards.nth(0).getByTestId("event-when")).toContainText("18:30");
-	await expect(cards.nth(0).getByTestId("event-when")).toContainText("GMT");
+	await expect(cards.nth(0).getByTestId("event-when")).not.toContainText("GMT"); // T186: local time, no zone name
 	await expect(cards.nth(1).getByTestId("event-when")).toContainText("10:00"); // 14:00 UTC in New York (EDT)
 	await expect(cards.nth(2).getByTestId("event-when")).toContainText("09:00"); // 22:00 UTC in Sydney (AEDT, next day)
 	await expect(cards.nth(2).getByTestId("event-when")).toContainText("6 Nov 2030");

@@ -43,13 +43,14 @@ const pad = pad2;
 const dayText = (d: Date) => `${DAYS[d.getUTCDay()]} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
 
 /**
- * "Sat 14 Nov 2026, 19:00 (Europe/London)": plain local time in the event's own zone (UTC when it has
- * none or it is invalid). Built from zone parts, not `Intl` names, so workerd and Node agree.
+ * "Sat 14 Nov 2026, 19:00": plain local time in the event's own zone, without its name, as the pages read it
+ * (T157, T186). A missing or invalid zone shows UTC and says so: "... 19:00 (UTC)". Built from zone parts, not
+ * `Intl` names, so workerd and Node agree.
  */
 export function formatWhen(event: Pick<EventInfo, "startsAt" | "timeZone">): string {
-	const zone = validZone(event.timeZone) ?? "UTC";
-	const t = utcToZoned(event.startsAt, zone);
-	return `${dayText(new Date(Date.UTC(t.year, t.month - 1, t.day)))} ${t.year}, ${pad(t.hour)}:${pad(t.minute)} (${zone})`;
+	const zone = validZone(event.timeZone);
+	const t = utcToZoned(event.startsAt, zone ?? "UTC");
+	return `${dayText(new Date(Date.UTC(t.year, t.month - 1, t.day)))} ${t.year}, ${pad(t.hour)}:${pad(t.minute)}${zone ? "" : " (UTC)"}`;
 }
 
 /** "Sat 12 Dec, AM": a booking request's date and window (T174a); the window's id once the event drops it. */
