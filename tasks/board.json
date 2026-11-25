@@ -3351,7 +3351,9 @@
 			],
 			"spec": [],
 			"unblocks": [
-				"T175"
+				"T175",
+				"T182",
+				"T183"
 			],
 			"column": "done"
 		},
@@ -3501,7 +3503,9 @@
 				"T167"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T181"
+			],
 			"column": "done"
 		},
 		"T178": {
@@ -3539,6 +3543,60 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "review"
+		},
+		"T181": {
+			"file": "T181-issue-email-or-print.md",
+			"id": "T181",
+			"title": "Vouchers: issue by hand asks Email or Print; refused purchases logged",
+			"phase": 8,
+			"package": "vouchers-pro",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T177"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
+		},
+		"T182": {
+			"file": "T182-message-crlf.md",
+			"id": "T182",
+			"title": "Vouchers: accept CR LF line breaks in the gift message and post address",
+			"phase": 8,
+			"package": "vouchers-pro",
+			"edition": "pro",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T168"
+			],
+			"spec": [],
+			"unblocks": [
+				"T183"
+			],
+			"column": "done"
+		},
+		"T183": {
+			"file": "T183-buy-form-refusals.md",
+			"id": "T183",
+			"title": "Buy a voucher: refusals name the field, land on the form, keep what was typed",
+			"phase": 8,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T168",
+				"T182"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "done"
 		}
 	},
 	"columns": {
@@ -3708,7 +3766,10 @@
 			"T174",
 			"T176",
 			"T177",
-			"T178"
+			"T178",
+			"T181",
+			"T182",
+			"T183"
 		],
 		"blocked": [
 			"T111"

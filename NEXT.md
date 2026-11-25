@@ -5,10 +5,13 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 
 ## Now
 - rc.23 (Pro waiver order kept), rc.24 (T174f party packages, #59, Pro #17) and rc.25 (T174g widgets check a ticket type's minimum per order before sending, #61), rc.26 (T174h waiver form books groups past 10 by quantity, up to 50, #63) published 2026-11-17, rc.27 (T176 request windows by weekday and season via config/save rules, #65) and rc.28 (T177 Vouchers admin for Authors/Editors: find, open, redeem, issue; rest Admin-only; retry-safe issue; #67, Pro #18) 2026-11-18. Core 1.2 limits: plugin nav not filtered by role, expired-session 401 shown raw. rc.29 (T178 setup check moved to site page /_events/setup, #69) 2026-11-18: Free backend 120,887 B, 3,017 B left. rc.30 (T179 Vouchers Refund: admin-only, Stripe refund + void in one step, Pro #19) 2026-11-18. T179 gaps: refund racing a hold can leave voucher live (warned, key changes with version); expired vouchers refundable (to be refused, see Next); bridge-call count not measured on host. rc.31 (T180 schema:read dropped from Free and Pro trust contracts, #73, Pro #20) 2026-11-19. Free 153 B left, Pro 387 B left; LMSC cutover told. T174f gap left: one package per order
+- rc.32 (T182 Vouchers accepts CR LF in the gift message and post address, Pro #23; Free lockstep #83) 2026-11-25: every live voucher buy with a multi-line message had failed since 20 Nov (lmsc-site #148). rc.33 (T183 buy form refusals name the field, land on #semics-buy-voucher, restore typed fields, #84; T181 issue by hand asks Email or Print and refused purchases logged via ctx.log, Pro #22; Pro #21 expired vouchers not refundable) 2026-11-25. Vouchers backend 82.3 of 100 KiB. LMSC told; their Worker CR LF rewrite and restore script (lmsc-site #159) can go
 - T174 booking requests (lmsc-site#59): all parts released by rc.22 (a, b rc.18; suite fix rc.19; c rc.20; e and d rc.22, rc.21 skipped). Free 123,094 B (810 B headroom); Pro events about 260,555 B after the waiver fix (1.6 KB headroom). Gaps: Bookings list and confirmation email show no lines; unnamed seats sign in the buyer's name at the door
 - Follow-ups: after Confirm time the lapse- approval_expired outbox row stays pending until its time and is then dropped (harmless; deleting it would cost Free bytes); Events Pro promo rate-limit test flaky in a slow full verify (passed on rerun); Events Pro does not trim a pasted vouchersPairing (T172 note); t145 e2e asserts a Free-only message so fails on Pro builds; booking form with a cookie-filled code could be stored by a cache that ignores cookies (docs/vouchers.md); one t168 run hit chrome-error on the T170 thanks page (passed on rerun); board.json not regenerated for T169–T172
 - LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
-- Vouchers follow-ups: voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
+- Release trap: release.yml's version-pr-ci job is skipped and its CI on the version PR waits as action_required; a dispatched ci.yml run fails the changeset check. Worked around by approving the PR run (`gh api -X POST repos/semics-uk/emdash-plugins/actions/runs/<id>/approve`). Fix both sides
+- Issue #79 rest (shared reportError helper, outbox give-up logging, webhook logging, server catch audit) not started; Oli took item 6 and the purchase logging only so far
+- Vouchers follow-ups: T183 restore script has no browser test; voucher emails are plain text; no journey test for /_vouchers/setup or buying an activity voucher; CONTRIBUTING.md "Releasing" omits vouchers-pro
 
 ## Next
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
@@ -18,7 +21,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 
 ## Monitor
 - CI on main: `gh run list --branch main -L 5` (CI, Release, Staging nightly)
-- Open PRs: `gh pr list` (the "version packages (rc)" PR is the release PR; merging it publishes; its CI needs Oli's approval per commit)
+- Open PRs: `gh pr list` (the "version packages (rc)" PR is the release PR; merging it publishes; its CI waits as action_required: approve the run through the API, see Now)
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Mac disk: 3.4 GB free after clearing npm's cache; the site build fails with no space when it is nearly full
@@ -30,12 +33,12 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Share the slot-picker markup in the suite instead of duplicating it
 
 ## Waiting on Oli
-- Decision: merge Pro PR #21 (refuse Refund on an expired voucher; tested, patch changeset; open since 2026-11-19)? Recommend: merge, then it ships in the next rc and LMSC is told
-- Decision: approve the reworked scope in issue #79 (plugins pass errors to the host site's own logging via ctx.log and 5xx, or handle them gracefully; no new panel, settings or alerts)? Recommend: yes, start with the shared error helper, outbox logging and the staff delivery choice; nothing changes payment behaviour
 - Decision: move out of rc to 1.0? Issue #81 has the blockers and exact steps. Recommend: not yet; first the lawyer decision, one staging pass of the untested items and a screen-reader pass
 - A84 (send legal items 8-16 to the lawyer): Oli said "Not now" on 2026-11-19; do not send or re-ask until Oli raises it
 
 ## Done
+- 2026-11-25 rc.33 published (T181 Pro #22, T183 #84, Pro #21). Oli: merge PRs and release without asking
+- 2026-11-25 rc.32 published (T182 CR LF hotfix, Pro #23, #83); lmsc-site told
 - 2026-11-19 T174 marked done (#75): gaps 1-5 shipped as T174a-h, gap 6 stays on the LMSC site; LMSC told
 - 2026-11-16 rc.22 published (T174e attendees after approval, Pro #14, #53; T174d per-person add-on, Pro #15, #55). rc.21 skipped: the release merged a stale version PR; release script now waits for a version PR containing main. LMSC told
 - 2026-11-16 rc.20 published (T174c propose another time, customer Accept / That does not work; LMSC told)
