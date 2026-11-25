@@ -12,7 +12,7 @@
 import * as config from "virtual:semics-events-suite/config";
 
 import VoucherCard from "./VoucherCard.astro";
-import { BUY_MESSAGES, BUY_PATH, type BuyField, formatMinor, loadBuyOptions, readBuyState } from "./lib/buy";
+import { BUY_FORM_ID, BUY_PATH, type BuyField, buyMessage, formatMinor, loadBuyOptions, readBuyState } from "./lib/buy";
 
 interface Props {
 	brand?: string;
@@ -58,7 +58,7 @@ const deliveries = options?.delivery ?? [];
 const firstDelivery = deliveries.includes("print") ? "print" : deliveries[0];
 const today = new Date().toISOString().slice(0, 10);
 const validity = options?.validityMonths ?? 12;
-const id = "semics-buy-voucher";
+const id = BUY_FORM_ID;
 ---
 <section class="semics-buy-voucher" data-testid="buy-voucher-section">
 	{
@@ -71,7 +71,7 @@ const id = "semics-buy-voucher";
 					<input type="hidden" name="currency" value={currency} />
 					{state && (
 						<p class="alert" role="alert" data-testid="buy-voucher-error">
-							{BUY_MESSAGES[state.code] ?? BUY_MESSAGES.INTERNAL}
+							{buyMessage(state)}
 						</p>
 					)}
 
@@ -145,7 +145,7 @@ const id = "semics-buy-voucher";
 						</div>
 					</div>
 					<label for={`${id}-message`}>Personal message</label>
-					<textarea id={`${id}-message`} name="message" maxlength="500" rows="4" placeholder="Wishing you a brilliant day out!"></textarea>
+					<textarea id={`${id}-message`} name="message" maxlength="500" rows="4" placeholder="Wishing you a brilliant day out!" aria-invalid={bad("message") ? "true" : undefined}></textarea>
 					<p class="field-error">{fieldError("message")}</p>
 
 					<div class="step"><span>03</span><div><h2>How would you like to give it?</h2><p>Every voucher is valid for {validity} months.</p></div></div>
@@ -183,7 +183,7 @@ const id = "semics-buy-voucher";
 					{deliveries.includes("post") && (
 						<div data-for-delivery="post">
 							<label for={`${id}-address`}>Postal address</label>
-							<textarea id={`${id}-address`} name="address" rows="3" maxlength="500"></textarea>
+							<textarea id={`${id}-address`} name="address" rows="3" maxlength="500" aria-invalid={bad("address") ? "true" : undefined}></textarea>
 							<p class="field-error">{fieldError("address")}</p>
 						</div>
 					)}
@@ -248,6 +248,33 @@ const id = "semics-buy-voucher";
 		};
 		form.addEventListener("input", update);
 		form.addEventListener("change", update);
+		// T183: a refusal comes back with the form empty (nothing typed goes in the URL), so the fields are kept in
+		// this tab's sessionStorage on submit and put back once, on the refusal's page only. Storage may be off
+		// (private modes): then the form simply comes back empty, as before.
+		const KEEP = "semics-buy-voucher";
+		const skip = new Set(["returnTo", "currency", "cf-turnstile-response"]);
+		form.addEventListener("submit", () => {
+			try {
+				const kept = [...new FormData(form)].filter(([k, v]) => typeof v === "string" && !skip.has(k));
+				sessionStorage.setItem(KEEP, JSON.stringify(kept));
+			} catch {
+				// No storage: nothing to keep.
+			}
+		});
+		try {
+			const saved = sessionStorage.getItem(KEEP);
+			sessionStorage.removeItem(KEEP);
+			if (saved && new URL(location.href).searchParams.has("voucher_error")) {
+				for (const [k, v] of JSON.parse(saved) as Array<[string, string]>) {
+					const el = form.elements.namedItem(k);
+					const radios = el instanceof RadioNodeList ? [...el] : el instanceof HTMLInputElement && el.type === "radio" ? [el] : null;
+					if (radios) for (const r of radios) if (r instanceof HTMLInputElement) r.checked = r.value === v;
+					else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) el.value = v;
+				}
+			}
+		} catch {
+			// No storage, or something unreadable in it: the form stays as the page drew it.
+		}
 		update();
 	}
 </script>

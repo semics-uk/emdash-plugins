@@ -67,6 +67,34 @@ export const BUY_MESSAGES: Record<string, string> = {
 	INTERNAL: "Something went wrong. Please try again.",
 };
 
+/** T183: what each field is called on the form, so a refusal can name what to fix. */
+export const BUY_FIELD_LABELS: Record<BuyField, string> = {
+	kind: "Kind of voucher",
+	amount: "Amount",
+	activity: "Choose an experience",
+	buyerName: "Your name",
+	buyerEmail: "Your email",
+	recipientName: "Recipient's name",
+	recipientEmail: "Recipient's email",
+	message: "Personal message",
+	delivery: "Delivery",
+	address: "Postal address",
+	sendOn: "Send it to them on",
+};
+
+/**
+ * T183: the alert for a refusal. A BAD_REQUEST with fields names them; one with none (Vouchers refused what the
+ * form passed) says so plainly instead of pointing at highlighted fields that are not there (lmsc-site #148).
+ */
+export function buyMessage(state: { code: string; fields: readonly BuyField[] }): string {
+	if (state.code !== "BAD_REQUEST") return BUY_MESSAGES[state.code] ?? BUY_MESSAGES.INTERNAL;
+	if (state.fields.length === 0) return "We could not accept those details. Please check them and try again.";
+	return `Please check the highlighted fields: ${state.fields.map((f) => BUY_FIELD_LABELS[f]).join(", ")}.`;
+}
+
+/** The form's id: a refusal comes back to `#<id>`, so the alert is in view (on a phone it was far below). */
+export const BUY_FORM_ID = "semics-buy-voucher";
+
 export const BUY_FIELDS = [
 	"kind",
 	"amount",
@@ -91,6 +119,8 @@ const field = (form: FormData, name: string) => {
 	const v = form.get(name);
 	return typeof v === "string" ? v.trim() : "";
 };
+/** T182: a textarea's text. Browsers send its line breaks as CR LF; Vouchers and `maxlength` count LF. */
+const lines = (form: FormData, name: string) => field(form, name).replace(/\r\n?/g, "\n");
 
 /** Minor units of `currency` (2 for GBP), from Intl; 2 when Intl does not know it. */
 export function minorDigits(currency: string): number {
@@ -157,11 +187,11 @@ export function readBuyForm(form: FormData): BuyFormResult {
 	if (rEmail && !EMAIL.test(rEmail)) bad.push("recipientEmail");
 	else if (delivery === "email-recipient" && !rEmail) bad.push("recipientEmail");
 	if (rName || rEmail) input.recipient = { ...(rName ? { name: rName } : {}), ...(rEmail ? { email: rEmail } : {}) };
-	const message = field(form, "message");
+	const message = lines(form, "message");
 	if (message.length > 500) bad.push("message");
 	else if (message) input.message = message;
 	if (delivery === "post") {
-		const address = field(form, "address");
+		const address = lines(form, "address");
 		if (!address) bad.push("address");
 		else input.address = address;
 	}
@@ -190,7 +220,7 @@ function backTo(raw: string, origin: string): string {
 const errorLocation = (path: string, code: string, fields: readonly string[]) => {
 	const q = new URLSearchParams({ voucher_error: code });
 	if (fields.length > 0) q.set("voucher_fields", fields.join(","));
-	return `${path}?${q}`;
+	return `${path}?${q}#${BUY_FORM_ID}`;
 };
 
 /** A refusal read back for the form: its code (known form) and fields, or null. */

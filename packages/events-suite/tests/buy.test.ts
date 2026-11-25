@@ -3,8 +3,10 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+	BUY_FORM_ID,
 	BUY_MESSAGES,
 	BUY_PATH,
+	buyMessage,
 	displayCode,
 	handleBuyRequest,
 	loadBuyOptions,
@@ -139,6 +141,45 @@ describe("T168 R16 readBuyForm: the form as public/purchase takes it", () => {
 			ok: false,
 			fields: ["kind"],
 		});
+	});
+});
+
+describe("T182 T183 refusals the buyer can act on (lmsc-site #148)", () => {
+	it("T182 a message or post address with CR LF line breaks is passed on with LF breaks", () => {
+		const read = readBuyForm(
+			new URLSearchParams({
+				...MONEY,
+				message: "Happy Birthday!\r\n\r\nLove from Mum & Dad xxx",
+				delivery: "post",
+				address: "1 High St\r\nTown",
+			}) as never,
+		);
+		expect(read).toMatchObject({
+			ok: true,
+			input: { message: "Happy Birthday!\n\nLove from Mum & Dad xxx", address: "1 High St\nTown" },
+		});
+		// 500 characters as the textarea counts them (LF) are accepted, though CR LF would make them more.
+		const long = `${"a".repeat(249)}\r\n${"b".repeat(250)}`;
+		expect(readBuyForm(new URLSearchParams({ ...MONEY, message: long }) as never)).toMatchObject({ ok: true });
+	});
+
+	it("T183 the alert names the fields to fix, and a refusal with none says so plainly", () => {
+		expect(buyMessage({ code: "BAD_REQUEST", fields: ["buyerEmail", "message"] })).toBe(
+			"Please check the highlighted fields: Your email, Personal message.",
+		);
+		const none = buyMessage({ code: "BAD_REQUEST", fields: [] });
+		expect(none).not.toMatch(/highlighted/);
+		expect(none).toMatch(/could not accept/i);
+		expect(buyMessage({ code: "RATE_LIMITED", fields: [] })).toBe(BUY_MESSAGES.RATE_LIMITED);
+		expect(buyMessage({ code: "SOMETHING_NEW", fields: [] })).toBe(BUY_MESSAGES.INTERNAL);
+	});
+
+	it("T183 a refusal comes back to the form's anchor, so the alert is in view", async () => {
+		const h = host({ [`${VOUCHERS} public/purchase`]: () => refused("BAD_REQUEST") });
+		const out = await run(h, post(MONEY));
+		expect(out.type === "redirect" && out.location.endsWith(`#${BUY_FORM_ID}`)).toBe(true);
+		const bad = await run(host({}), post({ ...MONEY, buyerEmail: "x" }));
+		expect(bad.type === "redirect" && bad.location).toMatch(/voucher_fields=buyerEmail#semics-buy-voucher$/);
 	});
 });
 
