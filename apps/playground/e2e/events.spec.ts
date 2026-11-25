@@ -208,7 +208,7 @@ const ZONES = [
 ];
 
 for (const zone of ZONES) {
-	test(`EV-FR-08 email and ICS times are right in ${zone.when.split("(")[1]?.replace(")", "")}`, async ({
+	test(`EV-FR-08 email and ICS times are right in ${zone.dtstart.split("=")[1]?.split(":")[0]}`, async ({
 		browser,
 		request,
 	}) => {
@@ -218,7 +218,7 @@ for (const zone of ZONES) {
 		await buyer.context.close();
 
 		const mail = await mailTo(request, email, new RegExp(`^Your booking: ${zone.title}$`));
-		expect(mail.text).toContain(`When: ${zone.when}`);
+		expect(mail.text).toMatch(new RegExp(`^When: ${zone.when}$`, "m")); // T186: no zone name after the time
 
 		const reader = await openFromEmail(browser, bookingLink(mail));
 		const ics = await calendarFile(reader.page, request);
