@@ -3595,6 +3595,25 @@
 				"T182"
 			],
 			"spec": [],
+			"unblocks": [
+				"T184"
+			],
+			"column": "done"
+		},
+		"T184": {
+			"file": "T184-buy-form-restore-text.md",
+			"id": "T184",
+			"title": "Buy a voucher: restore text fields after a refusal (T183 dangling else)",
+			"phase": 8,
+			"package": "events-suite",
+			"edition": "free",
+			"status": "done",
+			"model": "opus-5.5",
+			"size": "S",
+			"depends_on": [
+				"T183"
+			],
+			"spec": [],
 			"unblocks": [],
 			"column": "done"
 		}
@@ -3769,7 +3788,8 @@
 			"T178",
 			"T181",
 			"T182",
-			"T183"
+			"T183",
+			"T184"
 		],
 		"blocked": [
 			"T111"
