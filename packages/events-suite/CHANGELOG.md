@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.33
+
+### Patch Changes
+
+- c2ee1f6: T183: a refused voucher purchase is easier to act on. The alert names the fields to fix, or says plainly that the details could not be accepted when no field is marked. The refusal comes back to the form's anchor, so the alert is in view on a phone. The fields are put back from this tab's session storage. The message and post address also turn CR LF into LF.
+- @semics-tech/emdash-esign@1.0.0-rc.33
+  - @semics-tech/emdash-events@1.0.0-rc.33
+
 ## 1.0.0-rc.32
 
 ### Patch Changes
