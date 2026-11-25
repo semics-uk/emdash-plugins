@@ -4,7 +4,7 @@ The project's working memory. `/next` reads it first and updates it last, every 
 Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file only tracks the step in hand.
 
 ## Now
-- rc.23 (Pro waiver order kept), rc.24 (T174f party packages, #59, Pro #17) and rc.25 (T174g widgets check a ticket type's minimum per order before sending, #61), rc.26 (T174h waiver form books groups past 10 by quantity, up to 50, #63) published 2026-11-17, rc.27 (T176 request windows by weekday and season via config/save rules, #65) and rc.28 (T177 Vouchers admin for Authors/Editors: find, open, redeem, issue; rest Admin-only; retry-safe issue; #67, Pro #18) 2026-11-18. Core 1.2 limits: plugin nav not filtered by role, expired-session 401 shown raw. rc.29 (T178 setup check moved to site page /_events/setup, #69) 2026-11-18: Free backend 120,887 B, 3,017 B left. rc.30 (T179 Vouchers Refund: admin-only, Stripe refund + void in one step, Pro #19) 2026-11-18. T179 gaps: refund racing a hold can leave voucher live (warned, key changes with version); expired vouchers refundable (to be refused, see Next); bridge-call count not measured on host. rc.31 (T180 schema:read dropped from Free and Pro trust contracts, #73, Pro #20) 2026-11-19. Free 153 B left, Pro 387 B left; LMSC cutover told. T174f gap left: one package per order
+- rc.23–rc.31 published 2026-11-17 to 11-19 (T174f–h party packages, large groups; T176 request windows; T177 Vouchers admin for Authors/Editors; T178 setup check at /_events/setup; T179 Vouchers Refund; T180 schema:read dropped). Core 1.2 limits: plugin nav not filtered by role, expired-session 401 shown raw. T179 gaps: refund racing a hold can leave voucher live (warned); bridge-call count not measured on host. T174f gap: one package per order. Free 153 B left, Pro 387 B left
 - rc.32 (T182 Vouchers accepts CR LF in the gift message and post address, Pro #23; Free lockstep #83) 2026-11-25: every live voucher buy with a multi-line message had failed since 20 Nov (lmsc-site #148). rc.33 (T183 buy form refusals name the field, land on #semics-buy-voucher, restore typed fields, #84; T181 issue by hand asks Email or Print and refused purchases logged via ctx.log, Pro #22; Pro #21 expired vouchers not refundable) 2026-11-25. Vouchers backend 82.3 of 100 KiB. LMSC told; their Worker CR LF rewrite and restore script (lmsc-site #159) can go
 - rc.34 (T184 buy form restores text fields after a refusal: rc.33's restore had a dangling else, only radios came back; now keep-form; #88) 2026-11-25. lmsc-site's own restore script can go from rc.34
 - T174 booking requests (lmsc-site#59): all parts released by rc.22 (a, b rc.18; suite fix rc.19; c rc.20; e and d rc.22, rc.21 skipped). Free 123,094 B (810 B headroom); Pro events about 260,555 B after the waiver fix (1.6 KB headroom). Gaps: Bookings list and confirmation email show no lines; unnamed seats sign in the buyer's name at the door
@@ -18,7 +18,6 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 ## Next
 - Fixes from the LMSC staging test, 2026-11-07 (Events and suite): style or theme the customer waiver and booking pages; show UK time, not UTC or "10:30 UTC (Europe/London)", on pages and in emails; check why a booking approved within a minute sent the organiser "New booking" with no "Booking request" email, and that the request email gives the deadline; flag bounced guest invitations to staff; keep the form's details and leave no cancelled record when a booking is refused; say a timed-out checkout lapsed; show the decline reason on the customer page and say "not charged" there and in the declined email; show event names in the admin Bookings list; show attendees while awaiting approval
 - Still untested on staging: guest invitation reaching a real inbox and its link (Stackmail rejects + addresses, needs a second address), save-card path, approval deadline passing, attendee edit, T153 past a hold
-- Staging nightly 2026-11-21 failed once on a transient npm 404 (Lighthouse dependency); 2026-11-22 passed. Watch for a repeat
 - PDF timing test failed once on PR #4 CI (58 ms against a 50 ms limit), passed on re-run: probably flaky
 
 ## Monitor
@@ -27,7 +26,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Mac disk: 3.4 GB free after clearing npm's cache; the site build fails with no space when it is nearly full
-- Events backend size: 125 KiB budget; Free Events 120,887 B at rc.29 (153 B left at rc.31), Pro 387 B left at rc.31; Vouchers 69,680 of 100 KiB at rc.12 (recheck)
+- Events backend size: 125 KiB budget; Free Events 153 B left, Pro 387 B left (rc.31); Vouchers 82.3 of 100 KiB (rc.33)
 
 ## Ideas
 - Payments plugin investigation: measure what moving Stripe out of Events Pro would save (only if Events Pro size gets tight; T163)
