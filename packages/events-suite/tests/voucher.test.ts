@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { reconcileBooking } from "../src/astro/lib/reconcile";
 import { routeStripeWebhook } from "../src/astro/lib/stripe";
@@ -263,6 +263,35 @@ describe("T166 R16 POST /_semics/stripe: one Stripe endpoint for the site (T163 
 			expect(seen[0]?.body).toBe(body);
 			expect(response.status).toBe(200);
 			expect(await response.text()).toBe('{"received":true}');
+		}
+	});
+
+	it("T185 (#79) a delivery no plugin handled is a 5xx for Stripe and an error in the site's log", async () => {
+		const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
+		try {
+			const request = delivery(event({ plugin: "events" }));
+			const crash = async () => {
+				throw new Error("boom");
+			};
+			const res = await routeStripeWebhook(
+				{ locals: { emdash: { handlePublicPluginApiRoute: crash } } as never, url: new URL(request.url), request },
+				IDS,
+			);
+			expect(res.status).toBe(500);
+			const unhandled = delivery(event({ plugin: "events" }));
+			const missing = await routeStripeWebhook(
+				{
+					locals: { emdash: { handlePublicPluginApiRoute: async () => ({ success: false, status: 404 }) } } as never,
+					url: new URL(unhandled.url),
+					request: unhandled,
+				},
+				IDS,
+			);
+			expect(missing.status).toBe(503);
+			expect(error.mock.calls.map((c) => c[0])).toEqual(["suite.stripe_forward_failed", "suite.stripe_forward_failed"]);
+			expect(error.mock.calls[1]?.[1]).toMatchObject({ pluginId: EVENTS, status: 503 });
+		} finally {
+			error.mockRestore();
 		}
 	});
 

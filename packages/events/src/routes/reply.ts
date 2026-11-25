@@ -5,6 +5,7 @@ import {
 	EVENTS_ERROR_CODES,
 	generateToken,
 	ok,
+	type ReportLog,
 	routeErrorFrom,
 	type TurnstileFetch,
 	verifyTurnstile,
@@ -79,7 +80,7 @@ export interface PublicSettings {
  * token and IP, already started. The secret also salts the IP hash; without one the salt is the site's
  * random `ipSalt` setting (undeclared, so never shown), which the first such write stores in the
  * Turnstile call's place (T100, T057 F6: the public plugin id made the hash reversible). `calls` is
- * what `human` costs: 1 at most.
+ * what `human` costs: 1 at most, plus a log line (T185) on the refusal path when Cloudflare or the secret fails.
  */
 export function botCheck(
 	entries: Array<{ key: string; value: unknown }>,
@@ -87,13 +88,14 @@ export function botCheck(
 	fetch: TurnstileFetch,
 	token: string | undefined,
 	ip: string | null,
+	log?: ReportLog,
 ) {
 	const settings = settingsObject(entries);
 	const secret = isStr(settings.turnstileSecretKey) ? settings.turnstileSecretKey : "";
 	const stored = isStr(settings.ipSalt) ? settings.ipSalt : "";
 	const salt = secret || stored || generateToken();
 	const human = secret
-		? verifyTurnstile(fetch, { secret, token: token ?? "", ...(ip ? { remoteIp: ip } : {}) })
+		? verifyTurnstile(fetch, { secret, token: token ?? "", ...(ip ? { remoteIp: ip } : {}), ...(log ? { log } : {}) })
 		: (salt === stored ? Promise.resolve() : store.set("ipSalt", salt)).then(() => ok(true as const));
 	return { settings, salt, human, calls: +(secret ? !!token : salt !== stored) };
 }

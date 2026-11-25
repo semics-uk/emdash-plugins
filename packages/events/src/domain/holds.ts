@@ -261,6 +261,7 @@ export async function expireBookings(
 					where: heldGuard(p.booking),
 					set: { releaseClaimedAt: at },
 				})
+				// Quiet on purpose: not applied, so the next sweep retries it.
 				.catch(() => ({ applied: false }));
 			return applied;
 		}),
@@ -281,6 +282,7 @@ export async function expireBookings(
 						: heldGuard(p.booking);
 			const { applied } = await storage.bookings
 				.updateIf(p.id, { where: guard, set: { status: EXPIRED, expiredAt: at } })
+				// Quiet on purpose: not applied, so the next sweep retries it.
 				.catch(() => ({ applied: false }));
 			const partly = p.refs.some((r) => unreleasedDocs.has(keyOf(r)));
 			if (applied) {

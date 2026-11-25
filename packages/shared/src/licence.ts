@@ -145,6 +145,7 @@ function parsePayload(body: string): LicencePayload | undefined {
 	try {
 		return validateLicencePayload(JSON.parse(strictUtf8.decode(bytes)));
 	} catch {
+		// Not UTF-8 JSON: no licence, which the caller refuses.
 		return undefined;
 	}
 }

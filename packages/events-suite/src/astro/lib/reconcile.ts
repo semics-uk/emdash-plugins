@@ -11,7 +11,7 @@
  * lists no requests, so nothing happens there. Every failure is swallowed: the status page must render.
  * Web APIs only, no `@semics-tech/shared` (R35).
  */
-import { callPublicRoute, type PublicRouteContext } from "@semics-tech/emdash-events/astro/lib/call";
+import { callPublicRoute, type PublicRouteContext, siteLog } from "@semics-tech/emdash-events/astro/lib/call";
 import { forwardReceipt } from "@semics-tech/emdash-events/astro/lib/receipt";
 import type { BookingView } from "@semics-tech/emdash-events/astro/lib/widget";
 import { settleVoucher } from "./voucher.ts";
@@ -59,10 +59,17 @@ export async function voidEnvelopes(
 				path: "public/envelopes/from-intent",
 				pluginId: input.esignPluginId,
 				body: { intent },
-			}).catch(() => null),
+			}),
 		),
 	);
-	return answers.filter((a) => a?.ok).length;
+	const voided = answers.filter((a) => a.ok).length;
+	// T185 (#79): an envelope left unvoided can still be signed; a crash is logged by callPublicRoute itself.
+	if (voided < answers.length)
+		siteLog("warn", "suite.waiver_void_failed", {
+			bookingRef: input.booking.bookingRef,
+			failed: answers.length - voided,
+		});
+	return voided;
 }
 
 /** Forwards the receipts e-sign already holds for the booking's unsigned refs; resolves with how many Events took. */
@@ -98,20 +105,26 @@ async function reconcileWaiver(
 				path: "public/receipts/lookup",
 				pluginId: input.esignPluginId,
 				body: { request },
-			}).catch(() => null),
+			}),
 		),
 	);
 	let forwarded = 0;
+	let failed = 0;
 	for (const answer of answers) {
-		if (!answer?.ok || answer.data.state !== "terminal") continue;
+		if (!answer.ok) failed++;
+		if (!answer.ok || answer.data.state !== "terminal") continue;
 		const receipt = tokenOf(answer.data.receipt, RECEIPT_MAX);
 		if (receipt === null) continue;
 		const done = await forwardReceipt(
 			ctx,
 			{ ref: input.booking.bookingRef, receipt },
 			{ pluginId: input.pluginId, esignPluginId: input.esignPluginId },
+			// Counted as failed, and logged below (T185).
 		).catch(() => null);
 		if (done && !done.location.includes("waiver=failed")) forwarded += 1;
+		else failed++;
 	}
+	// T185 (#79): a signed waiver that did not reach Events leaves the booking waiting; the next visit retries.
+	if (failed > 0) siteLog("warn", "suite.waiver_reconcile_failed", { bookingRef: input.booking.bookingRef, failed });
 	return { forwarded };
 }

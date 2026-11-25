@@ -16,6 +16,7 @@ export function isCrossSiteRequest(request: Request, url: URL): boolean {
 	try {
 		return new URL(origin).host !== request.headers.get("host");
 	} catch {
+		// An Origin that is not a URL is cross-site.
 		return true;
 	}
 }

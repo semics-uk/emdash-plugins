@@ -3558,7 +3558,9 @@
 				"T177"
 			],
 			"spec": [],
-			"unblocks": [],
+			"unblocks": [
+				"T185"
+			],
 			"column": "done"
 		},
 		"T182": {
@@ -3616,6 +3618,23 @@
 			"spec": [],
 			"unblocks": [],
 			"column": "done"
+		},
+		"T185": {
+			"file": "T185-report-errors.md",
+			"id": "T185",
+			"title": "Errors reach the host site's log: report helper, outbox, Stripe webhooks; version-PR CI fixed",
+			"phase": 8,
+			"package": "shared",
+			"edition": "free",
+			"status": "in-progress",
+			"model": "opus-5.5",
+			"size": "M",
+			"depends_on": [
+				"T181"
+			],
+			"spec": [],
+			"unblocks": [],
+			"column": "in-progress"
 		}
 	},
 	"columns": {
@@ -3623,7 +3642,8 @@
 		"ready": [],
 		"in-progress": [
 			"T156",
-			"T173"
+			"T173",
+			"T185"
 		],
 		"review": [
 			"T175",

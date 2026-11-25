@@ -30,6 +30,7 @@ export function presetVoucher(cookies: { get(name: string): { value: string } | 
 		const value = cookies?.get(VOUCHER_COOKIE)?.value ?? "";
 		return DISPLAY_CODE.test(value) ? value : "";
 	} catch {
+		// No cookie API here: no code to carry.
 		return "";
 	}
 }

@@ -260,6 +260,7 @@ export function planSlots(eventId: string, c: EventConfigDoc, now: number): Slot
 	try {
 		starts = slotStarts(s, zone, now);
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		starts = slotStarts(s, "UTC", now);
 	}
 	const have = c.catalog?.occurrences ?? {};

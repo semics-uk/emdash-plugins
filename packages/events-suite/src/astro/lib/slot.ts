@@ -32,6 +32,7 @@ export function formatSlot(iso: string, zone: string | undefined, locale = "en-G
 	try {
 		return new Intl.DateTimeFormat(locale, { ...options, timeZone: zone ?? "UTC" }).format(date);
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" }).format(date);
 	}
 }
@@ -93,6 +94,7 @@ export async function waiverSlot(
 		};
 		return slot.title || slot.when ? slot : undefined;
 	} catch {
+		// The slot line is optional: the page leaves it out.
 		return undefined;
 	}
 }

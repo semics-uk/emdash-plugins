@@ -86,6 +86,23 @@ describe("callPublicRoute (EU-FR-02, Spike S2)", () => {
 		});
 	});
 
+	it("T185 (#79) a crashed or unreachable route is a warning in the site's log, with no token or address", async () => {
+		const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+		try {
+			const handler = vi.fn<Handler>(async () => {
+				throw new Error("storage down for ada@example.com token abcdefghijklmnopqrstuvwxyz0");
+			});
+			await callPublicRoute({ locals: localsWith(handler), url }, { path: "public/probe" });
+			expect(warn).toHaveBeenCalledTimes(1);
+			const [code, data] = warn.mock.calls[0] as [string, Record<string, unknown>];
+			expect(code).toBe("events.route_call_failed");
+			expect(data).toMatchObject({ code, path: "public/probe", via: "in-process" });
+			expect(JSON.stringify(data)).not.toMatch(/ada@example\.com|abcdefghijklmnopqrstuvwxyz0/);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
 	it("falls back to fetch(Astro.url.origin + route) when no in-process handler is available", async () => {
 		const fetchFn = vi.fn<typeof fetch>(async () => Response.json({ success: true, data: { echoed: true } }));
 

@@ -305,6 +305,7 @@ function fromBase64(text: string): Uint8Array | null {
 		for (let i = 0; i < binary.length; i++) out[i] = binary.charCodeAt(i);
 		return out;
 	} catch {
+		// Not base64: no bytes, which the caller refuses.
 		return null;
 	}
 }

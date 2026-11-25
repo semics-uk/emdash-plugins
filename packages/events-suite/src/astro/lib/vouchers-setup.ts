@@ -76,6 +76,7 @@ function parseLines(text: unknown): Line[] {
 async function vouchersSettings(ctx: SetupContext, ids: SetupIds): Promise<Record<string, unknown> | null> {
 	const res = await ctx.settings.read(ids.vouchersPluginId).catch(() => null);
 	if (!res?.ok) return null;
+	// Shown to the admin as an error state; nothing for the site's log.
 	const body = (await res.json().catch(() => ({}))) as { data?: { values?: Record<string, unknown> } };
 	return body.data?.values ?? {};
 }
@@ -171,6 +172,7 @@ export async function saveActivities(
 		});
 	const kept = loaded.lines.filter((l) => !seen(choices, l)).map((l) => l.raw);
 	const text = [...picked, ...kept].join("\n");
+	// Shown to the admin as an error state; nothing for the site's log.
 	const res = await ctx.settings.write(ids.vouchersPluginId, { [SETTING]: text }).catch(() => null);
 	if (!res?.ok) return { state: "error", code: "INTERNAL" };
 	return { state: "saved", count: picked.length + kept.length };

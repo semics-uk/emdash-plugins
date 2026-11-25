@@ -404,6 +404,7 @@ export async function drainEventsOutbox(d: DrainDeps): Promise<DrainResult> {
 	const tick = newTick();
 	const send = d.email;
 	return drainOutbox({
+		// A failed prefetch only means per-message reads (see the docblock above).
 		storage: adapt(d.outbox, stubs, (rows) => prefetch(d, tick, rows).catch(() => rows.length)),
 		email: send && {
 			send: async (stub) => {
@@ -425,6 +426,7 @@ export function drainDepsOf(ctx: PluginContext, now: number): DrainDeps {
 	try {
 		origin = new URL(ctx.site.url).origin;
 	} catch {
+		// No usable site URL: emails go without links.
 		origin = "";
 	}
 	return {

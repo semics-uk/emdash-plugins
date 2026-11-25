@@ -82,6 +82,7 @@ export function isCrossSiteRequest(request: Request, url: URL): boolean {
 	try {
 		return new URL(origin).host !== request.headers.get("host");
 	} catch {
+		// An Origin that is not a URL is cross-site.
 		return true;
 	}
 }
@@ -312,6 +313,7 @@ export async function handleCheckoutRequest(
 	options: CheckoutFormOptions,
 ): Promise<Response> {
 	if (isCrossSiteRequest(request, url)) return crossSiteResponse();
+	// No form body: an empty form, which the checks below refuse.
 	const form = await request.formData().catch(() => new FormData());
 	const result = await handleCheckoutForm({ locals, url, request }, form, options);
 	if (result.cookie) cookies.set(result.cookie.name, result.cookie.value, bookingCookieOptions(url));

@@ -190,6 +190,7 @@ async function bookingsPage(
 	// Never lose a page (or an approval just made) to the names: without them the rows show event ids.
 	const configs = await deps.storage.event_configs
 		.getMany(page.items.map((i) => (i.data as BookingDoc).eventId))
+		// Event names are a nicety: the list shows ids instead.
 		.catch(() => new Map<string, unknown>());
 	return respond([
 		header("Bookings"),

@@ -14,7 +14,7 @@
  * Web APIs only, no `@semics-tech/shared` (R35); prices and rules stay in Vouchers.
  */
 
-import { callPublicRoute, type PublicRouteContext } from "@semics-tech/emdash-events/astro/lib/call";
+import { callPublicRoute, type PublicRouteContext, siteLog } from "@semics-tech/emdash-events/astro/lib/call";
 import { isCrossSiteRequest } from "@semics-tech/emdash-events/astro/lib/checkout-form";
 import { isPayUrl } from "@semics-tech/emdash-events/astro/lib/payment";
 
@@ -127,6 +127,7 @@ export function minorDigits(currency: string): number {
 	try {
 		return new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions().maximumFractionDigits ?? 2;
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return 2;
 	}
 }
@@ -145,6 +146,7 @@ export function formatMinor(minor: number, currency: string): string {
 	try {
 		return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(minor / 10 ** digits);
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return `${(minor / 10 ** digits).toFixed(digits)} ${currency}`;
 	}
 }
@@ -213,6 +215,7 @@ function backTo(raw: string, origin: string): string {
 		const url = new URL(raw, origin);
 		return url.origin === origin ? url.pathname : "/";
 	} catch {
+		// Not a URL on this site: go home.
 		return "/";
 	}
 }
@@ -244,6 +247,7 @@ export interface BuyRequestContext {
 /** `POST /_vouchers/buy`. */
 export async function handleBuyRequest(ctx: BuyRequestContext, ids: { vouchersPluginId: string }): Promise<BuyOutcome> {
 	if (isCrossSiteRequest(ctx.request, ctx.url)) return { type: "forbidden" };
+	// No form body: an empty form, which the checks below refuse.
 	const form = await ctx.request.formData().catch(() => new FormData());
 	const back = backTo(field(form, "returnTo"), ctx.url.origin);
 	const read = readBuyForm(form);
@@ -251,13 +255,14 @@ export async function handleBuyRequest(ctx: BuyRequestContext, ids: { vouchersPl
 	const out = await callPublicRoute<{ url?: unknown }>(
 		{ locals: ctx.locals, url: ctx.url, request: ctx.request },
 		{ method: "POST", path: "public/purchase", pluginId: ids.vouchersPluginId, body: read.input },
-	).catch(() => null);
-	if (out?.ok) {
-		return isPayUrl(out.data.url)
-			? { type: "redirect", location: out.data.url }
-			: { type: "redirect", location: errorLocation(back, "PAYMENT_FAILED", []) };
+	);
+	// Vouchers logs each refusal itself (T181), and a crashed call is logged by callPublicRoute (T185).
+	if (out.ok) {
+		if (isPayUrl(out.data.url)) return { type: "redirect", location: out.data.url };
+		siteLog("error", "suite.voucher_checkout_url_invalid", { pluginId: ids.vouchersPluginId });
+		return { type: "redirect", location: errorLocation(back, "PAYMENT_FAILED", []) };
 	}
-	const code = out?.error.code && CODE.test(out.error.code) ? out.error.code : "INTERNAL";
+	const code = out.error.code && CODE.test(out.error.code) ? out.error.code : "INTERNAL";
 	return { type: "redirect", location: errorLocation(back, code, []) };
 }
 
@@ -268,6 +273,7 @@ export async function loadBuyOptions(ctx: PublicRouteContext, vouchersPluginId: 
 		path: "public/options",
 		pluginId: vouchersPluginId,
 		body: {},
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	return out?.ok ? out.data : null;
 }
@@ -298,6 +304,7 @@ export async function loadVoucher(
 		path: "public/redeem/check",
 		pluginId: vouchersPluginId,
 		body: { code },
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	if (out?.ok && out.data.voucher) return { ok: true, voucher: out.data.voucher, display };
 	return { ok: false, code: out && !out.ok && CODE.test(out.error.code) ? out.error.code : "VOUCHER_UNAVAILABLE" };
@@ -337,6 +344,7 @@ export async function loadThanks(ctx: PublicRouteContext, vouchersPluginId: stri
 		path: "public/order",
 		pluginId: vouchersPluginId,
 		body: { order, session },
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	if (!out?.ok) return { state: "paid" };
 	const { state, delivery, code } = out.data;

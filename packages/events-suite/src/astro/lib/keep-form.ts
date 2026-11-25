@@ -90,6 +90,7 @@ function takeAs(storage: Stored, key: string, refused: boolean, now: number) {
 		const { at, values } = JSON.parse(raw) as { at: number; values: Record<string, string | boolean> };
 		return now - at <= KEPT_MS ? values : null;
 	} catch {
+		// Nothing kept, or unreadable: the form comes back empty.
 		return null;
 	}
 }

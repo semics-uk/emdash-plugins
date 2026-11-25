@@ -84,6 +84,7 @@ function formatter(locale: string, zone: string, options: Intl.DateTimeFormatOpt
 	try {
 		return new Intl.DateTimeFormat(locale, { ...options, timeZone: zone });
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return new Intl.DateTimeFormat(locale, { ...options, timeZone: "UTC" });
 	}
 }

@@ -176,7 +176,8 @@ export async function bookingStatus(deps: BookingDeps, raw: unknown): Promise<un
 		deps.storage.attendees.query({ where: { bookingId: id }, limit: 100 }),
 		decide(deps, b, read),
 		b.status === CONFIRMED && deps.kv
-			? bookingCalendarQuery(deps.kv, b.ref, deps.now).catch(() => undefined)
+			? // The calendar link is optional: the page shows without it.
+				bookingCalendarQuery(deps.kv, b.ref, deps.now).catch(() => undefined)
 			: undefined,
 		read as Promise<EventConfigDoc | null>,
 	]);
@@ -311,6 +312,7 @@ export async function closeBooking(
 	const room = BOOKING_MAX_CALLS - (held ? CANCEL_FIXED_CALLS - 2 : CANCEL_FIXED_CALLS) - (step?.calls(b) ?? 0) - used;
 	const stale = b.releaseClaimedAt != null;
 	const refs = stale ? [] : countersForBooking(b).reverse().slice(0, maxOf(room, 0));
+	// Quiet on purpose: drift repair settles the counters.
 	await release(storage, refs, { sold: b.status === CONFIRMED }).catch(() => undefined);
 
 	const moved = await storage.bookings.updateIf(id, {
