@@ -34,6 +34,7 @@ import {
 	type OutboxRecord,
 	type OutboxStatus,
 	type OutboxStorage,
+	type ReportLog,
 } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
@@ -89,6 +90,8 @@ export interface DrainDeps {
 	now: number;
 	/** An edition's renderers for its own outbox kinds (Pro refunds, T075), given what the tick read. */
 	render?: Record<string, EditionRender>;
+	/** T185: where the drain reports a first failure or a give-up (`ctx.log`, gated by the tick's call budget). */
+	log?: ReportLog;
 }
 
 /** The booking and event info a tick already read for an edition's own kind of message. */
@@ -153,7 +156,7 @@ function adapt(
 				items: items.slice(0, keep).map(({ id, data }): { id: string; data: OutboxRecord } => {
 					const doc = data as OutboxDoc;
 					rows.set(id, doc);
-					const message: OutboxMessage = { to: doc.to, subject: "", text: "" };
+					const message = { to: doc.to, subject: "", text: "", kind: doc.kind } as OutboxMessage;
 					stubs.set(message, { id, doc });
 					const nextAttemptAt = msOf(doc.nextAttemptAt);
 					return {
@@ -412,6 +415,7 @@ export async function drainEventsOutbox(d: DrainDeps): Promise<DrainResult> {
 		},
 		now: d.now,
 		maxPerTick: OUTBOX_PER_TICK,
+		...(d.log ? { log: d.log } : {}),
 	});
 }
 
@@ -468,9 +472,9 @@ function meteredDeps(d: DrainDeps, meter: { calls: number }): DrainDeps {
 }
 
 /**
- * The `cron` hook's share for the recurring drain; true when `event` was ours. The give-up log is a
- * bridge call too, so it is written only when the tick left room for it (a full tick of two
- * confirmations with occurrences is already 10): the row itself still records `failed`.
+ * The `cron` hook's share for the recurring drain; true when `event` was ours. The drain's log lines (T185: a
+ * first failure, a give-up) are bridge calls too, so each is written only while the tick has room (a full tick of
+ * two confirmations with occurrences is already 10); the row itself still records what happened.
  */
 export async function runOutboxJob(
 	event: CronEvent,
@@ -480,12 +484,18 @@ export async function runOutboxJob(
 ): Promise<boolean> {
 	if (event.name !== OUTBOX_TASK) return false;
 	const meter = { calls: 0 };
-	const result = await drainEventsOutbox(
-		meteredDeps({ ...drainDepsOf(ctx, now), ...(render ? { render } : {}) }, meter),
-	);
-	if (result.gaveUp > 0 && meter.calls < MAX_CALLS) {
-		ctx.log.error("emails given up after repeated failures", { count: result.gaveUp });
-	}
+	const room =
+		(level: "warn" | "error") =>
+		(m: string, data?: unknown): void => {
+			if (meter.calls < MAX_CALLS) {
+				meter.calls++;
+				ctx.log[level](m, data);
+			}
+		};
+	await drainEventsOutbox({
+		...meteredDeps({ ...drainDepsOf(ctx, now), ...(render ? { render } : {}) }, meter),
+		log: { warn: room("warn"), error: room("error") },
+	});
 	return true;
 }
 

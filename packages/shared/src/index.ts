@@ -20,6 +20,7 @@ export * from "./outbox";
 export * from "./pairing";
 export * from "./pdf";
 export * from "./ratelimit";
+export * from "./report";
 export * from "./result";
 export * from "./rrule";
 export * from "./schedules";

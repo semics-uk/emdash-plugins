@@ -191,3 +191,71 @@ describe("outbox lastError (T100, T057 review F12)", () => {
 		expect(lastError).not.toContain("k=");
 	});
 });
+
+describe("T185 (#79) the drain tells the site's log about failures", () => {
+	const lines = () => {
+		const out: Array<{ level: string; message: string; data: Record<string, unknown> }> = [];
+		const at = (level: string) => (message: string, data?: unknown) =>
+			void out.push({ level, message, data: data as Record<string, unknown> });
+		return { out, log: { warn: at("warn"), error: at("error") } };
+	};
+	const failing: OutboxEmail = {
+		async send(m) {
+			throw new Error(`550 mailbox ${m.to} unavailable, see https://help.example/x?t=abcdefghijklmnopqrstuvwxyz`);
+		},
+	};
+
+	it("a first failure is one warning a tick, with the kind and a scrubbed error; retries say nothing more", async () => {
+		const { storage, rows } = memStorage();
+		for (const to of ["a@x.test", "b@x.test", "c@x.test"])
+			rows.set(`m-${to}`, {
+				message: { ...msg(to), kind: "voucher_receipt" } as never,
+				status: "pending",
+				attempts: 0,
+				nextAttemptAt: 0,
+				createdAt: 0,
+			});
+		const { out, log } = lines();
+		await drainOutbox({ storage, email: failing, now: 1, log });
+		expect(out).toHaveLength(1);
+		expect(out[0]).toMatchObject({ level: "warn", message: "outbox.send_failed" });
+		expect(out[0]?.data).toMatchObject({ code: "outbox.send_failed", count: 3, kind: "voucher_receipt" });
+		const text = JSON.stringify(out);
+		for (const secret of ["a@x.test", "help.example", "abcdefghijklmnopqrstuvwxyz"]) expect(text).not.toContain(secret);
+		// The stored error is scrubbed of the address too.
+		expect(JSON.stringify([...rows.values()])).not.toContain("a@x.test\\u0020unavailable");
+		expect([...rows.values()].every((r) => !String(r.lastError).includes("@"))).toBe(true);
+		// The second try fails again: no new line (only first failures and give-ups are reported).
+		const again = lines();
+		await drainOutbox({ storage, email: failing, now: 10 * 60_000, log: again.log });
+		expect(again.out).toEqual([]);
+	});
+
+	it("giving up is one error a tick", async () => {
+		const { storage, rows } = memStorage();
+		for (const to of ["a@x.test", "b@x.test"])
+			rows.set(`m-${to}`, {
+				message: { ...msg(to), kind: "booking_confirmed" } as never,
+				status: "pending",
+				attempts: 4,
+				nextAttemptAt: 0,
+				createdAt: 0,
+			});
+		const { out, log } = lines();
+		const result = await drainOutbox({ storage, email: failing, now: 1, log });
+		expect(result.gaveUp).toBe(2);
+		expect(out).toHaveLength(1);
+		expect(out[0]).toMatchObject({ level: "error", message: "outbox.gave_up" });
+		expect(out[0]?.data).toMatchObject({ count: 2, kind: "booking_confirmed" });
+	});
+
+	it("a tick that sends everything logs nothing, and no log is fine", async () => {
+		const { storage, rows } = memStorage();
+		rows.set("m", { message: msg("a@x.test"), status: "pending", attempts: 0, nextAttemptAt: 0, createdAt: 0 });
+		const { out, log } = lines();
+		await drainOutbox({ storage, email: mail([]), now: 1, log });
+		expect(out).toEqual([]);
+		rows.set("n", { message: msg("b@x.test"), status: "pending", attempts: 0, nextAttemptAt: 0, createdAt: 0 });
+		await expect(drainOutbox({ storage, email: failing, now: 1 })).resolves.toMatchObject({ failed: 1 });
+	});
+});

@@ -94,7 +94,7 @@ describe("T034 the outbox drain's give-up log stays inside 10 bridge calls (R22:
 			},
 		};
 		expect(await runOutboxJob({ name: OUTBOX_TASK } as never, ctx as never, 1_000)).toBe(true);
-		expect(logged).toEqual(["emails given up after repeated failures"]);
+		expect(logged).toEqual(["outbox.gave_up"]);
 		expect(calls).toBe(9);
 	});
 });
