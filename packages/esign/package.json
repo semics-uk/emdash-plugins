@@ -1,6 +1,6 @@
 {
 	"name": "@semics-tech/emdash-esign",
-	"version": "1.0.0-rc.31",
+	"version": "1.0.0-rc.32",
 	"type": "module",
 	"main": "dist/index.mjs",
 	"exports": {

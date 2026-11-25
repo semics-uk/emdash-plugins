@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.32
+
+### Patch Changes
+
+- 7349026: No Free changes. Released alongside Vouchers Pro 1.0.0-rc.32, which fixes gift voucher purchases refused when the message or post address had a line break (browsers send CR LF; the CR was refused as a control character).
+- @semics-tech/emdash-esign@1.0.0-rc.32
+  - @semics-tech/emdash-events@1.0.0-rc.32
+
 ## 1.0.0-rc.31
 
 ### Patch Changes
