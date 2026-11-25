@@ -18,9 +18,9 @@ export type ReportData = Record<string, string | number | boolean | null | undef
 export const scrubText = (text: string, max = 200) =>
 	text.replace(/\S*:\/\/\S*|[^\s@]+@[^\s@]+|[\w-]{20,}/g, "…").slice(0, max);
 
-/** Logs `code` at `level` with `data`; text values scrubbed. A missing log (a unit test's fake ctx) is skipped. */
+/** Logs `code` at `level` with `data`; text values scrubbed. A missing log or level (a test's fake ctx) is skipped. */
 export function report(log: ReportLog | undefined, level: "warn" | "error", code: string, data: ReportData = {}): void {
 	const clean: ReportData = { code };
 	for (const [k, v] of Object.entries(data)) clean[k] = typeof v === "string" ? scrubText(v) : v;
-	log?.[level](code, clean);
+	log?.[level]?.(code, clean);
 }
