@@ -68,7 +68,8 @@ jobs:
     outputs:
       published: ${{ steps.changesets.outputs.published }}
       published-packages: ${{ steps.changesets.outputs.published-packages }}
-      version-pr: ${{ steps.changesets.outputs.pullRequestNumber }}
+      # changesets/action v2 names it pr-number (v1's pullRequestNumber is gone, so this job never ran).
+      version-pr: ${{ steps.changesets.outputs.pr-number }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:

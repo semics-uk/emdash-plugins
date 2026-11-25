@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
-      light: ${{ steps.scope.outputs.light || 'false' }}
+      light: ${{ steps.scope.outputs.light || steps.dispatched.outputs.light || 'false' }}
     steps:
       - uses: actions/checkout@v4
         if: github.event_name == 'pull_request' && github.head_ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
@@ -53,6 +53,16 @@ jobs:
         id: scope
         if: github.event_name == 'pull_request' && github.head_ref == 'changeset-release/main' && github.event.pull_request.head.repo.full_name == github.repository
         run: node scripts/version-pr.mjs scope >> "$GITHUB_OUTPUT"
+      # release.yml dispatches this run on the version branch (a PR opened with GITHUB_TOKEN starts no
+      # pull_request run). There is no merge commit, so the diff is from where the branch left main.
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch' && github.ref_name == 'changeset-release/main'
+        with:
+          fetch-depth: 0
+      - name: Classify the diff (dispatched on the version branch)
+        id: dispatched
+        if: github.event_name == 'workflow_dispatch' && github.ref_name == 'changeset-release/main'
+        run: node scripts/version-pr.mjs scope --base "$(git merge-base origin/main HEAD)" >> "$GITHUB_OUTPUT"
 
   gates:
     name: Lint, board, script tests, changesets
@@ -70,6 +80,11 @@ jobs:
         env:
           BASE_REF: ${{ github.base_ref }}
         run: git fetch --no-tags origin "$BASE_REF:$BASE_REF"
+      # A dispatched run on a branch (release.yml on the version branch) checks out only that branch; the
+      # changeset check diffs against main, so fetch it (it failed with "cannot diff against main").
+      - name: Fetch main
+        if: github.event_name == 'workflow_dispatch' && github.ref_name != 'main'
+        run: git fetch --no-tags origin main:main
       - uses: pnpm/action-setup@v4
         with:
           version: 10.23.0
