@@ -259,3 +259,20 @@ describe("T185 (#79) the drain tells the site's log about failures", () => {
 		await expect(drainOutbox({ storage, email: failing, now: 1 })).resolves.toMatchObject({ failed: 1 });
 	});
 });
+
+describe("T185 the drain waits for its log lines (a sandboxed log is an RPC)", () => {
+	it("a give-up line has been written by the time drainOutbox resolves", async () => {
+		const { storage, rows } = memStorage();
+		rows.set("m", {
+			message: { ...msg("a@x.test"), kind: "k" } as never,
+			status: "pending",
+			attempts: 4,
+			nextAttemptAt: 0,
+			createdAt: 0,
+		});
+		const done: string[] = [];
+		const later = (m: string) => new Promise<void>((resolve) => setTimeout(() => resolve(void done.push(m)), 5));
+		await drainOutbox({ storage, email: mail([], new Set(["a@x.test"])), now: 1, log: { warn: later, error: later } });
+		expect(done).toEqual(["outbox.gave_up"]);
+	});
+});

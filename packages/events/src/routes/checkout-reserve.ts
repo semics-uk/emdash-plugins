@@ -222,7 +222,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	} catch (e) {
 		// A duplicate `ref` (the unique index) from another key: astronomically rare; retry with a new key. Or a
 		// storage outage, which the site should hear about (T185): early in the route, so a call is to spare.
-		report(deps.log, "error", "events.checkout_draft_failed", {
+		await report(deps.log, "error", "events.checkout_draft_failed", {
 			eventId: input.eventId,
 			error: e instanceof Error ? e.name : "unknown",
 		});

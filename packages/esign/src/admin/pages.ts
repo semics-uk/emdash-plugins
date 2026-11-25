@@ -417,7 +417,7 @@ async function sendEnvelope(deps: AdminDeps, id: string): Promise<AdminResponse>
 	} catch (e) {
 		// The route throws after storing the signer when the invitation cannot be queued (T027). T185 (#79): the
 		// admin is told to resend, and the site's log gets why.
-		report(deps.ctx.log, "error", "esign.invite_queue_failed", {
+		await report(deps.ctx.log, "error", "esign.invite_queue_failed", {
 			envelopeId: id,
 			error: e instanceof Error ? e.name : "unknown",
 		});

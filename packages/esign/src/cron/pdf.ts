@@ -73,7 +73,7 @@ export async function generateSignedPdf(
 	if (all.some((s) => s?.status !== "signed") || snapshot === null || !verified.ok || !settled) {
 		const attempt = options.attempt ?? 0;
 		if (attempt + 1 >= PDF_MAX_ATTEMPTS) {
-			ctx.log.error("signed PDF not generated: the envelope never settled", { envelopeId });
+			await ctx.log.error("signed PDF not generated: the envelope never settled", { envelopeId });
 			return "gave-up";
 		}
 		await schedulePdfJob(ctx.cron, envelopeId, options.now + RETRY_MS, attempt + 1);
