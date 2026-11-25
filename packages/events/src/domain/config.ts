@@ -279,6 +279,7 @@ function priceMinorOf(item: Obj, currency: unknown): number | null {
 		const minor = toMinor(item.price, currency);
 		return minor >= 0 ? minor : null;
 	} catch {
+		// Not a price: the item has none.
 		return null;
 	}
 }

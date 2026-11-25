@@ -52,3 +52,42 @@ describe("verifyTurnstile (EV-NFR-04)", () => {
 		expect(calls).toHaveLength(0);
 	});
 });
+
+describe("T185 (#79) Turnstile problems that refuse every visitor reach the site's log", () => {
+	const lines = () => {
+		const out: Array<[string, string, unknown]> = [];
+		return {
+			out,
+			log: {
+				warn: (m: string, d?: unknown) => void out.push(["warn", m, d]),
+				error: (m: string, d?: unknown) => void out.push(["error", m, d]),
+			},
+		};
+	};
+
+	it("Cloudflare failing (5xx or unreachable) is turnstile.unavailable", async () => {
+		const down = lines();
+		const { fetch } = fakeFetch("oops", 503);
+		expect(await verifyTurnstile(fetch, { secret: "s", token: "t", log: down.log })).toEqual(bad);
+		expect(down.out).toEqual([["error", "turnstile.unavailable", { code: "turnstile.unavailable", status: 503 }]]);
+		const gone = lines();
+		const throwing = async () => {
+			throw new TypeError("network");
+		};
+		expect(await verifyTurnstile(throwing, { secret: "s", token: "t", log: gone.log })).toEqual(bad);
+		expect(gone.out[0]?.[1]).toBe("turnstile.unavailable");
+	});
+
+	it("a secret Cloudflare rejects is turnstile.secret_rejected; a visitor's bad token says nothing", async () => {
+		const wrong = lines();
+		const { fetch } = fakeFetch({ success: false, "error-codes": ["invalid-input-secret"] });
+		expect(await verifyTurnstile(fetch, { secret: "s", token: "t", log: wrong.log })).toEqual(bad);
+		expect(wrong.out).toEqual([
+			["error", "turnstile.secret_rejected", { code: "turnstile.secret_rejected", reason: "invalid-input-secret" }],
+		]);
+		const visitor = lines();
+		const stale = fakeFetch({ success: false, "error-codes": ["timeout-or-duplicate"] });
+		expect(await verifyTurnstile(stale.fetch, { secret: "s", token: "t", log: visitor.log })).toEqual(bad);
+		expect(visitor.out).toEqual([]);
+	});
+});

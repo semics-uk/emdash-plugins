@@ -217,6 +217,7 @@ async function confirm(c: Checkout, b: BookingDoc, docs: Item[]): Promise<unknow
 	}
 	if (s.status === CONFIRMED) {
 		const room = CONTINUE_MAX_CALLS - 2 - c.reads - AFTER_SOLD_CALLS;
+		// Quiet on purpose: drift repair settles the counters, and no call is to spare.
 		await confirmSold(storage, countersForBooking(b).slice(0, room)).catch(() => undefined);
 	}
 	await fulfil(c, docs, s.outbox);
@@ -241,6 +242,7 @@ async function advance(
 	if (!extended.ok) return fail(extended.error.code === "CONFLICT" ? INTERNAL : HOLD_EXPIRED);
 	const { holdExpiresAt } = extended.value;
 	await storage.attendees.putMany(await docs());
+	// Quiet on purpose: the recurring sweep-holds task ends the hold.
 	if (cron) await scheduleHoldTask(cron, { id: c.id, ref: b.ref, holdExpiresAt }).catch(() => undefined);
 	return holdExpiresAt;
 }

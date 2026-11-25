@@ -9,6 +9,7 @@
  *
  * Stripe is not a browser: no cookies, no Origin check. Web APIs only, no `@semics-tech/shared` (R35).
  */
+import { siteLog } from "@semics-tech/emdash-events/astro/lib/call";
 import { getPublicPluginApiRouteHandler, type PublicPluginRuntimeLocals } from "emdash/plugin-utils";
 
 export interface StripeRouteIds {
@@ -82,11 +83,20 @@ export async function routeStripeWebhook(ctx: StripeEndpointContext, ids: Stripe
 			data?: unknown;
 			status?: number;
 		};
-		// Not handled (plugin missing, a crash): a 5xx, so Stripe keeps the delivery and retries it.
-		if (!result?.success)
-			return new Response(null, { status: result?.status && result.status >= 500 ? result.status : 503 });
+		// Not handled (plugin missing, a crash): a 5xx, so Stripe keeps the delivery and retries it. T185 (#79): and
+		// the site's log hears of it, since Stripe gives up after a few days of retries.
+		if (!result?.success) {
+			const status = result?.status && result.status >= 500 ? result.status : 503;
+			siteLog("error", "suite.stripe_forward_failed", { pluginId, status });
+			return new Response(null, { status });
+		}
 		return responseOf(result.data);
-	} catch {
+	} catch (error) {
+		siteLog("error", "suite.stripe_forward_failed", {
+			pluginId,
+			status: 500,
+			error: error instanceof Error ? error.name : "unknown",
+		});
 		return new Response(null, { status: 500 });
 	}
 }

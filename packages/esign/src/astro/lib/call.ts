@@ -89,12 +89,14 @@ export async function callPublicRoute<T = unknown>(
 		try {
 			return toResult<T>(await handler(pluginId, method, path, request), "in-process");
 		} catch (error) {
-			return failure(error, "in-process");
+			// failure() logs it for the site (T185).
+			return failure(error, "in-process", pluginId, path);
 		}
 	}
 
 	try {
 		const response = await (ctx.fetch ?? fetch)(request);
+		// Not JSON: the HTTP status speaks for it.
 		const envelope = (await response.json().catch(() => ({}))) as Envelope;
 		if (!response.ok && envelope.success !== false) {
 			return {
@@ -105,7 +107,8 @@ export async function callPublicRoute<T = unknown>(
 		}
 		return toResult<T>(envelope, "fetch");
 	} catch (error) {
-		return failure(error, "fetch");
+		// failure() logs it for the site (T185).
+		return failure(error, "fetch", pluginId, path);
 	}
 }
 
@@ -199,7 +202,25 @@ function toResult<T>(envelope: Envelope, via: "in-process" | "fetch"): PublicRou
 	return { ok: false, error: { code, message }, via };
 }
 
-function failure<T>(error: unknown, via: "in-process" | "fetch"): PublicRouteResult<T> {
+function failure<T>(error: unknown, via: "in-process" | "fetch", pluginId: string, path: string): PublicRouteResult<T> {
 	const message = error instanceof Error ? error.message : "Request failed";
+	// T185 (#79): a route that crashed or could not be reached; the caller still gets its defined error state.
+	siteLog("warn", "esign.route_call_failed", { pluginId, path, via, error: message.replace(/[\w-]{20,}/g, "…") });
 	return { ok: false, error: { code: "ROUTE_CALL_FAILED", message }, via };
+}
+
+/**
+ * T185 (#79): a site-side failure, for the host's own logging (Workers Logs, `wrangler tail`, Sentry on the
+ * Worker). Site code has no `ctx.log`, so it goes to `console`: a stable code, plain values (ids, counts,
+ * statuses), links and email addresses removed. Never what a visitor typed.
+ */
+export function siteLog(
+	level: "warn" | "error",
+	code: string,
+	data: Record<string, string | number | boolean | null | undefined> = {},
+): void {
+	const clean: Record<string, unknown> = { code };
+	for (const [k, v] of Object.entries(data))
+		clean[k] = typeof v === "string" ? v.replace(/\S*:\/\/\S*|[^\s@]+@[^\s@]+/g, "…").slice(0, 200) : v;
+	console[level](code, clean);
 }

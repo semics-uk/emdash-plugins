@@ -303,6 +303,7 @@ function parseUrl(text: string): URL | undefined {
 	try {
 		return new URL(text);
 	} catch {
+		// Not a URL: the fallback is the answer.
 		return undefined;
 	}
 }
@@ -410,6 +411,7 @@ function decodeJsonObject(bytes: Uint8Array): Obj | undefined {
 		const value: unknown = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
 		return isObject(value) ? value : undefined;
 	} catch {
+		// Not UTF-8 JSON: no claims, which the caller refuses.
 		return undefined;
 	}
 }

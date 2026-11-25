@@ -23,6 +23,7 @@ export function jobState<T extends object>(
 		value,
 		async save(force = false) {
 			if (!force && toJson(value) === before) return 0;
+			// Quiet on purpose: a lost write is redone on the next tick.
 			await kv.compareAndSet(key, stored?.revision ?? null, value).catch(() => undefined);
 			return 1;
 		},

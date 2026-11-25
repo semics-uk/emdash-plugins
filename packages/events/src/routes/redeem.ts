@@ -73,6 +73,8 @@ export async function redeemBooking(deps: RedeemDeps, raw: unknown, { claim = fa
 	if (offer) {
 		await deps.storage.waitlist
 			?.updateIf(offer, { where: { status: OFFERED }, set: { status: "claimed" } })
+			// Quiet on purpose: the booking (and its seats) stands. The entry stays offered until the waitlist tick
+			// marks it expired, which re-offers nothing: only the label is wrong.
 			.catch(() => undefined);
 	}
 	return { ok: true, bookingRef: booking.ref, accessToken };

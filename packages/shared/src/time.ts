@@ -42,6 +42,7 @@ export function isValidTimeZone(timeZone: string): boolean {
 		formatter(timeZone);
 		return true;
 	} catch {
+		// An unknown zone.
 		return false;
 	}
 }

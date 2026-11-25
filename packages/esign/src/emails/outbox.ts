@@ -61,6 +61,7 @@ export function siteOrigin(ctx: PluginContext): string {
 		const { origin } = new URL(ctx.site.url);
 		return origin === "null" ? "" : origin;
 	} catch {
+		// No usable site URL: emails go without links.
 		return "";
 	}
 }

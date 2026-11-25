@@ -67,6 +67,7 @@ export function priceEdit(raw: unknown, priceMinor: number, currency: string) {
 	try {
 		minor = toMinor(price, currency);
 	} catch {
+		// Not a price: shown as unpriced.
 		minor = null;
 	}
 	return minor === priceMinor ? null : { price, minor };

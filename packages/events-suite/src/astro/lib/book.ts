@@ -46,6 +46,7 @@ export async function bookingTarget(
 	const list = await callPublicRoute<{ events?: Array<{ eventId: string; slug?: string; status?: string }> }>(ctx, {
 		path: "public/events",
 		pluginId: opts.eventsPluginId,
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	const event = list?.ok ? (list.data.events ?? []).find((e) => e.eventId === eventId) : undefined;
 	const page = event?.status === "on_sale" ? eventPageHref(event.slug, opts.eventPath) : undefined;

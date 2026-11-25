@@ -26,6 +26,7 @@ export function isPayUrl(value: unknown): value is string {
 	try {
 		return new URL(value).protocol === "https:";
 	} catch {
+		// Not a URL, so not a payment page.
 		return false;
 	}
 }

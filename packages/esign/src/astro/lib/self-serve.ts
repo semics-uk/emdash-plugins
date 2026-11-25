@@ -59,6 +59,7 @@ function safeReturnTo(raw: string, origin: string): string | undefined {
 		url.searchParams.delete(TEMPLATE_PARAM);
 		return `${url.pathname}${url.search}`;
 	} catch {
+		// Not a URL: the fallback is the answer.
 		return undefined;
 	}
 }
@@ -118,6 +119,7 @@ export async function handleStartRequest(
 	options: { pluginId?: string },
 ): Promise<Response> {
 	if (isCrossSiteRequest(request, url)) return crossSiteResponse();
+	// No form body: an empty form, which the checks below refuse.
 	const form = await request.formData().catch(() => new FormData());
 	const result = await handleSelfServeForm({ locals, url, request }, form, options);
 	if ("location" in result) return redirect(result.location, 303);

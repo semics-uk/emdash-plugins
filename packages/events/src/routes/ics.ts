@@ -172,6 +172,7 @@ function queryOf(request: { url?: string } | undefined): URLSearchParams {
 	try {
 		return request?.url ? new URL(request.url).searchParams : new URLSearchParams();
 	} catch {
+		// Not a URL: the fallback is the answer.
 		return new URLSearchParams();
 	}
 }

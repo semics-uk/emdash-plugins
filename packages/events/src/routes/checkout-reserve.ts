@@ -1,4 +1,4 @@
-import { generateToken, hashIp, hashToken, type TurnstileFetch } from "@semics-tech/shared";
+import { generateToken, hashIp, hashToken, type ReportLog, report, type TurnstileFetch } from "@semics-tech/shared";
 import type { PluginContext, SandboxedPlugin } from "emdash/plugin";
 
 import { type SweepCron, scheduleHoldTask } from "../cron/sweep";
@@ -80,6 +80,8 @@ export interface ReserveDeps {
 	/** Client IP from the host's request metadata (null when unknown). */
 	ip: string | null;
 	now: number;
+	/** T185 (#79): `ctx.log`, for a failure the buyer only sees as INTERNAL. */
+	log?: ReportLog;
 }
 
 /** The event's waiver, copied onto the booking (only when it is required and names a template). */
@@ -182,7 +184,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	const [entries, stored] = await allOf([deps.settings.list(), storage.event_configs.get(input.eventId)]);
 	const config = stored as EventConfigDoc | null;
 	if (!config || config.orphaned || config.unpublished) return fail(NOT_FOUND);
-	const bot = botCheck(entries, deps.settings, deps.fetch, input.turnstileToken, deps.ip);
+	const bot = botCheck(entries, deps.settings, deps.fetch, input.turnstileToken, deps.ip, deps.log);
 	const settings = bot.settings;
 
 	const ipHash = await hashIp(deps.ip ?? "unknown", bot.salt);
@@ -217,8 +219,13 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	let created: { applied: boolean };
 	try {
 		created = await storage.bookings.compareAndSet(id, null, draft);
-	} catch {
-		// A duplicate `ref` (the unique index) from another key: astronomically rare; retry with a new key.
+	} catch (e) {
+		// A duplicate `ref` (the unique index) from another key: astronomically rare; retry with a new key. Or a
+		// storage outage, which the site should hear about (T185): early in the route, so a call is to spare.
+		report(deps.log, "error", "events.checkout_draft_failed", {
+			eventId: input.eventId,
+			error: e instanceof Error ? e.name : "unknown",
+		});
 		return fail(INTERNAL);
 	}
 	calls++;
@@ -237,8 +244,11 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 		const set = !reserved.error.uncompensated.length
 			? { status: EXPIRED, expiredAt: iso(now) }
 			: { holdExpiresAt: iso(now) };
+		// Quiet on purpose: the sweeper closes the draft and repairs the counters. No log either (T185), since the
+		// reserve and this write may already have used the route's 10 bridge calls.
 		await storage.bookings
 			.updateIf(id, { where: { status: DRAFT, releaseClaimedAt: null }, set })
+			// Quiet on purpose: the sweeper closes the draft (see above).
 			.catch(() => undefined);
 		return fail(reserved.error.code === SOLD_OUT ? SOLD_OUT : INTERNAL);
 	}
@@ -253,6 +263,7 @@ export async function reserveCheckout(deps: ReserveDeps, raw: unknown): Promise<
 	if (!held.applied) return fail(HOLD_EXPIRED);
 
 	if (deps.cron && calls + 1 <= RESERVE_TARGET_CALLS) {
+		// Quiet on purpose: the recurring sweep-holds task ends the hold if this one-shot was not scheduled.
 		await scheduleHoldTask(deps.cron, { id, ref, holdExpiresAt: hold.holdExpiresAt }).catch(() => undefined);
 	}
 	return success({ ref, status: HELD, totals: plan.value.totals }, token, hold.holdExpiresAt);
@@ -268,6 +279,7 @@ export const CHECKOUT_RESERVE_ROUTE: RouteDef = publicPost(
 				...(ctx.cron ? { cron: ctx.cron } : {}),
 				ip: routeCtx.requestMeta?.ip ?? null,
 				now: Date.now(),
+				log: ctx.log,
 			},
 			routeCtx.input,
 		),

@@ -159,6 +159,7 @@ function formStrokes(form: FormData): ReturnType<typeof normaliseStrokes> | unde
 	try {
 		return normaliseStrokes(JSON.parse(raw));
 	} catch {
+		// Not JSON: the visitor's drawing is refused as invalid.
 		return { ok: false, code: "INVALID_SIGNATURE" };
 	}
 }
@@ -255,6 +256,7 @@ export function safeReturnUrl(value: unknown): string | undefined {
 		const url = new URL(value);
 		return url.protocol === "https:" || url.protocol === "http:" ? url.href : undefined;
 	} catch {
+		// Not a URL: the fallback is the answer.
 		return undefined;
 	}
 }

@@ -67,6 +67,7 @@ function siteOrigin(ctx: PluginContext): string | undefined {
 	try {
 		return new URL(ctx.site.url).origin;
 	} catch {
+		// No usable site URL: the caller answers without one.
 		return undefined;
 	}
 }

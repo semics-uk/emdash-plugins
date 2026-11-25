@@ -16,7 +16,7 @@
  *
  * Tokens are opaque here: the cores sign and verify them. Web APIs only, no `@semics-tech/shared` (R35).
  */
-import { callPublicRoute, type PublicRouteContext } from "@semics-tech/emdash-events/astro/lib/call";
+import { callPublicRoute, type PublicRouteContext, siteLog } from "@semics-tech/emdash-events/astro/lib/call";
 
 export interface VoucherIds {
 	eventsPluginId: string;
@@ -54,8 +54,11 @@ const post = <T>(ctx: PublicRouteContext, pluginId: string, path: string, body: 
 /** Passes a settle token to Vouchers; true when it took it. */
 export async function settleVoucher(ctx: PublicRouteContext, settle: unknown, vouchersPluginId: string) {
 	if (!isToken(settle)) return false;
-	const done = await post(ctx, vouchersPluginId, "public/redeem/settle", { settle }).catch(() => null);
-	return done?.ok === true;
+	// callPublicRoute never throws; it logs a crash itself (T185).
+	const done = await post(ctx, vouchersPluginId, "public/redeem/settle", { settle });
+	// T185 (#79): a hold Vouchers would not settle stays open after payment, until a later lookup settles it.
+	if (!done.ok) siteLog("warn", "suite.voucher_settle_refused", { code: done.error.code });
+	return done.ok;
 }
 
 /** Asks Events for each open hold's outcome and settles the ones it knows (voucher/1 §8.3). */
@@ -63,11 +66,11 @@ async function settleLookups(ctx: PublicRouteContext, ids: VoucherIds, lookups: 
 	const requests = (Array.isArray(lookups) ? lookups : []).filter(isToken).slice(0, MAX_LOOKUPS);
 	const answers = await Promise.all(
 		requests.map((request) =>
-			post<{ settle?: unknown }>(ctx, ids.eventsPluginId, "public/voucher/lookup", { request }).catch(() => null),
+			post<{ settle?: unknown }>(ctx, ids.eventsPluginId, "public/voucher/lookup", { request }),
 		),
 	);
 	for (const answer of answers) {
-		if (answer?.ok) await settleVoucher(ctx, answer.data.settle, ids.vouchersPluginId);
+		if (answer.ok) await settleVoucher(ctx, answer.data.settle, ids.vouchersPluginId);
 	}
 }
 
@@ -103,6 +106,7 @@ export async function holdVoucher(
 	const read = await post<BookingLines>(ctx, ids.eventsPluginId, "public/booking", {
 		bookingRef: input.bookingRef,
 		accessToken: input.accessToken,
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	if (!read?.ok) return UNAVAILABLE;
 	const b = read.data;

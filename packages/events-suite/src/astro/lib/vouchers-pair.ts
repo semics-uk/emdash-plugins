@@ -60,6 +60,7 @@ const read = (f: () => Promise<unknown>) => f().catch(() => undefined);
 /** The page's state for a GET (and the POST's starting point). */
 export async function vouchersPairingStatus(ctx: VouchersPairContext, ids: VouchersPairIds): Promise<VouchersPairView> {
 	if (!adminOf(ctx.locals)) return { state: "forbidden" };
+	// Shown to the admin as an error state; nothing for the site's log.
 	const res = await ctx.settings.read(ids.eventsPluginId).catch(() => null);
 	if (!res?.ok) return { state: "forbidden" };
 	const held = await read(ctx.readPairing);
@@ -90,6 +91,7 @@ export async function pairVouchers(ctx: VouchersPairContext, ids: VouchersPairId
 		headers: { "content-type": "application/json" },
 		body: "{}",
 	});
+	// Shown to the admin as an error state; nothing for the site's log.
 	const res = await admin.call(ids.vouchersPluginId, "POST", ROUTE, request, admin.user).catch(() => null);
 	if (!res) return { state: "error", code: "INTERNAL" };
 	if (!res.success) {
@@ -100,8 +102,10 @@ export async function pairVouchers(ctx: VouchersPairContext, ids: VouchersPairId
 	}
 	const pairing = (res.data as { ok?: unknown; pairing?: unknown } | undefined)?.pairing;
 	if (typeof pairing !== "string" || !PAIRING.test(pairing)) return { state: "error", code: "INTERNAL" };
+	// Shown to the admin as an error state; nothing for the site's log.
 	const written = await ctx.settings.write(ids.eventsPluginId, { [SETTING]: pairing }).catch(() => null);
 	if (written?.ok) return { state: "paired" };
+	// Not JSON: shown to the admin as an error state.
 	const body = (await written?.json().catch(() => ({}))) as { error?: { code?: unknown } } | undefined;
 	return { state: "error", code: typeof body?.error?.code === "string" ? body.error.code : "INTERNAL" };
 }

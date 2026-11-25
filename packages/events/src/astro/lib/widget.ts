@@ -91,6 +91,7 @@ function offsets(zone: string): (at: number) => number {
 	try {
 		format = new Intl.DateTimeFormat("en-US", { timeZone: zone, timeZoneName: "longOffset" });
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return () => 0;
 	}
 	return (at) => {
@@ -131,6 +132,7 @@ export function requestDates(
 	try {
 		today = new Intl.DateTimeFormat("en-CA", { timeZone: zone }).format(new Date(now));
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		today = new Date(now).toISOString().slice(0, 10);
 	}
 	const start = Date.parse(`${today}T00:00:00Z`);
@@ -410,6 +412,7 @@ export function formatMoney(minor: number, currency: string, locale = "en-GB"): 
 	try {
 		return new Intl.NumberFormat(locale, { style: "currency", currency }).format(minor / 100);
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return `${(minor / 100).toFixed(2)} ${currency}`;
 	}
 }

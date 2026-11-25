@@ -112,6 +112,7 @@ async function esign(
 		headers: { "content-type": "application/json" },
 		body: JSON.stringify(clientId ? { action, clientId } : { action }),
 	});
+	// Shown to the admin as an error state; nothing for the site's log.
 	const res = await admin.call(ids.esignPluginId, "POST", ESIGN_ROUTE, request, admin.user).catch(() => null);
 	if (!res) return { kind: "error", code: "INTERNAL" };
 	if (!res.success) {
@@ -131,6 +132,7 @@ async function esign(
 async function eventsPaired(ctx: PairContext, ids: PairIds): Promise<boolean | null> {
 	const res = await ctx.settings.read(ids.eventsPluginId).catch(() => null);
 	if (!res?.ok) return null;
+	// Shown to the admin as an error state; nothing for the site's log.
 	const body = (await res.json().catch(() => ({}))) as { data?: { secretsSet?: Record<string, unknown> } };
 	return body.data?.secretsSet?.[SETTING] === true;
 }
@@ -139,6 +141,7 @@ async function eventsPaired(ctx: PairContext, ids: PairIds): Promise<boolean | n
 async function writePairing(ctx: PairContext, ids: PairIds, value: string | null): Promise<string | null> {
 	const res = await ctx.settings.write(ids.eventsPluginId, { [SETTING]: value }).catch(() => null);
 	if (res?.ok) return null;
+	// Shown to the admin as an error state; nothing for the site's log.
 	const body = (await res?.json().catch(() => ({}))) as { error?: { code?: unknown } } | undefined;
 	return typeof body?.error?.code === "string" ? body.error.code : "INTERNAL";
 }

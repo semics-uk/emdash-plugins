@@ -145,6 +145,7 @@ export async function readBooking(
 	const answer = await post<BookingAnswer>(call, ids.eventsPluginId, "public/booking", {
 		bookingRef: ref,
 		accessToken,
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => undefined);
 	return answer?.ok ? answer.data : undefined;
 }

@@ -101,6 +101,7 @@ function tokenInUrl(request: Request | undefined): boolean {
 	try {
 		return request !== undefined && new URL(request.url).searchParams.has("token");
 	} catch {
+		// Not a URL: the fallback is the answer.
 		return false;
 	}
 }

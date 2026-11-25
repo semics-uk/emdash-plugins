@@ -144,6 +144,7 @@ async function advance(
 	}
 	if (s.status === CONFIRMED) {
 		const room = RECEIPT_MAX_CALLS - used - 1 - AFTER_SOLD_CALLS;
+		// Quiet on purpose: drift repair settles the counters, and no call is to spare.
 		await confirmSold(storage, countersForBooking(booking).slice(0, maxOf(room, 0))).catch(() => undefined);
 	}
 	await storage.outbox.putMany(s.outbox);

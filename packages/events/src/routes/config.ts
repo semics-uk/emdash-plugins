@@ -179,6 +179,7 @@ export async function saveConfig(
 	if (calls + reservedCalls > MAX_SAVE_CALLS)
 		return badRequest([{ path: "input", code: "TOO_MANY_CHANGES" } satisfies ConfigIssue]);
 
+	// The info copy is optional: the outbox reads the event itself without it.
 	const info: EventInfoDoc | null = state.config || !loadInfo ? null : await loadInfo().catch(() => null);
 
 	const writeCatalog = async () => {

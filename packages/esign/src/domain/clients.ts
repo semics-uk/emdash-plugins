@@ -66,6 +66,7 @@ export function parseAllowlist(text: string): { ok: true; entries: string[] } | 
 		try {
 			url = new URL(raw);
 		} catch {
+			// Not a URL: the entry is refused and named.
 			return { ok: false, entry: raw };
 		}
 		const schemeOk = url.protocol === "https:" || (url.protocol === "http:" && LOOPBACK.has(url.hostname));

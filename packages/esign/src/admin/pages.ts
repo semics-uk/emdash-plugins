@@ -14,6 +14,7 @@ import {
 	notices,
 	numberInput,
 	renderTemplate,
+	report,
 	secretInput,
 	select,
 	table,
@@ -413,8 +414,13 @@ async function sendEnvelope(deps: AdminDeps, id: string): Promise<AdminResponse>
 	let reply: Reply;
 	try {
 		reply = await run(deps, envelopeRoute("envelopes/send"), { id });
-	} catch {
-		// The route throws after storing the signer when the invitation cannot be queued (T027).
+	} catch (e) {
+		// The route throws after storing the signer when the invitation cannot be queued (T027). T185 (#79): the
+		// admin is told to resend, and the site's log gets why.
+		report(deps.ctx.log, "error", "esign.invite_queue_failed", {
+			envelopeId: id,
+			error: e instanceof Error ? e.name : "unknown",
+		});
 		return respond([
 			header("Envelope"),
 			...notices([
@@ -631,6 +637,7 @@ function previewOf(body: string): string {
 	try {
 		return renderTemplate(body, sample);
 	} catch {
+		// A template that does not render yet: preview it as typed.
 		return body;
 	}
 }

@@ -21,6 +21,7 @@ export function money(minor: number, currency: string, locale: string, free: str
 		const format = new Intl.NumberFormat(locale, { style: "currency", currency });
 		return format.format(minor / 10 ** (format.resolvedOptions().maximumFractionDigits ?? 2));
 	} catch {
+		// This runtime lacks the zone or currency: fall back to a plain format.
 		return `${(minor / 100).toFixed(2)} ${currency}`;
 	}
 }

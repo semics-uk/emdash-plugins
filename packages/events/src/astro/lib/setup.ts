@@ -63,9 +63,11 @@ const NO_TURNSTILE: SetupNotice = {
 type Read = { kind: "ok"; data: Record<string, unknown> } | { kind: "forbidden" } | { kind: "error" };
 
 async function read(get: () => Promise<Response>): Promise<Read> {
+	// Shown to the admin as an error state; nothing for the site's log.
 	const res = await get().catch(() => null);
 	if (!res) return { kind: "error" };
 	if (res.status === 401 || res.status === 403) return { kind: "forbidden" };
+	// Not JSON: shown to the admin as an error state.
 	const body = (await res.json().catch(() => null)) as { success?: unknown; data?: unknown } | null;
 	const data = body?.data;
 	if (!res.ok || body?.success !== true || !data || typeof data !== "object") return { kind: "error" };
@@ -78,6 +80,7 @@ const record = (v: unknown): Record<string, unknown> =>
 /** Readable when the host opens it to text; anything else it stores but cannot give back is unreadable. */
 async function outcome(ctx: SetupContext, key: string, set: unknown): Promise<SecretReadOutcome> {
 	if (set !== true) return "unset";
+	// Shown to the admin as unreadable; nothing for the site's log.
 	const value = await ctx.readSecret(key).catch(() => null);
 	return typeof value === "string" && value !== "" ? "readable" : "unreadable";
 }

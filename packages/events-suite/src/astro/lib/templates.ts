@@ -61,6 +61,7 @@ export async function refreshCatalogue(
 		path: "public/templates/catalog",
 		pluginId: ids.esignPluginId,
 		body: { request },
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	if (!fetched) return { ok: false, code: "INTERNAL" };
 	if (!fetched.ok) return { ok: false, code: fetched.error.code };
@@ -70,6 +71,7 @@ export async function refreshCatalogue(
 		path: "esign/catalog",
 		pluginId: ids.eventsPluginId,
 		body: { request, templates },
+		// callPublicRoute never throws (it logs a crash itself, T185); the result's error state is the answer.
 	}).catch(() => null);
 	if (!cached) return { ok: false, code: "INTERNAL" };
 	return cached.ok ? { ok: true, count: templates.length } : { ok: false, code: cached.error.code };
@@ -106,6 +108,7 @@ export async function loadCatalogue(ctx: PublicRouteContext, ids: CatalogueIds):
 		headers: { "content-type": "application/json" },
 		body: "{}",
 	});
+	// Shown to the admin as an error state; nothing for the site's log.
 	const res = await (call as PrivateRoute)(ids.eventsPluginId, "POST", REQUEST_ROUTE, asked, l.user).catch(() => null);
 	const data = (res?.success ? res.data : null) as {
 		ok?: unknown;

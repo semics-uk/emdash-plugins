@@ -4,6 +4,7 @@ function isValidTimeZone(timeZone: string): boolean {
 		new Intl.DateTimeFormat("en-GB", { timeZone });
 		return true;
 	} catch {
+		// An unknown zone: the caller falls back to UTC.
 		return false;
 	}
 }
