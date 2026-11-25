@@ -209,6 +209,7 @@ const id = BUY_FORM_ID;
 {options?.turnstileSiteKey && <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>}
 
 <script>
+	import { applyFields, fromHistory, saveBuyKept, takeBuyKept } from "./lib/keep-form";
 	// The live preview and the sections that apply (progressive: without this script every section shows).
 	const form = document.querySelector<HTMLFormElement>("form[data-testid=buy-voucher]");
 	const card = document.getElementById("semics-voucher-preview");
@@ -248,32 +249,16 @@ const id = BUY_FORM_ID;
 		};
 		form.addEventListener("input", update);
 		form.addEventListener("change", update);
-		// T183: a refusal comes back with the form empty (nothing typed goes in the URL), so the fields are kept in
-		// this tab's sessionStorage on submit and put back once, on the refusal's page only. Storage may be off
-		// (private modes): then the form simply comes back empty, as before.
-		const KEEP = "semics-buy-voucher";
-		const skip = new Set(["returnTo", "currency", "cf-turnstile-response"]);
-		form.addEventListener("submit", () => {
-			try {
-				const kept = [...new FormData(form)].filter(([k, v]) => typeof v === "string" && !skip.has(k));
-				sessionStorage.setItem(KEEP, JSON.stringify(kept));
-			} catch {
-				// No storage: nothing to keep.
-			}
-		});
+		// T183, T184: a refusal comes back with the form empty (nothing typed goes in the URL), so keep-form keeps the
+		// fields in this tab's sessionStorage on submit and puts them back once, straight after the refusal. Without
+		// storage (private modes) the form comes back empty, as before.
+		const fields = () => [...form.elements] as unknown as HTMLInputElement[];
+		form.addEventListener("submit", () => saveBuyKept(sessionStorage, fields(), Date.now()));
 		try {
-			const saved = sessionStorage.getItem(KEEP);
-			sessionStorage.removeItem(KEEP);
-			if (saved && new URL(location.href).searchParams.has("voucher_error")) {
-				for (const [k, v] of JSON.parse(saved) as Array<[string, string]>) {
-					const el = form.elements.namedItem(k);
-					const radios = el instanceof RadioNodeList ? [...el] : el instanceof HTMLInputElement && el.type === "radio" ? [el] : null;
-					if (radios) for (const r of radios) if (r instanceof HTMLInputElement) r.checked = r.value === v;
-					else if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) el.value = v;
-				}
-			}
+			const kept = takeBuyKept(sessionStorage, new URL(location.href).searchParams, Date.now(), fromHistory());
+			if (kept) applyFields(fields(), kept);
 		} catch {
-			// No storage, or something unreadable in it: the form stays as the page drew it.
+			// Storage is blocked: the form stays as the page drew it.
 		}
 		update();
 	}
