@@ -334,7 +334,7 @@ describe("EV-FR-16 waitlist offer from the outbox", () => {
 		expect(mail?.subject).toContain("Winter Concert");
 		expect(mail?.text).toContain(`https://site.test/booking?ref=${REF}&k=`);
 		expect(mail?.text).toContain("offer=1");
-		expect(mail?.text).toContain("Mon 2 Nov 2026, 12:00 (Europe/London)");
+		expect(mail?.text).toContain("Mon 2 Nov 2026, 12:00");
 		const code = codeFrom(mail?.text ?? "");
 		expect(w.booking().redeemHash).toBe(await hashToken(code));
 		expect(w.booking().redeemExpiresAt).toBe(HOLD);

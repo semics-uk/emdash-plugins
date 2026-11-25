@@ -60,7 +60,6 @@ const WHEN: Intl.DateTimeFormatOptions = {
 	hour: "2-digit",
 	minute: "2-digit",
 	hourCycle: "h23",
-	timeZoneName: "short",
 };
 
 /** The booking widget's and the waiver page's date format: full date, short time. */
@@ -87,10 +86,15 @@ export function zonedAt(iso: string, timezone: string | null | undefined, locale
 
 const BADGES = { cancelled: "list.badge.cancelled", closed: "list.badge.closed", paused: "list.badge.paused" } as const;
 
-/** The start in the event's own zone; a missing or unknown zone shows UTC rather than failing. */
+/**
+ * The start in the event's own zone, without the zone's name ("Thu, 14 Mar 2030, 18:30", T186), as the session
+ * time and the emails read; a missing or unknown zone shows UTC and says so rather than failing.
+ */
 export function eventWhen(startsAt: string, timezone: string | null | undefined, locale: string): string {
-	const zone = timezone && isValidTimeZone(timezone) ? timezone : "UTC";
-	return formatInZone(Date.parse(startsAt), zone, locale, WHEN);
+	const known = Boolean(timezone && isValidTimeZone(timezone));
+	const zone = known ? (timezone as string) : "UTC";
+	const time = formatInZone(Date.parse(startsAt), zone, locale, WHEN);
+	return known ? time : `${time} (${zone})`;
 }
 
 export function cardView(event: PublicEventSummary, locale: string): CardView {

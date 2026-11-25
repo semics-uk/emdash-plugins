@@ -18,8 +18,7 @@ const base: PublicEventSummary = {
 describe("event list view (EU-FR-03, EU-US-4)", () => {
 	it("EU-FR-03 shows each event in its own time zone", () => {
 		const london = cardView(base, "en-GB");
-		expect(london.when).toContain("18:30");
-		expect(london.when).toContain("GMT");
+		expect(london.when).toBe("Thu, 14 Mar 2030, 18:30"); // T186: no zone name, as the session time reads
 		// 22:00 UTC on 5 November is 09:00 the next day in Sydney (AEDT, UTC+11).
 		const sydney = cardView(
 			{ ...base, startsAt: "2030-11-05T22:00:00.000Z", endsAt: null, timezone: "Australia/Sydney" },
@@ -33,8 +32,8 @@ describe("event list view (EU-FR-03, EU-US-4)", () => {
 	});
 
 	it("EU-FR-03 falls back to UTC for a missing or unknown zone", () => {
-		expect(cardView({ ...base, timezone: null }, "en-GB").when).toContain("UTC");
-		expect(cardView({ ...base, timezone: "Nowhere/Land" }, "en-GB").when).toContain("UTC");
+		expect(cardView({ ...base, timezone: null }, "en-GB").when).toMatch(/ \(UTC\)$/);
+		expect(cardView({ ...base, timezone: "Nowhere/Land" }, "en-GB").when).toMatch(/ \(UTC\)$/);
 	});
 
 	it("EU-FR-03 labels price and availability without exposing counters", () => {

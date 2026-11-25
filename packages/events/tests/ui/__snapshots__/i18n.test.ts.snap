@@ -9,7 +9,7 @@ exports[`UI text in en and ar (EU-NFR-04 snapshots) > EU-NFR-04 Arabic 1`] = `
     "price": "ابتداءً من ‏15.00 UK£",
     "title": "London Community Meetup",
     "venue": "The Old Library",
-    "when": "الخميس، 14 مارس 2030، 18:30 غرينتش+0",
+    "when": "الخميس، 14 مارس 2030، 18:30",
   },
   "checkIn": {
     "message": "تتطلب شاشة تسجيل الحضور Events Pro. استخدم صفحة المشاركين في لوحة الإدارة بدلًا من ذلك.",
@@ -54,7 +54,7 @@ exports[`UI text in en and ar (EU-NFR-04 snapshots) > EU-NFR-04 English 1`] = `
     "price": "From £15.00",
     "title": "London Community Meetup",
     "venue": "The Old Library",
-    "when": "Thu, 14 Mar 2030, 18:30 GMT+0",
+    "when": "Thu, 14 Mar 2030, 18:30",
   },
   "checkIn": {
     "message": "The check-in screen needs Events Pro. Use the Attendees page in the admin instead.",
