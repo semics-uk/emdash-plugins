@@ -17,6 +17,7 @@ import {
 	type OutboxStatusReport,
 	type OutboxStorage,
 	outboxStatus,
+	watchOutbox,
 } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 import type { EnvelopeDoc } from "../domain/envelopes";
@@ -123,6 +124,16 @@ export async function runOutboxJob(event: CronEvent, ctx: PluginContext, now = D
 	if (event.name !== OUTBOX_TASK) return false;
 	// T185: the drain logs a first failure and a give-up itself (at most 2 lines a tick).
 	await drainOutbox({ storage: outboxStorage(ctx), email: ctx.email, now, log: ctx.log });
+	return true;
+}
+
+export const WATCH_TASK = "outbox-watch";
+export const WATCH_SCHEDULE = "*/5 * * * *";
+
+/** T187: every 5 minutes, one `outbox.stuck` error for mail pending 15 minutes past due, each row once (4 calls at most). */
+export async function runOutboxWatch(event: CronEvent, ctx: PluginContext, now = Date.now()): Promise<boolean> {
+	if (event.name !== WATCH_TASK) return false;
+	await watchOutbox({ storage: outboxStorage(ctx), kv: ctx.kv, log: ctx.log, now });
 	return true;
 }
 

@@ -5,7 +5,14 @@ import { OCCURRENCES_SCHEDULE, OCCURRENCES_TASK, runOccurrencesJob } from "./cro
 import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
 import { runCron, SWEEP_SCHEDULE, SWEEP_TASK } from "./cron/sweep";
 import { runWaitlistJob, WAITLIST_SCHEDULE, WAITLIST_TASK } from "./cron/waitlist";
-import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
+import {
+	OUTBOX_SCHEDULE,
+	OUTBOX_TASK,
+	runOutboxJob,
+	runOutboxWatch,
+	WATCH_SCHEDULE,
+	WATCH_TASK,
+} from "./emails/outbox";
 import {
 	contentAfterDelete,
 	contentAfterPublish,
@@ -31,6 +38,7 @@ type RouteDef = NonNullable<SandboxedPlugin["routes"]>[string];
 const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: SWEEP_TASK, schedule: SWEEP_SCHEDULE },
 	{ name: OUTBOX_TASK, schedule: OUTBOX_SCHEDULE },
+	{ name: WATCH_TASK, schedule: WATCH_SCHEDULE },
 	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
 	{ name: WAITLIST_TASK, schedule: WAITLIST_SCHEDULE },
 	{ name: OCCURRENCES_TASK, schedule: OCCURRENCES_SCHEDULE },
@@ -57,6 +65,7 @@ const plugin: SandboxedPlugin = {
 			if (await runRetentionJob(event, ctx)) return;
 			if (await runWaitlistJob(event, ctx)) return;
 			if (await runOccurrencesJob(event, ctx)) return;
+			if (await runOutboxWatch(event, ctx)) return;
 			if (!(await runOutboxJob(event, ctx))) await runCron(event, ctx);
 		},
 	},

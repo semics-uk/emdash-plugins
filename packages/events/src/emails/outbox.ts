@@ -35,6 +35,7 @@ import {
 	type OutboxStatus,
 	type OutboxStorage,
 	type ReportLog,
+	watchOutbox,
 } from "@semics-tech/shared";
 import type { CronEvent, PluginContext } from "emdash/plugin";
 
@@ -497,6 +498,42 @@ export async function runOutboxJob(
 	await drainEventsOutbox({
 		...meteredDeps({ ...drainDepsOf(ctx, now), ...(render ? { render } : {}) }, meter),
 		log: { warn: room("warn"), error: room("error") },
+	});
+	return true;
+}
+
+export const WATCH_TASK = "outbox-watch";
+export const WATCH_SCHEDULE = "*/5 * * * *";
+
+/**
+ * T187: every 5 minutes, one `outbox.stuck` error for mail pending 15 minutes past due, each row once (1 call when
+ * nothing is stuck, 4 at most). The rows are read as they are: the watch needs only the id, kind and due time.
+ */
+export async function runOutboxWatch(event: CronEvent, ctx: PluginContext, now = Date.now()): Promise<boolean> {
+	if (event.name !== WATCH_TASK) return false;
+	const outbox = (ctx.storage as unknown as { outbox: OutboxCollection }).outbox;
+	await watchOutbox({
+		storage: {
+			query: async (q) => {
+				const { items } = await outbox.query({
+					where: { status: q.status, nextAttemptAt: { lte: iso(q.nextAttemptAtLte as number) } },
+					orderBy: { nextAttemptAt: "asc" },
+					limit: q.limit,
+				});
+				return {
+					items: items.map(({ id, data }) => {
+						const d = data as OutboxDoc;
+						return {
+							id,
+							data: { message: { kind: d.kind }, nextAttemptAt: d.nextAttemptAt } as unknown as OutboxRecord,
+						};
+					}),
+				};
+			},
+		},
+		kv: ctx.kv,
+		log: ctx.log,
+		now,
 	});
 	return true;
 }

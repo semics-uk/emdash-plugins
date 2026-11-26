@@ -45,7 +45,7 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	});
 
 	it.each(ALWAYS_HIT)(
-		"%s queues the ensure task, and its cron tick schedules outbox-drain, nonce-sweep, retention and expire (no reminders: Pro)",
+		"%s queues the ensure task, and its cron tick schedules outbox-drain, outbox-watch, nonce-sweep, retention and expire (no reminders: Pro)",
 		async (route, input) => {
 			const { r, budget } = await setup();
 			const first = await budget.invokeRoute(route, input);
@@ -61,7 +61,7 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 					expect.objectContaining({ name: "nonce-sweep", schedule: "0 * * * *" }),
 				]),
 			);
-			expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "retention"]);
+			expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "outbox-watch", "retention"]);
 			expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
 		},
 	);
@@ -81,19 +81,19 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	it("activation (registry installs) still schedules the drain in one call; the ensure task then sets the flag once", async () => {
 		const { r, budget } = await setup();
 		const activated = await budget.measure("activate", () => r.actions.plugin.activate());
-		expect(activated.calls.filter(isSchedule)).toHaveLength(4);
-		expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "retention"]);
+		expect(activated.calls.filter(isSchedule)).toHaveLength(5);
+		expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "outbox-watch", "retention"]);
 		await budget.invokeRoute("public/verify", { sha256: "0".repeat(64) });
 		await tick(r);
-		expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "retention"]);
+		expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "outbox-watch", "retention"]);
 		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
 	});
 
 	it("T061 the flag version was bumped with nonce-sweep, so a site scheduled under v1 schedules the sweep too", async () => {
 		// v7: E-sign Pro `reminders` (T090) piggybacks on the ensure task, so sites scheduled under v6 run it once more.
 		// v8: Events Pro `stripe-reconcile` (T120), the same way.
-		// v9: Events `waitlist` (T081). v10: Events `occurrences` (T084). v11: Events Pro `reminders` (T083).
-		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v11");
+		// v9: Events `waitlist` (T081). v10: Events `occurrences` (T084). v11: Events Pro `reminders` (T083). v12: `outbox-watch` (T187).
+		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v12");
 		const { r, budget } = await setup();
 		// A site whose drain was scheduled before nonce-sweep existed.
 		await r.fixtures.plugin.kv("cron:scheduled:v1", { at: "2026-10-20T00:00:00.000Z" });
@@ -101,7 +101,7 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 		expectWithinBudget(res, TARGET);
 		expect(await taskNames(r)).toContain(ENSURE_SCHEDULES_TASK);
 		await tick(r);
-		expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "retention"]);
+		expect(await taskNames(r)).toEqual(["expire", "nonce-sweep", "outbox-drain", "outbox-watch", "retention"]);
 	});
 
 	it("leaves the routes nearest the limit alone: from-intent, submit, session and admin actions make no check", async () => {
