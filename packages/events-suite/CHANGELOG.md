@@ -1,5 +1,13 @@
 # @semics-tech/emdash-events-suite
 
+## 1.0.0-rc.40
+
+### Patch Changes
+
+- 21e5a51: Lockstep with Pro 1.0.0-rc.40 (Vouchers schedules its new cron tasks from admin page loads).
+- @semics-tech/emdash-esign@1.0.0-rc.40
+  - @semics-tech/emdash-events@1.0.0-rc.40
+
 ## 1.0.0-rc.39
 
 ### Patch Changes
