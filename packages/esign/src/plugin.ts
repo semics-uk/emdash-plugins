@@ -12,7 +12,14 @@ import { runIntentFinishJob } from "./cron/intent-finish";
 import { NONCE_SWEEP_SCHEDULE, NONCE_SWEEP_TASK, runNonceSweepJob } from "./cron/nonce-sweep";
 import { runPdfJob } from "./cron/pdf";
 import { RETENTION_SCHEDULE, RETENTION_TASK, runRetentionJob } from "./cron/retention";
-import { OUTBOX_SCHEDULE, OUTBOX_TASK, runOutboxJob } from "./emails/outbox";
+import {
+	OUTBOX_SCHEDULE,
+	OUTBOX_TASK,
+	runOutboxJob,
+	runOutboxWatch,
+	WATCH_SCHEDULE,
+	WATCH_TASK,
+} from "./emails/outbox";
 import { ADMIN_ROUTES } from "./routes/admin";
 import { catalogHandler } from "./routes/catalog";
 import { CEREMONY_HANDLERS } from "./routes/ceremony";
@@ -41,6 +48,8 @@ const RECURRING_TASKS: readonly RecurringTask[] = [
 	{ name: RETENTION_TASK, schedule: RETENTION_SCHEDULE },
 	// T092: expiry closes unsigned envelopes (Free); the shared flag moved to v6.
 	{ name: EXPIRE_TASK, schedule: EXPIRE_SCHEDULE },
+	// T187: mail stuck in the outbox is reported; the shared flag moved to v12.
+	{ name: WATCH_TASK, schedule: WATCH_SCHEDULE },
 ];
 
 const PUBLIC = publicRoutes({
@@ -61,6 +70,7 @@ const plugin: SandboxedPlugin = {
 		cron: async (event, ctx) => {
 			if (await runEnsureSchedulesJob(event, ctx, RECURRING_TASKS, Date.now())) return;
 			if (await runOutboxJob(event, ctx)) return;
+			if (await runOutboxWatch(event, ctx)) return;
 			if (await runCompletionEmailJob(event, ctx)) return;
 			if (await runIntentFinishJob(event, ctx)) return;
 			if (await runNonceSweepJob(event, ctx)) return;

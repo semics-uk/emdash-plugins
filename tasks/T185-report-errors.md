@@ -4,7 +4,7 @@ title: "Errors reach the host site's log: report helper, outbox, Stripe webhooks
 phase: 8
 package: shared
 edition: free
-status: in-progress
+status: done
 model: opus-5.5
 size: M
 depends_on: [T181]

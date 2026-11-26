@@ -177,3 +177,51 @@ export async function outboxStatus(opts: Omit<DrainOptions, "maxPerTick">): Prom
 		failed: failed.items.length,
 	};
 }
+
+/** T187: a row still pending this long after it was due is stuck (the drain is not running or cannot send). */
+export const OUTBOX_STUCK_MS = 15 * 60_000;
+/** The KV key holding the ids already reported, so one stuck row is reported once. */
+export const OUTBOX_STUCK_KEY = "outbox:stuck";
+
+export interface WatchOptions {
+	readonly storage: Pick<OutboxStorage, "query">;
+	readonly kv: { get(key: string): Promise<unknown>; set(key: string, value: unknown): Promise<void> };
+	readonly log?: ReportLog;
+	readonly now: number;
+	readonly limit?: number;
+}
+
+/**
+ * T187 (lmsc-site#151 point 3): one `outbox.stuck` error for rows pending over `OUTBOX_STUCK_MS` past their due
+ * time, naming only the ones not reported before (ids and kinds, never an address). A row that failed for good is
+ * already reported when the drain gives up (`outbox.gave_up`). The oldest `limit` rows are checked.
+ * Bridge calls: 1 when nothing is stuck; else 1 KV read, and on news 1 log and 1 KV write (4).
+ */
+export async function watchOutbox(opts: WatchOptions): Promise<number> {
+	const { items } = await opts.storage.query({
+		status: "pending",
+		nextAttemptAtLte: opts.now - OUTBOX_STUCK_MS,
+		limit: opts.limit ?? 20,
+	});
+	if (items.length === 0) return 0;
+	const seen = await opts.kv.get(OUTBOX_STUCK_KEY);
+	const told = new Set(Array.isArray(seen) ? seen : []);
+	const fresh = items.filter((r) => !told.has(r.id));
+	if (fresh.length === 0) return 0;
+	await report(opts.log, "error", "outbox.stuck", {
+		count: fresh.length,
+		ids: fresh
+			.slice(0, 5)
+			.map((r) => r.id)
+			.join(" "),
+		kinds: [...new Set(fresh.map((r) => (r.data.message as ScrubbedMessage).kind ?? "?"))].join(" "),
+		// Events stores its times as ISO text, the others as epoch ms.
+		dueAt: String(fresh[0]?.data.nextAttemptAt),
+	});
+	// Still-stuck rows stay known; the rest drop off, so the list stays as long as `limit`.
+	await opts.kv.set(
+		OUTBOX_STUCK_KEY,
+		items.map((r) => r.id),
+	);
+	return fresh.length;
+}

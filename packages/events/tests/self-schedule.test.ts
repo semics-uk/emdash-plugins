@@ -55,12 +55,20 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 
 			const ran = await budget.measure("ensure tick", () => tick(r));
 			expectWithinBudget(ran, TARGET);
-			expect(await taskNames(r)).toEqual(["occurrences", "outbox-drain", "retention", "sweep-holds", "waitlist"]);
+			expect(await taskNames(r)).toEqual([
+				"occurrences",
+				"outbox-drain",
+				"outbox-watch",
+				"retention",
+				"sweep-holds",
+				"waitlist",
+			]);
 			const tasks = await r.inspect.scheduledTasks();
 			expect(tasks).toEqual(
 				expect.arrayContaining([
 					expect.objectContaining({ name: "sweep-holds", schedule: "*/5 * * * *" }),
 					expect.objectContaining({ name: "outbox-drain", schedule: "* * * * *" }),
+					expect.objectContaining({ name: "outbox-watch", schedule: "*/5 * * * *" }),
 					expect.objectContaining({ name: "retention", schedule: "17 * * * *" }),
 					expect.objectContaining({ name: "waitlist", schedule: "* * * * *" }),
 					expect.objectContaining({ name: "occurrences", schedule: "*/10 * * * *" }),
@@ -85,16 +93,30 @@ describe("self-scheduling without plugin:activate (R37)", () => {
 	it("activation (registry installs) still schedules every cron; the ensure task then sets the flag once", async () => {
 		const { r, budget } = await setup();
 		const activated = await budget.measure("activate", () => r.actions.plugin.activate());
-		expect(activated.calls.filter(isSchedule)).toHaveLength(5);
-		expect(await taskNames(r)).toEqual(["occurrences", "outbox-drain", "retention", "sweep-holds", "waitlist"]);
+		expect(activated.calls.filter(isSchedule)).toHaveLength(6);
+		expect(await taskNames(r)).toEqual([
+			"occurrences",
+			"outbox-drain",
+			"outbox-watch",
+			"retention",
+			"sweep-holds",
+			"waitlist",
+		]);
 		await budget.invokeRoute("public/events", {});
 		await tick(r);
-		expect(await taskNames(r)).toEqual(["occurrences", "outbox-drain", "retention", "sweep-holds", "waitlist"]);
+		expect(await taskNames(r)).toEqual([
+			"occurrences",
+			"outbox-drain",
+			"outbox-watch",
+			"retention",
+			"sweep-holds",
+			"waitlist",
+		]);
 		expect(await r.inspect.kv.get(SCHEDULES_FLAG)).toBeTruthy();
 	});
 
-	it("T084 T083 the flag version was bumped with the occurrences task (v10) and Events Pro reminders (v11)", () => {
-		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v11");
+	it("T084 T083 the flag version was bumped with the occurrences task (v10) , Events Pro reminders (v11) and T187 outbox-watch (v12)", () => {
+		expect(SCHEDULES_FLAG).toBe("cron:scheduled:v12");
 	});
 
 	it("leaves the routes nearest the limit alone: checkout reserve/continue and admin actions make no check", async () => {
