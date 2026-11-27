@@ -5,7 +5,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 
 ## Now
 - Released rc.23–rc.38 (2026-11-17 to 11-25): T174f–h party packages, T176–T180 vouchers and setup check, T182–T184 voucher buy fixes (CR LF, field-naming refusals, form restore; lmsc-site can drop its workarounds), T185 #79 error logging (rc.35–37, closed), T186 local time without zone name. rc.39–40 (2026-11-26): T187 lmsc-site#151 points 2, 3, 5: `outbox-watch` every 5 min reports `outbox.stuck` once per row (Events, E-sign, Vouchers; flag v12), Vouchers `vouchers-reconcile` daily 06:40 UTC (`vouchers.reconcile_mismatch`), voucher page shows email state and points to Resend; rc.40 schedules them from Vouchers admin page loads. Point 4 (bounces) parked by Oli 2026-11-26, no EmDash upstream PR (needs `send()` to return a message id and a site Queues consumer; T187). rc.40 live on LMSC (lmsc-site #193); first reconcile 27 Nov 06:40 UTC. Core 1.2 limits: plugin nav not filtered by role, expired-session 401 shown raw. Gaps: refund racing a hold can leave voucher live; bridge-call count not measured on host; one package per order; Bookings list and confirmation email show no lines; unnamed seats sign in the buyer's name at the door
-- Sizes at rc.39: Free Events 122,984 B (920 B under the hotfix room), Pro Events 255.2 of 256 KiB, Vouchers 87.8 of 100 KiB
+- Sizes at rc.39 (supersede older figures): Free Events 122,984 B (920 B under the hotfix room), Pro Events 255.2 of 256 KiB, Vouchers 87.8 of 100 KiB
 - Follow-ups: after Confirm time the lapse- approval_expired outbox row stays pending until its time and is then dropped (harmless; deleting it would cost Free bytes); Events Pro promo rate-limit test flaky in a slow full verify (passed on rerun); Events Pro does not trim a pasted vouchersPairing (T172 note); t145 e2e asserts a Free-only message so fails on Pro builds; booking form with a cookie-filled code could be stored by a cache that ignores cookies (docs/vouchers.md); one t168 run hit chrome-error on the T170 thanks page (passed on rerun); board.json not regenerated for T169–T172
 - LMSC sells ~36 activity packages as hand-typed activityTypes lines (ids need not be Events ids; staff Redeem by hand while live booking is off)
 - Version PR: since #92 release.yml dispatches CI on it and the light path passes, so it merges with no approval (`gh pr checks` does not list dispatched runs; read the head commit's check-runs)
@@ -23,7 +23,7 @@ Task detail lives in `tasks/` (start with `tasks/ORCHESTRATOR.md`); this file on
 - Issues: `gh issue list`
 - Both repos: `corepack pnpm@10.23.0 verify` (public and ../emdash-plugins-pro)
 - Mac disk: 3.4 GB free after clearing npm's cache; the site build fails with no space when it is nearly full
-- Events backend size: 125 KiB budget less 4 KiB hotfix room; Free Events 121,271 B (2,633 B left), Pro Events 253.5 of 256 KiB (rc.35); Vouchers 83.0 of 100 KiB
+- Events backend size budget: 125 KiB less 4 KiB hotfix room (current sizes under Now)
 
 ## Ideas
 - Payments plugin investigation: measure what moving Stripe out of Events Pro would save (only if Events Pro size gets tight; T163)
